@@ -517,6 +517,22 @@ svg {
   background: transparent;
 }
 
+.pin-foreign-object {
+  overflow: visible;
+  background: transparent;
+}
+
+.pin-stage {
+  width: 164px;
+  height: 168px;
+  padding-bottom: 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: visible;
+  background: transparent;
+}
+
 .map-pin {
   width: 58px;
   min-height: 72px;

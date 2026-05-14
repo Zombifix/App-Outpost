@@ -236,16 +236,18 @@ function Pin({ destination, projection, zoomTransform, selected, onSelect }: Pin
 
   return (
     <g transform={`translate(${cx}, ${cy})`} className={selected ? 'pin-selected' : undefined}>
-      <foreignObject x="-34" y="-62" width="68" height="82">
-        <button
-          className="map-pin"
-          onClick={() => onSelect(destination.name)}
-          style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
-        >
-          <span>{destination.tier}</span>
-          <strong>{destination.name}</strong>
-          <small>{score}</small>
-        </button>
+      <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
+        <div className="pin-stage">
+          <button
+            className="map-pin"
+            onClick={() => onSelect(destination.name)}
+            style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
+          >
+            <span>{destination.tier}</span>
+            <strong>{destination.name}</strong>
+            <small>{score}</small>
+          </button>
+        </div>
       </foreignObject>
     </g>
   )

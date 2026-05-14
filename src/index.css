@@ -100,6 +100,9 @@ svg {
   gap: 13px;
   height: 44px;
   color: #17213a;
+  border: 0;
+  background: transparent;
+  text-align: left;
 }
 
 .brand strong {
@@ -188,6 +191,12 @@ svg {
   backdrop-filter: blur(18px);
 }
 
+.top-actions button.active-action {
+  color: #5548ee;
+  background: rgba(241, 243, 255, 0.94);
+  border-color: rgba(108, 99, 255, 0.24);
+}
+
 .inspiration-card {
   margin-top: auto;
   min-height: 120px;
@@ -245,8 +254,12 @@ svg {
   grid-template-columns: 44px 1fr 18px;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding-bottom: 15px;
   border-bottom: 1px solid var(--line);
+  color: inherit;
+  background: transparent;
+  text-align: left;
 }
 
 .avatar,
@@ -646,6 +659,11 @@ svg {
   box-shadow: 0 10px 22px rgba(95, 119, 148, 0.12);
 }
 
+.heart-button.is-favorite {
+  color: white;
+  background: #f25f73;
+}
+
 .destination-card p {
   margin: 16px 8px 18px;
   color: #6e7a91;
@@ -709,6 +727,10 @@ svg {
   background: rgba(255, 255, 255, 0.82);
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px);
+}
+
+.tier-board.is-managing {
+  outline: 2px solid rgba(108, 99, 255, 0.18);
 }
 
 .tier-board-head {
@@ -830,9 +852,27 @@ svg {
 }
 
 .mini-destination span,
-.mini-destination small {
+.mini-destination small,
+.mini-destination i {
   position: relative;
   z-index: 1;
+}
+
+.mini-destination i {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 20px;
+  height: 16px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #26314d;
+  background: rgba(255, 255, 255, 0.8);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .mini-destination span {

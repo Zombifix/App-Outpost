@@ -5,7 +5,7 @@ import WorldMap from './components/WorldMap'
 import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
 
-const STORAGE_KEY = 'outpost-destinations'
+const STORAGE_KEY = 'triptier-destinations-v2'
 
 function loadDestinations(): Destination[] {
   try {
@@ -20,7 +20,11 @@ function loadDestinations(): Destination[] {
 export default function App() {
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
-  const [selectedName, setSelectedName] = useState('Kyoto')
+  const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
+  const [favoriteNames, setFavoriteNames] = useState<Set<string>>(() => new Set(['Kyoto']))
+  const [filterTop, setFilterTop] = useState(false)
+  const [sortByScore, setSortByScore] = useState(false)
+  const [manageMode, setManageMode] = useState(false)
 
   useEffect(() => {
     try {
@@ -30,8 +34,19 @@ export default function App() {
     }
   }, [destinations])
 
+  const visibleDestinations = useMemo(() => {
+    const filtered = filterTop
+      ? destinations.filter(destination => destination.tier === 'S' || destination.tier === 'A')
+      : destinations
+
+    return [...filtered].sort((a, b) => {
+      if (sortByScore) return (b.score ?? 0) - (a.score ?? 0)
+      return a.name.localeCompare(b.name)
+    })
+  }, [destinations, filterTop, sortByScore])
+
   const selected = useMemo(
-    () => destinations.find(destination => destination.name === selectedName) ?? destinations[0],
+    () => destinations.find(destination => destination.name === selectedName) ?? null,
     [destinations, selectedName],
   )
 
@@ -42,23 +57,75 @@ export default function App() {
     setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
   }
 
+  const focusSelected = () => {
+    if (!selected) return
+    setFlyTarget({ lat: selected.lat, lng: selected.lng, name: selected.name })
+  }
+
+  const toggleFavorite = (name: string) => {
+    setFavoriteNames(previous => {
+      const next = new Set(previous)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+
+  const createFreshList = () => {
+    setDestinations(DESTINATIONS)
+    setSelectedName('Kyoto')
+    setFilterTop(false)
+    setSortByScore(false)
+    setManageMode(true)
+  }
+
   return (
     <div className="travel-app">
       <WorldMap
-        destinations={destinations}
+        destinations={visibleDestinations}
         flyTarget={flyTarget}
         selectedName={selected?.name}
         onSelect={selectByName}
         onFlyTargetConsumed={() => setFlyTarget(null)}
       />
-      <Nav totalDestinations={destinations.length} />
-      {selected && <DestinationCard destination={selected} />}
-      <TierListPanel destinations={destinations} onFlyTo={selectByName} />
+      <Nav
+        totalDestinations={visibleDestinations.length}
+        filterTop={filterTop}
+        sortByScore={sortByScore}
+        onCreate={createFreshList}
+        onFilterToggle={() => setFilterTop(value => !value)}
+        onSortToggle={() => setSortByScore(value => !value)}
+        onSearch={selectByName}
+        destinations={destinations}
+      />
+      {selected && (
+        <DestinationCard
+          destination={selected}
+          favorite={favoriteNames.has(selected.name)}
+          onClose={() => setSelectedName(null)}
+          onFocus={focusSelected}
+          onFavorite={() => toggleFavorite(selected.name)}
+        />
+      )}
+      <TierListPanel
+        destinations={visibleDestinations}
+        manageMode={manageMode}
+        onManageToggle={() => setManageMode(value => !value)}
+        onFlyTo={selectByName}
+      />
     </div>
   )
 }
 
-function DestinationCard({ destination }: { destination: Destination }) {
+interface DestinationCardProps {
+  destination: Destination
+  favorite: boolean
+  onClose: () => void
+  onFocus: () => void
+  onFavorite: () => void
+}
+
+function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite }: DestinationCardProps) {
   const criteria = [
     ['Gastronomie', destination.food, 'utensils'],
     ['Sorties & Vie nocturne', destination.night, 'martini'],
@@ -70,7 +137,7 @@ function DestinationCard({ destination }: { destination: Destination }) {
 
   return (
     <aside className="destination-card" aria-label={`Detail de ${destination.name}`}>
-      <button className="floating-close" aria-label="Fermer le detail">
+      <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
         <Icon name="x" />
       </button>
       <div
@@ -82,13 +149,17 @@ function DestinationCard({ destination }: { destination: Destination }) {
         <div>
           <h2>{destination.name}, {destination.country}</h2>
           <div className="rating-line">
-            <span className="star">★</span>
+            <span className="star">*</span>
             <strong>{(destination.score ?? 4).toFixed(1).replace('.', ',')}</strong>
             <span />
             <span>{destination.notes ?? 12} notes</span>
           </div>
         </div>
-        <button className="heart-button" aria-label="Ajouter aux favoris">
+        <button
+          className={`heart-button ${favorite ? 'is-favorite' : ''}`}
+          aria-label={favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          onClick={onFavorite}
+        >
           <Icon name="heart" />
         </button>
       </div>
@@ -103,7 +174,7 @@ function DestinationCard({ destination }: { destination: Destination }) {
           </div>
         ))}
       </div>
-      <button className="map-button">
+      <button className="map-button" onClick={onFocus}>
         <Icon name="map" />
         Voir sur la carte
       </button>

@@ -36,6 +36,7 @@ export default function WorldMap({
   const [dimensions, setDimensions] = useState({ width: 900, height: 520 })
   const [worldData, setWorldData] = useState<GeoJSON.FeatureCollection | null>(null)
   const [projectionReady, setProjectionReady] = useState(false)
+  const [zoomTransform, setZoomTransform] = useState(d3.zoomIdentity)
 
   useEffect(() => {
     const element = wrapperRef.current
@@ -101,12 +102,12 @@ export default function WorldMap({
       .scaleExtent([1, 7])
       .on('zoom', event => {
         countries.attr('transform', String(event.transform))
-        d3.select(svgRef.current).select<SVGGElement>('g.pins-transform')
-          .attr('transform', String(event.transform))
+        setZoomTransform(event.transform)
       })
 
     zoomRef.current = zoom
     svg.call(zoom)
+    setZoomTransform(d3.zoomIdentity)
     setProjectionReady(true)
   }, [worldData, dimensions])
 
@@ -133,6 +134,22 @@ export default function WorldMap({
     onFlyTargetConsumed()
   }, [flyTarget, dimensions, onFlyTargetConsumed])
 
+  const zoomBy = (factor: number) => {
+    if (!svgRef.current || !zoomRef.current) return
+    d3.select(svgRef.current)
+      .transition()
+      .duration(260)
+      .call(zoomRef.current.scaleBy, factor)
+  }
+
+  const resetZoom = () => {
+    if (!svgRef.current || !zoomRef.current) return
+    d3.select(svgRef.current)
+      .transition()
+      .duration(360)
+      .call(zoomRef.current.transform, d3.zoomIdentity)
+  }
+
   return (
     <section className="map-area" ref={wrapperRef} aria-label="Carte des destinations">
       <svg
@@ -147,6 +164,7 @@ export default function WorldMap({
               destination={destination}
               key={destination.name}
               projection={projectionRef.current!}
+              zoomTransform={zoomTransform}
               selected={destination.name === selectedName}
               onSelect={onSelect}
             />
@@ -155,9 +173,14 @@ export default function WorldMap({
       </svg>
 
       <div className="map-controls" aria-label="Controles de carte">
-        <button aria-label="Zoomer">+</button>
-        <button aria-label="Dezoomer">−</button>
-        <button aria-label="Centrer">⌾</button>
+        <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>
+        <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>-</button>
+        <button aria-label="Centrer" onClick={resetZoom}>
+          <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
 
       <div className="legend">
@@ -181,15 +204,16 @@ export default function WorldMap({
 interface PinProps {
   destination: Destination
   projection: d3.GeoProjection
+  zoomTransform: d3.ZoomTransform
   selected: boolean
   onSelect: (name: string) => void
 }
 
-function Pin({ destination, projection, selected, onSelect }: PinProps) {
+function Pin({ destination, projection, zoomTransform, selected, onSelect }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
 
-  const [cx, cy] = projected
+  const [cx, cy] = zoomTransform.apply(projected)
   const color = TIER_COLORS[destination.tier].pin
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
     .toFixed(1)

@@ -1,37 +1,77 @@
+import { useState } from 'react'
+import type { Destination } from '../types'
+
 interface NavProps {
   totalDestinations: number
+  destinations: Destination[]
+  filterTop: boolean
+  sortByScore: boolean
+  onCreate: () => void
+  onFilterToggle: () => void
+  onSortToggle: () => void
+  onSearch: (name: string) => void
 }
 
 const menu = [
-  ['list', 'Ma tier list', true],
-  ['compass', 'Explorer', false],
-  ['globe', 'Carte des destinations', false],
-  ['clock', 'Activite', false],
-  ['users', 'Amis', false],
-  ['settings', 'Parametres', false],
+  ['list', 'Ma tier list'],
+  ['compass', 'Explorer'],
+  ['globe', 'Carte des destinations'],
+  ['clock', 'Activite'],
+  ['users', 'Amis'],
+  ['settings', 'Parametres'],
 ] as const
 
-export default function Nav({ totalDestinations }: NavProps) {
+export default function Nav({
+  totalDestinations,
+  destinations,
+  filterTop,
+  sortByScore,
+  onCreate,
+  onFilterToggle,
+  onSortToggle,
+  onSearch,
+}: NavProps) {
+  const [activeMenu, setActiveMenu] = useState('Ma tier list')
+  const [query, setQuery] = useState('')
+  const [shared, setShared] = useState(false)
+
+  const submitSearch = () => {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) return
+    const match = destinations.find(destination =>
+      destination.name.toLowerCase().includes(normalized) ||
+      destination.country.toLowerCase().includes(normalized),
+    )
+    if (match) {
+      onSearch(match.name)
+      setActiveMenu('Carte des destinations')
+    }
+  }
+
   return (
     <>
       <aside className="sidebar">
-        <div className="brand">
+        <button className="brand" onClick={() => setActiveMenu('Ma tier list')} aria-label="Accueil TripTier">
           <div className="brand-mark">
             <span />
             <span />
             <span />
           </div>
           <strong>TripTier</strong>
-        </div>
+        </button>
 
-        <button className="create-button">
+        <button className="create-button" onClick={onCreate}>
           <Icon name="plus" />
           Creer une tier list
         </button>
 
         <nav className="side-menu" aria-label="Navigation principale">
-          {menu.map(([icon, label, active]) => (
-            <button className={active ? 'active' : ''} key={label}>
+          {menu.map(([icon, label]) => (
+            <button
+              className={activeMenu === label ? 'active' : ''}
+              key={label}
+              onClick={() => setActiveMenu(label)}
+            >
               <Icon name={icon} />
               {label}
             </button>
@@ -39,23 +79,23 @@ export default function Nav({ totalDestinations }: NavProps) {
         </nav>
 
         <div className="inspiration-card">
-          <div className="balloon">✦</div>
+          <div className="balloon">*</div>
           <div>
             <strong>Envie d'inspiration ?</strong>
             <p>Decouvrez des idees de voyages</p>
-            <button>Explorer <Icon name="arrow" /></button>
+            <button onClick={() => setActiveMenu('Explorer')}>Explorer <Icon name="arrow" /></button>
           </div>
         </div>
 
         <div className="profile-card">
-          <div className="profile-head">
+          <button className="profile-head" onClick={() => setActiveMenu('Parametres')}>
             <div className="avatar">E</div>
             <div>
               <strong>Emma Martin</strong>
               <span>@emmavoyage</span>
             </div>
             <Icon name="chevron" />
-          </div>
+          </button>
           <div className="profile-stats">
             <span><strong>{totalDestinations}</strong>Destinations</span>
             <span><strong>7</strong>Abonnes</span>
@@ -67,19 +107,39 @@ export default function Nav({ totalDestinations }: NavProps) {
       <header className="topbar">
         <label className="search-box">
           <Icon name="search" />
-          <input placeholder="Rechercher une destination, une activite..." />
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === 'Enter') submitSearch()
+            }}
+            placeholder="Rechercher une destination, une activite..."
+          />
         </label>
         <div className="top-actions">
-          <button><Icon name="sliders" />Filtres</button>
-          <button><Icon name="sort" />Trier <Icon name="chevron" /></button>
-          <button className="share"><Icon name="share" />Partager</button>
-          <button className="bell" aria-label="Notifications"><Icon name="bell" /><span /></button>
-          <button className="user-badge">S</button>
+          <button className={filterTop ? 'active-action' : ''} onClick={onFilterToggle}>
+            <Icon name="sliders" />
+            {filterTop ? 'Top tiers' : 'Filtres'}
+          </button>
+          <button className={sortByScore ? 'active-action' : ''} onClick={onSortToggle}>
+            <Icon name="sort" />
+            {sortByScore ? 'Score' : 'Trier'}
+            <Icon name="chevron" />
+          </button>
+          <button className="share" onClick={() => setShared(value => !value)}>
+            <Icon name="share" />
+            {shared ? 'Partagee' : 'Partager'}
+          </button>
+          <button className="bell" aria-label="Notifications" onClick={() => setActiveMenu('Activite')}>
+            <Icon name="bell" />
+            <span />
+          </button>
+          <button className="user-badge" onClick={() => setActiveMenu('Parametres')}>S</button>
         </div>
       </header>
 
       <section className="page-title" aria-label="Titre de la page">
-        <h1>Ma tier list — Destinations de reve ✨</h1>
+        <h1>Ma tier list - Destinations de reve</h1>
         <p>Modifiee le 18 mai 2024</p>
       </section>
     </>

@@ -1,8 +1,11 @@
+import { useRef } from 'react'
 import type { Destination, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
 
 interface TierListPanelProps {
   destinations: Destination[]
+  manageMode: boolean
+  onManageToggle: () => void
   onFlyTo: (name: string) => void
 }
 
@@ -14,18 +17,29 @@ const tierLabels: Record<Tier, string> = {
   D: 'Decouvrant',
 }
 
-export default function TierListPanel({ destinations, onFlyTo }: TierListPanelProps) {
+export default function TierListPanel({
+  destinations,
+  manageMode,
+  onManageToggle,
+  onFlyTo,
+}: TierListPanelProps) {
+  const columnsRef = useRef<HTMLDivElement>(null)
+
+  const showNext = () => {
+    columnsRef.current?.scrollBy({ left: 260, behavior: 'smooth' })
+  }
+
   return (
-    <section className="tier-board" aria-label="Ma tier list">
+    <section className={`tier-board ${manageMode ? 'is-managing' : ''}`} aria-label="Ma tier list">
       <div className="tier-board-head">
         <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
-        <button>
+        <button onClick={onManageToggle}>
           <Icon />
-          Gerer ma tier list
+          {manageMode ? 'Terminer' : 'Gerer ma tier list'}
         </button>
       </div>
 
-      <div className="tier-columns">
+      <div className="tier-columns" ref={columnsRef}>
         {TIER_ORDER.map(tier => {
           const items = destinations.filter(destination => destination.tier === tier)
           const colors = TIER_COLORS[tier]
@@ -45,8 +59,9 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
                     onClick={() => onFlyTo(destination.name)}
                     style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
                   >
+                    {manageMode && <i aria-hidden="true">...</i>}
                     <span>{destination.name}</span>
-                    <small>★ {(destination.score ?? 3).toFixed(1).replace('.', ',')}</small>
+                    <small>* {(destination.score ?? 3).toFixed(1).replace('.', ',')}</small>
                   </button>
                 ))}
               </div>
@@ -55,7 +70,11 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
         })}
       </div>
 
-      <button className="next-control" aria-label="Voir la suite">›</button>
+      <button className="next-control" aria-label="Voir la suite" onClick={showNext}>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
     </section>
   )
 }

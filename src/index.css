@@ -817,6 +817,65 @@ svg {
   font-weight: 800;
 }
 
+.destination-card-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 7px 6px;
+}
+
+.card-action-edit,
+.card-action-delete {
+  flex: 1;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.card-action-edit {
+  background: #eef5fc;
+  color: #24304b;
+}
+
+.card-action-delete {
+  background: #fef1f1;
+  color: #e0364a;
+}
+
+.card-action-edit:hover { background: #ddeaf8; }
+.card-action-delete:hover { background: #fde2e2; }
+
+.mini-destination-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(220, 38, 55, 0.85);
+  color: #fff;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 2;
+  padding: 0;
+}
+
+.wizard-edit-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6e7a91;
+  text-align: center;
+  margin: 0 0 12px;
+  letter-spacing: 0.01em;
+}
+
 .tier-board {
   left: var(--content-l);
   right: var(--card-r);

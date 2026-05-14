@@ -29,6 +29,7 @@ export default function App() {
   const [manageMode, setManageMode] = useState(false)
   const [tierListCollapsed, setTierListCollapsed] = useState(false)
   const [addingDestination, setAddingDestination] = useState(false)
+  const [editingDestination, setEditingDestination] = useState<Destination | null>(null)
   const [activeView, setActiveView] = useState<View>('map')
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
@@ -76,6 +77,16 @@ export default function App() {
       else next.add(name)
       return next
     })
+  }
+
+  const removeDestination = (name: string) => {
+    setDestinations(previous => previous.filter(item => item.name !== name))
+    if (selectedName === name) setSelectedName(null)
+  }
+
+  const updateDestination = (updated: Destination) => {
+    setDestinations(previous => previous.map(item => item.name === updated.name ? updated : item))
+    setEditingDestination(null)
   }
 
   const addDestination = (destination: Destination) => {
@@ -147,6 +158,8 @@ export default function App() {
           onClose={() => setSelectedName(null)}
           onFocus={focusSelected}
           onFavorite={() => toggleFavorite(selected.name)}
+          onEdit={dest => setEditingDestination(dest)}
+          onDelete={name => removeDestination(name)}
         />
       )}
       {activeView === 'map' && (
@@ -157,12 +170,21 @@ export default function App() {
           onManageToggle={() => setManageMode(value => !value)}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
           onFlyTo={selectByName}
+          onDelete={removeDestination}
         />
       )}
       {addingDestination && (
         <AddDestinationWizard
           onClose={() => setAddingDestination(false)}
           onAdd={addDestination}
+        />
+      )}
+      {editingDestination && (
+        <AddDestinationWizard
+          onClose={() => setEditingDestination(null)}
+          onAdd={addDestination}
+          initialDestination={editingDestination}
+          onUpdate={updateDestination}
         />
       )}
       {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}
@@ -250,9 +272,11 @@ interface DestinationCardProps {
   onClose: () => void
   onFocus: () => void
   onFavorite: () => void
+  onEdit: (destination: Destination) => void
+  onDelete: (name: string) => void
 }
 
-function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite }: DestinationCardProps) {
+function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, onEdit, onDelete }: DestinationCardProps) {
   const criteria = [
     ['Gastronomie', destination.food, 'utensils'],
     ['Sorties & Vie nocturne', destination.night, 'martini'],
@@ -305,6 +329,23 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite }
         <Icon name="map" />
         Voir sur la carte
       </button>
+      <div className="destination-card-actions">
+        <button className="card-action-edit" onClick={() => onEdit(destination)}>
+          <Icon name="edit" />
+          Modifier
+        </button>
+        <button
+          className="card-action-delete"
+          onClick={() => {
+            if (window.confirm(`Supprimer ${destination.name} de ta tier list ?`)) {
+              onDelete(destination.name)
+            }
+          }}
+        >
+          <Icon name="trash" />
+          Supprimer
+        </button>
+      </div>
     </aside>
   )
 }
@@ -330,6 +371,8 @@ function Icon({ name }: { name: string }) {
     mountain: <><path d="m3 20 7-13 4 7 2-3 5 9Z" /><path d="m10 7 2 4 2-3" /></>,
     plane: <><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" /></>,
     coins: <><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" /><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></>,
+    edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" /></>,
+    trash: <><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>,
   }
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>

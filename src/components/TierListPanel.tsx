@@ -8,6 +8,7 @@ interface TierListPanelProps {
   onManageToggle: () => void
   onCollapseToggle: () => void
   onFlyTo: (name: string) => void
+  onDelete?: (name: string) => void
 }
 
 const tierLabels: Record<Tier, string> = {
@@ -25,6 +26,7 @@ export default function TierListPanel({
   onManageToggle,
   onCollapseToggle,
   onFlyTo,
+  onDelete,
 }: TierListPanelProps) {
   return (
     <section className={`tier-board ${manageMode ? 'is-managing' : ''} ${collapsed ? 'is-collapsed' : ''}`} aria-label="Ma tier list">
@@ -56,7 +58,15 @@ export default function TierListPanel({
                     onClick={() => onFlyTo(destination.name)}
                     style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
                   >
-                    {manageMode && <i aria-hidden="true">...</i>}
+                    {manageMode && onDelete && (
+                      <button
+                        className="mini-destination-delete"
+                        aria-label={`Supprimer ${destination.name}`}
+                        onClick={e => { e.stopPropagation(); onDelete(destination.name) }}
+                      >
+                        ✕
+                      </button>
+                    )}
                     <span>{destination.name}</span>
                     <small>* {(destination.score ?? 3).toFixed(1).replace('.', ',')}</small>
                   </button>

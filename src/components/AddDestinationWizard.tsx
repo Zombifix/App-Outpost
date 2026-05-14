@@ -5,6 +5,8 @@ import { TIER_COLORS } from '../data'
 interface WizardProps {
   onClose: () => void
   onAdd: (destination: Destination) => void
+  initialDestination?: Destination
+  onUpdate?: (destination: Destination) => void
 }
 
 type DestKind = 'place' | 'zone' | 'stop' | 'stage'
@@ -207,19 +209,41 @@ const TIER_EXPLANATIONS: Record<Tier, string> = {
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 
-export default function AddDestinationWizard({ onClose, onAdd }: WizardProps) {
-  const [step, setStep] = useState<WizardStep>('search')
+export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate }: WizardProps) {
+  const isEditing = !!initialDestination
+  const [step, setStep] = useState<WizardStep>(isEditing ? 'questions' : 'search')
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<PhotonResult[]>([])
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<PhotonResult | null>(null)
-  const [state, setState] = useState<WizardState>({
-    name: '', country: '', lat: 0, lng: 0,
-    kind: 'place', tripName: '',
-    food: 0, night: 0, culture: 0, nature: 0, value: 0,
-    vibeBoost: 0, retourBonus: 0,
-    intent: 'tourisme',
-  })
+  const [state, setState] = useState<WizardState>(
+    isEditing
+      ? {
+          name: initialDestination.name,
+          country: initialDestination.country,
+          lat: initialDestination.lat,
+          lng: initialDestination.lng,
+          extent: initialDestination.extent,
+          geojson: initialDestination.geojson,
+          kind: initialDestination.kind ?? 'place',
+          tripName: initialDestination.tripName ?? '',
+          food: initialDestination.food,
+          night: initialDestination.night,
+          culture: initialDestination.culture,
+          nature: initialDestination.nature,
+          value: initialDestination.value,
+          vibeBoost: 0,
+          retourBonus: 0,
+          intent: initialDestination.intent,
+        }
+      : {
+          name: '', country: '', lat: 0, lng: 0,
+          kind: 'place', tripName: '',
+          food: 0, night: 0, culture: 0, nature: 0, value: 0,
+          vibeBoost: 0, retourBonus: 0,
+          intent: 'tourisme',
+        }
+  )
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answeredKeys, setAnsweredKeys] = useState<Set<QuestionKey>>(new Set())
   const [finalScore, setFinalScore] = useState(0)
@@ -309,7 +333,7 @@ export default function AddDestinationWizard({ onClose, onAdd }: WizardProps) {
     const lat = isZone && s.extent ? (s.extent[1] + s.extent[3]) / 2 : s.lat
     const lng = isZone && s.extent ? (s.extent[0] + s.extent[2]) / 2 : s.lng
 
-    onAdd({
+    const result: Destination = {
       name: s.name,
       country: s.country,
       lat, lng,
@@ -325,16 +349,22 @@ export default function AddDestinationWizard({ onClose, onAdd }: WizardProps) {
       value: s.value || 3,
       intent: s.intent,
       score: Math.round(finalScore * 10) / 10,
-      notes: 1,
-      image: DEFAULT_IMAGE,
-      summary: `${TIER_LABELS[finalTier]}. ${s.name} rejoint ta tier list.`,
-    })
+      notes: isEditing ? (initialDestination.notes ?? 1) : 1,
+      image: isEditing ? initialDestination.image : DEFAULT_IMAGE,
+      summary: `${TIER_LABELS[finalTier]}. ${s.name} — tier mis à jour.`,
+    }
+
+    if (isEditing && onUpdate) {
+      onUpdate(result)
+    } else {
+      onAdd(result)
+    }
   }
 
   const activeQuestions = state.kind === 'stop' ? [] : QUESTIONS
 
   return (
-    <div className="wizard-overlay" role="dialog" aria-label="Ajouter une destination" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="wizard-panel">
         <button className="wizard-close" aria-label="Fermer" onClick={onClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -342,8 +372,12 @@ export default function AddDestinationWizard({ onClose, onAdd }: WizardProps) {
           </svg>
         </button>
 
-        {/* Progress dots */}
-        {step !== 'result' && (
+        {isEditing && step !== 'result' && (
+          <p className="wizard-edit-label">Modifier — {initialDestination.name}</p>
+        )}
+
+        {/* Progress dots — masqués en mode édition (on saute search/type) */}
+        {!isEditing && step !== 'result' && (
           <div className="wizard-progress">
             {(['search', 'type', 'questions'] as WizardStep[]).map((s, i) => (
               <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < ['search', 'type', 'questions'].indexOf(step) ? 'done' : '')}`} />
@@ -476,7 +510,7 @@ export default function AddDestinationWizard({ onClose, onAdd }: WizardProps) {
               <p className="result-trip-badge">✈ {state.tripName}</p>
             )}
             <button className="wizard-submit" onClick={confirmAdd}>
-              Ajouter à ma carte
+              {isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
             </button>
           </div>
         )}

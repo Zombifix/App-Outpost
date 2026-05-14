@@ -173,20 +173,9 @@ function Pin({ dest, projection, onEnter, onLeave }: PinProps) {
       onMouseLeave={onLeave}
       style={{ cursor: 'pointer', filter: `drop-shadow(0 2px 6px ${pin}99)` }}
     >
-      {/* Halo pulsé */}
-      <circle
-        r={10}
-        fill={pin}
-        opacity={0}
-        style={{ animation: 'halo-breathe 3s ease-in-out infinite', transformOrigin: '0 0' }}
-      />
-      {/* Corps du pin — teardrop pointant vers le bas */}
-      {/* Cercle centré en (0,-13), rayon 8, pointe en (0,0) */}
-      <path
-        d="M 0,0 L -7,-14 A 7 7 0 1 1 7,-14 Z"
-        fill={pin}
-      />
-      {/* Reflet interne */}
+      {/* Teardrop */}
+      <path d="M 0,0 L -7,-14 A 7 7 0 1 1 7,-14 Z" fill={pin} />
+      {/* Reflet */}
       <circle r={2.5} cx={-2} cy={-18} fill="rgba(255,255,255,0.35)" />
     </g>
   )

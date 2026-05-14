@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Destination, NewDestinationForm } from './types'
+import type { Destination, Friend, NewDestinationForm } from './types'
 import { DESTINATIONS, FRIENDS, FEED } from './data'
 import { calculateTier } from './utils'
 import WorldMap from './components/WorldMap'
@@ -8,6 +8,7 @@ import TierListPanel from './components/TierListPanel'
 import AddPanel from './components/AddPanel'
 import FriendsPanel from './components/FriendsPanel'
 import ActivityFeed from './components/ActivityFeed'
+import CompareView from './components/CompareView'
 
 const STORAGE_KEY = 'outpost-destinations'
 
@@ -22,6 +23,7 @@ function loadDestinations(): Destination[] {
 export default function App() {
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
+  const [compareFriend, setCompareFriend] = useState<Friend | null>(null)
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(destinations)) } catch { /* ignore */ }
@@ -33,25 +35,16 @@ export default function App() {
       form.intent,
     )
     const newDest: Destination = {
-      name: form.name,
-      country: '📍',
-      lat: coords.lat,
-      lng: coords.lng,
-      tier,
-      food: form.food,
-      night: form.night,
-      culture: form.culture,
-      nature: form.nature,
-      value: form.value,
-      intent: form.intent,
+      name: form.name, country: '📍',
+      lat: coords.lat, lng: coords.lng, tier,
+      food: form.food, night: form.night, culture: form.culture,
+      nature: form.nature, value: form.value, intent: form.intent,
     }
     setDestinations(prev => [...prev, newDest])
     setFlyTarget({ lat: coords.lat, lng: coords.lng, name: form.name })
   }
 
-  const flyTo = (lat: number, lng: number, name: string) => {
-    setFlyTarget({ lat, lng, name })
-  }
+  const flyTo = (lat: number, lng: number, name: string) => setFlyTarget({ lat, lng, name })
 
   const flyToByName = (name: string) => {
     const dest = destinations.find(d => d.name === name)
@@ -68,8 +61,16 @@ export default function App() {
       <Nav totalDestinations={destinations.length} />
       <TierListPanel destinations={destinations} onFlyTo={flyToByName} />
       <AddPanel onAdd={handleAdd} />
-      <FriendsPanel friends={FRIENDS} />
+      <FriendsPanel friends={FRIENDS} onCompare={f => setCompareFriend(f)} />
       <ActivityFeed feed={FEED} friends={FRIENDS} onFlyTo={flyTo} />
+
+      {compareFriend && (
+        <CompareView
+          friend={compareFriend}
+          myDestinations={destinations}
+          onClose={() => setCompareFriend(null)}
+        />
+      )}
     </div>
   )
 }

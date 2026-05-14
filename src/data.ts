@@ -27,6 +27,35 @@ export const FEED: FeedItem[] = [
   { friend: 'LM', dest: 'Reykjavik',    flag: '🇮🇸', tier: 'S', time: 'Il y a 4j', lat: 64.13,  lng: -21.93 },
 ]
 
+export const FRIEND_DESTINATIONS: Record<string, Destination[]> = {
+  AS: [
+    { name: 'Kyoto',      country: '🇯🇵', lat: 35.01,  lng: 135.77, tier: 'S', food: 5, night: 3, culture: 5, nature: 5, value: 3, intent: 'tourisme'  },
+    { name: 'Copenhague', country: '🇩🇰', lat: 55.68,  lng: 12.57,  tier: 'S', food: 4, night: 4, culture: 4, nature: 3, value: 4, intent: 'city-trip' },
+    { name: 'Barcelone',  country: '🇪🇸', lat: 41.38,  lng: 2.15,   tier: 'A', food: 5, night: 5, culture: 3, nature: 2, value: 3, intent: 'sorties'   },
+    { name: 'Lisbonne',   country: '🇵🇹', lat: 38.71,  lng: -9.14,  tier: 'A', food: 4, night: 3, culture: 4, nature: 3, value: 5, intent: 'city-trip' },
+    { name: 'Berlin',     country: '🇩🇪', lat: 52.52,  lng: 13.40,  tier: 'B', food: 3, night: 5, culture: 3, nature: 2, value: 4, intent: 'sorties'   },
+    { name: 'Montréal',   country: '🇨🇦', lat: 45.50,  lng: -73.57, tier: 'B', food: 4, night: 4, culture: 3, nature: 3, value: 3, intent: 'city-trip' },
+    { name: 'Amsterdam',  country: '🇳🇱', lat: 52.37,  lng: 4.90,   tier: 'C', food: 3, night: 4, culture: 3, nature: 2, value: 2, intent: 'sorties'   },
+  ],
+  LM: [
+    { name: 'Reykjavik',  country: '🇮🇸', lat: 64.13,  lng: -21.93, tier: 'S', food: 4, night: 3, culture: 4, nature: 5, value: 3, intent: 'nature'    },
+    { name: 'Séville',    country: '🇪🇸', lat: 37.39,  lng: -5.99,  tier: 'A', food: 5, night: 4, culture: 4, nature: 3, value: 4, intent: 'tourisme'  },
+    { name: 'Tokyo',      country: '🇯🇵', lat: 35.68,  lng: 139.69, tier: 'A', food: 5, night: 4, culture: 4, nature: 2, value: 2, intent: 'tourisme'  },
+    { name: 'Dublin',     country: '🇮🇪', lat: 53.33,  lng: -6.24,  tier: 'B', food: 3, night: 5, culture: 3, nature: 3, value: 2, intent: 'sorties'   },
+    { name: 'Marrakech',  country: '🇲🇦', lat: 31.63,  lng: -7.99,  tier: 'B', food: 4, night: 2, culture: 5, nature: 4, value: 4, intent: 'nature'    },
+    { name: 'Prague',     country: '🇨🇿', lat: 50.07,  lng: 14.43,  tier: 'A', food: 4, night: 4, culture: 5, nature: 2, value: 5, intent: 'city-trip' },
+  ],
+  JB: [
+    { name: 'Buenos Aires',country:'🇦🇷', lat:-34.61,  lng: -58.38, tier: 'S', food: 5, night: 5, culture: 4, nature: 2, value: 4, intent: 'sorties'   },
+    { name: 'New York',   country: '🇺🇸', lat: 40.71,  lng: -74.00, tier: 'S', food: 5, night: 5, culture: 5, nature: 1, value: 1, intent: 'city-trip' },
+    { name: 'Rome',       country: '🇮🇹', lat: 41.90,  lng: 12.49,  tier: 'A', food: 5, night: 3, culture: 5, nature: 2, value: 3, intent: 'tourisme'  },
+    { name: 'Bangkok',    country: '🇹🇭', lat: 13.75,  lng: 100.50, tier: 'A', food: 5, night: 5, culture: 3, nature: 2, value: 5, intent: 'gastro'    },
+    { name: 'Lisbonne',   country: '🇵🇹', lat: 38.71,  lng: -9.14,  tier: 'B', food: 4, night: 3, culture: 3, nature: 3, value: 4, intent: 'city-trip' },
+    { name: 'Amsterdam',  country: '🇳🇱', lat: 52.37,  lng: 4.90,   tier: 'C', food: 3, night: 4, culture: 4, nature: 2, value: 2, intent: 'sorties'   },
+    { name: 'Berlin',     country: '🇩🇪', lat: 52.52,  lng: 13.40,  tier: 'B', food: 4, night: 5, culture: 3, nature: 2, value: 3, intent: 'sorties'   },
+  ],
+}
+
 export const TIER_COLORS: Record<Tier, { pin: string; label: string }> = {
   S: { pin: '#EF9F27', label: '#854F0B' },
   A: { pin: '#639922', label: '#3B6D11' },

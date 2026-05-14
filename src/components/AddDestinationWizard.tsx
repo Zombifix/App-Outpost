@@ -29,13 +29,13 @@ interface WizardState {
   geojson?: object
   kind: DestKind
   tripName: string
-  food: number
-  night: number
-  culture: number
-  nature: number
-  value: number
-  vibeBoost: number   // ambiance générale boost
-  retourBonus: number // "tu y retournerais" bonus
+  food: number | null
+  night: number | null
+  culture: number | null
+  nature: number | null
+  value: number | null
+  vibeBoost: number | null
+  retourBonus: number
   intent: Intent
 }
 
@@ -72,15 +72,18 @@ function scoreToTier(score: number): Tier {
 
 function computeScore(state: WizardState): number {
   const w = INTENT_WEIGHTS[state.intent]
-  const totalWeight = w.food + w.night + w.culture + w.nature + w.value
-  const weighted =
-    (state.food * w.food +
-      state.night * w.night +
-      state.culture * w.culture +
-      state.nature * w.nature +
-      state.value * w.value) /
-    totalWeight
-  const boosted = weighted + state.vibeBoost * 0.2 * ((weighted - 1) / 4)
+  const axes = [
+    ['food', state.food],
+    ['night', state.night],
+    ['culture', state.culture],
+    ['nature', state.nature],
+    ['value', state.value],
+  ] as const
+  const active = axes.filter(([, v]) => v !== null) as [string, number][]
+  const totalWeight = active.reduce((sum, [k]) => sum + w[k], 0)
+  const weighted = totalWeight === 0 ? 3 : active.reduce((sum, [k, v]) => sum + v * w[k], 0) / totalWeight
+  const vibe = state.vibeBoost ?? 3
+  const boosted = weighted + vibe * 0.2 * ((weighted - 1) / 4)
   return Math.min(5, Math.max(1, boosted + state.retourBonus))
 }
 
@@ -110,7 +113,7 @@ const QUESTIONS = [
       { label: 'Incroyable', value: 5 },
       { label: 'Bien', value: 4 },
       { label: 'Bof', value: 2 },
-      { label: 'Pas vraiment testé', value: 3 },
+      { label: 'Pas vraiment testé', value: null },
     ],
   },
   {
@@ -120,7 +123,7 @@ const QUESTIONS = [
       { label: 'Enflammées', value: 5 },
       { label: 'Sympas', value: 4 },
       { label: 'Calme', value: 2 },
-      { label: 'Pas mon truc', value: 3 },
+      { label: 'Pas mon truc', value: null },
     ],
   },
   {
@@ -129,7 +132,8 @@ const QUESTIONS = [
     answers: [
       { label: 'Plein !', value: 5 },
       { label: 'Quelques-uns', value: 3 },
-      { label: 'Plutôt vide', value: 1 },
+      { label: 'Peu de choses', value: 2 },
+      { label: 'Rien à faire', value: 1 },
     ],
   },
   {
@@ -138,7 +142,8 @@ const QUESTIONS = [
     answers: [
       { label: 'Magnifiques', value: 5 },
       { label: 'Jolis', value: 3 },
-      { label: 'Inexistants', value: 2 },
+      { label: 'Bof', value: 2 },
+      { label: 'Inexistants', value: 1 },
     ],
   },
   {
@@ -148,6 +153,7 @@ const QUESTIONS = [
       { label: 'Excellent', value: 5 },
       { label: 'Correct', value: 3 },
       { label: 'Cher', value: 2 },
+      { label: 'Trop cher', value: 1 },
     ],
   },
   {
@@ -157,6 +163,7 @@ const QUESTIONS = [
       { label: "J'adore", value: 5 },
       { label: 'Bien', value: 4 },
       { label: 'Neutre', value: 3 },
+      { label: 'Bof', value: 2 },
     ],
   },
   {
@@ -232,15 +239,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           culture: initialDestination.culture,
           nature: initialDestination.nature,
           value: initialDestination.value,
-          vibeBoost: 0,
+          vibeBoost: null,
           retourBonus: 0,
           intent: initialDestination.intent,
         }
       : {
           name: '', country: '', lat: 0, lng: 0,
           kind: 'place', tripName: '',
-          food: 0, night: 0, culture: 0, nature: 0, value: 0,
-          vibeBoost: 0, retourBonus: 0,
+          food: null, night: null, culture: null, nature: null, value: null,
+          vibeBoost: null, retourBonus: 0,
           intent: 'tourisme',
         }
   )
@@ -302,16 +309,14 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       name: s.name,
       country: s.country,
       lat, lng,
-      tier: 'D',
       kind: 'stop',
       food: 3, night: 3, culture: 3, nature: 3, value: 3,
       intent: 'tourisme',
-      score: undefined,
-      summary: 'Stop rapide ajouté à ta carte.',
+      summary: 'Stop rapide — pas encore noté.',
     })
   }
 
-  const answerQuestion = (key: QuestionKey, value: number | Intent) => {
+  const answerQuestion = (key: QuestionKey, value: number | null | Intent) => {
     setState(prev => ({ ...prev, [key]: value }))
     setAnsweredKeys(prev => new Set([...prev, key]))
 
@@ -462,7 +467,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   className={`wizard-answer-btn ${answeredKeys.has(activeQuestions[questionIndex].key as QuestionKey) ? 'answered' : ''}`}
                   onClick={() => answerQuestion(
                     activeQuestions[questionIndex].key as QuestionKey,
-                    a.value as number | Intent,
+                    a.value as number | null | Intent,
                   )}
                 >
                   {a.label}

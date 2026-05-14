@@ -13,7 +13,7 @@ export interface Destination {
   country: string
   lat: number
   lng: number
-  tier: Tier
+  tier?: Tier
   kind?: 'place' | 'zone' | 'stop' | 'stage'
   tripName?: string
   extent?: [number, number, number, number]

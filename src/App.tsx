@@ -296,7 +296,7 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, 
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       />
       <div className="destination-title-row">
-        <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>
+        {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
           <div className="rating-line">

@@ -317,19 +317,21 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
 
   // Base projected coords — the parent group's D3 transform handles zoom positioning
   const [cx, cy] = projected
-  const color = TIER_COLORS[destination.tier].pin
   const pinScale = Math.min(1.62, Math.max(0.82, 0.72 + zoomK * 0.22))
-  const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
-    .toFixed(1).replace('.', ',')
 
   if (destination.kind === 'stop') {
     return (
       <g transform={`translate(${cx},${cy})`}>
-        <circle r={5} fill={color} stroke="white" strokeWidth={1.2} opacity={0.85}
+        <circle r={5} fill="#8b9db5" stroke="white" strokeWidth={1.2} opacity={0.85}
           style={{ cursor: 'pointer' }} onClick={() => onSelect(destination.name)} />
       </g>
     )
   }
+
+  const color = TIER_COLORS[destination.tier!].pin
+  const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
+    .toFixed(1)
+    .replace('.', ',')
 
   if (destination.kind === 'zone') {
     return (

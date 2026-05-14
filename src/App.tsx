@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Destination } from './types'
+import type { Destination, Tier } from './types'
 import { DESTINATIONS } from './data'
 import WorldMap from './components/WorldMap'
 import Nav from './components/Nav'
@@ -25,6 +25,8 @@ export default function App() {
   const [filterTop, setFilterTop] = useState(false)
   const [sortByScore, setSortByScore] = useState(false)
   const [manageMode, setManageMode] = useState(false)
+  const [tierListCollapsed, setTierListCollapsed] = useState(false)
+  const [addingDestination, setAddingDestination] = useState(false)
 
   useEffect(() => {
     try {
@@ -71,12 +73,14 @@ export default function App() {
     })
   }
 
-  const createFreshList = () => {
-    setDestinations(DESTINATIONS)
-    setSelectedName('Kyoto')
-    setFilterTop(false)
-    setSortByScore(false)
-    setManageMode(true)
+  const addDestination = (destination: Destination) => {
+    setDestinations(previous => {
+      const exists = previous.some(item => item.name.toLowerCase() === destination.name.toLowerCase())
+      return exists ? previous : [...previous, destination]
+    })
+    setSelectedName(destination.name)
+    setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
+    setAddingDestination(false)
   }
 
   return (
@@ -92,7 +96,7 @@ export default function App() {
         totalDestinations={visibleDestinations.length}
         filterTop={filterTop}
         sortByScore={sortByScore}
-        onCreate={createFreshList}
+        onAddClick={() => setAddingDestination(true)}
         onFilterToggle={() => setFilterTop(value => !value)}
         onSortToggle={() => setSortByScore(value => !value)}
         onSearch={selectByName}
@@ -110,9 +114,80 @@ export default function App() {
       <TierListPanel
         destinations={visibleDestinations}
         manageMode={manageMode}
+        collapsed={tierListCollapsed}
         onManageToggle={() => setManageMode(value => !value)}
+        onCollapseToggle={() => setTierListCollapsed(value => !value)}
         onFlyTo={selectByName}
       />
+      {addingDestination && (
+        <AddDestinationPanel
+          onClose={() => setAddingDestination(false)}
+          onAdd={addDestination}
+        />
+      )}
+    </div>
+  )
+}
+
+function AddDestinationPanel({ onClose, onAdd }: { onClose: () => void; onAdd: (destination: Destination) => void }) {
+  const [name, setName] = useState('')
+  const [country, setCountry] = useState('')
+  const [tier, setTier] = useState<Tier>('B')
+  const [score, setScore] = useState(3.5)
+
+  const submit = () => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return
+    const seed = DESTINATIONS.find(destination => destination.name.toLowerCase() === trimmedName.toLowerCase())
+    onAdd({
+      name: trimmedName,
+      country: country.trim() || seed?.country || 'Nouvelle destination',
+      lat: seed?.lat ?? 48.85,
+      lng: seed?.lng ?? 2.35,
+      tier,
+      image: seed?.image ?? 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85',
+      score,
+      notes: seed?.notes ?? 1,
+      summary: seed?.summary ?? 'Ajoutee a ta tier list. Tu peux ajuster ses criteres ensuite.',
+      food: seed?.food ?? Math.round(score),
+      night: seed?.night ?? Math.round(score),
+      culture: seed?.culture ?? Math.round(score),
+      nature: seed?.nature ?? Math.round(score),
+      value: seed?.value ?? Math.round(score),
+      intent: seed?.intent ?? 'tourisme',
+    })
+  }
+
+  return (
+    <div className="add-overlay" role="dialog" aria-label="Ajouter une destination">
+      <div className="add-panel">
+        <button className="floating-close" aria-label="Fermer l'ajout" onClick={onClose}>
+          <Icon name="x" />
+        </button>
+        <h2>Ajouter une destination</h2>
+        <p>Ajoute un nouveau point a ta carte et a la tier list.</p>
+        <label>
+          Destination
+          <input value={name} onChange={event => setName(event.target.value)} placeholder="Paris, Seoul, Marrakech..." />
+        </label>
+        <label>
+          Pays
+          <input value={country} onChange={event => setCountry(event.target.value)} placeholder="France, Coree..." />
+        </label>
+        <div className="add-row">
+          <label>
+            Tier
+            <select value={tier} onChange={event => setTier(event.target.value as Tier)}>
+              {(['S', 'A', 'B', 'C', 'D'] as Tier[]).map(value => <option key={value}>{value}</option>)}
+            </select>
+          </label>
+          <label>
+            Note
+            <input type="number" min="1" max="5" step="0.1" value={score} onChange={event => setScore(Number(event.target.value))} />
+          </label>
+        </div>
+        <button className="add-submit" onClick={submit}>Ajouter a la carte</button>
+      </div>
     </div>
   )
 }

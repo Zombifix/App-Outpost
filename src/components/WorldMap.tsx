@@ -85,10 +85,11 @@ export default function WorldMap({
       .data(worldData.features)
       .join('path')
       .attr('d', pathGen as unknown as string)
-      .attr('fill', '#e7ecd9')
-      .attr('stroke', '#d6e0c8')
-      .attr('stroke-width', 0.7)
+      .attr('fill', 'url(#land-gradient)')
+      .attr('stroke', 'rgba(175, 194, 157, 0.62)')
+      .attr('stroke-width', 0.55)
       .attr('opacity', 0.95)
+      .attr('filter', 'url(#land-relief)')
 
     const graticule = d3.geoGraticule().step([30, 30])
     countries.append('path')
@@ -158,6 +159,19 @@ export default function WorldMap({
         height={dimensions.height}
         className="world-map"
       >
+        <defs>
+          <linearGradient id="land-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f4f0dc" />
+            <stop offset="44%" stopColor="#dce8c9" />
+            <stop offset="100%" stopColor="#c4dfc4" />
+          </linearGradient>
+          <filter id="land-relief" x="-18%" y="-18%" width="136%" height="136%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.017" numOctaves="2" seed="8" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="rough" />
+            <feDropShadow in="rough" dx="1.8" dy="2.4" stdDeviation="1.2" floodColor="#8ba983" floodOpacity="0.28" result="shadow" />
+            <feBlend in="rough" in2="shadow" mode="normal" />
+          </filter>
+        </defs>
         <g className="pins-transform">
           {projectionReady && destinations.map(destination => (
             <Pin
@@ -215,6 +229,7 @@ function Pin({ destination, projection, zoomTransform, selected, onSelect }: Pin
 
   const [cx, cy] = zoomTransform.apply(projected)
   const color = TIER_COLORS[destination.tier].pin
+  const pinScale = Math.min(1.62, Math.max(0.82, 0.72 + zoomTransform.k * 0.22))
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
     .toFixed(1)
     .replace('.', ',')
@@ -225,7 +240,7 @@ function Pin({ destination, projection, zoomTransform, selected, onSelect }: Pin
         <button
           className="map-pin"
           onClick={() => onSelect(destination.name)}
-          style={{ '--pin-color': color } as CSSProperties}
+          style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
         >
           <span>{destination.tier}</span>
           <strong>{destination.name}</strong>

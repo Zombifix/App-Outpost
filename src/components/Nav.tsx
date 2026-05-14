@@ -6,7 +6,7 @@ interface NavProps {
   destinations: Destination[]
   filterTop: boolean
   sortByScore: boolean
-  onCreate: () => void
+  onAddClick: () => void
   onFilterToggle: () => void
   onSortToggle: () => void
   onSearch: (name: string) => void
@@ -26,7 +26,7 @@ export default function Nav({
   destinations,
   filterTop,
   sortByScore,
-  onCreate,
+  onAddClick,
   onFilterToggle,
   onSortToggle,
   onSearch,
@@ -60,9 +60,9 @@ export default function Nav({
           <strong>TripTier</strong>
         </button>
 
-        <button className="create-button" onClick={onCreate}>
+        <button className="create-button" onClick={onAddClick}>
           <Icon name="plus" />
-          Creer une tier list
+          Ajouter une destination
         </button>
 
         <nav className="side-menu" aria-label="Navigation principale">

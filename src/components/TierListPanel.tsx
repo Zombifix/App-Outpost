@@ -1,11 +1,12 @@
-import { useRef } from 'react'
 import type { Destination, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
 
 interface TierListPanelProps {
   destinations: Destination[]
   manageMode: boolean
+  collapsed: boolean
   onManageToggle: () => void
+  onCollapseToggle: () => void
   onFlyTo: (name: string) => void
 }
 
@@ -20,17 +21,13 @@ const tierLabels: Record<Tier, string> = {
 export default function TierListPanel({
   destinations,
   manageMode,
+  collapsed,
   onManageToggle,
+  onCollapseToggle,
   onFlyTo,
 }: TierListPanelProps) {
-  const columnsRef = useRef<HTMLDivElement>(null)
-
-  const showNext = () => {
-    columnsRef.current?.scrollBy({ left: 260, behavior: 'smooth' })
-  }
-
   return (
-    <section className={`tier-board ${manageMode ? 'is-managing' : ''}`} aria-label="Ma tier list">
+    <section className={`tier-board ${manageMode ? 'is-managing' : ''} ${collapsed ? 'is-collapsed' : ''}`} aria-label="Ma tier list">
       <div className="tier-board-head">
         <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
         <button onClick={onManageToggle}>
@@ -39,7 +36,7 @@ export default function TierListPanel({
         </button>
       </div>
 
-      <div className="tier-columns" ref={columnsRef}>
+      <div className="tier-columns">
         {TIER_ORDER.map(tier => {
           const items = destinations.filter(destination => destination.tier === tier)
           const colors = TIER_COLORS[tier]
@@ -70,9 +67,13 @@ export default function TierListPanel({
         })}
       </div>
 
-      <button className="next-control" aria-label="Voir la suite" onClick={showNext}>
+      <button
+        className="next-control"
+        aria-label={collapsed ? 'Deplier la tier list' : 'Replier la tier list'}
+        onClick={onCollapseToggle}
+      >
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="m9 18 6-6-6-6" />
+          <path d={collapsed ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'} />
         </svg>
       </button>
     </section>

@@ -6,6 +6,7 @@ import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
 
 const STORAGE_KEY = 'triptier-destinations-v2'
+type View = 'map' | 'explore'
 
 function loadDestinations(): Destination[] {
   try {
@@ -27,6 +28,9 @@ export default function App() {
   const [manageMode, setManageMode] = useState(false)
   const [tierListCollapsed, setTierListCollapsed] = useState(false)
   const [addingDestination, setAddingDestination] = useState(false)
+  const [activeView, setActiveView] = useState<View>('map')
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   useEffect(() => {
     try {
@@ -81,28 +85,55 @@ export default function App() {
     setSelectedName(destination.name)
     setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
     setAddingDestination(false)
+    setActiveView('map')
+  }
+
+  const shareTierList = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?list=emma-destinations`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      window.prompt('Lien de partage', url)
+    }
+    setShareCopied(true)
+    window.setTimeout(() => setShareCopied(false), 1800)
   }
 
   return (
     <div className="travel-app">
-      <WorldMap
-        destinations={visibleDestinations}
-        flyTarget={flyTarget}
-        selectedName={selected?.name}
-        onSelect={selectByName}
-        onFlyTargetConsumed={() => setFlyTarget(null)}
-      />
+      {activeView === 'map' ? (
+        <WorldMap
+          destinations={visibleDestinations}
+          flyTarget={flyTarget}
+          selectedName={selected?.name}
+          onSelect={selectByName}
+          onFlyTargetConsumed={() => setFlyTarget(null)}
+        />
+      ) : (
+        <ExploreView
+          destinations={destinations}
+          onSelect={name => {
+            setActiveView('map')
+            selectByName(name)
+          }}
+        />
+      )}
       <Nav
         totalDestinations={visibleDestinations.length}
+        activeView={activeView}
         filterTop={filterTop}
         sortByScore={sortByScore}
+        shareCopied={shareCopied}
+        onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
         onFilterToggle={() => setFilterTop(value => !value)}
         onSortToggle={() => setSortByScore(value => !value)}
         onSearch={selectByName}
         destinations={destinations}
+        onShare={shareTierList}
+        onAccountClick={() => setAccountOpen(true)}
       />
-      {selected && (
+      {activeView === 'map' && selected && (
         <DestinationCard
           destination={selected}
           favorite={favoriteNames.has(selected.name)}
@@ -111,20 +142,96 @@ export default function App() {
           onFavorite={() => toggleFavorite(selected.name)}
         />
       )}
-      <TierListPanel
-        destinations={visibleDestinations}
-        manageMode={manageMode}
-        collapsed={tierListCollapsed}
-        onManageToggle={() => setManageMode(value => !value)}
-        onCollapseToggle={() => setTierListCollapsed(value => !value)}
-        onFlyTo={selectByName}
-      />
+      {activeView === 'map' && (
+        <TierListPanel
+          destinations={visibleDestinations}
+          manageMode={manageMode}
+          collapsed={tierListCollapsed}
+          onManageToggle={() => setManageMode(value => !value)}
+          onCollapseToggle={() => setTierListCollapsed(value => !value)}
+          onFlyTo={selectByName}
+        />
+      )}
       {addingDestination && (
         <AddDestinationPanel
           onClose={() => setAddingDestination(false)}
           onAdd={addDestination}
         />
       )}
+      {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}
+    </div>
+  )
+}
+
+function ExploreView({ destinations, onSelect }: { destinations: Destination[]; onSelect: (name: string) => void }) {
+  const topTiers = destinations.filter(destination => destination.tier === 'S' || destination.tier === 'A')
+  const suggestionSeeds = [
+    {
+      name: 'Seoul',
+      reason: 'Tu notes haut les villes culture, food et energie nocturne.',
+      image: 'https://images.unsplash.com/photo-1538485399081-7c8ed6f92825?auto=format&fit=crop&w=900&q=85',
+    },
+    {
+      name: 'Porto',
+      reason: 'Proche de Lisbonne dans ton classement, plus doux et tres bon rapport qualite/prix.',
+      image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=85',
+    },
+    {
+      name: 'Osaka',
+      reason: 'Si Kyoto est S tier, Osaka peut completer la carte cote gastronomie.',
+      image: 'https://images.unsplash.com/photo-1590253230532-a67f6bc61c9e?auto=format&fit=crop&w=900&q=85',
+    },
+  ]
+
+  return (
+    <main className="explore-page" aria-label="Explorer des suggestions">
+      <section className="ai-panel">
+        <span className="ai-chip">IA bientot connectee</span>
+        <h2>Suggestions basees sur ton classement</h2>
+        <p>
+          Pour le moment, ce module est un placeholder. Il simulera ensuite des recommandations en regardant tes tiers,
+          tes notes par critere et les destinations que tes amis ajoutent.
+        </p>
+        <div className="ai-context">
+          <strong>{topTiers.length}</strong>
+          <span>destinations fortes detectees dans ta tier list</span>
+        </div>
+      </section>
+
+      <section className="suggestion-grid">
+        {suggestionSeeds.map(suggestion => (
+          <article className="suggestion-card" key={suggestion.name}>
+            <div style={{ backgroundImage: `url(${suggestion.image})` }} />
+            <h3>{suggestion.name}</h3>
+            <p>{suggestion.reason}</p>
+            <button onClick={() => onSelect('Kyoto')}>Voir un exemple sur la carte</button>
+          </article>
+        ))}
+      </section>
+    </main>
+  )
+}
+
+function AccountPanel({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="account-overlay" role="dialog" aria-label="Compte">
+      <aside className="account-panel">
+        <button className="floating-close" aria-label="Fermer le compte" onClick={onClose}>
+          <Icon name="x" />
+        </button>
+        <div className="account-avatar">S</div>
+        <h2>Compte</h2>
+        <p>Profil, lien public et preferences de partage.</p>
+        <label>
+          Nom public
+          <input defaultValue="Sarah" />
+        </label>
+        <label>
+          Lien partageable
+          <input readOnly value="triptier.app/emma-destinations" />
+        </label>
+        <button className="add-submit" onClick={onClose}>Enregistrer</button>
+      </aside>
     </div>
   )
 }

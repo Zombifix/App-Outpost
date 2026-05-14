@@ -1,0 +1,68 @@
+:root {
+  --color-ocean: #06111f;
+  --color-continent: #0e2240;
+
+  --tier-s: #EF9F27;
+  --tier-a: #639922;
+  --tier-b: #378ADD;
+  --tier-c: #7F77DD;
+  --tier-d: #888780;
+
+  --panel-bg: #ffffff;
+  --panel-border: rgba(0, 0, 0, 0.1);
+  --panel-radius: 16px;
+  --panel-padding: 13px;
+
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  background: var(--color-ocean);
+  overflow: hidden;
+  color: #1a1a1a;
+}
+
+svg {
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input {
+  font-family: inherit;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 0.5px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  padding: var(--panel-padding);
+  position: absolute;
+}
+
+.scrollable {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes ripple {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(3.2); opacity: 0; }
+}

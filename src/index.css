@@ -25,7 +25,7 @@
   --card-r: 20px;
   --map-r-card: calc(var(--card-w) + var(--card-r) + var(--gap));
   --map-r-no-card: var(--card-r);
-  --tier-h: 220px;
+  --tier-h: 260px;
   --tier-b: 20px;
   --map-b-open: calc(var(--tier-h) + var(--tier-b) + var(--gap));
   --map-b-closed: var(--gap);
@@ -967,8 +967,8 @@ svg {
 .mini-destination {
   position: relative;
   flex: 0 0 auto;
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   padding: 0 7px 7px;
   border-radius: 8px;
   overflow: hidden;
@@ -1021,7 +1021,7 @@ svg {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -1029,7 +1029,7 @@ svg {
 .mini-destination small {
   margin-top: 1px;
   color: #ffd257;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -1341,7 +1341,7 @@ svg {
     --sidebar-w: 230px;
     --card-w: 230px;
     --card-r: 16px;
-    --tier-h: 210px;
+    --tier-h: 250px;
   }
   .tier-column header span { display: none; }
 }

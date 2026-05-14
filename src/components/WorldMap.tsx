@@ -169,24 +169,17 @@ function Pin({ dest, projection, onEnter, onLeave }: PinProps) {
       onMouseLeave={onLeave}
       style={{ cursor: 'pointer' }}
     >
+      {/* Halo doux */}
       <circle
-        r={9}
+        r={8}
         fill={pin}
-        opacity={0}
-        style={{ animation: 'ripple 2.4s ease-out infinite', transformOrigin: '0 0' }}
+        opacity={0.15}
+        style={{ animation: 'halo-breathe 3s ease-in-out infinite', transformOrigin: '0 0' }}
       />
-      <circle r={5} fill={pin} stroke="rgba(255,255,255,0.9)" strokeWidth={1.5} />
-      <text
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={6}
-        fontWeight={600}
-        fill="white"
-        fontFamily="var(--font-serif)"
-        style={{ pointerEvents: 'none', userSelect: 'none' }}
-      >
-        {dest.tier}
-      </text>
+      {/* Dot solide */}
+      <circle r={4} fill={pin} />
+      {/* Reflet */}
+      <circle r={1.4} fill="rgba(255,255,255,0.5)" cx={-0.8} cy={-0.8} />
     </g>
   )
 }

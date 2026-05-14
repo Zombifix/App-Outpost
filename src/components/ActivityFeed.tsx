@@ -16,11 +16,11 @@ export default function ActivityFeed({ feed, friends }: ActivityFeedProps) {
         bottom: 0,
         left: 0,
         width: '100%',
-        height: 128,
-        background: 'linear-gradient(to top, #06111f 55%, transparent 100%)',
+        height: 136,
+        background: 'linear-gradient(to top, rgba(6,17,31,0.98) 50%, transparent 100%)',
         display: 'flex',
         alignItems: 'flex-end',
-        paddingBottom: 16,
+        paddingBottom: 18,
         paddingLeft: 20,
         paddingRight: 20,
         zIndex: 30,
@@ -47,25 +47,62 @@ export default function ActivityFeed({ feed, friends }: ActivityFeedProps) {
               key={i}
               style={{
                 flexShrink: 0,
-                width: 168,
-                background: 'rgba(255,255,255,0.07)',
-                border: '0.5px solid rgba(255,255,255,0.12)',
-                borderRadius: 10,
-                padding: '10px 12px',
+                width: 172,
+                background: 'rgba(255,255,255,0.06)',
+                border: '0.5px solid rgba(255,255,255,0.14)',
+                borderRadius: 12,
+                padding: '11px 13px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 5,
+                gap: 6,
+                transition: 'background 0.15s',
+                cursor: 'default',
               }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
             >
-              {/* Header: avatar + name */}
+              {/* Destination + tier */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 16 }}>{item.flag}</span>
+                <span style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.92)',
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {item.dest}
+                </span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: tierColor.pin,
+                    background: tierColor.pin + '22',
+                    border: `0.5px solid ${tierColor.pin}55`,
+                    borderRadius: 5,
+                    padding: '1px 6px',
+                    flexShrink: 0,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {item.tier}
+                </span>
+              </div>
+
+              {/* Friend + time */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <div
                   style={{
-                    width: 22,
-                    height: 22,
+                    width: 20,
+                    height: 20,
                     borderRadius: '50%',
-                    background: friend?.bg ?? '#eee',
-                    color: friend?.color ?? '#333',
+                    background: friend?.bg ?? 'rgba(255,255,255,0.15)',
+                    color: friend?.color ?? 'white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -76,32 +113,17 @@ export default function ActivityFeed({ feed, friends }: ActivityFeedProps) {
                 >
                   {item.friend}
                 </div>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {friend?.name ?? item.friend}
+                <span style={{
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.4)',
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {friend?.name ?? item.friend} · {item.time}
                 </span>
               </div>
-
-              {/* Destination */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 15 }}>{item.flag}</span>
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'white', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.dest}
-                </span>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: tierColor.pin,
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.tier}
-                </span>
-              </div>
-
-              {/* Time */}
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{item.time}</span>
             </div>
           )
         })}

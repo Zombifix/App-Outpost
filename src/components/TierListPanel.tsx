@@ -13,19 +13,22 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
       style={{
         top: 72,
         left: 16,
-        width: 232,
-        maxHeight: 'calc(100vh - 88px)',
+        width: 236,
+        maxHeight: 'calc(100vh - 92px)',
         zIndex: 40,
+        padding: '14px 0 6px',
       }}
     >
       <div
         style={{
           fontSize: 10,
           fontWeight: 500,
-          color: '#999',
+          color: '#aaa',
           textTransform: 'uppercase',
-          letterSpacing: '0.08em',
+          letterSpacing: '0.1em',
           marginBottom: 10,
+          paddingLeft: 14,
+          paddingRight: 14,
         }}
       >
         Mes destinations
@@ -34,21 +37,53 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
       {TIER_ORDER.map(tier => {
         const items = destinations.filter(d => d.tier === tier)
         if (items.length === 0) return null
+        const { pin, label } = TIER_COLORS[tier]
+
         return (
-          <div key={tier} style={{ marginBottom: 10 }}>
+          <div key={tier} style={{ marginBottom: 2 }}>
+            {/* Tier header avec badge */}
             <div
               style={{
-                fontFamily: 'var(--font-serif)',
-                fontWeight: 500,
-                fontSize: 17,
-                color: TIER_COLORS[tier].label,
-                marginBottom: 4,
-                paddingBottom: 4,
-                borderBottom: `1.5px solid ${TIER_COLORS[tier].pin}33`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '5px 14px',
+                marginBottom: 2,
               }}
             >
-              {tier}
+              <span
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontWeight: 500,
+                  fontSize: 13,
+                  color: label,
+                  background: pin + '18',
+                  border: `1px solid ${pin}40`,
+                  borderRadius: 6,
+                  width: 26,
+                  height: 22,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  lineHeight: 1,
+                }}
+              >
+                {tier}
+              </span>
+              <div
+                style={{
+                  flex: 1,
+                  height: '0.5px',
+                  background: pin + '30',
+                }}
+              />
+              <span style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>
+                {items.length}
+              </span>
             </div>
+
+            {/* Items */}
             {items.map(dest => (
               <button
                 key={dest.name}
@@ -56,14 +91,13 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 9,
                   width: '100%',
-                  padding: '5px 4px',
-                  borderBottom: '0.5px solid rgba(0,0,0,0.06)',
+                  padding: '6px 14px',
                   fontSize: 13,
                   fontWeight: 400,
                   color: '#1a1a1a',
-                  borderRadius: 6,
+                  borderRadius: 0,
                   transition: 'background 0.1s',
                   textAlign: 'left',
                 }}
@@ -72,17 +106,20 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
               >
                 <span
                   style={{
-                    width: 7,
-                    height: 7,
+                    width: 6,
+                    height: 6,
                     borderRadius: '50%',
                     background: TIER_COLORS[dest.tier].pin,
                     flexShrink: 0,
+                    boxShadow: `0 0 5px ${TIER_COLORS[dest.tier].pin}88`,
                   }}
                 />
                 <span style={{ flex: 1 }}>{dest.name}</span>
-                <span style={{ fontSize: 14 }}>{dest.country}</span>
+                <span style={{ fontSize: 13 }}>{dest.country}</span>
               </button>
             ))}
+
+            <div style={{ height: 6 }} />
           </div>
         )
       })}

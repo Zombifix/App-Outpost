@@ -1,4 +1,8 @@
-export default function Nav() {
+interface NavProps {
+  totalDestinations: number
+}
+
+export default function Nav({ totalDestinations }: NavProps) {
   return (
     <div
       style={{
@@ -11,31 +15,39 @@ export default function Nav() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 20px',
-        background: 'linear-gradient(to bottom, rgba(6,17,31,0.75) 0%, transparent 100%)',
+        background: 'linear-gradient(to bottom, rgba(6,17,31,0.85) 0%, transparent 100%)',
         zIndex: 50,
         pointerEvents: 'none',
       }}
     >
-      <span
-        style={{
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, pointerEvents: 'auto' }}>
+        <span style={{
           fontFamily: 'var(--font-serif)',
           fontWeight: 400,
           fontSize: 22,
           color: 'white',
           letterSpacing: '0.02em',
-          pointerEvents: 'auto',
-        }}
-      >
-        Wander
-      </span>
+        }}>
+          Outpost
+        </span>
+        {totalDestinations > 0 && (
+          <span style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.4)',
+            fontWeight: 400,
+          }}>
+            {totalDestinations} {totalDestinations === 1 ? 'lieu' : 'lieux'}
+          </span>
+        )}
+      </div>
 
-      <div
-        style={{
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'auto' }}>
+        <div style={{
           width: 36,
           height: 36,
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.15)',
-          border: '1px solid rgba(255,255,255,0.3)',
+          background: 'rgba(255,255,255,0.12)',
+          border: '1px solid rgba(255,255,255,0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -43,10 +55,9 @@ export default function Nav() {
           fontWeight: 500,
           color: 'white',
           cursor: 'pointer',
-          pointerEvents: 'auto',
-        }}
-      >
-        TP
+        }}>
+          TP
+        </div>
       </div>
     </div>
   )

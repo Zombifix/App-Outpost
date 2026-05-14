@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Destination, NewDestinationForm } from './types'
 import { DESTINATIONS, FRIENDS, FEED } from './data'
 import { calculateTier } from './utils'
@@ -9,9 +9,23 @@ import AddPanel from './components/AddPanel'
 import FriendsPanel from './components/FriendsPanel'
 import ActivityFeed from './components/ActivityFeed'
 
+const STORAGE_KEY = 'outpost-destinations'
+
+function loadDestinations(): Destination[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) return JSON.parse(saved) as Destination[]
+  } catch { /* ignore */ }
+  return DESTINATIONS
+}
+
 export default function App() {
-  const [destinations, setDestinations] = useState<Destination[]>(DESTINATIONS)
-  const [flyTarget, setFlyTarget] = useState<string | null>(null)
+  const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
+  const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(destinations)) } catch { /* ignore */ }
+  }, [destinations])
 
   const handleAdd = (form: NewDestinationForm, coords: { lat: number; lng: number }) => {
     const tier = calculateTier(
@@ -32,7 +46,16 @@ export default function App() {
       intent: form.intent,
     }
     setDestinations(prev => [...prev, newDest])
-    setFlyTarget(form.name)
+    setFlyTarget({ lat: coords.lat, lng: coords.lng, name: form.name })
+  }
+
+  const flyTo = (lat: number, lng: number, name: string) => {
+    setFlyTarget({ lat, lng, name })
+  }
+
+  const flyToByName = (name: string) => {
+    const dest = destinations.find(d => d.name === name)
+    if (dest) flyTo(dest.lat, dest.lng, dest.name)
   }
 
   return (
@@ -42,11 +65,11 @@ export default function App() {
         flyTarget={flyTarget}
         onFlyTargetConsumed={() => setFlyTarget(null)}
       />
-      <Nav />
-      <TierListPanel destinations={destinations} onFlyTo={name => setFlyTarget(name)} />
+      <Nav totalDestinations={destinations.length} />
+      <TierListPanel destinations={destinations} onFlyTo={flyToByName} />
       <AddPanel onAdd={handleAdd} />
       <FriendsPanel friends={FRIENDS} />
-      <ActivityFeed feed={FEED} friends={FRIENDS} />
+      <ActivityFeed feed={FEED} friends={FRIENDS} onFlyTo={flyTo} />
     </div>
   )
 }

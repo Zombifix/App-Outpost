@@ -9,7 +9,7 @@ interface TierListPanelProps {
 export default function TierListPanel({ destinations, onFlyTo }: TierListPanelProps) {
   return (
     <div
-      className="panel scrollable"
+      className="panel scrollable panel-left"
       style={{
         top: 72,
         left: 16,
@@ -19,19 +19,13 @@ export default function TierListPanel({ destinations, onFlyTo }: TierListPanelPr
         padding: '14px 0 6px',
       }}
     >
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 500,
-          color: '#aaa',
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-          marginBottom: 10,
-          paddingLeft: 14,
-          paddingRight: 14,
-        }}
-      >
-        Mes destinations
+      <div style={{ paddingLeft: 14, paddingRight: 14, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 500, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          Mes voyages
+        </div>
+        <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>
+          {destinations.length} {destinations.length <= 1 ? 'destination' : 'destinations'} visitées
+        </div>
       </div>
 
       {TIER_ORDER.map(tier => {

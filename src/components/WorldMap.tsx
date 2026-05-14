@@ -5,9 +5,15 @@ import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { Destination } from '../types'
 import { TIER_COLORS } from '../data'
 
+interface FlyTarget {
+  lat: number
+  lng: number
+  name: string
+}
+
 interface WorldMapProps {
   destinations: Destination[]
-  flyTarget: string | null
+  flyTarget: FlyTarget | null
   onFlyTargetConsumed: () => void
 }
 
@@ -96,10 +102,8 @@ export default function WorldMap({ destinations, flyTarget, onFlyTargetConsumed 
   // Fly-to on flyTarget change
   useEffect(() => {
     if (!flyTarget || !projectionRef.current || !svgRef.current || !zoomRef.current) return
-    const dest = destinations.find(d => d.name === flyTarget)
-    if (!dest) return
 
-    const projected = projectionRef.current([dest.lng, dest.lat])
+    const projected = projectionRef.current([flyTarget.lng, flyTarget.lat])
     if (!projected) return
     const [x, y] = projected
     const { width, height } = dimensions
@@ -167,19 +171,23 @@ function Pin({ dest, projection, onEnter, onLeave }: PinProps) {
       transform={`translate(${cx}, ${cy})`}
       onMouseEnter={e => onEnter(dest, e.clientX, e.clientY)}
       onMouseLeave={onLeave}
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', filter: `drop-shadow(0 2px 6px ${pin}99)` }}
     >
-      {/* Halo doux */}
+      {/* Halo pulsé */}
       <circle
-        r={8}
+        r={10}
         fill={pin}
-        opacity={0.15}
+        opacity={0}
         style={{ animation: 'halo-breathe 3s ease-in-out infinite', transformOrigin: '0 0' }}
       />
-      {/* Dot solide */}
-      <circle r={4} fill={pin} />
-      {/* Reflet */}
-      <circle r={1.4} fill="rgba(255,255,255,0.5)" cx={-0.8} cy={-0.8} />
+      {/* Corps du pin — teardrop pointant vers le bas */}
+      {/* Cercle centré en (0,-13), rayon 8, pointe en (0,0) */}
+      <path
+        d="M 0,0 L -7,-14 A 7 7 0 1 1 7,-14 Z"
+        fill={pin}
+      />
+      {/* Reflet interne */}
+      <circle r={2.5} cx={-2} cy={-18} fill="rgba(255,255,255,0.35)" />
     </g>
   )
 }

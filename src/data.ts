@@ -20,11 +20,11 @@ export const FRIENDS: Friend[] = [
 ]
 
 export const FEED: FeedItem[] = [
-  { friend: 'AS', dest: 'Kyoto',        flag: '🇯🇵', tier: 'S', time: 'Il y a 2h' },
-  { friend: 'LM', dest: 'Séville',      flag: '🇪🇸', tier: 'A', time: 'Hier'      },
-  { friend: 'JB', dest: 'Buenos Aires', flag: '🇦🇷', tier: 'B', time: 'Hier'      },
-  { friend: 'AS', dest: 'Copenhague',   flag: '🇩🇰', tier: 'S', time: 'Il y a 3j' },
-  { friend: 'LM', dest: 'Reykjavik',    flag: '🇮🇸', tier: 'S', time: 'Il y a 4j' },
+  { friend: 'AS', dest: 'Kyoto',        flag: '🇯🇵', tier: 'S', time: 'Il y a 2h', lat: 35.01,  lng: 135.77 },
+  { friend: 'LM', dest: 'Séville',      flag: '🇪🇸', tier: 'A', time: 'Hier',      lat: 37.39,  lng: -5.99  },
+  { friend: 'JB', dest: 'Buenos Aires', flag: '🇦🇷', tier: 'B', time: 'Hier',      lat: -34.61, lng: -58.38 },
+  { friend: 'AS', dest: 'Copenhague',   flag: '🇩🇰', tier: 'S', time: 'Il y a 3j', lat: 55.68,  lng: 12.57  },
+  { friend: 'LM', dest: 'Reykjavik',    flag: '🇮🇸', tier: 'S', time: 'Il y a 4j', lat: 64.13,  lng: -21.93 },
 ]
 
 export const TIER_COLORS: Record<Tier, { pin: string; label: string }> = {

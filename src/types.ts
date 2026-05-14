@@ -36,6 +36,8 @@ export interface FeedItem {
   flag: string
   tier: Tier
   time: string
+  lat: number
+  lng: number
 }
 
 export interface NewDestinationForm {

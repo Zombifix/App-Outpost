@@ -7,10 +7,10 @@ interface FriendsPanelProps {
 export default function FriendsPanel({ friends }: FriendsPanelProps) {
   return (
     <div
-      className="panel"
+      className="panel panel-right panel-friends"
       style={{
         right: 16,
-        bottom: 136,
+        bottom: 152,
         width: 272,
         zIndex: 40,
       }}

@@ -481,7 +481,7 @@ svg {
   left: 312px;
   right: 298px;
   top: 148px;
-  bottom: 246px;
+  bottom: 272px;
   overflow: visible;
 }
 
@@ -630,19 +630,19 @@ svg {
 .legend {
   position: absolute;
   left: 50%;
-  bottom: 3px;
-  min-height: 54px;
-  padding: 0 28px;
+  bottom: 18px;
+  min-height: 58px;
+  padding: 0 32px;
   border-radius: 999px;
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 28px;
   color: #526078;
   background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 14px 30px rgba(95, 119, 148, 0.13);
   backdrop-filter: blur(18px);
   transform: translateX(-50%);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 720;
 }
 
@@ -828,14 +828,14 @@ svg {
 .tier-board {
   left: 312px;
   right: 78px;
-  bottom: 26px;
-  height: 223px;
-  padding: 22px 28px 24px;
+  bottom: 24px;
+  height: 228px;
+  padding: 24px 30px 26px;
   border-radius: 27px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px);
-  transition: width 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
 }
 
 .tier-board.is-managing {
@@ -843,13 +843,12 @@ svg {
 }
 
 .tier-board.is-collapsed {
-  width: 86px;
-  right: auto;
-  overflow: hidden;
+  transform: translateX(calc(100% - 86px));
+  overflow: visible;
 }
 
 .tier-board.is-collapsed .tier-columns {
-  opacity: 0.08;
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -859,16 +858,21 @@ svg {
   pointer-events: none;
 }
 
+.tier-board.is-collapsed .next-control {
+  left: -23px;
+  right: auto;
+}
+
 .tier-board-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 17px;
+  margin-bottom: 19px;
 }
 
 .tier-board h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 19px;
 }
 
 .tier-board h2 span {
@@ -895,15 +899,15 @@ svg {
 .tier-columns {
   display: grid;
   grid-template-columns: 1.1fr 1.95fr 1.05fr 1.52fr 0.74fr;
-  gap: 10px;
-  height: 130px;
+  gap: 12px;
+  height: 132px;
   transition: opacity 0.22s ease, transform 0.28s ease;
 }
 
 .tier-column {
   min-width: 0;
-  padding: 12px;
-  border-radius: 14px;
+  padding: 13px;
+  border-radius: 16px;
   overflow: hidden;
 }
 

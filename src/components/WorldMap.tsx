@@ -103,6 +103,7 @@ export default function WorldMap({
       .scaleExtent([1, 7])
       .on('zoom', event => {
         countries.attr('transform', String(event.transform))
+        // TODO: throttle or move pin updates outside React to make pan/zoom smoother.
         setZoomTransform(event.transform)
       })
 

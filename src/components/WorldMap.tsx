@@ -22,6 +22,70 @@ interface WorldMapProps {
 
 const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
+function rdp(pts: [number, number][], tol: number): [number, number][] {
+  if (pts.length < 3) return pts
+  const [x1, y1] = pts[0], [x2, y2] = pts[pts.length - 1]
+  const dx = x2 - x1, dy = y2 - y1
+  const len = Math.hypot(dx, dy)
+  let maxDist = 0, maxIdx = 1
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i]
+    const dist = len === 0
+      ? Math.hypot(px - x1, py - y1)
+      : Math.abs(dy * px - dx * py + x2 * y1 - y2 * x1) / len
+    if (dist > maxDist) { maxDist = dist; maxIdx = i }
+  }
+  if (maxDist > tol) {
+    const left = rdp(pts.slice(0, maxIdx + 1), tol)
+    const right = rdp(pts.slice(maxIdx), tol)
+    return [...left.slice(0, -1), ...right]
+  }
+  return [pts[0], pts[pts.length - 1]]
+}
+
+function projectGeojson(geojson: object, proj: d3.GeoProjection): string {
+  const geo = geojson as { type: string; coordinates: number[][][][] | number[][][] }
+  const rings: number[][][] =
+    geo.type === 'Polygon'
+      ? (geo.coordinates as number[][][])
+      : geo.type === 'MultiPolygon'
+        ? (geo.coordinates as number[][][][]).flat(1)
+        : []
+
+  return rings
+    .map(ring => {
+      const raw = ring
+        .map(coord => proj([coord[0], coord[1]]))
+        .filter((p): p is [number, number] => p !== null && isFinite(p[0]) && isFinite(p[1]))
+
+      if (raw.length < 3) return ''
+
+      // Spike removal: filter points whose angle at their vertex is too sharp
+      // (spike = point where both neighbours are far but in opposite directions)
+      const spikeFiltered: [number, number][] = [raw[0]]
+      for (let i = 1; i < raw.length - 1; i++) {
+        const [ax, ay] = raw[i - 1], [bx, by] = raw[i], [cx, cy] = raw[i + 1]
+        const dx1 = ax - bx, dy1 = ay - by
+        const dx2 = cx - bx, dy2 = cy - by
+        const len1 = Math.hypot(dx1, dy1), len2 = Math.hypot(dx2, dy2)
+        if (len1 < 0.001 || len2 < 0.001) { spikeFiltered.push(raw[i]); continue }
+        // dot product of unit vectors — spike if angle < ~25° (cos > 0.9) AND both legs > 2px
+        const dot = (dx1 * dx2 + dy1 * dy2) / (len1 * len2)
+        const isSpike = dot > 0.9 && len1 > 2 && len2 > 2
+        if (!isSpike) spikeFiltered.push(raw[i])
+      }
+      spikeFiltered.push(raw[raw.length - 1])
+
+      if (spikeFiltered.length < 3) return ''
+
+      const pts = rdp(spikeFiltered, 0.5)
+      if (pts.length < 3) return ''
+      return 'M' + pts.map(p => p.join(',')).join('L') + 'Z'
+    })
+    .filter(Boolean)
+    .join(' ')
+}
+
 export default function WorldMap({
   destinations,
   flyTarget,
@@ -173,6 +237,41 @@ export default function WorldMap({
             <feBlend in="rough" in2="shadow" mode="normal" />
           </filter>
         </defs>
+        {/* Zone highlights — project each coordinate directly, no geoPath sphere clipping */}
+        <g transform={String(zoomTransform)}>
+          {projectionReady && destinations
+            .filter(d => d.kind === 'zone')
+            .map(d => {
+              const color = TIER_COLORS[d.tier].pin
+              const proj = projectionRef.current!
+              const sharedProps = {
+                key: d.name,
+                fill: color,
+                fillOpacity: 0.13,
+                stroke: color,
+                strokeWidth: 1.3,
+                strokeOpacity: 0.5,
+                strokeDasharray: '6 3' as const,
+              }
+
+              if (d.geojson) {
+                const pathStr = projectGeojson(d.geojson, proj)
+                if (!pathStr) return null
+                return <path {...sharedProps} d={pathStr} />
+              }
+
+              if (d.extent) {
+                const [w, s, e, n] = d.extent
+                const sw = proj([w, s]); const se = proj([e, s])
+                const ne = proj([e, n]); const nw = proj([w, n])
+                if (!sw || !se || !ne || !nw) return null
+                const pts = [sw, se, ne, nw].map(p => p.join(',')).join(' ')
+                return <polygon {...sharedProps} points={pts} />
+              }
+
+              return null
+            })}
+        </g>
         <g className="pins-transform">
           {projectionReady && destinations.map(destination => (
             <Pin
@@ -235,17 +334,52 @@ function Pin({ destination, projection, zoomTransform, selected, onSelect }: Pin
     .toFixed(1)
     .replace('.', ',')
 
+  if (destination.kind === 'stop') {
+    return (
+      <g transform={`translate(${cx}, ${cy})`}>
+        <circle
+          r={5}
+          fill={color}
+          stroke="white"
+          strokeWidth={1.2}
+          opacity={0.85}
+          style={{ cursor: 'pointer' }}
+          onClick={() => onSelect(destination.name)}
+        />
+      </g>
+    )
+  }
+
+  if (destination.kind === 'zone') {
+    return (
+      <g transform={`translate(${cx}, ${cy})`} className={selected ? 'pin-selected' : undefined}>
+        <foreignObject className="pin-foreign-object" x="-70" y="-36" width="140" height="40">
+          <div className="pin-stage">
+            <button
+              className="map-pin map-pin-zone-label"
+              onClick={() => onSelect(destination.name)}
+              style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
+            >
+              <span>{destination.tier}</span>
+              <strong>{destination.name}</strong>
+            </button>
+          </div>
+        </foreignObject>
+      </g>
+    )
+  }
+
   return (
     <g transform={`translate(${cx}, ${cy})`} className={selected ? 'pin-selected' : undefined}>
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
-            className="map-pin"
+            className={`map-pin${destination.kind === 'stage' ? ' map-pin-stage' : ''}`}
             onClick={() => onSelect(destination.name)}
             style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
           >
             <span>{destination.tier}</span>
-            <strong>{destination.name}</strong>
+            <strong>{destination.name}{destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}</strong>
             <small>{score}</small>
           </button>
         </div>

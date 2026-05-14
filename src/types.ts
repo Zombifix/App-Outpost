@@ -14,6 +14,10 @@ export interface Destination {
   lat: number
   lng: number
   tier: Tier
+  kind?: 'place' | 'zone' | 'stop' | 'stage'
+  tripName?: string
+  extent?: [number, number, number, number]
+  geojson?: object
   image?: string
   score?: number
   notes?: number

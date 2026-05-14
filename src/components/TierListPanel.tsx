@@ -38,7 +38,7 @@ export default function TierListPanel({
 
       <div className="tier-columns">
         {TIER_ORDER.map(tier => {
-          const items = destinations.filter(destination => destination.tier === tier)
+          const items = destinations.filter(destination => destination.tier === tier && destination.kind !== 'stop')
           const colors = TIER_COLORS[tier]
 
           return (

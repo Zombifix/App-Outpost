@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Destination, Tier } from './types'
+import type { Destination } from './types'
 import { DESTINATIONS } from './data'
 import WorldMap from './components/WorldMap'
 import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
+import AddDestinationWizard from './components/AddDestinationWizard'
 
 const STORAGE_KEY = 'triptier-destinations-v2'
 type View = 'map' | 'explore'
@@ -99,8 +100,14 @@ export default function App() {
     window.setTimeout(() => setShareCopied(false), 1800)
   }
 
+  const appClass = [
+    'travel-app',
+    tierListCollapsed ? 'tier-collapsed' : '',
+    !(activeView === 'map' && selected) ? 'no-card' : '',
+  ].filter(Boolean).join(' ')
+
   return (
-    <div className="travel-app">
+    <div className={appClass}>
       {activeView === 'map' ? (
         <WorldMap
           destinations={visibleDestinations}
@@ -153,7 +160,7 @@ export default function App() {
         />
       )}
       {addingDestination && (
-        <AddDestinationPanel
+        <AddDestinationWizard
           onClose={() => setAddingDestination(false)}
           onAdd={addDestination}
         />
@@ -236,68 +243,6 @@ function AccountPanel({ onClose }: { onClose: () => void }) {
   )
 }
 
-function AddDestinationPanel({ onClose, onAdd }: { onClose: () => void; onAdd: (destination: Destination) => void }) {
-  const [name, setName] = useState('')
-  const [country, setCountry] = useState('')
-  const [tier, setTier] = useState<Tier>('B')
-  const [score, setScore] = useState(3.5)
-
-  const submit = () => {
-    const trimmedName = name.trim()
-    if (!trimmedName) return
-    const seed = DESTINATIONS.find(destination => destination.name.toLowerCase() === trimmedName.toLowerCase())
-    onAdd({
-      name: trimmedName,
-      country: country.trim() || seed?.country || 'Nouvelle destination',
-      lat: seed?.lat ?? 48.85,
-      lng: seed?.lng ?? 2.35,
-      tier,
-      image: seed?.image ?? 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85',
-      score,
-      notes: seed?.notes ?? 1,
-      summary: seed?.summary ?? 'Ajoutee a ta tier list. Tu peux ajuster ses criteres ensuite.',
-      food: seed?.food ?? Math.round(score),
-      night: seed?.night ?? Math.round(score),
-      culture: seed?.culture ?? Math.round(score),
-      nature: seed?.nature ?? Math.round(score),
-      value: seed?.value ?? Math.round(score),
-      intent: seed?.intent ?? 'tourisme',
-    })
-  }
-
-  return (
-    <div className="add-overlay" role="dialog" aria-label="Ajouter une destination">
-      <div className="add-panel">
-        <button className="floating-close" aria-label="Fermer l'ajout" onClick={onClose}>
-          <Icon name="x" />
-        </button>
-        <h2>Ajouter une destination</h2>
-        <p>Ajoute un nouveau point a ta carte et a la tier list.</p>
-        <label>
-          Destination
-          <input value={name} onChange={event => setName(event.target.value)} placeholder="Paris, Seoul, Marrakech..." />
-        </label>
-        <label>
-          Pays
-          <input value={country} onChange={event => setCountry(event.target.value)} placeholder="France, Coree..." />
-        </label>
-        <div className="add-row">
-          <label>
-            Tier
-            <select value={tier} onChange={event => setTier(event.target.value as Tier)}>
-              {(['S', 'A', 'B', 'C', 'D'] as Tier[]).map(value => <option key={value}>{value}</option>)}
-            </select>
-          </label>
-          <label>
-            Note
-            <input type="number" min="1" max="5" step="0.1" value={score} onChange={event => setScore(Number(event.target.value))} />
-          </label>
-        </div>
-        <button className="add-submit" onClick={submit}>Ajouter a la carte</button>
-      </div>
-    </div>
-  )
-}
 
 interface DestinationCardProps {
   destination: Destination

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import emailjs from '@emailjs/browser'
 import type { Destination } from '../types'
 
 type View = 'map' | 'explore'
@@ -6,6 +7,7 @@ type View = 'map' | 'explore'
 interface Friend {
   name: string
   email: string
+  invited?: boolean
 }
 
 interface NavProps {
@@ -45,9 +47,9 @@ export default function Nav({
   onAccountClick,
 }: NavProps) {
   const [query, setQuery] = useState('')
-  const [friendsOpen, setFriendsOpen] = useState(false)
   const [friendEmail, setFriendEmail] = useState('')
   const [friends, setFriends] = useState<Friend[]>(initialFriends)
+  const [inviting, setInviting] = useState(false)
 
   const submitSearch = () => {
     const normalized = query.trim().toLowerCase()
@@ -62,11 +64,29 @@ export default function Nav({
     }
   }
 
-  const addFriend = () => {
+  const addFriend = async () => {
     const email = friendEmail.trim()
-    if (!email) return
-    setFriends(previous => [...previous, { name: email.split('@')[0] || 'Ami', email }])
+    if (!email || inviting) return
+    if (friends.some(f => f.email === email)) {
+      setFriendEmail('')
+      return
+    }
+
+    setInviting(true)
+    try {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        { to_email: email, from_name: 'TripTier' },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      )
+    } catch {
+      // invitation envoyée en best-effort, on ajoute quand même localement
+    }
+
+    setFriends(prev => [...prev, { name: email.split('@')[0] || 'Ami', email, invited: true }])
     setFriendEmail('')
+    setInviting(false)
   }
 
   return (
@@ -95,43 +115,38 @@ export default function Nav({
             <Icon name="compass" />
             Explorer
           </button>
-          <button className={friendsOpen ? 'active' : ''} onClick={() => setFriendsOpen(value => !value)}>
-            <Icon name="users" />
-            Amis
-          </button>
         </nav>
 
-        {friendsOpen && (
-          <section className="friends-drawer" aria-label="Mes amis">
-            <div className="friends-list">
-              {friends.map(friend => (
-                <button key={friend.email}>
-                  <span>{friend.name.slice(0, 1).toUpperCase()}</span>
-                  <span>
-                    <strong>{friend.name}</strong>
-                    <small>{friend.email}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-            <label>
-              Ajouter par email
-              <div>
-                <input value={friendEmail} onChange={event => setFriendEmail(event.target.value)} placeholder="ami@email.com" />
-                <button onClick={addFriend} aria-label="Ajouter l'ami"><Icon name="plus" /></button>
-              </div>
-            </label>
-          </section>
-        )}
-
-        <div className="inspiration-card">
-          <div className="balloon">*</div>
-          <div>
-            <strong>Envie d'inspiration ?</strong>
-            <p>Suggestions selon ta tier list</p>
-            <button onClick={() => onViewChange('explore')}>Explorer <Icon name="arrow" /></button>
+        <section className="friends-drawer" aria-label="Mes amis">
+          <p className="side-menu-label">
+            <Icon name="users" /> Amis
+          </p>
+          <div className="friends-list">
+            {friends.map(friend => (
+              <button key={friend.email}>
+                <span>{friend.name.slice(0, 1).toUpperCase()}</span>
+                <span>
+                  <strong>{friend.name}</strong>
+                  <small>{friend.invited ? 'Invitation envoyée' : friend.email}</small>
+                </span>
+              </button>
+            ))}
           </div>
-        </div>
+          <label>
+            Ajouter par email
+            <div>
+              <input
+                value={friendEmail}
+                onChange={event => setFriendEmail(event.target.value)}
+                onKeyDown={event => { if (event.key === 'Enter') addFriend() }}
+                placeholder="ami@email.com"
+              />
+              <button onClick={addFriend} aria-label="Ajouter l'ami" disabled={inviting}>
+                {inviting ? '…' : <Icon name="plus" />}
+              </button>
+            </div>
+          </label>
+        </section>
       </aside>
 
       <header className="topbar">

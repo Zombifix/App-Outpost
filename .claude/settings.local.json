@@ -5,7 +5,13 @@
       "Bash(npm run *)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "mcp__Claude_Preview__preview_start",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\theop\\\\OneDrive\\\\Documents\\\\GitHub\\\\App-Outpost\\\\.git\\\\index.lock\" -Force)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)"
     ]
   }
 }

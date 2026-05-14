@@ -14,6 +14,10 @@ export interface Destination {
   lat: number
   lng: number
   tier: Tier
+  image?: string
+  score?: number
+  notes?: number
+  summary?: string
   food: number
   night: number
   culture: number

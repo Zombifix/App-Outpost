@@ -335,6 +335,8 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
   // scale(1/zoomK) counter-acts the parent group's D3 zoom, keeping pins at constant
   // screen size anchored precisely at the geographic point (translate origin = 0,0 local)
   const invK = 1 / zoomK
+  // Below threshold: compact circle pin; above: full card with name+score
+  const isCompact = zoomK < 2
 
   if (destination.kind === 'stop') {
     return (
@@ -382,7 +384,7 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
-            className={`map-pin${destination.kind === 'stage' ? ' map-pin-stage' : ''}`}
+            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}`}
             onClick={() => onSelect(destination.name)}
             style={{ '--pin-color': color } as CSSProperties}
           >

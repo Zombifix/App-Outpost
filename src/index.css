@@ -525,29 +525,67 @@ svg {
 }
 
 .map-pin {
-  width: 58px;
-  min-height: 72px;
-  padding: 7px 6px 9px;
+  position: relative;
+  width: 68px;
+  min-height: 80px;
+  padding: 8px 7px 10px;
   border-radius: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
   color: #24304b;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.92);
   box-shadow:
-    0 11px 18px rgba(58, 78, 106, 0.18),
+    0 10px 22px rgba(58, 78, 106, 0.2),
     0 2px 7px rgba(255, 255, 255, 0.72) inset;
   transform-origin: center bottom;
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s ease;
+  transition:
+    width 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    min-height 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.32s ease,
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+}
+
+/* Teardrop tail — tip at geographic point */
+.map-pin::after {
+  content: '';
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+  transition:
+    width 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    bottom 0.46s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Compact mode — circle pin with bigger tail */
+.map-pin--compact {
+  width: 46px;
+  min-height: 46px;
+  border-radius: 23px;
+  padding: 8px;
+}
+
+.map-pin--compact::after {
+  width: 22px;
+  height: 15px;
+  bottom: -14px;
 }
 
 .map-pin:hover,
 .pin-selected .map-pin {
   transform: translateY(-5px) scale(1.04);
   box-shadow:
-    0 14px 24px rgba(58, 78, 106, 0.24),
+    0 14px 26px rgba(58, 78, 106, 0.26),
     0 2px 8px rgba(255, 255, 255, 0.78) inset;
 }
 
@@ -562,26 +600,49 @@ svg {
   font-size: 18px;
   font-weight: 900;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .map-pin strong {
   width: 100%;
-  margin-top: 5px;
+  margin-top: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #27304d;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 850;
   line-height: 1.15;
   text-align: center;
   white-space: nowrap;
+  max-height: 40px;
+  opacity: 1;
+  transition:
+    opacity 0.28s ease,
+    max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    margin 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .map-pin small {
-  margin-top: 2px;
+  margin-top: 3px;
   color: #526078;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
+  max-height: 20px;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    opacity 0.28s ease,
+    max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    margin 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hide text in compact mode */
+.map-pin--compact strong,
+.map-pin--compact small {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  pointer-events: none;
 }
 
 .map-controls {

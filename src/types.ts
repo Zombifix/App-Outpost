@@ -24,6 +24,8 @@ export interface Destination {
   tripName?: string
   extent?: [number, number, number, number]
   geojson?: object
+  state?: string
+  osmValue?: string
   image?: string
   score?: number
   notes?: number

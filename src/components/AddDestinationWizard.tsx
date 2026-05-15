@@ -15,14 +15,21 @@ type WizardStep = 'search' | 'type' | 'questions' | 'result'
 interface PhotonResult {
   name: string
   country: string
+  state?: string
+  osmValue?: string
   lat: number
   lng: number
   extent?: [number, number, number, number] // [minLng, minLat, maxLng, maxLat]
 }
 
+const ZONE_OSM_VALUES = new Set(['country', 'state', 'region', 'province', 'county', 'department', 'district'])
+const PLACE_OSM_VALUES = new Set(['city', 'town', 'village', 'hamlet', 'suburb', 'locality'])
+
 interface WizardState {
   name: string
   country: string
+  state?: string
+  osmValue?: string
   lat: number
   lng: number
   extent?: [number, number, number, number]
@@ -93,6 +100,7 @@ interface StopAutocompleteProps {
   onChange: (next: RoadTripStop) => void
   onRemove: () => void
   country?: string
+  state?: string
   centerLat?: number
   centerLng?: number
   isDragging?: boolean
@@ -105,7 +113,7 @@ interface StopAutocompleteProps {
 }
 
 function StopAutocomplete({
-  index, stop, onChange, onRemove, country, centerLat, centerLng,
+  index, stop, onChange, onRemove, country, state, centerLat, centerLng,
   isDragging, isDragTarget, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
 }: StopAutocompleteProps) {
   const [query, setQuery] = useState(stop.name)
@@ -120,14 +128,16 @@ function StopAutocomplete({
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       try {
-        const r = await searchPhoton(query, { country, lat: centerLat, lng: centerLng })
+        const r = await searchPhoton(query, {
+          country, state, lat: centerLat, lng: centerLng, kindFilter: 'place',
+        })
         setResults(r)
       } catch {
         setResults([])
       }
     }, 280)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [query, stop.name, stop.lat, country, centerLat, centerLng])
+  }, [query, stop.name, stop.lat, country, state, centerLat, centerLng])
 
   const pick = (r: PhotonResult) => {
     onChange({ name: r.name, lat: r.lat, lng: r.lng })
@@ -207,29 +217,50 @@ function normalizeCountry(s: string): string {
 
 async function searchPhoton(
   q: string,
-  opts: { country?: string; lat?: number; lng?: number } = {},
+  opts: {
+    country?: string
+    state?: string
+    lat?: number
+    lng?: number
+    kindFilter?: 'place' | 'zone'
+  } = {},
 ): Promise<PhotonResult[]> {
-  const params = [`q=${encodeURIComponent(q)}`, 'limit=10', 'lang=fr']
+  const params = [`q=${encodeURIComponent(q)}`, 'limit=15', 'lang=fr']
   if (Number.isFinite(opts.lat) && Number.isFinite(opts.lng)) {
     params.push(`lat=${opts.lat}`, `lon=${opts.lng}`, 'location_bias_scale=0.3')
   }
   const res = await fetch(`https://photon.komoot.io/api/?${params.join('&')}`)
   const data = await res.json()
-  const all: PhotonResult[] = (data.features ?? []).map((f: Record<string, unknown>) => {
+  let all: PhotonResult[] = (data.features ?? []).map((f: Record<string, unknown>) => {
     const props = f.properties as Record<string, unknown>
     const geom = f.geometry as { coordinates: [number, number] }
     return {
       name: (props.name as string) ?? '',
       country: (props.country as string) ?? '',
+      state: (props.state as string) ?? undefined,
+      osmValue: (props.osm_value as string) ?? undefined,
       lat: geom.coordinates[1],
       lng: geom.coordinates[0],
       extent: props.extent as [number, number, number, number] | undefined,
     }
   })
+
+  if (opts.kindFilter === 'place') {
+    all = all.filter(r => r.osmValue && PLACE_OSM_VALUES.has(r.osmValue))
+  } else if (opts.kindFilter === 'zone') {
+    all = all.filter(r => r.osmValue && ZONE_OSM_VALUES.has(r.osmValue))
+  }
+
+  if (opts.state) {
+    // Filtre strict : si la zone est un état/région, on n'accepte QUE des résultats
+    // dans cet état (peu importe le résultat — on retourne vide si rien ne match).
+    const target = normalizeCountry(opts.state)
+    return all.filter(r => r.state && normalizeCountry(r.state) === target).slice(0, 6)
+  }
   if (opts.country) {
+    // Filtre strict aussi pour les pays : on n'accepte que des villes du pays.
     const target = normalizeCountry(opts.country)
-    const filtered = all.filter(r => normalizeCountry(r.country) === target)
-    if (filtered.length > 0) return filtered.slice(0, 6)
+    return all.filter(r => normalizeCountry(r.country) === target).slice(0, 6)
   }
   return all.slice(0, 6)
 }
@@ -345,7 +376,7 @@ const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba
 
 export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate }: WizardProps) {
   const isEditing = !!initialDestination
-  const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'search')
+  const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'type')
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<PhotonResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -355,6 +386,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       ? {
           name: initialDestination.name,
           country: initialDestination.country,
+          state: initialDestination.state,
+          osmValue: initialDestination.osmValue,
           lat: initialDestination.lat,
           lng: initialDestination.lng,
           extent: initialDestination.extent,
@@ -371,7 +404,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           intent: initialDestination.intent,
         }
       : {
-          name: '', country: '', lat: 0, lng: 0,
+          name: '', country: '', state: undefined, osmValue: undefined, lat: 0, lng: 0,
           kind: 'place', tripName: '',
           food: null, night: null, culture: null, nature: null, value: null,
           vibeBoost: null, retourBonus: 0,
@@ -414,6 +447,12 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     ? { lat: (state.extent[1] + state.extent[3]) / 2, lng: (state.extent[0] + state.extent[2]) / 2 }
     : { lat: state.lat, lng: state.lng }
 
+  // Si la zone est un état/région/comté, on restreint les étapes à cet état.
+  // Le nom de la zone EST le nom de l'état (Photon ne renvoie pas `state` quand l'élément est lui-même un state).
+  const stopStateFilter = state.osmValue && ZONE_OSM_VALUES.has(state.osmValue) && state.osmValue !== 'country'
+    ? (state.state || state.name)
+    : undefined
+
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
   }, [step])
@@ -424,7 +463,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const results = await searchPhoton(query)
+        const results = await searchPhoton(query, { kindFilter: state.kind === 'zone' ? 'zone' : 'place' })
         setSuggestions(results)
       } catch {
         setSuggestions([])
@@ -433,14 +472,26 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       }
     }, 280)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [query])
+  }, [query, state.kind])
 
   const selectSuggestion = (r: PhotonResult) => {
     setSelected(r)
     setQuery(r.name + (r.country ? `, ${r.country}` : ''))
     setSuggestions([])
-    setState(prev => ({ ...prev, name: r.name, country: r.country, lat: r.lat, lng: r.lng, extent: r.extent, geojson: undefined }))
-    setStep('type')
+    setState(prev => ({
+      ...prev,
+      name: r.name,
+      country: r.country,
+      state: r.state,
+      osmValue: r.osmValue,
+      lat: r.lat,
+      lng: r.lng,
+      extent: r.extent,
+      geojson: undefined,
+    }))
+    setQuestionIndex(0)
+    setAnsweredKeys(new Set())
+    setStep('questions')
     // fetch the real polygon in background — will be ready before user finishes questions
     fetchNominatimGeojson(r.name, r.country).then(geojson => {
       setState(prev => ({ ...prev, geojson }))
@@ -449,9 +500,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   const selectKind = (kind: DestKind) => {
     setState(prev => ({ ...prev, kind }))
-    setQuestionIndex(0)
-    setAnsweredKeys(new Set())
-    setStep('questions')
+    setStep('search')
   }
 
   const answerQuestion = (key: QuestionKey, value: number | null | Intent) => {
@@ -487,6 +536,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         : undefined,
       extent: s.kind === 'zone' ? s.extent : undefined,
       geojson: s.kind === 'zone' ? s.geojson : undefined,
+      state: s.state,
+      osmValue: s.osmValue,
       food: s.food || 3,
       night: s.night || 3,
       culture: s.culture || 3,
@@ -521,49 +572,17 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           <p className="wizard-edit-label">Modifier — {initialDestination.name}</p>
         )}
 
-        {/* Progress dots — masqués en mode édition (on saute search/type) */}
+        {/* Progress dots — masqués en mode édition (on saute type/search) */}
         {!isEditing && step !== 'result' && (
           <div className="wizard-progress">
-            {(['search', 'type', 'questions'] as WizardStep[]).map((s, i) => (
-              <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < ['search', 'type', 'questions'].indexOf(step) ? 'done' : '')}`} />
+            {(['type', 'search', 'questions'] as WizardStep[]).map((s, i) => (
+              <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < ['type', 'search', 'questions'].indexOf(step) ? 'done' : '')}`} />
             ))}
           </div>
         )}
 
-        {step === 'search' && (
+        {step === 'type' && (
           <div className="wizard-step">
-            <h2 className="wizard-title">Où es-tu allé ?</h2>
-            <p className="wizard-sub">Tape une ville, une région, un pays…</p>
-            <div className="wizard-search-box">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Paris, Texas, Côte d'Azur…"
-                className="wizard-input"
-                onKeyDown={e => e.key === 'Escape' && onClose()}
-              />
-              {loading && <span className="wizard-spinner">·</span>}
-            </div>
-            {suggestions.length > 0 && (
-              <ul className="wizard-suggestions">
-                {suggestions.map((r, i) => (
-                  <li key={i}>
-                    <button onClick={() => selectSuggestion(r)}>
-                      <span className="sug-name">{r.name}</span>
-                      {r.country && <span className="sug-country">{r.country}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        {step === 'type' && selected && (
-          <div className="wizard-step">
-            <p className="wizard-place-name">{selected.name}</p>
             <h2 className="wizard-title">C'était quoi comme trip ?</h2>
             <div className="wizard-type-grid">
               {TYPE_OPTIONS.map(opt => (
@@ -578,6 +597,52 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {step === 'search' && (
+          <div className="wizard-step">
+            <h2 className="wizard-title">Où es-tu allé ?</h2>
+            <p className="wizard-sub">
+              {state.kind === 'zone'
+                ? 'Tape une région, un état, un pays…'
+                : 'Tape une ville ou un endroit précis…'}
+            </p>
+            <div className="wizard-search-box">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={state.kind === 'zone' ? 'France, Texas, Côte d\'Azur…' : 'Paris, Tokyo, Marrakech…'}
+                className="wizard-input"
+                onKeyDown={e => e.key === 'Escape' && onClose()}
+              />
+              {loading && <span className="wizard-spinner">·</span>}
+            </div>
+            {suggestions.length > 0 && (
+              <ul className="wizard-suggestions">
+                {suggestions.map((r, i) => (
+                  <li key={i}>
+                    <button onClick={() => selectSuggestion(r)}>
+                      <span className="sug-name">{r.name}</span>
+                      {r.country && (
+                        <span className="sug-country">
+                          {r.state && r.state !== r.name ? `${r.state}, ` : ''}{r.country}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              className="wizard-back"
+              style={{ marginTop: 12 }}
+              onClick={() => setStep('type')}
+            >
+              ← Changer de type
+            </button>
           </div>
         )}
 
@@ -647,6 +712,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                     index={i}
                     stop={stop}
                     country={state.country}
+                    state={stopStateFilter}
                     centerLat={stopCenter.lat}
                     centerLng={stopCenter.lng}
                     isDragging={dragIndex === i}

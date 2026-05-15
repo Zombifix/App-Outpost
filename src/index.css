@@ -73,9 +73,7 @@ svg {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(247, 252, 255, 0.84) 0%, rgba(231, 247, 255, 0.88) 53%, rgba(255, 255, 255, 0.62) 100%),
-    url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2200&q=80') center bottom / cover;
+  background: linear-gradient(180deg, #f7fcff 0%, #e7f7ff 53%, #ffffff 100%);
 }
 
 .travel-app::after {

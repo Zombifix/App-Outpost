@@ -86,7 +86,6 @@ export default function ActivityFeed({ feed, friends, onFlyTo }: ActivityFeedPro
                   {item.dest}
                 </span>
                 <span style={{
-                  fontFamily: 'var(--font-serif)',
                   fontSize: 13,
                   fontWeight: 500,
                   color: tierColor.pin,

@@ -296,11 +296,14 @@ export default function WorldMap({
 
       <div className="map-controls" aria-label="Controles de carte">
         <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>
-        <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>-</button>
-        <button aria-label="Centrer" onClick={resetZoom}>
-          <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>−</button>
+        <span className="map-controls-divider" aria-hidden="true" />
+        <button aria-label="Recadrer la carte" onClick={resetZoom}>
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9V4h5" />
+            <path d="M21 9V4h-5" />
+            <path d="M3 15v5h5" />
+            <path d="M21 15v5h-5" />
           </svg>
         </button>
       </div>

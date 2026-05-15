@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import emailjs from '@emailjs/browser'
 import type { Destination } from '../types'
 
 type View = 'map' | 'tier-list' | 'explore'
 
 interface Friend {
   name: string
-  email: string
-  invited?: boolean
+  handle: string
+  pending?: boolean
 }
 
 interface NavProps {
@@ -17,6 +16,7 @@ interface NavProps {
   filterTop: boolean
   sortByScore: boolean
   shareCopied: boolean
+  publicId: string
   onViewChange: (view: View) => void
   onAddClick: () => void
   onFilterToggle: () => void
@@ -27,8 +27,8 @@ interface NavProps {
 }
 
 const initialFriends: Friend[] = [
-  { name: 'Lea Martin', email: 'lea@triptier.app' },
-  { name: 'Alex Bernard', email: 'alex@triptier.app' },
+  { name: 'Léa Martin', handle: 'lea-m' },
+  { name: 'Alex Bernard', handle: 'alex-b' },
 ]
 
 export default function Nav({
@@ -38,6 +38,7 @@ export default function Nav({
   filterTop,
   sortByScore,
   shareCopied,
+  publicId,
   onViewChange,
   onAddClick,
   onFilterToggle,
@@ -47,9 +48,9 @@ export default function Nav({
   onAccountClick,
 }: NavProps) {
   const [query, setQuery] = useState('')
-  const [friendEmail, setFriendEmail] = useState('')
+  const [friendHandle, setFriendHandle] = useState('')
   const [friends, setFriends] = useState<Friend[]>(initialFriends)
-  const [inviting, setInviting] = useState(false)
+  const [networkOpen, setNetworkOpen] = useState(true)
 
   const submitSearch = () => {
     const normalized = query.trim().toLowerCase()
@@ -64,41 +65,32 @@ export default function Nav({
     }
   }
 
-  const addFriend = async () => {
-    const email = friendEmail.trim()
-    if (!email || inviting) return
-    if (friends.some(f => f.email === email)) {
-      setFriendEmail('')
+  const followUser = () => {
+    const raw = friendHandle.trim().replace(/^@/, '').toLowerCase()
+    const handle = raw.replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    if (!handle) return
+    if (friends.some(f => f.handle === handle)) {
+      setFriendHandle('')
       return
     }
+    setFriends(prev => [...prev, { name: handle, handle, pending: true }])
+    setFriendHandle('')
+  }
 
-    setInviting(true)
-    try {
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        { to_email: email, from_name: 'TripTier' },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
-      )
-    } catch {
-      // invitation envoyée en best-effort, on ajoute quand même localement
-    }
-
-    setFriends(prev => [...prev, { name: email.split('@')[0] || 'Ami', email, invited: true }])
-    setFriendEmail('')
-    setInviting(false)
+  const unfollow = (handle: string) => {
+    setFriends(prev => prev.filter(f => f.handle !== handle))
   }
 
   return (
     <>
       <aside className="sidebar">
-        <button className="brand" onClick={() => onViewChange('map')} aria-label="Accueil TripTier">
+        <button className="brand" onClick={() => onViewChange('map')} aria-label="Accueil Outpost">
           <div className="brand-mark">
             <span />
             <span />
             <span />
           </div>
-          <strong>TripTier</strong>
+          <strong>Outpost</strong>
         </button>
 
         <button className="create-button" onClick={onAddClick}>
@@ -109,7 +101,7 @@ export default function Nav({
         <nav className="side-menu" aria-label="Navigation principale">
           <button className={activeView === 'map' ? 'active' : ''} onClick={() => onViewChange('map')}>
             <Icon name="map" />
-            Ma carte
+            Mon carnet
           </button>
           <button className={activeView === 'tier-list' ? 'active' : ''} onClick={() => onViewChange('tier-list')}>
             <Icon name="sliders" />
@@ -121,35 +113,77 @@ export default function Nav({
           </button>
         </nav>
 
-        <section className="friends-drawer" aria-label="Mes amis">
-          <p className="side-menu-label">
-            <Icon name="users" /> Amis
-          </p>
-          <div className="friends-list">
-            {friends.map(friend => (
-              <button key={friend.email}>
-                <span>{friend.name.slice(0, 1).toUpperCase()}</span>
-                <span>
-                  <strong>{friend.name}</strong>
-                  <small>{friend.invited ? 'Invitation envoyée' : friend.email}</small>
-                </span>
-              </button>
-            ))}
-          </div>
-          <label>
-            Ajouter par email
-            <div>
-              <input
-                value={friendEmail}
-                onChange={event => setFriendEmail(event.target.value)}
-                onKeyDown={event => { if (event.key === 'Enter') addFriend() }}
-                placeholder="ami@email.com"
-              />
-              <button onClick={addFriend} aria-label="Ajouter l'ami" disabled={inviting}>
-                {inviting ? '…' : <Icon name="plus" />}
-              </button>
-            </div>
-          </label>
+        <section className={`network-drawer${networkOpen ? ' is-open' : ''}`} aria-label="Mon réseau">
+          <button
+            className="network-header"
+            onClick={() => setNetworkOpen(value => !value)}
+            aria-expanded={networkOpen}
+          >
+            <span className="network-title">
+              <Icon name="users" />
+              Réseau
+              <em>{friends.length}</em>
+            </span>
+            <Icon name={networkOpen ? 'chevron-down' : 'chevron-up'} />
+          </button>
+
+          {networkOpen && (
+            <>
+              <p className="network-hint">Suis d'autres voyageurs pour voir leur carte et comparer vos classements.</p>
+
+              <div className="network-list">
+                {friends.length === 0 ? (
+                  <p className="network-empty">Personne pour l'instant. Ajoute un pseudo ci-dessous.</p>
+                ) : (
+                  friends.map(friend => (
+                    <div className="network-row" key={friend.handle}>
+                      <span className="network-avatar">{friend.name.slice(0, 1).toUpperCase()}</span>
+                      <span className="network-meta">
+                        <strong>{friend.name}</strong>
+                        <small>@{friend.handle}{friend.pending ? ' · invité' : ''}</small>
+                      </span>
+                      <button
+                        className="network-action"
+                        title="Voir sa carte"
+                        aria-label={`Voir la carte de ${friend.name}`}
+                      >
+                        <Icon name="map" />
+                      </button>
+                      <button
+                        className="network-action"
+                        title="Comparer nos cartes"
+                        aria-label={`Comparer avec ${friend.name}`}
+                      >
+                        <Icon name="versus" />
+                      </button>
+                      <button
+                        className="network-remove"
+                        onClick={() => unfollow(friend.handle)}
+                        title="Ne plus suivre"
+                        aria-label={`Ne plus suivre ${friend.name}`}
+                      >
+                        <Icon name="x" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="network-add">
+                <span className="network-add-prefix">@</span>
+                <input
+                  value={friendHandle}
+                  onChange={event => setFriendHandle(event.target.value)}
+                  onKeyDown={event => { if (event.key === 'Enter') followUser() }}
+                  placeholder="pseudo-a-suivre"
+                  aria-label="Pseudo à suivre"
+                />
+                <button onClick={followUser} disabled={!friendHandle.trim()}>
+                  Suivre
+                </button>
+              </div>
+            </>
+          )}
         </section>
       </aside>
 
@@ -179,18 +213,20 @@ export default function Nav({
             <Icon name="share" />
             {shareCopied ? 'Lien copie' : 'Partager'}
           </button>
-          <button className="user-badge" onClick={onAccountClick}>S</button>
+          <button className="user-badge" onClick={onAccountClick} aria-label="Mon compte">
+            {publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />}
+          </button>
         </div>
       </header>
 
       <section className="page-title" aria-label="Titre de la page">
         <h1>
-          {activeView === 'map' && 'Ma carte - Destinations de reve'}
+          {activeView === 'map' && 'Mon carnet de voyages'}
           {activeView === 'tier-list' && 'Tier list - Vue ensemble'}
           {activeView === 'explore' && 'Explorer - Suggestions IA'}
         </h1>
         <p>
-          {activeView === 'map' && `Modifiee le 18 mai 2024 - ${totalDestinations} destinations`}
+          {activeView === 'map' && `${totalDestinations} destination${totalDestinations > 1 ? 's' : ''} notée${totalDestinations > 1 ? 's' : ''}`}
           {activeView === 'tier-list' && 'Classement complet et comparaison avec tes amis'}
           {activeView === 'explore' && 'Placeholder IA, bientot connecte a ton classement'}
         </p>
@@ -221,6 +257,11 @@ function Icon({ name }: { name: string }) {
     sliders: <><path d="M4 21v-7" /><path d="M4 10V3" /><path d="M12 21v-9" /><path d="M12 8V3" /><path d="M20 21v-5" /><path d="M20 12V3" /><path d="M1 14h6" /><path d="M9 8h6" /><path d="M17 16h6" /></>,
     sort: <><path d="M7 4v16" /><path d="m3 8 4-4 4 4" /><path d="M17 20V4" /><path d="m13 16 4 4 4-4" /></>,
     share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" /></>,
+    user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+    'chevron-down': <path d="m6 9 6 6 6-6" />,
+    'chevron-up': <path d="m6 15 6-6 6 6" />,
+    versus: <><path d="M5 4 8 14 11 4" /><path d="m18 4-5 16" /><path d="M14 11h6" /></>,
+    x: <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>,
   }
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>

@@ -7,17 +7,27 @@ import TierListPanel from './components/TierListPanel'
 import TierListPage from './components/TierListPage'
 import AddDestinationWizard from './components/AddDestinationWizard'
 
-const STORAGE_KEY = 'triptier-destinations-v2'
+const STORAGE_KEY = 'outpost-destinations-v2'
+const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
+const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore'
 
 function loadDestinations(): Destination[] {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
+    const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (saved) return JSON.parse(saved) as Destination[]
   } catch {
     /* ignore */
   }
   return DESTINATIONS
+}
+
+function loadPublicId(): string {
+  try {
+    return localStorage.getItem(PUBLIC_ID_KEY) ?? ''
+  } catch {
+    return ''
+  }
 }
 
 export default function App() {
@@ -34,6 +44,16 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>('map')
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [publicId, setPublicId] = useState<string>(loadPublicId)
+
+  useEffect(() => {
+    try {
+      if (publicId) localStorage.setItem(PUBLIC_ID_KEY, publicId)
+      else localStorage.removeItem(PUBLIC_ID_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [publicId])
 
   useEffect(() => {
     try {
@@ -102,7 +122,8 @@ export default function App() {
   }
 
   const shareTierList = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?list=emma-destinations`
+    const slug = publicId.trim() || 'invite'
+    const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(slug)}`
     try {
       await navigator.clipboard.writeText(url)
     } catch {
@@ -147,6 +168,7 @@ export default function App() {
         filterTop={filterTop}
         sortByScore={sortByScore}
         shareCopied={shareCopied}
+        publicId={publicId}
         onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
         onFilterToggle={() => setFilterTop(value => !value)}
@@ -192,7 +214,13 @@ export default function App() {
           onUpdate={updateDestination}
         />
       )}
-      {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}
+      {accountOpen && (
+        <AccountPanel
+          publicId={publicId}
+          onPublicIdChange={setPublicId}
+          onClose={() => setAccountOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -246,25 +274,73 @@ function ExploreView({ destinations, onSelect }: { destinations: Destination[]; 
   )
 }
 
-function AccountPanel({ onClose }: { onClose: () => void }) {
+interface AccountPanelProps {
+  publicId: string
+  onPublicIdChange: (value: string) => void
+  onClose: () => void
+}
+
+function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps) {
+  const [draftId, setDraftId] = useState(publicId)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const save = () => {
+    const normalized = draftId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    onPublicIdChange(normalized)
+    onClose()
+  }
+
+  const shareLink = draftId.trim()
+    ? `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(draftId.trim())}`
+    : ''
+
   return (
-    <div className="account-overlay" role="dialog" aria-label="Compte">
-      <aside className="account-panel">
+    <div className="account-overlay" role="dialog" aria-label="Compte" onClick={onClose}>
+      <aside className="account-panel" onClick={event => event.stopPropagation()}>
         <button className="floating-close" aria-label="Fermer le compte" onClick={onClose}>
           <Icon name="x" />
         </button>
-        <div className="account-avatar">S</div>
-        <h2>Compte</h2>
-        <p>Profil, lien public et preferences de partage.</p>
+        <div className="account-avatar">{draftId ? draftId.slice(0, 1).toUpperCase() : '·'}</div>
+        <h2>Mon compte</h2>
+        <p className="account-hint">
+          Tes destinations sont sauvegardées sur cet appareil. Crée un compte pour les retrouver partout
+          et garder un lien de partage stable.
+        </p>
         <label>
-          Nom public
-          <input defaultValue="Sarah" />
+          Identifiant public
+          <input
+            value={draftId}
+            onChange={event => setDraftId(event.target.value)}
+            placeholder="ton-pseudo"
+          />
+        </label>
+        {shareLink && (
+          <label>
+            Ton lien de partage
+            <input readOnly value={shareLink} />
+          </label>
+        )}
+        <label>
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={event => setEmail(event.target.value)}
+            placeholder="toi@email.com"
+          />
         </label>
         <label>
-          Lien partageable
-          <input readOnly value="triptier.app/emma-destinations" />
+          Mot de passe
+          <input
+            type="password"
+            value={password}
+            onChange={event => setPassword(event.target.value)}
+            placeholder="••••••••"
+          />
         </label>
-        <button className="add-submit" onClick={onClose}>Enregistrer</button>
+        <p className="account-soon">La synchronisation cloud arrive bientôt.</p>
+        <button className="add-submit" onClick={save}>Enregistrer</button>
       </aside>
     </div>
   )
@@ -305,10 +381,14 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, 
         <div>
           <h2>{destination.name}, {destination.country}</h2>
           <div className="rating-line">
-            <span className="star">*</span>
+            <span className="star">★</span>
             <strong>{(destination.score ?? 4).toFixed(1).replace('.', ',')}</strong>
-            <span />
-            <span>{destination.notes ?? 12} notes</span>
+            {destination.intent && (
+              <>
+                <span />
+                <span className="intent-pill">{destination.intent}</span>
+              </>
+            )}
           </div>
         </div>
         <button

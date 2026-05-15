@@ -22,6 +22,7 @@ export interface Destination {
   score?: number
   notes?: number
   summary?: string
+  stops?: string[]
   food: number
   night: number
   culture: number

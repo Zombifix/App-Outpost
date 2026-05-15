@@ -194,8 +194,6 @@ type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'vibeBoos
 const TYPE_OPTIONS: { kind: DestKind; icon: string; label: string; desc: string }[] = [
   { kind: 'place', icon: '📍', label: 'Destination', desc: 'Une ville ou un endroit précis' },
   { kind: 'zone', icon: '🗺️', label: 'Road trip / Zone', desc: 'Une région, un itinéraire' },
-  { kind: 'stop', icon: '⚡', label: 'Stop rapide', desc: 'Juste un point sur la carte' },
-  { kind: 'stage', icon: '🔗', label: 'Étape d\'un voyage', desc: 'Fait partie d\'un trip' },
 ]
 
 const TIER_LABELS: Record<Tier, string> = {
@@ -255,6 +253,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [answeredKeys, setAnsweredKeys] = useState<Set<QuestionKey>>(new Set())
   const [finalScore, setFinalScore] = useState(0)
   const [finalTier, setFinalTier] = useState<Tier>('B')
+  const [stops, setStops] = useState<string[]>(
+    isEditing && initialDestination.stops?.length ? initialDestination.stops : []
+  )
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -293,27 +294,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   const selectKind = (kind: DestKind) => {
     setState(prev => ({ ...prev, kind }))
-    if (kind === 'stop') {
-      finishStop({ ...state, kind })
-    } else {
-      setQuestionIndex(0)
-      setAnsweredKeys(new Set())
-      setStep('questions')
-    }
-  }
-
-  const finishStop = (s: WizardState) => {
-    const lat = s.extent ? (s.extent[1] + s.extent[3]) / 2 : s.lat
-    const lng = s.extent ? (s.extent[0] + s.extent[2]) / 2 : s.lng
-    onAdd({
-      name: s.name,
-      country: s.country,
-      lat, lng,
-      kind: 'stop',
-      food: 3, night: 3, culture: 3, nature: 3, value: 3,
-      intent: 'tourisme',
-      summary: 'Stop rapide — pas encore noté.',
-    })
+    setQuestionIndex(0)
+    setAnsweredKeys(new Set())
+    setStep('questions')
   }
 
   const answerQuestion = (key: QuestionKey, value: number | null | Intent) => {
@@ -344,7 +327,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       lat, lng,
       tier: finalTier,
       kind: s.kind,
-      tripName: s.kind === 'stage' ? s.tripName || undefined : undefined,
+      stops: s.kind === 'zone' ? stops.map(s => s.trim()).filter(Boolean) : undefined,
       extent: s.kind === 'zone' ? s.extent : undefined,
       geojson: s.kind === 'zone' ? s.geojson : undefined,
       food: s.food || 3,
@@ -366,7 +349,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     }
   }
 
-  const activeQuestions = state.kind === 'stop' ? [] : QUESTIONS
+  const activeQuestions = QUESTIONS
 
   return (
     <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -443,19 +426,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'questions' && (
           <div className="wizard-step">
-            {state.kind === 'stage' && questionIndex === 0 && (
-              <div className="wizard-trip-input">
-                <label>
-                  Nom du voyage
-                  <input
-                    placeholder="Ex: Road trip USA 2024"
-                    value={state.tripName}
-                    onChange={e => setState(prev => ({ ...prev, tripName: e.target.value }))}
-                    className="wizard-input"
-                  />
-                </label>
-              </div>
-            )}
             <div className="wizard-question-counter">
               {questionIndex + 1} / {activeQuestions.length}
             </div>
@@ -511,8 +481,34 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 )
               })}
             </div>
-            {state.kind === 'stage' && state.tripName && (
-              <p className="result-trip-badge">✈ {state.tripName}</p>
+            {state.kind === 'zone' && (
+              <div className="wizard-stops">
+                <p className="wizard-stops-title">Étapes du road trip <span>(optionnel)</span></p>
+                {stops.map((stop, i) => (
+                  <div key={i} className="wizard-stop-row">
+                    <input
+                      className="wizard-input wizard-stop-input"
+                      placeholder={`Étape ${i + 1}`}
+                      value={stop}
+                      onChange={e => {
+                        const next = [...stops]
+                        next[i] = e.target.value
+                        setStops(next)
+                      }}
+                    />
+                    <button
+                      className="wizard-stop-remove"
+                      aria-label="Supprimer"
+                      onClick={() => setStops(stops.filter((_, j) => j !== i))}
+                    >×</button>
+                  </div>
+                ))}
+                {stops.length < 7 && (
+                  <button className="wizard-add-stop" onClick={() => setStops([...stops, ''])}>
+                    + Ajouter une étape
+                  </button>
+                )}
+              </div>
             )}
             <button className="wizard-submit" onClick={confirmAdd}>
               {isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}

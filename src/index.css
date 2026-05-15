@@ -1804,6 +1804,68 @@ svg {
   margin: 0 0 16px;
 }
 
+.wizard-stops {
+  margin: 16px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wizard-stops-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 6px;
+}
+
+.wizard-stops-title span {
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.wizard-stop-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wizard-stop-input {
+  flex: 1;
+  font-size: 14px;
+  padding: 9px 12px;
+}
+
+.wizard-stop-remove {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.wizard-stop-remove:hover { background: #fee2e2; color: #ef4444; }
+
+.wizard-add-stop {
+  background: none;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  color: #6b7280;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 9px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+.wizard-add-stop:hover { border-color: #3b7cf4; color: #3b7cf4; }
+
 .wizard-submit {
   width: 100%;
   padding: 15px;

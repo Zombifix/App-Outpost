@@ -314,8 +314,9 @@ export default function WorldMap({
                 d={pathD}
                 fill="none"
                 stroke={color}
-                strokeWidth={1.6}
-                strokeOpacity={0.65}
+                strokeWidth={2.4}
+                strokeOpacity={0.9}
+                strokeDasharray="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />

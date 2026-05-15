@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Destination, Intent, Tier } from '../types'
+import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 
 interface WizardProps {
@@ -85,6 +85,82 @@ function computeScore(state: WizardState): number {
   const vibe = state.vibeBoost ?? 3
   const boosted = weighted + vibe * 0.2 * ((weighted - 1) / 4)
   return Math.min(5, Math.max(1, boosted + state.retourBonus))
+}
+
+interface StopAutocompleteProps {
+  index: number
+  stop: RoadTripStop
+  onChange: (next: RoadTripStop) => void
+  onRemove: () => void
+}
+
+function StopAutocomplete({ index, stop, onChange, onRemove }: StopAutocompleteProps) {
+  const [query, setQuery] = useState(stop.name)
+  const [results, setResults] = useState<PhotonResult[]>([])
+  const [open, setOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) { setResults([]); return }
+    if (query === stop.name && Number.isFinite(stop.lat)) { setResults([]); return }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const r = await searchPhoton(query)
+        setResults(r)
+      } catch {
+        setResults([])
+      }
+    }, 280)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query, stop.name, stop.lat])
+
+  const pick = (r: PhotonResult) => {
+    onChange({ name: r.name, lat: r.lat, lng: r.lng })
+    setQuery(r.name)
+    setResults([])
+    setOpen(false)
+  }
+
+  return (
+    <div className="wizard-stop-row" style={{ position: 'relative' }}>
+      <input
+        className="wizard-input wizard-stop-input"
+        placeholder={`Étape ${index + 1}`}
+        value={query}
+        onChange={e => {
+          setQuery(e.target.value)
+          setOpen(true)
+          onChange({ name: e.target.value, lat: NaN, lng: NaN })
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          blurTimerRef.current = setTimeout(() => setOpen(false), 160)
+        }}
+      />
+      <button
+        className="wizard-stop-remove"
+        aria-label="Supprimer"
+        onClick={onRemove}
+      >×</button>
+      {open && results.length > 0 && (
+        <ul
+          className="wizard-suggestions wizard-stop-suggestions"
+          onMouseDown={() => { if (blurTimerRef.current) clearTimeout(blurTimerRef.current) }}
+        >
+          {results.map((r, i) => (
+            <li key={i}>
+              <button onClick={() => pick(r)}>
+                <span className="sug-name">{r.name}</span>
+                {r.country && <span className="sug-country">{r.country}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 async function searchPhoton(q: string): Promise<PhotonResult[]> {
@@ -253,7 +329,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [answeredKeys, setAnsweredKeys] = useState<Set<QuestionKey>>(new Set())
   const [finalScore, setFinalScore] = useState(0)
   const [finalTier, setFinalTier] = useState<Tier>('B')
-  const [stops, setStops] = useState<string[]>(
+  const [stops, setStops] = useState<RoadTripStop[]>(
     isEditing && initialDestination.stops?.length ? initialDestination.stops : []
   )
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -327,7 +403,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       lat, lng,
       tier: finalTier,
       kind: s.kind,
-      stops: s.kind === 'zone' ? stops.map(s => s.trim()).filter(Boolean) : undefined,
+      stops: s.kind === 'zone'
+        ? stops.filter(st => st.name.trim() && Number.isFinite(st.lat) && Number.isFinite(st.lng))
+        : undefined,
       extent: s.kind === 'zone' ? s.extent : undefined,
       geojson: s.kind === 'zone' ? s.geojson : undefined,
       food: s.food || 3,
@@ -485,26 +563,23 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <div className="wizard-stops">
                 <p className="wizard-stops-title">Étapes du road trip <span>(optionnel)</span></p>
                 {stops.map((stop, i) => (
-                  <div key={i} className="wizard-stop-row">
-                    <input
-                      className="wizard-input wizard-stop-input"
-                      placeholder={`Étape ${i + 1}`}
-                      value={stop}
-                      onChange={e => {
-                        const next = [...stops]
-                        next[i] = e.target.value
-                        setStops(next)
-                      }}
-                    />
-                    <button
-                      className="wizard-stop-remove"
-                      aria-label="Supprimer"
-                      onClick={() => setStops(stops.filter((_, j) => j !== i))}
-                    >×</button>
-                  </div>
+                  <StopAutocomplete
+                    key={i}
+                    index={i}
+                    stop={stop}
+                    onChange={next => {
+                      const updated = [...stops]
+                      updated[i] = next
+                      setStops(updated)
+                    }}
+                    onRemove={() => setStops(stops.filter((_, j) => j !== i))}
+                  />
                 ))}
                 {stops.length < 7 && (
-                  <button className="wizard-add-stop" onClick={() => setStops([...stops, ''])}>
+                  <button
+                    className="wizard-add-stop"
+                    onClick={() => setStops([...stops, { name: '', lat: NaN, lng: NaN }])}
+                  >
                     + Ajouter une étape
                   </button>
                 )}

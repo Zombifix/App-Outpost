@@ -94,6 +94,7 @@ export default function WorldMap({
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
   // Refs for groups whose transforms D3 manages directly — no React state involved
   const zonesGroupRef = useRef<SVGGElement>(null)
+  const routesGroupRef = useRef<SVGGElement>(null)
   const pinsGroupRef = useRef<SVGGElement>(null)
 
   const [dimensions, setDimensions] = useState({ width: 900, height: 520 })
@@ -165,6 +166,7 @@ export default function WorldMap({
         const t = String(event.transform)
         countries.attr('transform', t)
         if (zonesGroupRef.current) zonesGroupRef.current.setAttribute('transform', t)
+        if (routesGroupRef.current) routesGroupRef.current.setAttribute('transform', t)
         if (pinsGroupRef.current) {
           pinsGroupRef.current.setAttribute('transform', t)
           // Counter-scale each pin so it keeps constant screen size,
@@ -191,6 +193,7 @@ export default function WorldMap({
 
     // Reset group transforms and scale state on projection rebuild
     if (zonesGroupRef.current) zonesGroupRef.current.removeAttribute('transform')
+    if (routesGroupRef.current) routesGroupRef.current.removeAttribute('transform')
     if (pinsGroupRef.current) pinsGroupRef.current.removeAttribute('transform')
     setZoomK(1)
     setProjectionReady(true)
@@ -259,6 +262,59 @@ export default function WorldMap({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectionReady, destinations, dimensions])
 
+  // Road trip routes: smooth curve through stops + dots — purely visual, non-interactive
+  const routePaths = useMemo(() => {
+    if (!projectionReady || !projectionRef.current) return []
+    const proj = projectionRef.current
+    const lineGen = d3.line<[number, number]>()
+      .x(p => p[0])
+      .y(p => p[1])
+      .curve(d3.curveCatmullRom.alpha(0.5))
+
+    return destinations
+      .filter(d => d.kind === 'zone' && d.stops && d.stops.length > 0)
+      .map(d => {
+        const color = TIER_COLORS[d.tier!].pin
+        const pts = (d.stops ?? [])
+          .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+          .map(s => proj([s.lng, s.lat]))
+          .filter((p): p is [number, number] => p !== null && isFinite(p[0]) && isFinite(p[1]))
+
+        if (pts.length === 0) return null
+        const pathD = pts.length >= 2 ? lineGen(pts) : null
+
+        return (
+          <g key={`route-${d.name}`} className="map-route" style={{ pointerEvents: 'none' }}>
+            {pathD && (
+              <path
+                d={pathD}
+                fill="none"
+                stroke={color}
+                strokeWidth={1.6}
+                strokeOpacity={0.65}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+            {pts.map((p, i) => (
+              <circle
+                key={i}
+                cx={p[0]}
+                cy={p[1]}
+                r={3.2}
+                fill={color}
+                stroke="white"
+                strokeWidth={1}
+                opacity={0.95}
+              />
+            ))}
+          </g>
+        )
+      })
+      .filter(Boolean)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectionReady, destinations, dimensions])
+
   return (
     <section className="map-area" ref={wrapperRef} aria-label="Carte des destinations">
       <svg ref={svgRef} width={dimensions.width} height={dimensions.height} className="world-map">
@@ -278,6 +334,9 @@ export default function WorldMap({
 
         {/* Zones: D3 manages the group transform via zonesGroupRef */}
         <g ref={zonesGroupRef}>{zonePaths}</g>
+
+        {/* Routes: road trip stops connected by smooth curve, above zones, below pins */}
+        <g ref={routesGroupRef}>{routePaths}</g>
 
         {/* Pins: positioned at BASE projection coords — the group transform (D3-managed) moves them */}
         <g ref={pinsGroupRef}>

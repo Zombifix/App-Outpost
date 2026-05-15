@@ -8,6 +8,12 @@ export type Intent =
   | 'nature'
   | 'travail'
 
+export interface RoadTripStop {
+  name: string
+  lat: number
+  lng: number
+}
+
 export interface Destination {
   name: string
   country: string
@@ -22,7 +28,7 @@ export interface Destination {
   score?: number
   notes?: number
   summary?: string
-  stops?: string[]
+  stops?: RoadTripStop[]
   food: number
   night: number
   culture: number

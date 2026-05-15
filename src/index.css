@@ -2073,10 +2073,36 @@ svg {
 }
 
 .wizard-stop-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 2px solid transparent;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+.wizard-stop-row.is-dragging { opacity: 0.4; }
+.wizard-stop-row.is-drag-target { border-top-color: #3b7cf4; }
+
+.wizard-stop-field {
   display: flex;
   gap: 8px;
   align-items: center;
 }
+
+.wizard-stop-handle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 30px;
+  color: #9ca3af;
+  cursor: grab;
+  user-select: none;
+  font-size: var(--text-base);
+  letter-spacing: -1px;
+}
+.wizard-stop-handle:active { cursor: grabbing; }
 
 .wizard-stop-input {
   flex: 1;
@@ -2100,6 +2126,19 @@ svg {
   transition: background 0.12s, color 0.12s;
 }
 .wizard-stop-remove:hover { background: #fee2e2; color: #ef4444; }
+
+.wizard-stop-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 26px;
+  right: 38px;
+  margin-top: 4px;
+  z-index: 10;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
 
 .wizard-add-stop {
   background: none;
@@ -2129,6 +2168,21 @@ svg {
   transition: background 0.15s, transform 0.1s;
 }
 .wizard-submit:hover { background: #374151; transform: translateY(-1px); }
+
+.wizard-result-redo {
+  display: block;
+  margin: 10px auto 0;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.12s;
+}
+.wizard-result-redo:hover { color: #3b7cf4; }
 
 /* Zone pin ring animation */
 @keyframes zone-pulse {

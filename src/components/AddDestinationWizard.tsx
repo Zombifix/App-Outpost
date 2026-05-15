@@ -92,9 +92,22 @@ interface StopAutocompleteProps {
   stop: RoadTripStop
   onChange: (next: RoadTripStop) => void
   onRemove: () => void
+  country?: string
+  centerLat?: number
+  centerLng?: number
+  isDragging?: boolean
+  isDragTarget?: boolean
+  onDragStart?: () => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDragLeave?: () => void
+  onDrop?: () => void
+  onDragEnd?: () => void
 }
 
-function StopAutocomplete({ index, stop, onChange, onRemove }: StopAutocompleteProps) {
+function StopAutocomplete({
+  index, stop, onChange, onRemove, country, centerLat, centerLng,
+  isDragging, isDragTarget, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
+}: StopAutocompleteProps) {
   const [query, setQuery] = useState(stop.name)
   const [results, setResults] = useState<PhotonResult[]>([])
   const [open, setOpen] = useState(false)
@@ -107,14 +120,14 @@ function StopAutocomplete({ index, stop, onChange, onRemove }: StopAutocompleteP
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       try {
-        const r = await searchPhoton(query)
+        const r = await searchPhoton(query, { country, lat: centerLat, lng: centerLng })
         setResults(r)
       } catch {
         setResults([])
       }
     }, 280)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [query, stop.name, stop.lat])
+  }, [query, stop.name, stop.lat, country, centerLat, centerLng])
 
   const pick = (r: PhotonResult) => {
     onChange({ name: r.name, lat: r.lat, lng: r.lng })
@@ -123,27 +136,48 @@ function StopAutocomplete({ index, stop, onChange, onRemove }: StopAutocompleteP
     setOpen(false)
   }
 
+  const rowClass = [
+    'wizard-stop-row',
+    isDragging ? 'is-dragging' : '',
+    isDragTarget ? 'is-drag-target' : '',
+  ].filter(Boolean).join(' ')
+
   return (
-    <div className="wizard-stop-row" style={{ position: 'relative' }}>
-      <input
-        className="wizard-input wizard-stop-input"
-        placeholder={`Étape ${index + 1}`}
-        value={query}
-        onChange={e => {
-          setQuery(e.target.value)
-          setOpen(true)
-          onChange({ name: e.target.value, lat: NaN, lng: NaN })
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => {
-          blurTimerRef.current = setTimeout(() => setOpen(false), 160)
-        }}
-      />
-      <button
-        className="wizard-stop-remove"
-        aria-label="Supprimer"
-        onClick={onRemove}
-      >×</button>
+    <div
+      className={rowClass}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <div className="wizard-stop-field">
+        <span
+          className="wizard-stop-handle"
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          aria-label="Glisser pour réordonner"
+          title="Glisser pour réordonner"
+        >⋮⋮</span>
+        <input
+          className="wizard-input wizard-stop-input"
+          placeholder={`Étape ${index + 1}`}
+          value={query}
+          onChange={e => {
+            setQuery(e.target.value)
+            setOpen(true)
+            onChange({ name: e.target.value, lat: NaN, lng: NaN })
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            blurTimerRef.current = setTimeout(() => setOpen(false), 160)
+          }}
+        />
+        <button
+          className="wizard-stop-remove"
+          aria-label="Supprimer"
+          onClick={onRemove}
+        >×</button>
+      </div>
       {open && results.length > 0 && (
         <ul
           className="wizard-suggestions wizard-stop-suggestions"
@@ -163,12 +197,25 @@ function StopAutocomplete({ index, stop, onChange, onRemove }: StopAutocompleteP
   )
 }
 
-async function searchPhoton(q: string): Promise<PhotonResult[]> {
-  const res = await fetch(
-    `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=fr`,
-  )
+function normalizeCountry(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+}
+
+async function searchPhoton(
+  q: string,
+  opts: { country?: string; lat?: number; lng?: number } = {},
+): Promise<PhotonResult[]> {
+  const params = [`q=${encodeURIComponent(q)}`, 'limit=10', 'lang=fr']
+  if (Number.isFinite(opts.lat) && Number.isFinite(opts.lng)) {
+    params.push(`lat=${opts.lat}`, `lon=${opts.lng}`, 'location_bias_scale=0.3')
+  }
+  const res = await fetch(`https://photon.komoot.io/api/?${params.join('&')}`)
   const data = await res.json()
-  return (data.features ?? []).map((f: Record<string, unknown>) => {
+  const all: PhotonResult[] = (data.features ?? []).map((f: Record<string, unknown>) => {
     const props = f.properties as Record<string, unknown>
     const geom = f.geometry as { coordinates: [number, number] }
     return {
@@ -179,6 +226,12 @@ async function searchPhoton(q: string): Promise<PhotonResult[]> {
       extent: props.extent as [number, number, number, number] | undefined,
     }
   })
+  if (opts.country) {
+    const target = normalizeCountry(opts.country)
+    const filtered = all.filter(r => normalizeCountry(r.country) === target)
+    if (filtered.length > 0) return filtered.slice(0, 6)
+  }
+  return all.slice(0, 6)
 }
 
 const QUESTIONS = [
@@ -292,7 +345,7 @@ const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba
 
 export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate }: WizardProps) {
   const isEditing = !!initialDestination
-  const [step, setStep] = useState<WizardStep>(isEditing ? 'questions' : 'search')
+  const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'search')
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<PhotonResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -332,8 +385,34 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [stops, setStops] = useState<RoadTripStop[]>(
     isEditing && initialDestination.stops?.length ? initialDestination.stops : []
   )
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // En mode édition, précalculer le score/tier depuis les valeurs initiales
+  // pour ne pas afficher 0 / 'B' sur l'écran résultat.
+  useEffect(() => {
+    if (isEditing && step === 'result' && finalScore === 0) {
+      const score = computeScore(state)
+      setFinalScore(score)
+      setFinalTier(scoreToTier(score))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const reorderStops = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= stops.length || to >= stops.length) return
+    const next = [...stops]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setStops(next)
+  }
+
+  // Centre géographique pour biaiser Photon vers le pays courant
+  const stopCenter = state.extent
+    ? { lat: (state.extent[1] + state.extent[3]) / 2, lng: (state.extent[0] + state.extent[2]) / 2 }
+    : { lat: state.lat, lng: state.lng }
 
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
@@ -567,6 +646,29 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                     key={i}
                     index={i}
                     stop={stop}
+                    country={state.country}
+                    centerLat={stopCenter.lat}
+                    centerLng={stopCenter.lng}
+                    isDragging={dragIndex === i}
+                    isDragTarget={dragOverIndex === i && dragIndex !== null && dragIndex !== i}
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={e => {
+                      if (dragIndex === null) return
+                      e.preventDefault()
+                      if (dragOverIndex !== i) setDragOverIndex(i)
+                    }}
+                    onDragLeave={() => {
+                      if (dragOverIndex === i) setDragOverIndex(null)
+                    }}
+                    onDrop={() => {
+                      if (dragIndex !== null && dragIndex !== i) reorderStops(dragIndex, i)
+                      setDragIndex(null)
+                      setDragOverIndex(null)
+                    }}
+                    onDragEnd={() => {
+                      setDragIndex(null)
+                      setDragOverIndex(null)
+                    }}
                     onChange={next => {
                       const updated = [...stops]
                       updated[i] = next
@@ -588,6 +690,18 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             <button className="wizard-submit" onClick={confirmAdd}>
               {isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
             </button>
+            {isEditing && (
+              <button
+                className="wizard-result-redo"
+                onClick={() => {
+                  setQuestionIndex(0)
+                  setAnsweredKeys(new Set())
+                  setStep('questions')
+                }}
+              >
+                Refaire la notation
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -501,6 +501,11 @@ svg {
   height: 100%;
   overflow: visible;
   background: transparent;
+  will-change: transform;
+}
+
+.world-map.is-zooming .countries path {
+  filter: none;
 }
 
 .pin-foreign-object {
@@ -517,6 +522,8 @@ svg {
   justify-content: center;
   overflow: visible;
   background: transparent;
+  transform: scale(calc(1 / var(--zoom-k, 1)));
+  transform-origin: center bottom;
 }
 
 .map-pin {
@@ -536,6 +543,7 @@ svg {
   transform: scale(var(--pin-scale, 1));
   transform-origin: center bottom;
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s ease;
+  will-change: transform;
 }
 
 .map-pin:hover,

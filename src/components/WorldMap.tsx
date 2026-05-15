@@ -165,10 +165,15 @@ export default function WorldMap({
         countries.attr('transform', t)
         if (zonesGroupRef.current) zonesGroupRef.current.setAttribute('transform', t)
         if (pinsGroupRef.current) pinsGroupRef.current.setAttribute('transform', t)
+        if (svgRef.current) {
+          svgRef.current.style.setProperty('--zoom-k', String(event.transform.k))
+          svgRef.current.classList.add('is-zooming')
+        }
       })
       .on('end', event => {
         // React only updates once after zoom settles, for pin scale recalculation
         setZoomK(event.transform.k)
+        svgRef.current?.classList.remove('is-zooming')
       })
 
     zoomRef.current = zoom
@@ -177,6 +182,7 @@ export default function WorldMap({
     // Reset group transforms and scale state on projection rebuild
     if (zonesGroupRef.current) zonesGroupRef.current.removeAttribute('transform')
     if (pinsGroupRef.current) pinsGroupRef.current.removeAttribute('transform')
+    if (svgRef.current) svgRef.current.style.removeProperty('--zoom-k')
     setZoomK(1)
     setProjectionReady(true)
   }, [worldData, dimensions])

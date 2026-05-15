@@ -161,14 +161,24 @@ export default function WorldMap({
       .scaleExtent([1, 7])
       .on('zoom', event => {
         // All transforms applied directly to DOM — zero React re-renders per frame
+        const k = event.transform.k
         const t = String(event.transform)
         countries.attr('transform', t)
         if (zonesGroupRef.current) zonesGroupRef.current.setAttribute('transform', t)
-        if (pinsGroupRef.current) pinsGroupRef.current.setAttribute('transform', t)
-        if (svgRef.current) {
-          svgRef.current.style.setProperty('--zoom-k', String(event.transform.k))
-          svgRef.current.classList.add('is-zooming')
+        if (pinsGroupRef.current) {
+          pinsGroupRef.current.setAttribute('transform', t)
+          // Counter-scale each pin so it keeps constant screen size,
+          // anchored precisely at its geographic point (the <g> translate origin)
+          const invK = 1 / k
+          pinsGroupRef.current.querySelectorAll<SVGGElement>('g.pin-root').forEach(el => {
+            const tx = el.dataset.tx
+            const ty = el.dataset.ty
+            if (tx !== undefined && ty !== undefined) {
+              el.setAttribute('transform', `translate(${tx},${ty}) scale(${invK})`)
+            }
+          })
         }
+        svgRef.current?.classList.add('is-zooming')
       })
       .on('end', event => {
         // React only updates once after zoom settles, for pin scale recalculation
@@ -182,7 +192,6 @@ export default function WorldMap({
     // Reset group transforms and scale state on projection rebuild
     if (zonesGroupRef.current) zonesGroupRef.current.removeAttribute('transform')
     if (pinsGroupRef.current) pinsGroupRef.current.removeAttribute('transform')
-    if (svgRef.current) svgRef.current.style.removeProperty('--zoom-k')
     setZoomK(1)
     setProjectionReady(true)
   }, [worldData, dimensions])
@@ -323,7 +332,9 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
 
   // Base projected coords — the parent group's D3 transform handles zoom positioning
   const [cx, cy] = projected
-  const pinScale = Math.min(1.62, Math.max(0.82, 0.72 + zoomK * 0.22))
+  // scale(1/zoomK) counter-acts the parent group's D3 zoom, keeping pins at constant
+  // screen size anchored precisely at the geographic point (translate origin = 0,0 local)
+  const invK = 1 / zoomK
 
   if (destination.kind === 'stop') {
     return (
@@ -341,13 +352,17 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
 
   if (destination.kind === 'zone') {
     return (
-      <g transform={`translate(${cx},${cy})`} className={selected ? 'pin-selected' : undefined}>
+      <g
+        className={`pin-root${selected ? ' pin-selected' : ''}`}
+        data-tx={cx} data-ty={cy}
+        transform={`translate(${cx},${cy}) scale(${invK})`}
+      >
         <foreignObject className="pin-foreign-object" x="-70" y="-36" width="140" height="40">
           <div className="pin-stage">
             <button
               className="map-pin map-pin-zone-label"
               onClick={() => onSelect(destination.name)}
-              style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
+              style={{ '--pin-color': color } as CSSProperties}
             >
               <span>{destination.tier}</span>
               <strong>{destination.name}</strong>
@@ -359,13 +374,17 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
   }
 
   return (
-    <g transform={`translate(${cx},${cy})`} className={selected ? 'pin-selected' : undefined}>
+    <g
+      className={`pin-root${selected ? ' pin-selected' : ''}`}
+      data-tx={cx} data-ty={cy}
+      transform={`translate(${cx},${cy}) scale(${invK})`}
+    >
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
             className={`map-pin${destination.kind === 'stage' ? ' map-pin-stage' : ''}`}
             onClick={() => onSelect(destination.name)}
-            style={{ '--pin-color': color, '--pin-scale': pinScale } as CSSProperties}
+            style={{ '--pin-color': color } as CSSProperties}
           >
             <span>{destination.tier}</span>
             <strong>

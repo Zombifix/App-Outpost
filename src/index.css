@@ -522,8 +522,6 @@ svg {
   justify-content: center;
   overflow: visible;
   background: transparent;
-  transform: scale(calc(1 / var(--zoom-k, 1)));
-  transform-origin: center bottom;
 }
 
 .map-pin {
@@ -538,9 +536,8 @@ svg {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 calc(11px * var(--pin-scale, 1)) calc(18px * var(--pin-scale, 1)) rgba(58, 78, 106, 0.18),
+    0 11px 18px rgba(58, 78, 106, 0.18),
     0 2px 7px rgba(255, 255, 255, 0.72) inset;
-  transform: scale(var(--pin-scale, 1));
   transform-origin: center bottom;
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s ease;
   will-change: transform;
@@ -548,9 +545,9 @@ svg {
 
 .map-pin:hover,
 .pin-selected .map-pin {
-  transform: translateY(-5px) scale(calc(var(--pin-scale, 1) * 1.04));
+  transform: translateY(-5px) scale(1.04);
   box-shadow:
-    0 calc(14px * var(--pin-scale, 1)) calc(24px * var(--pin-scale, 1)) rgba(58, 78, 106, 0.24),
+    0 14px 24px rgba(58, 78, 106, 0.24),
     0 2px 8px rgba(255, 255, 255, 0.78) inset;
 }
 
@@ -1919,7 +1916,6 @@ svg {
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  transform: scale(var(--pin-scale));
   transform-origin: center center;
   opacity: 0.9;
   transition: opacity 0.15s, transform 0.15s;

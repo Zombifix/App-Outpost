@@ -18,6 +18,9 @@ interface WorldMapProps {
   selectedName?: string
   onSelect: (name: string) => void
   onFlyTargetConsumed: () => void
+  friendDestinations?: Destination[]
+  friendInitials?: string
+  sharedNames?: Set<string>
 }
 
 const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
@@ -87,6 +90,9 @@ export default function WorldMap({
   selectedName,
   onSelect,
   onFlyTargetConsumed,
+  friendDestinations,
+  friendInitials,
+  sharedNames,
 }: WorldMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -230,34 +236,52 @@ export default function WorldMap({
   }
 
   // Memoize zone polygon paths — only recompute when destinations or projection changes
-  const zonePaths = useMemo(() => {
-    if (!projectionReady || !projectionRef.current) return []
+  const renderZones = (list: Destination[], owner: 'me' | 'friend') => {
+    if (!projectionRef.current) return []
     const proj = projectionRef.current
-    return destinations
+    return list
       .filter(d => d.kind === 'zone')
       .map(d => {
-        const color = TIER_COLORS[d.tier].pin
-        const sharedProps = {
-          fill: color, fillOpacity: 0.13,
-          stroke: color, strokeWidth: 1.3, strokeOpacity: 0.5,
-          strokeDasharray: '6 3' as const,
-        }
+        const color = TIER_COLORS[d.tier!].pin
+        const sharedProps = owner === 'friend'
+          ? {
+              fill: color, fillOpacity: 0.35,
+              stroke: '#7C8DB5', strokeWidth: 2, strokeOpacity: 0.85,
+              strokeDasharray: '5 4' as const,
+              className: 'friend-zone',
+            }
+          : {
+              fill: color, fillOpacity: 0.13,
+              stroke: color, strokeWidth: 1.3, strokeOpacity: 0.5,
+              strokeDasharray: '6 3' as const,
+            }
+        const key = `${owner}:${d.name}`
         if (d.geojson) {
           const pathStr = projectGeojson(d.geojson, proj)
           if (!pathStr) return null
-          return <path key={d.name} {...sharedProps} d={pathStr} />
+          return <path key={key} {...sharedProps} d={pathStr} />
         }
         if (d.extent) {
           const [w, s, e, n] = d.extent
           const sw = proj([w, s]); const se = proj([e, s])
           const ne = proj([e, n]); const nw = proj([w, n])
           if (!sw || !se || !ne || !nw) return null
-          return <polygon key={d.name} {...sharedProps} points={[sw, se, ne, nw].map(p => p.join(',')).join(' ')} />
+          return <polygon key={key} {...sharedProps} points={[sw, se, ne, nw].map(p => p.join(',')).join(' ')} />
         }
         return null
       })
+  }
+
+  const zonePaths = useMemo(() => {
+    if (!projectionReady) return null
+    const shared = sharedNames ?? new Set<string>()
+    const myZones = renderZones(destinations, 'me')
+    const friendZones = friendDestinations
+      ? renderZones(friendDestinations.filter(d => !shared.has(d.name.toLowerCase())), 'friend')
+      : []
+    return [...friendZones, ...myZones]
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectionReady, destinations, dimensions])
+  }, [projectionReady, destinations, friendDestinations, sharedNames, dimensions])
 
   return (
     <section className="map-area" ref={wrapperRef} aria-label="Carte des destinations">
@@ -281,16 +305,40 @@ export default function WorldMap({
 
         {/* Pins: positioned at BASE projection coords — the group transform (D3-managed) moves them */}
         <g ref={pinsGroupRef}>
-          {projectionReady && destinations.map(destination => (
-            <Pin
-              key={destination.name}
-              destination={destination}
-              projection={projectionRef.current!}
-              zoomK={zoomK}
-              selected={destination.name === selectedName}
-              onSelect={onSelect}
-            />
-          ))}
+          {projectionReady && (() => {
+            const shared = sharedNames ?? new Set<string>()
+            const friendOnly = friendDestinations
+              ? friendDestinations.filter(d => !shared.has(d.name.toLowerCase()))
+              : []
+            return (
+              <>
+                {friendOnly.map(destination => (
+                  <Pin
+                    key={`friend:${destination.name}`}
+                    destination={destination}
+                    projection={projectionRef.current!}
+                    zoomK={zoomK}
+                    selected={false}
+                    onSelect={onSelect}
+                    owner="friend"
+                    badge={friendInitials}
+                  />
+                ))}
+                {destinations.map(destination => (
+                  <Pin
+                    key={destination.name}
+                    destination={destination}
+                    projection={projectionRef.current!}
+                    zoomK={zoomK}
+                    selected={destination.name === selectedName}
+                    onSelect={onSelect}
+                    owner="me"
+                    shared={shared.has(destination.name.toLowerCase())}
+                  />
+                ))}
+              </>
+            )
+          })()}
         </g>
       </svg>
 
@@ -323,10 +371,13 @@ interface PinProps {
   zoomK: number
   selected: boolean
   onSelect: (name: string) => void
+  owner?: 'me' | 'friend'
+  badge?: string
+  shared?: boolean
 }
 
 // memo: only re-renders when props actually change (not on every zoom frame)
-const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSelect }: PinProps) {
+const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSelect, owner = 'me', badge, shared }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
 
@@ -341,7 +392,11 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
   if (destination.kind === 'stop') {
     return (
       <g transform={`translate(${cx},${cy})`}>
-        <circle r={5} fill="#8b9db5" stroke="white" strokeWidth={1.2} opacity={0.85}
+        <circle r={5}
+          fill={owner === 'friend' ? '#fff' : '#8b9db5'}
+          stroke={owner === 'friend' ? '#7C8DB5' : 'white'}
+          strokeWidth={owner === 'friend' ? 1.6 : 1.2}
+          opacity={0.85}
           style={{ cursor: 'pointer' }} onClick={() => onSelect(destination.name)} />
       </g>
     )
@@ -355,19 +410,21 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
   if (destination.kind === 'zone') {
     return (
       <g
-        className={`pin-root${selected ? ' pin-selected' : ''}`}
+        className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
         data-tx={cx} data-ty={cy}
         transform={`translate(${cx},${cy}) scale(${invK})`}
       >
         <foreignObject className="pin-foreign-object" x="-70" y="-36" width="140" height="40">
           <div className="pin-stage">
             <button
-              className="map-pin map-pin-zone-label"
+              className={`map-pin map-pin-zone-label${owner === 'friend' ? ' map-pin--friend' : ''}`}
               onClick={() => onSelect(destination.name)}
               style={{ '--pin-color': color } as CSSProperties}
             >
               <span>{destination.tier}</span>
               <strong>{destination.name}</strong>
+              {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
+              {shared && <em className="pin-shared-badge">2</em>}
             </button>
           </div>
         </foreignObject>
@@ -377,14 +434,14 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
 
   return (
     <g
-      className={`pin-root${selected ? ' pin-selected' : ''}`}
+      className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
       data-tx={cx} data-ty={cy}
       transform={`translate(${cx},${cy}) scale(${invK})`}
     >
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
-            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}`}
+            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}`}
             onClick={() => onSelect(destination.name)}
             style={{ '--pin-color': color } as CSSProperties}
           >
@@ -394,6 +451,8 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
               {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}
             </strong>
             <small>{score}</small>
+            {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
+            {shared && <em className="pin-shared-badge">2</em>}
           </button>
         </div>
       </foreignObject>

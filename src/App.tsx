@@ -4,10 +4,11 @@ import { DESTINATIONS } from './data'
 import WorldMap from './components/WorldMap'
 import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
+import TierListPage from './components/TierListPage'
 import AddDestinationWizard from './components/AddDestinationWizard'
 
 const STORAGE_KEY = 'triptier-destinations-v2'
-type View = 'map' | 'explore'
+type View = 'map' | 'tier-list' | 'explore'
 
 function loadDestinations(): Destination[] {
   try {
@@ -119,7 +120,7 @@ export default function App() {
 
   return (
     <div className={appClass}>
-      {activeView === 'map' ? (
+      {activeView === 'map' && (
         <WorldMap
           destinations={visibleDestinations}
           flyTarget={flyTarget}
@@ -127,7 +128,11 @@ export default function App() {
           onSelect={selectByName}
           onFlyTargetConsumed={() => setFlyTarget(null)}
         />
-      ) : (
+      )}
+      {activeView === 'tier-list' && (
+        <TierListPage destinations={destinations} />
+      )}
+      {activeView === 'explore' && (
         <ExploreView
           destinations={destinations}
           onSelect={name => {

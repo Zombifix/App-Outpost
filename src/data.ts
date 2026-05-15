@@ -125,3 +125,44 @@ export const TIER_ORDER: Tier[] = ['S', 'A', 'B', 'C', 'D']
 export const CITY_COORDS: Record<string, { lat: number; lng: number }> = Object.fromEntries(
   DESTINATIONS.map(destination => [destination.name, { lat: destination.lat, lng: destination.lng }]),
 )
+
+export type Continent = 'Europe' | 'Asie' | 'Ameriques' | 'Afrique' | 'Oceanie'
+
+export const COUNTRY_TO_CONTINENT: Record<string, Continent> = {
+  // Europe
+  'Portugal': 'Europe',
+  'Espagne': 'Europe',
+  'Grece': 'Europe',
+  'France': 'Europe',
+  'Italie': 'Europe',
+  'Royaume-Uni': 'Europe',
+  'Allemagne': 'Europe',
+  'Pays-Bas': 'Europe',
+  // Asie
+  'Japon': 'Asie',
+  'Indonesie': 'Asie',
+  'Thailande': 'Asie',
+  'Chine': 'Asie',
+  'Coree du Sud': 'Asie',
+  'Vietnam': 'Asie',
+  'Inde': 'Asie',
+  'Emirats arabes unis': 'Asie',
+  // Ameriques
+  'Canada': 'Ameriques',
+  'Etats-Unis': 'Ameriques',
+  'Mexique': 'Ameriques',
+  'Bresil': 'Ameriques',
+  'Argentine': 'Ameriques',
+  'Perou': 'Ameriques',
+  'Chili': 'Ameriques',
+  // Afrique
+  'Afrique du Sud': 'Afrique',
+  'Maroc': 'Afrique',
+  'Egypte': 'Afrique',
+  'Kenya': 'Afrique',
+  // Oceanie
+  'Nouvelle-Zelande': 'Oceanie',
+  'Australie': 'Oceanie',
+}
+
+export const CONTINENTS: Continent[] = ['Europe', 'Asie', 'Ameriques', 'Afrique', 'Oceanie']

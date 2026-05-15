@@ -2,7 +2,7 @@ import { useState } from 'react'
 import emailjs from '@emailjs/browser'
 import type { Destination } from '../types'
 
-type View = 'map' | 'explore'
+type View = 'map' | 'tier-list' | 'explore'
 
 interface Friend {
   name: string
@@ -111,6 +111,10 @@ export default function Nav({
             <Icon name="map" />
             Ma carte
           </button>
+          <button className={activeView === 'tier-list' ? 'active' : ''} onClick={() => onViewChange('tier-list')}>
+            <Icon name="sliders" />
+            Tier list
+          </button>
           <button className={activeView === 'explore' ? 'active' : ''} onClick={() => onViewChange('explore')}>
             <Icon name="compass" />
             Explorer
@@ -180,8 +184,16 @@ export default function Nav({
       </header>
 
       <section className="page-title" aria-label="Titre de la page">
-        <h1>{activeView === 'map' ? 'Ma carte - Destinations de reve' : 'Explorer - Suggestions IA'}</h1>
-        <p>{activeView === 'map' ? `Modifiee le 18 mai 2024 - ${totalDestinations} destinations` : 'Placeholder IA, bientot connecte a ton classement'}</p>
+        <h1>
+          {activeView === 'map' && 'Ma carte - Destinations de reve'}
+          {activeView === 'tier-list' && 'Tier list - Vue ensemble'}
+          {activeView === 'explore' && 'Explorer - Suggestions IA'}
+        </h1>
+        <p>
+          {activeView === 'map' && `Modifiee le 18 mai 2024 - ${totalDestinations} destinations`}
+          {activeView === 'tier-list' && 'Classement complet et comparaison avec tes amis'}
+          {activeView === 'explore' && 'Placeholder IA, bientot connecte a ton classement'}
+        </p>
       </section>
     </>
   )

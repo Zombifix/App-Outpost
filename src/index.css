@@ -579,35 +579,18 @@ svg {
   overflow: hidden;
 }
 
-.map-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  display: block;
-  /* ESRI Physical — intégré produit : désaturé, contraste réduit, texture conservée */
-  filter: brightness(1.02) saturate(0.60) contrast(0.82);
-}
-
-.map-overlay {
+.map-gl-container {
   position: absolute;
   inset: 0;
-  /* voile blanc-bleuté — intègre la carte comme fond produit, calme l'Himalaya et les océans */
-  background: rgba(245, 248, 255, 0.30);
-  pointer-events: none;
 }
 
-.world-map {
+.map-pins-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
-  background: transparent;
-  will-change: transform;
+  pointer-events: none;
 }
 
 .map-attribution {

@@ -1,17 +1,18 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import * as d3 from 'd3'
-import { feature } from 'topojson-client'
-import type { GeometryCollection, Topology } from 'topojson-specification'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination } from '../types'
 import { TIER_COLORS } from '../data'
 
-interface FlyTarget {
-  lat: number
-  lng: number
-  name: string
-}
+const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
+const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
+const INIT_CENTER: [number, number] = [10, 10]
+const INIT_ZOOM = 1.5
 
+type Proj = (ll: [number, number]) => [number, number] | null
+
+interface FlyTarget { lat: number; lng: number; name: string }
 interface WorldMapProps {
   destinations: Destination[]
   flyTarget: FlyTarget | null
@@ -23,457 +24,280 @@ interface WorldMapProps {
   sharedNames?: Set<string>
 }
 
-const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
+// ─── Customize MapTiler style layers ─────────────────────────────────────────
+function customizeStyle(map: maplibregl.Map) {
+  for (const layer of map.getStyle().layers) {
+    const { id, type } = layer
 
-function rdp(pts: [number, number][], tol: number): [number, number][] {
-  if (pts.length < 3) return pts
-  const [x1, y1] = pts[0], [x2, y2] = pts[pts.length - 1]
-  const dx = x2 - x1, dy = y2 - y1
-  const len = Math.hypot(dx, dy)
-  let maxDist = 0, maxIdx = 1
-  for (let i = 1; i < pts.length - 1; i++) {
-    const [px, py] = pts[i]
-    const dist = len === 0
-      ? Math.hypot(px - x1, py - y1)
-      : Math.abs(dy * px - dx * py + x2 * y1 - y2 * x1) / len
-    if (dist > maxDist) { maxDist = dist; maxIdx = i }
+    // All labels / icons → hidden
+    if (type === 'symbol') {
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+    // Roads, transit, buildings, POI, aeroways → hidden
+    if (/road|transit|rail|aeroway|bridge|tunnel|building|poi|ferry|indoor|path|track|gate|motorway|pedestrian|cycleway|footway|steps|pier|dam/.test(id)) {
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+    // Elevation contours → hidden (trop technique)
+    if (/contour/.test(id)) {
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+    // Urban / human landuse → hidden
+    if (/landuse/.test(id)) {
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+    // Admin / country borders → très subtils
+    if (type === 'line' && /boundary|admin|border/.test(id)) {
+      map.setPaintProperty(id, 'line-color', 'rgba(130,110,85,0.22)')
+      map.setPaintProperty(id, 'line-width', 0.5)
+      continue
+    }
+    // Coastlines → subtiles
+    if (type === 'line' && /coast/.test(id)) {
+      map.setPaintProperty(id, 'line-color', 'rgba(100,140,170,0.28)')
+      map.setPaintProperty(id, 'line-width', 0.6)
+      continue
+    }
+    // Water fill → bleu premium doux
+    if (type === 'fill' && /^water$|^ocean$/.test(id)) {
+      map.setPaintProperty(id, 'fill-color', '#9ecce0')
+    }
+    // Hillshade → ombres plus douces
+    if (type === 'hillshade') {
+      map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(50,40,20,0.28)')
+      map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,252,238,0.42)')
+    }
   }
-  if (maxDist > tol) {
-    const left = rdp(pts.slice(0, maxIdx + 1), tol)
-    const right = rdp(pts.slice(maxIdx), tol)
-    return [...left.slice(0, -1), ...right]
-  }
-  return [pts[0], pts[pts.length - 1]]
 }
 
-function projectGeojson(geojson: object, proj: d3.GeoProjection): string {
-  const geo = geojson as { type: string; coordinates: number[][][][] | number[][][] }
-  const rings: number[][][] =
-    geo.type === 'Polygon'
-      ? (geo.coordinates as number[][][])
-      : geo.type === 'MultiPolygon'
-        ? (geo.coordinates as number[][][][]).flat(1)
-        : []
-
-  return rings
-    .map(ring => {
-      const raw = ring
-        .map(coord => proj([coord[0], coord[1]]))
-        .filter((p): p is [number, number] => p !== null && isFinite(p[0]) && isFinite(p[1]))
-
-      if (raw.length < 3) return ''
-
-      const spikeFiltered: [number, number][] = [raw[0]]
-      for (let i = 1; i < raw.length - 1; i++) {
-        const [ax, ay] = raw[i - 1], [bx, by] = raw[i], [cx, cy] = raw[i + 1]
-        const dx1 = ax - bx, dy1 = ay - by
-        const dx2 = cx - bx, dy2 = cy - by
-        const len1 = Math.hypot(dx1, dy1), len2 = Math.hypot(dx2, dy2)
-        if (len1 < 0.001 || len2 < 0.001) { spikeFiltered.push(raw[i]); continue }
-        const dot = (dx1 * dx2 + dy1 * dy2) / (len1 * len2)
-        if (!(dot > 0.9 && len1 > 2 && len2 > 2)) spikeFiltered.push(raw[i])
-      }
-      spikeFiltered.push(raw[raw.length - 1])
-
-      if (spikeFiltered.length < 3) return ''
-      const pts = rdp(spikeFiltered, 0.5)
-      if (pts.length < 3) return ''
-      return 'M' + pts.map(p => p.join(',')).join('L') + 'Z'
-    })
-    .filter(Boolean)
-    .join(' ')
+// ─── Zone + route layers ──────────────────────────────────────────────────────
+function clearZoneRouteLayers(map: maplibregl.Map) {
+  const style = map.getStyle()
+  for (const l of style.layers) {
+    if (l.id.startsWith('_z_') || l.id.startsWith('_r_')) {
+      try { map.removeLayer(l.id) } catch { /* already removed */ }
+    }
+  }
+  for (const sid of Object.keys(style.sources)) {
+    if (sid.startsWith('_z_') || sid.startsWith('_r_')) {
+      try { map.removeSource(sid) } catch { /* already removed */ }
+    }
+  }
 }
 
+function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend') {
+  if (!d.tier) return
+  const color = TIER_COLORS[d.tier].pin
+  const sid = `_z_${owner}_${d.name}`
+
+  let geometry: GeoJSON.Geometry | null = null
+  if (d.geojson) {
+    geometry = d.geojson as GeoJSON.Geometry
+  } else if (d.extent) {
+    const [w, s, e, n] = d.extent
+    geometry = { type: 'Polygon', coordinates: [[[w,s],[e,s],[e,n],[w,n],[w,s]]] }
+  }
+  if (!geometry || map.getSource(sid)) return
+
+  map.addSource(sid, { type: 'geojson', data: { type: 'Feature', geometry, properties: {} } })
+  map.addLayer({
+    id: `${sid}_fill`, type: 'fill', source: sid,
+    paint: { 'fill-color': color, 'fill-opacity': owner === 'friend' ? 0.35 : 0.13 },
+  })
+  map.addLayer({
+    id: `${sid}_line`, type: 'line', source: sid,
+    paint: {
+      'line-color': owner === 'friend' ? '#7C8DB5' : color,
+      'line-width': owner === 'friend' ? 2 : 1.3,
+      'line-opacity': owner === 'friend' ? 0.85 : 0.5,
+      'line-dasharray': owner === 'friend' ? [5, 4] : [6, 3],
+    },
+  })
+}
+
+function addRouteLayer(map: maplibregl.Map, d: Destination) {
+  if (!d.stops?.length || !d.tier) return
+  const color = TIER_COLORS[d.tier].pin
+  const sid = `_r_${d.name}`
+  const coords = d.stops
+    .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+    .map(s => [s.lng, s.lat] as [number, number])
+  if (coords.length < 2 || map.getSource(sid)) return
+
+  map.addSource(sid, {
+    type: 'geojson',
+    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
+  })
+  map.addLayer({
+    id: `${sid}_line`, type: 'line', source: sid,
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': color, 'line-width': 2.4, 'line-opacity': 0.9 },
+  })
+  map.addSource(`${sid}_pts`, {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: d.stops.map(s => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
+        properties: {},
+      })),
+    },
+  })
+  map.addLayer({
+    id: `${sid}_dots`, type: 'circle', source: `${sid}_pts`,
+    paint: {
+      'circle-radius': 3.2, 'circle-color': color,
+      'circle-stroke-width': 1, 'circle-stroke-color': 'white', 'circle-opacity': 0.95,
+    },
+  })
+}
+
+function syncZoneRouteLayers(
+  map: maplibregl.Map,
+  destinations: Destination[],
+  friendDestinations?: Destination[],
+  sharedNames?: Set<string>,
+) {
+  clearZoneRouteLayers(map)
+  const shared = sharedNames ?? new Set<string>()
+  for (const d of destinations) {
+    if (d.kind === 'zone') { addZoneLayer(map, d, 'me'); addRouteLayer(map, d) }
+  }
+  if (friendDestinations) {
+    for (const d of friendDestinations) {
+      if (d.kind === 'zone' && !shared.has(d.name.toLowerCase())) addZoneLayer(map, d, 'friend')
+    }
+  }
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function WorldMap({
-  destinations,
-  flyTarget,
-  selectedName,
-  onSelect,
-  onFlyTargetConsumed,
-  friendDestinations,
-  friendInitials,
-  sharedNames,
+  destinations, flyTarget, selectedName, onSelect, onFlyTargetConsumed,
+  friendDestinations, friendInitials, sharedNames,
 }: WorldMapProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null)
-  const svgRef = useRef<SVGSVGElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const tileCacheRef = useRef<Map<string, HTMLImageElement>>(new Map())
-  const drawTilesRef = useRef<((t: d3.ZoomTransform) => void) | null>(null)
-  const projectionRef = useRef<d3.GeoProjection | null>(null)
-  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
-  // Refs for groups whose transforms D3 manages directly — no React state involved
-  const zonesGroupRef = useRef<SVGGElement>(null)
-  const routesGroupRef = useRef<SVGGElement>(null)
-  const pinsGroupRef = useRef<SVGGElement>(null)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef          = useRef<maplibregl.Map | null>(null)
+  const svgRef          = useRef<SVGSVGElement>(null)
+  const pinsGroupRef    = useRef<SVGGElement>(null)
+  const projFnRef       = useRef<Proj>(() => null)
 
-  const [dimensions, setDimensions] = useState({ width: 900, height: 520 })
-  const [worldData, setWorldData] = useState<GeoJSON.FeatureCollection | null>(null)
-  const [projectionReady, setProjectionReady] = useState(false)
-  // zoomK only used for pin scale — updated on zoom END, not every frame
-  const [zoomK, setZoomK] = useState(1)
+  const [mapReady, setMapReady] = useState(false)
+  const [zoomK, setZoomK]       = useState(1)
 
+  // ── Init MapLibre ───────────────────────────────────────────────────────────
   useEffect(() => {
-    const element = wrapperRef.current
-    if (!element) return
-    const update = () => {
-      const rect = element.getBoundingClientRect()
-      setDimensions({ width: Math.max(320, rect.width), height: Math.max(260, rect.height) })
-    }
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
+    if (!mapContainerRef.current || mapRef.current) return
 
-  useEffect(() => {
-    fetch(WORLD_ATLAS_URL)
-      .then(r => r.json())
-      .then((topo: Topology) => {
-        setWorldData(feature(topo, topo.objects.countries as GeometryCollection) as GeoJSON.FeatureCollection)
-      })
-      .catch(() => setWorldData(null))
-  }, [])
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: STYLE_URL,
+      center: INIT_CENTER,
+      zoom: INIT_ZOOM,
+      attributionControl: false,
+      pitchWithRotate: false,
+      dragRotate: false,
+    })
 
-  useEffect(() => {
-    if (!worldData || !svgRef.current) return
-
-    const { width, height } = dimensions
-    const svg = d3.select(svgRef.current)
-    const scale = width / 5.8
-    const projection = d3.geoMercator()
-      .scale(scale)
-      // Centrer sur ~10°N : montre plus de terres, moins d'océan austral
-      .translate([width / 2, height / 2 + scale * 0.18])
-
-    projectionRef.current = projection
-    const pathGen = d3.geoPath().projection(projection)
-
-    svg.select('g.countries').remove()
-    const countries = svg.insert('g', ':first-child').attr('class', 'countries')
-
-    // Pays en transparent — les tiles fournissent la texture, D3 garde les frontières
-    // vector-effect="non-scaling-stroke" : frontières restent fines à tous les niveaux de zoom
-    countries.selectAll('path')
-      .data(worldData.features)
-      .join('path')
-      .attr('d', pathGen as unknown as string)
-      .attr('fill', 'none')
-      .attr('stroke', 'rgba(90, 110, 80, 0.25)')
-      .attr('stroke-width', 0.5)
-      .attr('vector-effect', 'non-scaling-stroke')
-      .attr('opacity', 1)
-
-    const graticule = d3.geoGraticule().step([30, 30])
-    countries.append('path')
-      .datum(graticule())
-      .attr('d', pathGen as unknown as string)
-      .attr('fill', 'none')
-      .attr('stroke', 'rgba(80, 110, 130, 0.05)')
-      .attr('stroke-width', 0.4)
-      .attr('vector-effect', 'non-scaling-stroke')
-
-    // --- Tile layer (Stadia Stamen Terrain Background) ---
-    const drawTiles = (transform: d3.ZoomTransform) => {
-      const canvas = canvasRef.current
-      const proj = projectionRef.current
-      if (!canvas || !proj) return
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-
-      ctx.clearRect(0, 0, width, height)
-
-      const worldPx = 2 * Math.PI * proj.scale() * transform.k
-      const tileZ = Math.max(0, Math.min(Math.floor(Math.log2(worldPx / 256)), 8))
-      const n = Math.pow(2, tileZ)
-      const tilePx = worldPx / n // taille d'une tuile en pixels écran
-
-      // Coin de tuile (tx, ty) → position écran avec support world-wrap correct
-      // wrapOffset = nb de fois le monde × worldPx (formule : (tx - wx) / n * worldPx)
-      const cornerToScreen = (tx: number, ty: number): [number, number] => {
-        const wx = ((tx % n) + n) % n
-        const wrapOffset = ((tx - wx) / n) * worldPx
-        const lng = (wx / n) * 360 - 180
-        const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * ty / n))) * 180 / Math.PI
-        const bp = proj([lng, Math.max(-85.051, Math.min(85.051, lat))])
-        if (!bp) return [0, 0]
-        const s = transform.apply(bp) as [number, number]
-        return [s[0] + wrapOffset, s[1]]
+    map.on('load', () => {
+      customizeStyle(map)
+      projFnRef.current = ([lng, lat]) => {
+        const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+        return [x, y]
       }
+      setMapReady(true)
+    })
 
-      // Plage de tuiles calculée depuis le centre de l'écran
-      // (toujours dans la plage valide Mercator, contrairement aux coins)
-      const centerBase = transform.invert([width / 2, height / 2]) as [number, number]
-      const centerLL = proj.invert!(centerBase)
-      let cTx = n / 2, cTy = n / 2
-      if (centerLL && isFinite(centerLL[0]) && isFinite(centerLL[1])) {
-        const clampedLat = Math.max(-85.051, Math.min(85.051, centerLL[1]))
-        const latR = clampedLat * Math.PI / 180
-        cTx = ((centerLL[0] + 180) / 360) * n
-        cTy = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n
-      }
-      const halfX = Math.ceil(width / tilePx / 2) + 2
-      const halfY = Math.ceil(height / tilePx / 2) + 2
-      const ix0 = Math.floor(cTx) - halfX
-      const ix1 = Math.floor(cTx) + halfX
-      const iy0 = Math.max(0, Math.floor(cTy) - halfY)
-      const iy1 = Math.min(n - 1, Math.floor(cTy) + halfY)
+    // Mise à jour directe du DOM des pins — zéro re-render React par frame
+    map.on('move', () => updatePins(map))
+    map.on('zoom', () => setZoomK(Math.pow(2, map.getZoom() - INIT_ZOOM)))
 
-      for (let tx = ix0; tx <= ix1; tx++) {
-        const wx = ((tx % n) + n) % n
-        for (let ty = iy0; ty <= iy1; ty++) {
-          const [sx, sy] = cornerToScreen(tx, ty)
-          const [ex, ey] = cornerToScreen(tx + 1, ty + 1)
-          const tw = ex - sx, th = ey - sy
-          if (!isFinite(sx) || !isFinite(sy) || !isFinite(tw) || !isFinite(th)) continue
-          if (sx > width || ex < 0 || sy > height || ey < 0 || tw <= 0 || th <= 0) continue
+    mapRef.current = map
+    return () => { map.remove(); mapRef.current = null; setMapReady(false) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-          const key = `${tileZ}/${wx}/${ty}`
-          const cached = tileCacheRef.current.get(key)
-          if (cached?.complete && cached.naturalWidth > 0) {
-            ctx.drawImage(cached, Math.round(sx), Math.round(sy), Math.max(1, Math.ceil(tw)), Math.max(1, Math.ceil(th)))
-          } else if (!cached) {
-            const img = new Image()
-            img.crossOrigin = 'anonymous'
-            img.onload = () => {
-              if (svgRef.current) drawTilesRef.current?.(d3.zoomTransform(svgRef.current))
-            }
-            img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/${tileZ}/${ty}/${wx}`
-            tileCacheRef.current.set(key, img)
-          }
-        }
-      }
-    }
-    drawTilesRef.current = drawTiles
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 7])
-      .on('zoom', event => {
-        // All transforms applied directly to DOM — zero React re-renders per frame
-        const k = event.transform.k
-        const t = String(event.transform)
-        countries.attr('transform', t)
-        if (zonesGroupRef.current) zonesGroupRef.current.setAttribute('transform', t)
-        if (routesGroupRef.current) routesGroupRef.current.setAttribute('transform', t)
-        if (pinsGroupRef.current) {
-          pinsGroupRef.current.setAttribute('transform', t)
-          // Counter-scale each pin so it keeps constant screen size,
-          // anchored precisely at its geographic point (the <g> translate origin)
-          const invK = 1 / k
-          pinsGroupRef.current.querySelectorAll<SVGGElement>('g.pin-root').forEach(el => {
-            const tx = el.dataset.tx
-            const ty = el.dataset.ty
-            if (tx !== undefined && ty !== undefined) {
-              el.setAttribute('transform', `translate(${tx},${ty}) scale(${invK})`)
-            }
-          })
-        }
-        drawTiles(event.transform)
-        svgRef.current?.classList.add('is-zooming')
-      })
-      .on('end', event => {
-        // React only updates once after zoom settles, for pin scale recalculation
-        setZoomK(event.transform.k)
-        svgRef.current?.classList.remove('is-zooming')
-      })
-
-    zoomRef.current = zoom
-    svg.call(zoom)
-
-    // Reset group transforms and scale state on projection rebuild
-    if (zonesGroupRef.current) zonesGroupRef.current.removeAttribute('transform')
-    if (routesGroupRef.current) routesGroupRef.current.removeAttribute('transform')
-    if (pinsGroupRef.current) pinsGroupRef.current.removeAttribute('transform')
-    setZoomK(1)
-    // Rendu initial des tiles
-    drawTiles(d3.zoomIdentity)
-    setProjectionReady(true)
-  }, [worldData, dimensions])
-
+  // ── Sync zones / routes quand destinations change ───────────────────────────
   useEffect(() => {
-    if (!flyTarget || !projectionRef.current || !svgRef.current || !zoomRef.current) return
+    if (!mapReady || !mapRef.current) return
+    syncZoneRouteLayers(mapRef.current, destinations, friendDestinations, sharedNames)
+  }, [mapReady, destinations, friendDestinations, sharedNames])
 
-    const projected = projectionRef.current([flyTarget.lng, flyTarget.lat])
-    if (!projected) return
+  // ── Repositionner les pins au chargement et aux changements ─────────────────
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+    updatePins(mapRef.current)
+  }, [mapReady, destinations, friendDestinations])
 
-    const [x, y] = projected
-    const { width, height } = dimensions
-    const scale = 2.35
-    const transform = d3.zoomIdentity
-      .translate(width / 2, height / 2)
-      .scale(scale)
-      .translate(-x, -y)
+  // ── Mise à jour directe des transforms SVG (bypass React) ──────────────────
+  function updatePins(map: maplibregl.Map) {
+    if (!pinsGroupRef.current) return
+    const k    = Math.pow(2, map.getZoom() - INIT_ZOOM)
+    const invK = 1 / k
 
-    d3.select(svgRef.current)
-      .transition()
-      .duration(760)
-      .ease(d3.easeCubicInOut)
-      .call(zoomRef.current.transform, transform)
+    pinsGroupRef.current.querySelectorAll<SVGGElement>('g.pin-root').forEach(el => {
+      const lng = parseFloat(el.dataset.lng ?? '0')
+      const lat = parseFloat(el.dataset.lat ?? '0')
+      if (!isFinite(lng) || !isFinite(lat)) return
+      const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+      el.setAttribute('transform', `translate(${x},${y}) scale(${invK})`)
+    })
 
+    pinsGroupRef.current.querySelectorAll<SVGGElement>('g.stop-root').forEach(el => {
+      const lng = parseFloat(el.dataset.lng ?? '0')
+      const lat = parseFloat(el.dataset.lat ?? '0')
+      if (!isFinite(lng) || !isFinite(lat)) return
+      const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+      el.setAttribute('transform', `translate(${x},${y})`)
+    })
+  }
+
+  // ── Fly to destination ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!flyTarget || !mapRef.current || !mapReady) return
+    mapRef.current.flyTo({
+      center: [flyTarget.lng, flyTarget.lat] as maplibregl.LngLatLike,
+      zoom: Math.max(mapRef.current.getZoom(), 4),
+      duration: 760,
+    })
     onFlyTargetConsumed()
-  }, [flyTarget, dimensions, onFlyTargetConsumed])
+  }, [flyTarget, mapReady, onFlyTargetConsumed])
 
   const zoomBy = (factor: number) => {
-    if (!svgRef.current || !zoomRef.current) return
-    d3.select(svgRef.current).transition().duration(260).call(zoomRef.current.scaleBy, factor)
+    const map = mapRef.current
+    if (!map) return
+    map.zoomTo(map.getZoom() + Math.log2(factor), { duration: 260 })
   }
 
   const resetZoom = () => {
-    if (!svgRef.current || !zoomRef.current) return
-    d3.select(svgRef.current).transition().duration(360).call(zoomRef.current.transform, d3.zoomIdentity)
+    mapRef.current?.flyTo({ center: INIT_CENTER, zoom: INIT_ZOOM, duration: 400 })
   }
 
-  // Memoize zone polygon paths — only recompute when destinations or projection changes
-  const renderZones = (list: Destination[], owner: 'me' | 'friend') => {
-    if (!projectionRef.current) return []
-    const proj = projectionRef.current
-    return list
-      .filter(d => d.kind === 'zone')
-      .map(d => {
-        const color = TIER_COLORS[d.tier!].pin
-        const sharedProps = owner === 'friend'
-          ? {
-              fill: color, fillOpacity: 0.35,
-              stroke: '#7C8DB5', strokeWidth: 2, strokeOpacity: 0.85,
-              strokeDasharray: '5 4' as const,
-              className: 'friend-zone',
-            }
-          : {
-              fill: color, fillOpacity: 0.13,
-              stroke: color, strokeWidth: 1.3, strokeOpacity: 0.5,
-              strokeDasharray: '6 3' as const,
-            }
-        const key = `${owner}:${d.name}`
-        if (d.geojson) {
-          const pathStr = projectGeojson(d.geojson, proj)
-          if (!pathStr) return null
-          return <path key={key} {...sharedProps} d={pathStr} />
-        }
-        if (d.extent) {
-          const [w, s, e, n] = d.extent
-          const sw = proj([w, s]); const se = proj([e, s])
-          const ne = proj([e, n]); const nw = proj([w, n])
-          if (!sw || !se || !ne || !nw) return null
-          return <polygon key={key} {...sharedProps} points={[sw, se, ne, nw].map(p => p.join(',')).join(' ')} />
-        }
-        return null
-      })
-  }
-
-  const zonePaths = useMemo(() => {
-    if (!projectionReady) return null
-    const shared = sharedNames ?? new Set<string>()
-    const myZones = renderZones(destinations, 'me')
-    const friendZones = friendDestinations
-      ? renderZones(friendDestinations.filter(d => !shared.has(d.name.toLowerCase())), 'friend')
-      : []
-    return [...friendZones, ...myZones]
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectionReady, destinations, friendDestinations, sharedNames, dimensions])
-
-  // Road trip routes: smooth curve through stops + dots — purely visual, non-interactive
-  const routePaths = useMemo(() => {
-    if (!projectionReady || !projectionRef.current) return []
-    const proj = projectionRef.current
-    const lineGen = d3.line<[number, number]>()
-      .x(p => p[0])
-      .y(p => p[1])
-      .curve(d3.curveCatmullRom.alpha(0.5))
-
-    return destinations
-      .filter(d => d.kind === 'zone' && d.stops && d.stops.length > 0)
-      .map(d => {
-        const color = TIER_COLORS[d.tier!].pin
-        const pts = (d.stops ?? [])
-          .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
-          .map(s => proj([s.lng, s.lat]))
-          .filter((p): p is [number, number] => p !== null && isFinite(p[0]) && isFinite(p[1]))
-
-        if (pts.length === 0) return null
-        const pathD = pts.length >= 2 ? lineGen(pts) : null
-
-        return (
-          <g key={`route-${d.name}`} className="map-route" style={{ pointerEvents: 'none' }}>
-            {pathD && (
-              <path
-                d={pathD}
-                fill="none"
-                stroke={color}
-                strokeWidth={2.4}
-                strokeOpacity={0.9}
-                strokeDasharray="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )}
-            {pts.map((p, i) => (
-              <circle
-                key={i}
-                cx={p[0]}
-                cy={p[1]}
-                r={3.2}
-                fill={color}
-                stroke="white"
-                strokeWidth={1}
-                opacity={0.95}
-              />
-            ))}
-          </g>
-        )
-      })
-      .filter(Boolean)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectionReady, destinations, dimensions])
-
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <section className="map-area" ref={wrapperRef} aria-label="Carte des destinations">
-      <canvas
-        ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        className="map-canvas"
-        aria-hidden="true"
-      />
-      <div className="map-overlay" aria-hidden="true" />
-      <svg ref={svgRef} width={dimensions.width} height={dimensions.height} className="world-map">
+    <section className="map-area" aria-label="Carte des destinations">
+      <div ref={mapContainerRef} className="map-gl-container" />
 
-        {/* Zones: D3 manages the group transform via zonesGroupRef */}
-        <g ref={zonesGroupRef}>{zonePaths}</g>
-
-        {/* Routes: road trip stops connected by smooth curve, above zones, below pins */}
-        <g ref={routesGroupRef}>{routePaths}</g>
-
-        {/* Pins: positioned at BASE projection coords — the group transform (D3-managed) moves them */}
+      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">
         <g ref={pinsGroupRef}>
-          {projectionReady && (() => {
-            const shared = sharedNames ?? new Set<string>()
+          {mapReady && (() => {
+            const shared   = sharedNames ?? new Set<string>()
             const friendOnly = friendDestinations
               ? friendDestinations.filter(d => !shared.has(d.name.toLowerCase()))
               : []
             return (
               <>
-                {friendOnly.map(destination => (
-                  <Pin
-                    key={`friend:${destination.name}`}
-                    destination={destination}
-                    projection={projectionRef.current!}
-                    zoomK={zoomK}
-                    selected={false}
-                    onSelect={onSelect}
-                    owner="friend"
-                    badge={friendInitials}
-                  />
+                {friendOnly.map(d => (
+                  <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
+                    zoomK={zoomK} selected={false} onSelect={onSelect}
+                    owner="friend" badge={friendInitials} />
                 ))}
-                {destinations.map(destination => (
-                  <Pin
-                    key={destination.name}
-                    destination={destination}
-                    projection={projectionRef.current!}
-                    zoomK={zoomK}
-                    selected={destination.name === selectedName}
-                    onSelect={onSelect}
-                    owner="me"
-                    shared={shared.has(destination.name.toLowerCase())}
-                  />
+                {destinations.map(d => (
+                  <Pin key={d.name} destination={d} projection={projFnRef.current}
+                    zoomK={zoomK} selected={d.name === selectedName} onSelect={onSelect}
+                    owner="me" shared={shared.has(d.name.toLowerCase())} />
                 ))}
               </>
             )
@@ -486,11 +310,10 @@ export default function WorldMap({
         <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>−</button>
         <span className="map-controls-divider" aria-hidden="true" />
         <button aria-label="Recadrer la carte" onClick={resetZoom}>
-          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9V4h5" />
-            <path d="M21 9V4h-5" />
-            <path d="M3 15v5h5" />
-            <path d="M21 15v5h-5" />
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9V4h5" /><path d="M21 9V4h-5" />
+            <path d="M3 15v5h5" /><path d="M21 15v5h-5" />
           </svg>
         </button>
       </div>
@@ -503,18 +326,20 @@ export default function WorldMap({
           </span>
         ))}
       </div>
+
       <p className="map-attribution">
-        Tiles ©{' '}
-        <a href="https://www.esri.com" target="_blank" rel="noopener noreferrer">Esri</a>
-        {' · Sources: USGS, Esri, TANA, DeLorme'}
+        <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">© MapTiler</a>
+        {' · '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>
       </p>
     </section>
   )
 }
 
+// ─── Pin component ────────────────────────────────────────────────────────────
 interface PinProps {
   destination: Destination
-  projection: d3.GeoProjection
+  projection: Proj
   zoomK: number
   selected: boolean
   onSelect: (name: string) => void
@@ -523,52 +348,47 @@ interface PinProps {
   shared?: boolean
 }
 
-// memo: only re-renders when props actually change (not on every zoom frame)
-const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSelect, owner = 'me', badge, shared }: PinProps) {
+const Pin = memo(function Pin({
+  destination, projection, zoomK, selected, onSelect, owner = 'me', badge, shared,
+}: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
-
-  // Base projected coords — the parent group's D3 transform handles zoom positioning
   const [cx, cy] = projected
-  // scale(1/zoomK) counter-acts the parent group's D3 zoom, keeping pins at constant
-  // screen size anchored precisely at the geographic point (translate origin = 0,0 local)
   const invK = 1 / zoomK
-  // Below threshold: compact circle pin; above: full card with name+score
   const isCompact = zoomK < 2
 
+  // ── Stop (road trip waypoint) ──────────────────────────────────────────────
   if (destination.kind === 'stop') {
     return (
-      <g transform={`translate(${cx},${cy})`}>
+      <g className="stop-root" data-lng={destination.lng} data-lat={destination.lat}
+         transform={`translate(${cx},${cy})`}>
         <circle r={5}
           fill={owner === 'friend' ? '#fff' : '#8b9db5'}
           stroke={owner === 'friend' ? '#7C8DB5' : 'white'}
           strokeWidth={owner === 'friend' ? 1.6 : 1.2}
           opacity={0.85}
-          style={{ cursor: 'pointer' }} onClick={() => onSelect(destination.name)} />
+          style={{ cursor: 'pointer' }}
+          onClick={() => onSelect(destination.name)} />
       </g>
     )
   }
 
   const color = TIER_COLORS[destination.tier!].pin
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
-    .toFixed(1)
-    .replace('.', ',')
+    .toFixed(1).replace('.', ',')
 
+  // ── Zone label ─────────────────────────────────────────────────────────────
   if (destination.kind === 'zone') {
     return (
-      <g
-        className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
-        data-tx={cx} data-ty={cy}
-        transform={`translate(${cx},${cy}) scale(${invK})`}
-      >
+      <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
+         data-lng={destination.lng} data-lat={destination.lat}
+         transform={`translate(${cx},${cy}) scale(${invK})`}>
         <foreignObject className="pin-foreign-object" x="-70" y="-36" width="140" height="40">
           <div className="pin-stage">
             <button
-              className={`map-pin-zone-label${owner === 'friend' ? ' map-pin-zone-label--friend' : ''}`}
+              className={`map-pin map-pin-zone-label${owner === 'friend' ? ' map-pin--friend' : ''}`}
               onClick={() => onSelect(destination.name)}
-              style={{ '--pin-color': color } as CSSProperties}
-            >
-              <span>{destination.tier}</span>
+              style={{ '--pin-color': color } as CSSProperties}>
               <strong>{destination.name}</strong>
               {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
               {shared && <em className="pin-shared-badge">2</em>}
@@ -579,19 +399,17 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
     )
   }
 
+  // ── Full destination pin ───────────────────────────────────────────────────
   return (
-    <g
-      className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
-      data-tx={cx} data-ty={cy}
-      transform={`translate(${cx},${cy}) scale(${invK})`}
-    >
+    <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
+       data-lng={destination.lng} data-lat={destination.lat}
+       transform={`translate(${cx},${cy}) scale(${invK})`}>
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
             className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}`}
             onClick={() => onSelect(destination.name)}
-            style={{ '--pin-color': color } as CSSProperties}
-          >
+            style={{ '--pin-color': color } as CSSProperties}>
             <span>{destination.tier}</span>
             <strong>
               {destination.name}

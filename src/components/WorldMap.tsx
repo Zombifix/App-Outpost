@@ -34,6 +34,217 @@ interface WorldMapProps {
   sharedNames?: Set<string>
 }
 
+const ATLAS_PREMIUM_PALETTE = {
+  sea: '#c9e3ee',
+  land: '#f2eee4',
+  sand: '#e8ddc8',
+  sage: '#aebf9a',
+  sageSoft: '#c2ceb2',
+  ice: '#eef6f7',
+  relief: '#d3c8b6',
+  labelCountry: '#766f64',
+  labelOcean: '#7fa6bf',
+  labelHalo: 'rgba(246, 242, 232, 0.88)',
+  border: 'rgba(145, 131, 110, 0.18)',
+  borderSoft: 'rgba(145, 131, 110, 0.10)',
+  coast: 'rgba(172, 207, 220, 0.42)',
+}
+
+function safeSetPaint(map: maplibregl.Map, layerId: string, property: string, value: unknown) {
+  try { map.setPaintProperty(layerId, property, value) } catch { /* layer/property not supported in this style */ }
+}
+
+function safeSetLayout(map: maplibregl.Map, layerId: string, property: string, value: unknown) {
+  try { map.setLayoutProperty(layerId, property, value) } catch { /* layer/property not supported in this style */ }
+}
+
+function safeSetFilter(map: maplibregl.Map, layerId: string, filter: unknown) {
+  try { map.setFilter(layerId, filter as maplibregl.FilterSpecification) } catch { /* tile schemas may vary */ }
+}
+
+function safeSetLayerZoomRange(map: maplibregl.Map, layerId: string, minzoom: number, maxzoom: number) {
+  try { map.setLayerZoomRange(layerId, minzoom, maxzoom) } catch { /* layer may not support zoom range updates */ }
+}
+
+function hideLayer(map: maplibregl.Map, layerId: string) {
+  safeSetLayout(map, layerId, 'visibility', 'none')
+}
+
+function customizeAtlasPremiumStyle(map: maplibregl.Map) {
+  const palette = ATLAS_PREMIUM_PALETTE
+
+  map.addSource('atlas-relief', {
+    type: 'raster',
+    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'],
+    tileSize: 256,
+    attribution: '© Esri',
+  })
+
+  const firstVectorLayerId = map.getStyle().layers.find(layer => layer.type !== 'background')?.id
+  map.addLayer({
+    id: 'atlas-relief-raster',
+    type: 'raster',
+    source: 'atlas-relief',
+    paint: {
+      'raster-opacity': 0.18,
+      'raster-saturation': -1,
+      'raster-contrast': 0.12,
+      'raster-brightness-min': 0.12,
+      'raster-brightness-max': 0.96,
+    },
+  }, firstVectorLayerId)
+
+  for (const layer of map.getStyle().layers) {
+    const { id, type } = layer
+    const lid = id.toLowerCase()
+
+    if (id === 'atlas-relief-raster') continue
+
+    if (type === 'hillshade') {
+      safeSetPaint(map, id, 'hillshade-shadow-color', palette.relief)
+      safeSetPaint(map, id, 'hillshade-highlight-color', '#fffaf0')
+      safeSetPaint(map, id, 'hillshade-accent-color', '#c6bba8')
+      safeSetPaint(map, id, 'hillshade-exaggeration', ['interpolate', ['linear'], ['zoom'], 0, 0.22, 4, 0.16, 8, 0.10])
+      continue
+    }
+
+    if (type === 'background') {
+      safeSetPaint(map, id, 'background-color', palette.land)
+      continue
+    }
+
+    if (type === 'fill') {
+      if (/water/.test(lid) && !/waterway|waterfall|land/.test(lid)) {
+        safeSetPaint(map, id, 'fill-color', palette.sea)
+        safeSetPaint(map, id, 'fill-opacity', 0.82)
+        continue
+      }
+
+      if (/wood|forest|tree/.test(lid)) {
+        safeSetPaint(map, id, 'fill-color', palette.sage)
+        safeSetPaint(map, id, 'fill-opacity', 0.14)
+        continue
+      }
+
+      if (/scrub|grass|meadow|park|green/.test(lid)) {
+        safeSetPaint(map, id, 'fill-color', palette.sageSoft)
+        safeSetPaint(map, id, 'fill-opacity', 0.1)
+        continue
+      }
+
+      if (/glacier|ice|snow/.test(lid)) {
+        safeSetPaint(map, id, 'fill-color', palette.ice)
+        safeSetPaint(map, id, 'fill-opacity', 0.74)
+        continue
+      }
+
+      if (/sand|beach|desert/.test(lid)) {
+        safeSetPaint(map, id, 'fill-color', palette.sand)
+        safeSetPaint(map, id, 'fill-opacity', 0.34)
+        continue
+      }
+
+      if (/landcover|landuse|earth|land|country|admin/.test(lid) && !/label|boundary|border/.test(lid)) {
+        safeSetPaint(map, id, 'fill-color', palette.land)
+        safeSetPaint(map, id, 'fill-opacity', 0.68)
+        continue
+      }
+
+      hideLayer(map, id)
+      continue
+    }
+
+    if (type === 'symbol') {
+      if (/country/.test(lid) && /label/.test(lid)) {
+        safeSetLayerZoomRange(map, id, 0, 24)
+        safeSetFilter(map, id, ['any', ['!', ['has', 'rank']], ['<=', ['to-number', ['get', 'rank']], 4]])
+        safeSetPaint(map, id, 'text-color', palette.labelCountry)
+        safeSetPaint(map, id, 'text-opacity', ['interpolate', ['linear'], ['zoom'], 0, 0.78, 2.2, 0.92, 5, 0.82])
+        safeSetPaint(map, id, 'text-halo-color', palette.labelHalo)
+        safeSetPaint(map, id, 'text-halo-width', 1.5)
+        safeSetPaint(map, id, 'text-halo-blur', 0.35)
+        safeSetLayout(map, id, 'text-font', ['Open Sans Semibold'])
+        safeSetLayout(map, id, 'text-transform', 'uppercase')
+        safeSetLayout(map, id, 'text-letter-spacing', 0.16)
+        safeSetLayout(map, id, 'text-size', ['interpolate', ['linear'], ['zoom'], 0, 10.5, 2, 12, 5, 14])
+        continue
+      }
+
+      if (/ocean/.test(lid) && /label/.test(lid)) {
+        safeSetLayerZoomRange(map, id, 0, 24)
+        safeSetPaint(map, id, 'text-color', palette.labelOcean)
+        safeSetPaint(map, id, 'text-opacity', 0.72)
+        safeSetPaint(map, id, 'text-halo-color', 'rgba(220, 239, 246, 0.42)')
+        safeSetPaint(map, id, 'text-halo-width', 1.1)
+        safeSetPaint(map, id, 'text-halo-blur', 0.25)
+        safeSetLayout(map, id, 'text-font', ['Open Sans Italic'])
+        safeSetLayout(map, id, 'text-letter-spacing', 0.18)
+        safeSetLayout(map, id, 'text-size', ['interpolate', ['linear'], ['zoom'], 0, 12, 3, 15, 6, 17])
+        continue
+      }
+
+      if (/sea/.test(lid) && /label/.test(lid)) {
+        safeSetLayerZoomRange(map, id, 0, 24)
+        safeSetPaint(map, id, 'text-color', palette.labelOcean)
+        safeSetPaint(map, id, 'text-opacity', 0.5)
+        safeSetPaint(map, id, 'text-halo-color', 'rgba(220, 239, 246, 0.30)')
+        safeSetPaint(map, id, 'text-halo-width', 0.8)
+        safeSetLayout(map, id, 'text-font', ['Open Sans Italic'])
+        safeSetLayout(map, id, 'text-letter-spacing', 0.14)
+        continue
+      }
+
+      hideLayer(map, id)
+      continue
+    }
+
+    if (/road|tunnel|bridge|transit|rail|aeroway|building|poi|ferry|indoor|path|track|gate|aerodrome|runway|taxiway|pier|dam|parking|steps|pedestrian|cycleway|footway/.test(lid)) {
+      hideLayer(map, id)
+      continue
+    }
+
+    if (/contour|graticule|grid|tropic|equator|arctic|antarctic|polar|meridian|parallel/.test(lid)) {
+      hideLayer(map, id)
+      continue
+    }
+
+    if (type === 'line' && /coast|shore|water/.test(lid)) {
+      safeSetPaint(map, id, 'line-color', palette.coast)
+      safeSetPaint(map, id, 'line-opacity', ['interpolate', ['linear'], ['zoom'], 0, 0.16, 3, 0.32, 7, 0.22])
+      safeSetPaint(map, id, 'line-width', ['interpolate', ['linear'], ['zoom'], 0, 0.6, 4, 1.9, 8, 3.2])
+      safeSetPaint(map, id, 'line-blur', 1.7)
+      continue
+    }
+
+    if (type === 'line' && /river|canal|stream/.test(lid)) {
+      safeSetPaint(map, id, 'line-color', 'rgba(137, 184, 204, 0.18)')
+      safeSetPaint(map, id, 'line-width', 0.35)
+      safeSetPaint(map, id, 'line-opacity', 0.32)
+      safeSetPaint(map, id, 'line-blur', 0.4)
+      continue
+    }
+
+    if (type === 'line' && /boundary|admin|border/.test(lid) && (/-bg$/.test(lid) || /disputed|claim/.test(lid))) {
+      hideLayer(map, id)
+      continue
+    }
+
+    if (type === 'line' && /boundary|admin|border/.test(lid)) {
+      safeSetPaint(map, id, 'line-color', palette.border)
+      safeSetPaint(map, id, 'line-opacity', ['interpolate', ['linear'], ['zoom'], 0, 0.2, 4, 0.28, 7, 0.18])
+      safeSetPaint(map, id, 'line-width', ['interpolate', ['linear'], ['zoom'], 0, 0.25, 4, 0.38, 8, 0.55])
+      safeSetPaint(map, id, 'line-blur', 0.25)
+      continue
+    }
+
+    if (type === 'line') {
+      safeSetPaint(map, id, 'line-color', palette.borderSoft)
+      safeSetPaint(map, id, 'line-width', 0.25)
+      safeSetPaint(map, id, 'line-opacity', 0.16)
+    }
+  }
+}
+
 // ─── Customize MapTiler style layers ─────────────────────────────────────────
 // Stratégie : ESRI raster très désaturé (hillshade/texture) + fills vector atlas
 // sur palette : bleu glacier / blanc sable / vert sauge / frontières fantôme
@@ -181,6 +392,7 @@ function customizeStyle(map: maplibregl.Map) {
 // ─── Zone + route layers ──────────────────────────────────────────────────────
 function clearZoneRouteLayers(map: maplibregl.Map) {
   const style = map.getStyle()
+  if (!style?.layers || !style.sources) return
   for (const l of style.layers) {
     if (l.id.startsWith('_z_') || l.id.startsWith('_r_')) {
       try { map.removeLayer(l.id) } catch { /* already removed */ }
@@ -311,7 +523,7 @@ export default function WorldMap({
     })
 
     map.on('load', () => {
-      customizeStyle(map)
+      customizeAtlasPremiumStyle(map)
       projFnRef.current = ([lng, lat]) => {
         const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
         return [x, y]

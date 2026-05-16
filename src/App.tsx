@@ -287,8 +287,10 @@ export default function App() {
           destinations={visibleDestinations}
           manageMode={manageMode}
           collapsed={tierListCollapsed}
+          coupDeCoeurCount={coupDeCoeurCount}
           onManageToggle={() => setManageMode(value => !value)}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
+          onCoupDeCoeurToggle={toggleCoupDeCoeur}
           onFlyTo={selectByName}
           onDelete={removeDestination}
         />
@@ -532,7 +534,7 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
           disabled={coupDeCoeurDisabled}
           onClick={onCoupDeCoeur}
         >
-          <Icon name="star" />
+          <Icon name="heart" />
         </button>
       </div>
       <p>{destination.summary}</p>

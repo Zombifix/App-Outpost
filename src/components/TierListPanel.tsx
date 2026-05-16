@@ -5,8 +5,10 @@ interface TierListPanelProps {
   destinations: Destination[]
   manageMode: boolean
   collapsed: boolean
+  coupDeCoeurCount: number
   onManageToggle: () => void
   onCollapseToggle: () => void
+  onCoupDeCoeurToggle: (name: string) => void
   onFlyTo: (name: string) => void
   onDelete?: (name: string) => void
 }
@@ -23,15 +25,20 @@ export default function TierListPanel({
   destinations,
   manageMode,
   collapsed,
+  coupDeCoeurCount,
   onManageToggle,
   onCollapseToggle,
+  onCoupDeCoeurToggle,
   onFlyTo,
   onDelete,
 }: TierListPanelProps) {
   return (
     <section className={`tier-board ${manageMode ? 'is-managing' : ''} ${collapsed ? 'is-collapsed' : ''}`} aria-label="Ma tier list">
       <div className="tier-board-head">
-        <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
+        <div className="tier-board-title">
+          <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
+          <span className="tier-favorite-counter">{coupDeCoeurCount}/2 coups de coeur</span>
+        </div>
         <button onClick={onManageToggle}>
           <Icon />
           {manageMode ? 'Terminer' : 'Gerer ma tier list'}
@@ -44,33 +51,56 @@ export default function TierListPanel({
           const colors = TIER_COLORS[tier]
 
           return (
-            <article className={`tier-column tier-column-${tier.toLowerCase()}`} key={tier}>
+            <article
+              className={`tier-column tier-column-${tier.toLowerCase()}`}
+              key={tier}
+              style={{ '--tier-items': Math.max(items.length, 1) } as React.CSSProperties}
+            >
               <header>
                 <strong style={{ color: colors.label }}>{tier}</strong>
                 <span style={{ color: colors.label }}>{tierLabels[tier]}</span>
                 <small>{items.length}</small>
               </header>
               <div className="destination-strip">
-                {items.map(destination => (
-                  <button
-                    className="mini-destination"
-                    key={destination.name}
-                    onClick={() => onFlyTo(destination.name)}
-                    style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
-                  >
-                    {manageMode && onDelete && (
+                {items.map(destination => {
+                  const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
+                  const coupDeCoeurDisabled = !isCoupDeCoeur && coupDeCoeurCount >= 2
+
+                  return (
+                    <article
+                      className={`mini-destination ${isCoupDeCoeur ? 'is-coup-de-coeur' : ''}`}
+                      key={destination.name}
+                      style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
+                    >
                       <button
-                        className="mini-destination-delete"
-                        aria-label={`Supprimer ${destination.name}`}
-                        onClick={e => { e.stopPropagation(); onDelete(destination.name) }}
+                        className="mini-destination-main"
+                        onClick={() => onFlyTo(destination.name)}
+                        aria-label={`Voir ${destination.name} sur la carte`}
                       >
-                        ✕
+                        <span>{destination.name}</span>
                       </button>
-                    )}
-                    <span>{destination.name}</span>
-                    <small>* {(destination.score ?? 3).toFixed(1).replace('.', ',')}</small>
-                  </button>
-                ))}
+                      <button
+                        className={`mini-favorite-button ${isCoupDeCoeur ? 'is-active' : ''}`}
+                        aria-label={isCoupDeCoeur ? `Retirer ${destination.name} des coups de coeur` : coupDeCoeurDisabled ? 'Limite de 2 coups de coeur atteinte' : `Ajouter ${destination.name} aux coups de coeur`}
+                        aria-pressed={isCoupDeCoeur}
+                        disabled={coupDeCoeurDisabled}
+                        title={isCoupDeCoeur ? 'Coup de coeur' : coupDeCoeurDisabled ? '2 coups de coeur deja choisis' : 'Marquer coup de coeur'}
+                        onClick={() => onCoupDeCoeurToggle(destination.name)}
+                      >
+                        <HeartIcon />
+                      </button>
+                      {manageMode && onDelete && (
+                        <button
+                          className="mini-destination-delete"
+                          aria-label={`Supprimer ${destination.name}`}
+                          onClick={() => onDelete(destination.name)}
+                        >
+                          x
+                        </button>
+                      )}
+                    </article>
+                  )
+                })}
               </div>
             </article>
           )
@@ -87,6 +117,14 @@ export default function TierListPanel({
         </svg>
       </button>
     </section>
+  )
+}
+
+function HeartIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
+    </svg>
   )
 }
 

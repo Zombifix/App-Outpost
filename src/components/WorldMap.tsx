@@ -112,11 +112,10 @@ function customizeStyle(map: maplibregl.Map) {
       continue
     }
 
-    // ── Labels : typographie atlas premium
+    // ── Labels : typographie atlas premium — matching strict sur les noms exacts
     if (type === 'symbol') {
-      // Pays → majeurs seulement, uppercase espacé, gris chaud
-      if (/country/.test(lid)) {
-        try { map.setFilter(id, ['<=', ['get', 'rank'], 2]) } catch { /* rank absent */ }
+      if (lid === 'country labels') {
+        // Pays : uppercase espacé, gris chaud — filtre zoom natif outdoor-v2 conservé
         map.setPaintProperty(id, 'text-color', '#7a7060')
         map.setPaintProperty(id, 'text-halo-color', 'rgba(242,238,228,0.82)')
         map.setPaintProperty(id, 'text-halo-width', 1.8)
@@ -125,8 +124,7 @@ function customizeStyle(map: maplibregl.Map) {
         map.setLayoutProperty(id, 'text-letter-spacing', 0.18)
         continue
       }
-      // Océans → italique bleu pâle, large espacement
-      if (/ocean/.test(lid)) {
+      if (lid === 'ocean labels') {
         map.setPaintProperty(id, 'text-color', 'rgba(130,165,188,0.88)')
         map.setPaintProperty(id, 'text-halo-color', 'rgba(180,215,235,0.20)')
         map.setPaintProperty(id, 'text-halo-width', 1.2)
@@ -134,8 +132,7 @@ function customizeStyle(map: maplibregl.Map) {
         map.setLayoutProperty(id, 'text-letter-spacing', 0.22)
         continue
       }
-      // Mers → idem mais plus discret
-      if (/^sea/.test(lid)) {
+      if (lid === 'sea labels') {
         map.setPaintProperty(id, 'text-color', 'rgba(130,165,188,0.72)')
         map.setPaintProperty(id, 'text-halo-color', 'rgba(180,215,235,0.16)')
         map.setPaintProperty(id, 'text-halo-width', 1.0)
@@ -143,7 +140,7 @@ function customizeStyle(map: maplibregl.Map) {
         map.setLayoutProperty(id, 'text-letter-spacing', 0.18)
         continue
       }
-      // Continents + tout le reste → masqués
+      // Tout le reste (régions, villes, oblasts…) → masqué
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
@@ -259,7 +256,10 @@ function addRouteLayer(map: maplibregl.Map, d: Destination) {
     id: `${sid}_dots`, type: 'circle', source: `${sid}_pts`,
     paint: {
       'circle-radius': 3.2, 'circle-color': color,
-      'circle-stroke-width': 1, 'circle-stroke-color': 'white', 'circle-opacity': 0.95,
+      'circle-stroke-width': 1, 'circle-stroke-color': 'white',
+      // Invisible au zoom monde, apparaît progressivement à partir de zoom 5
+      'circle-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 0.9] as maplibregl.ExpressionSpecification,
+      'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 1] as maplibregl.ExpressionSpecification,
     },
   })
 }

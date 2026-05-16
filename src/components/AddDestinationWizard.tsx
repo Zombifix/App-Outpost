@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
+import { resolveDestinationImage } from '../services/imageSearch'
 
 interface WizardProps {
   onClose: () => void
@@ -420,6 +421,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   )
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [resolvingImage, setResolvingImage] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -519,11 +521,31 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     }
   }
 
-  const confirmAdd = () => {
+  const confirmAdd = async () => {
+    if (resolvingImage) return
+    setResolvingImage(true)
     const s = state
     const isZone = s.kind === 'zone'
     const lat = isZone && s.extent ? (s.extent[1] + s.extent[3]) / 2 : s.lat
     const lng = isZone && s.extent ? (s.extent[0] + s.extent[2]) / 2 : s.lng
+    const validStops = s.kind === 'zone'
+      ? stops.filter(st => st.name.trim() && Number.isFinite(st.lat) && Number.isFinite(st.lng))
+      : undefined
+    const imageResult = isEditing && initialDestination.image
+      ? {
+          image: initialDestination.image,
+          imageProvider: initialDestination.imageProvider,
+          imageAuthor: initialDestination.imageAuthor,
+          imageSourceUrl: initialDestination.imageSourceUrl,
+          imageQuery: initialDestination.imageQuery,
+        }
+      : await resolveDestinationImage({
+          name: s.name,
+          country: s.country,
+          kind: s.kind,
+          stops: validStops,
+          fallbackImage: DEFAULT_IMAGE,
+        })
 
     const result: Destination = {
       name: s.name,
@@ -531,9 +553,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       lat, lng,
       tier: finalTier,
       kind: s.kind,
-      stops: s.kind === 'zone'
-        ? stops.filter(st => st.name.trim() && Number.isFinite(st.lat) && Number.isFinite(st.lng))
-        : undefined,
+      stops: validStops,
       extent: s.kind === 'zone' ? s.extent : undefined,
       geojson: s.kind === 'zone' ? s.geojson : undefined,
       state: s.state,
@@ -546,7 +566,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       intent: s.intent,
       score: Math.round(finalScore * 10) / 10,
       notes: isEditing ? (initialDestination.notes ?? 1) : 1,
-      image: isEditing ? initialDestination.image : DEFAULT_IMAGE,
+      image: imageResult.image,
+      imageProvider: imageResult.imageProvider,
+      imageAuthor: imageResult.imageAuthor,
+      imageSourceUrl: imageResult.imageSourceUrl,
+      imageQuery: imageResult.imageQuery,
       summary: `${TIER_LABELS[finalTier]}. ${s.name} — tier mis à jour.`,
     }
 
@@ -555,6 +579,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     } else {
       onAdd(result)
     }
+    setResolvingImage(false)
   }
 
   const activeQuestions = QUESTIONS
@@ -753,8 +778,10 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 )}
               </div>
             )}
-            <button className="wizard-submit" onClick={confirmAdd}>
-              {isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
+            <button className="wizard-submit" onClick={confirmAdd} disabled={resolvingImage}>
+              {resolvingImage
+                ? 'Recherche de la photo...'
+                : isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
             </button>
             {isEditing && (
               <button

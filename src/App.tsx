@@ -79,6 +79,12 @@ function normalizeDestination(value: unknown): Destination | null {
     state: typeof value.state === 'string' ? value.state : undefined,
     osmValue: typeof value.osmValue === 'string' ? value.osmValue : undefined,
     image: typeof value.image === 'string' ? value.image : undefined,
+    imageProvider: ['pexels', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
+      ? value.imageProvider as Destination['imageProvider']
+      : undefined,
+    imageAuthor: typeof value.imageAuthor === 'string' ? value.imageAuthor : undefined,
+    imageSourceUrl: typeof value.imageSourceUrl === 'string' ? value.imageSourceUrl : undefined,
+    imageQuery: typeof value.imageQuery === 'string' ? value.imageQuery : undefined,
     summary: typeof value.summary === 'string' ? value.summary : undefined,
     tripName: typeof value.tripName === 'string' ? value.tripName : undefined,
     coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
@@ -501,6 +507,16 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       />
+      {destination.imageSourceUrl && destination.imageProvider !== 'fallback' && (
+        <a
+          className="destination-image-credit"
+          href={destination.imageSourceUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Photo {destination.imageAuthor ? `par ${destination.imageAuthor}` : `via ${destination.imageProvider}`}
+        </a>
+      )}
       <div className="destination-title-row">
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>

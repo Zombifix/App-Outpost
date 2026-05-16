@@ -37,6 +37,7 @@ export interface Destination {
   nature: number
   value: number
   intent: Intent
+  coupDeCoeur?: boolean
 }
 
 export interface Friend {

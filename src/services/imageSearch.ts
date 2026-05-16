@@ -61,7 +61,26 @@ interface WikipediaPage {
   pageimage?: string
 }
 
-const CACHE_KEY = 'outpost-destination-image-cache-v2'
+interface WikipediaSummary {
+  title?: string
+  content_urls?: {
+    desktop?: {
+      page?: string
+    }
+  }
+  originalimage?: {
+    source?: string
+    width?: number
+    height?: number
+  }
+  thumbnail?: {
+    source?: string
+    width?: number
+    height?: number
+  }
+}
+
+const CACHE_KEY = 'outpost-destination-image-cache-v3'
 const CACHE_LIMIT = 180
 const MIN_LANDSCAPE_RATIO = 1.15
 const TRAVEL_KEYWORDS = [
@@ -94,6 +113,33 @@ const GENERIC_KEYWORDS = [
   'man',
   'portrait',
 ]
+const SEARCH_ALIASES: Record<string, string> = {
+  algerie: 'Algeria',
+  algérie: 'Algeria',
+  allemagne: 'Germany',
+  angleterre: 'England',
+  bresil: 'Brazil',
+  brésil: 'Brazil',
+  chine: 'China',
+  coree: 'Korea',
+  'coree du sud': 'South Korea',
+  'corée du sud': 'South Korea',
+  espagne: 'Spain',
+  'etats-unis': 'United States',
+  'états-unis': 'United States',
+  "etats-unis d'amerique": 'United States',
+  "états-unis d'amérique": 'United States',
+  grece: 'Greece',
+  grèce: 'Greece',
+  irlande: 'Ireland',
+  italie: 'Italy',
+  japon: 'Japan',
+  maroc: 'Morocco',
+  mexique: 'Mexico',
+  portugal: 'Portugal',
+  thailande: 'Thailand',
+  thaïlande: 'Thailand',
+}
 
 function getPexelsKey(): string {
   const meta = import.meta as ImportMeta & { env?: Record<string, string | undefined> }
@@ -107,6 +153,12 @@ function normalizeKey(value: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
+}
+
+function searchName(value: string): string {
+  const normalized = value.trim()
+  const key = normalized.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return SEARCH_ALIASES[key] ?? SEARCH_ALIASES[normalized.toLowerCase()] ?? normalized
 }
 
 function stripHtml(value?: string): string | undefined {
@@ -137,7 +189,9 @@ function writeCache(key: string, result: DestinationImageResult) {
 }
 
 function buildQueries(input: ResolveDestinationImageInput): string[] {
-  const nameCountry = [input.name, input.country].filter(Boolean).join(' ')
+  const name = searchName(input.name)
+  const country = searchName(input.country)
+  const nameCountry = [name, country].filter(Boolean).join(' ')
   const isZone = input.kind === 'zone'
   const queries = isZone
     ? [
@@ -155,7 +209,7 @@ function buildQueries(input: ResolveDestinationImageInput): string[] {
   if (isZone && validStops.length >= 2) {
     queries.splice(1, 0, `${validStops.map(stop => stop.name).join(' ')} road trip`)
   } else if (isZone && validStops.length === 1) {
-    queries.splice(1, 0, `${validStops[0].name} ${input.country} road trip`)
+    queries.splice(1, 0, `${validStops[0].name} ${country} road trip`)
   }
 
   return Array.from(new Set(queries.map(query => query.replace(/\s+/g, ' ').trim())))
@@ -211,8 +265,38 @@ function pageImageIsUsable(page: WikipediaPage): boolean {
   const imageName = `${page.pageimage ?? ''} ${page.thumbnail?.source ?? ''}`.toLowerCase()
   const blockedImage = ['flag', 'coat_of_arms', 'seal', 'map', 'location'].some(word => imageName.includes(word))
   return Boolean(page.thumbnail?.source)
-    && width >= height * 1.05
+    && width >= height * 0.62
     && !blockedImage
+}
+
+function summaryImageIsUsable(summary: WikipediaSummary): boolean {
+  const image = summary.originalimage ?? summary.thumbnail
+  const width = image?.width ?? 0
+  const height = image?.height ?? 1
+  const imageName = image?.source?.toLowerCase() ?? ''
+  const blockedImage = ['flag', 'coat_of_arms', 'seal', 'map', 'location'].some(word => imageName.includes(word))
+  return Boolean(image?.source)
+    && width >= height * 0.62
+    && !blockedImage
+}
+
+async function searchWikipediaSummaryImage(name: string): Promise<DestinationImageResult | null> {
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}?redirect=true`
+  const response = await fetch(url)
+  if (!response.ok) return null
+
+  const summary = await response.json() as WikipediaSummary
+  if (!summaryImageIsUsable(summary)) return null
+
+  const image = summary.originalimage?.source ?? summary.thumbnail?.source
+  if (!image) return null
+
+  return {
+    image,
+    imageProvider: 'wikipedia',
+    imageSourceUrl: summary.content_urls?.desktop?.page,
+    imageQuery: name,
+  }
 }
 
 async function searchWikipediaExactImage(name: string): Promise<DestinationImageResult | null> {
@@ -273,11 +357,18 @@ async function searchWikipediaSearchImage(query: string): Promise<DestinationIma
 
 async function searchWikipediaImage(input: ResolveDestinationImageInput): Promise<DestinationImageResult | null> {
   const names = [
-    input.name,
-    [input.name, input.country].filter(Boolean).join(' '),
+    searchName(input.name),
+    [searchName(input.name), searchName(input.country)].filter(Boolean).join(' '),
   ].filter(Boolean)
 
   for (const name of Array.from(new Set(names))) {
+    try {
+      const summary = await searchWikipediaSummaryImage(name)
+      if (summary) return summary
+    } catch {
+      /* try action API */
+    }
+
     try {
       const exact = await searchWikipediaExactImage(name)
       if (exact) return exact
@@ -358,7 +449,7 @@ export async function resolveDestinationImage(input: ResolveDestinationImageInpu
     input.stops?.map(stop => stop.name).join(',') ?? '',
   ].join('|'))
   const cached = readCache()[cacheKey]
-  if (cached?.image) return cached
+  if (cached?.image && cached.imageProvider !== 'fallback' && cached.imageProvider !== 'wikimedia') return cached
 
   for (const query of buildQueries(input)) {
     try {

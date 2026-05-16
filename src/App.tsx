@@ -121,6 +121,12 @@ function loadPublicId(): string {
   }
 }
 
+function hasWeakAutoImage(destination: Destination) {
+  return destination.imageProvider === 'wikimedia'
+    || destination.imageProvider === 'fallback'
+    || (!destination.imageProvider && destination.image === AUTO_IMAGE_FALLBACK)
+}
+
 export default function App() {
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
@@ -154,9 +160,7 @@ export default function App() {
   }, [destinations])
 
   useEffect(() => {
-    const refreshTargets = destinations.filter(destination =>
-      destination.imageProvider === 'wikimedia' || destination.imageProvider === 'fallback',
-    )
+    const refreshTargets = destinations.filter(hasWeakAutoImage)
     if (!refreshTargets.length) return
 
     let cancelled = false

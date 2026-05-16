@@ -1084,24 +1084,6 @@ svg {
   background-size: cover;
 }
 
-.destination-image-credit {
-  display: block;
-  width: fit-content;
-  max-width: calc(100% - 14px);
-  margin: 7px 7px 0 auto;
-  color: #7c8798;
-  font-size: var(--text-xs);
-  text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.destination-image-credit:hover {
-  color: #111827;
-  text-decoration: underline;
-}
-
 .destination-title-row {
   display: grid;
   grid-template-columns: 34px 1fr 34px;

@@ -50,7 +50,18 @@ interface WikimediaPage {
   }>
 }
 
-const CACHE_KEY = 'outpost-destination-image-cache-v1'
+interface WikipediaPage {
+  title?: string
+  fullurl?: string
+  thumbnail?: {
+    source?: string
+    width?: number
+    height?: number
+  }
+  pageimage?: string
+}
+
+const CACHE_KEY = 'outpost-destination-image-cache-v2'
 const CACHE_LIMIT = 180
 const MIN_LANDSCAPE_RATIO = 1.15
 const TRAVEL_KEYWORDS = [
@@ -194,6 +205,99 @@ async function searchPexels(query: string): Promise<DestinationImageResult | nul
   }
 }
 
+function pageImageIsUsable(page: WikipediaPage): boolean {
+  const width = page.thumbnail?.width ?? 0
+  const height = page.thumbnail?.height ?? 1
+  const imageName = `${page.pageimage ?? ''} ${page.thumbnail?.source ?? ''}`.toLowerCase()
+  const blockedImage = ['flag', 'coat_of_arms', 'seal', 'map', 'location'].some(word => imageName.includes(word))
+  return Boolean(page.thumbnail?.source)
+    && width >= height * 1.05
+    && !blockedImage
+}
+
+async function searchWikipediaExactImage(name: string): Promise<DestinationImageResult | null> {
+  const url = new URL('https://en.wikipedia.org/w/api.php')
+  url.searchParams.set('action', 'query')
+  url.searchParams.set('format', 'json')
+  url.searchParams.set('origin', '*')
+  url.searchParams.set('titles', name)
+  url.searchParams.set('redirects', '1')
+  url.searchParams.set('prop', 'pageimages|info')
+  url.searchParams.set('inprop', 'url')
+  url.searchParams.set('pithumbsize', '1200')
+
+  const response = await fetch(url)
+  if (!response.ok) return null
+
+  const data = await response.json() as { query?: { pages?: Record<string, WikipediaPage> } }
+  const page = Object.values(data.query?.pages ?? {}).find(pageImageIsUsable)
+  if (!page?.thumbnail?.source) return null
+
+  return {
+    image: page.thumbnail.source,
+    imageProvider: 'wikipedia',
+    imageSourceUrl: page.fullurl,
+    imageQuery: name,
+  }
+}
+
+async function searchWikipediaSearchImage(query: string): Promise<DestinationImageResult | null> {
+  const url = new URL('https://en.wikipedia.org/w/api.php')
+  url.searchParams.set('action', 'query')
+  url.searchParams.set('format', 'json')
+  url.searchParams.set('origin', '*')
+  url.searchParams.set('generator', 'search')
+  url.searchParams.set('gsrlimit', '5')
+  url.searchParams.set('gsrsearch', query)
+  url.searchParams.set('prop', 'pageimages|info')
+  url.searchParams.set('inprop', 'url')
+  url.searchParams.set('pithumbsize', '1200')
+
+  const response = await fetch(url)
+  if (!response.ok) return null
+
+  const data = await response.json() as { query?: { pages?: Record<string, WikipediaPage> } }
+  const page = Object.values(data.query?.pages ?? {})
+    .filter(pageImageIsUsable)
+    .sort((a, b) => textScore(`${b.title ?? ''} ${b.pageimage ?? ''}`) - textScore(`${a.title ?? ''} ${a.pageimage ?? ''}`))[0]
+
+  if (!page?.thumbnail?.source) return null
+
+  return {
+    image: page.thumbnail.source,
+    imageProvider: 'wikipedia',
+    imageSourceUrl: page.fullurl,
+    imageQuery: query,
+  }
+}
+
+async function searchWikipediaImage(input: ResolveDestinationImageInput): Promise<DestinationImageResult | null> {
+  const names = [
+    input.name,
+    [input.name, input.country].filter(Boolean).join(' '),
+  ].filter(Boolean)
+
+  for (const name of Array.from(new Set(names))) {
+    try {
+      const exact = await searchWikipediaExactImage(name)
+      if (exact) return exact
+    } catch {
+      /* try search */
+    }
+  }
+
+  for (const query of buildQueries(input)) {
+    try {
+      const searched = await searchWikipediaSearchImage(query)
+      if (searched) return searched
+    } catch {
+      /* try next query */
+    }
+  }
+
+  return null
+}
+
 function scoreWikimediaPage(page: WikimediaPage): number {
   const info = page.imageinfo?.[0]
   const width = info?.width ?? 0
@@ -264,9 +368,21 @@ export async function resolveDestinationImage(input: ResolveDestinationImageInpu
         return pexels
       }
     } catch {
-      /* try the next provider */
+      /* try the next query */
     }
+  }
 
+  try {
+    const wikipedia = await searchWikipediaImage(input)
+    if (wikipedia) {
+      writeCache(cacheKey, wikipedia)
+      return wikipedia
+    }
+  } catch {
+    /* try Commons */
+  }
+
+  for (const query of buildQueries(input)) {
     try {
       const wikimedia = await searchWikimedia(query)
       if (wikimedia) {

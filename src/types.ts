@@ -28,7 +28,7 @@ export interface Destination {
   state?: string
   osmValue?: string
   image?: string
-  imageProvider?: 'pexels' | 'wikimedia' | 'fallback'
+  imageProvider?: 'pexels' | 'wikipedia' | 'wikimedia' | 'fallback'
   imageAuthor?: string
   imageSourceUrl?: string
   imageQuery?: string

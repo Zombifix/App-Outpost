@@ -169,7 +169,7 @@ export default function WorldMap({
       .attr('stroke', 'rgba(74, 110, 130, 0.10)')
       .attr('stroke-width', 0.6)
 
-    // --- Tile layer (Stadia Stamen Terrain) ---
+    // --- Tile layer (Stadia Stamen Terrain Background) ---
     const drawTiles = (transform: d3.ZoomTransform) => {
       const canvas = canvasRef.current
       const proj = projectionRef.current
@@ -180,35 +180,40 @@ export default function WorldMap({
       ctx.clearRect(0, 0, width, height)
 
       const worldPx = 2 * Math.PI * proj.scale() * transform.k
-      const tileZ = Math.max(1, Math.min(Math.floor(Math.log2(worldPx / 256)), 12))
+      const tileZ = Math.max(0, Math.min(Math.floor(Math.log2(worldPx / 256)), 12))
       const n = Math.pow(2, tileZ)
+      const tilePx = worldPx / n // taille d'une tuile en pixels écran
 
-      // Écran → coordonnées tuile
-      const screenToTileXY = (sx: number, sy: number): [number, number] => {
-        const bp = transform.invert([sx, sy]) as [number, number]
-        const ll = proj.invert!(bp)
-        if (!ll) return [-1, -1]
-        const tx = ((ll[0] + 180) / 360) * n
-        const latR = ll[1] * Math.PI / 180
-        const ty = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n
-        return [tx, ty]
-      }
-
-      const [x0t, y0t] = screenToTileXY(0, 0)
-      const [x1t, y1t] = screenToTileXY(width, height)
-      const ix0 = Math.floor(x0t) - 1
-      const ix1 = Math.ceil(x1t) + 1
-      const iy0 = Math.max(0, Math.floor(y0t) - 1)
-      const iy1 = Math.min(n - 1, Math.ceil(y1t) + 1)
-
-      // Coin de tuile → position écran via la projection D3
+      // Coin de tuile (tx, ty) → position écran avec support world-wrap correct
+      // wrapOffset = nb de fois le monde × worldPx (formule : (tx - wx) / n * worldPx)
       const cornerToScreen = (tx: number, ty: number): [number, number] => {
-        const lng = (tx / n) * 360 - 180
-        const lat = Math.atan(Math.sinh(Math.PI - (2 * Math.PI * ty) / n)) * 180 / Math.PI
-        const bp = proj([lng, lat])
+        const wx = ((tx % n) + n) % n
+        const wrapOffset = ((tx - wx) / n) * worldPx
+        const lng = (wx / n) * 360 - 180
+        const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * ty / n))) * 180 / Math.PI
+        const bp = proj([lng, Math.max(-85.051, Math.min(85.051, lat))])
         if (!bp) return [0, 0]
-        return transform.apply(bp) as [number, number]
+        const s = transform.apply(bp) as [number, number]
+        return [s[0] + wrapOffset, s[1]]
       }
+
+      // Plage de tuiles calculée depuis le centre de l'écran
+      // (toujours dans la plage valide Mercator, contrairement aux coins)
+      const centerBase = transform.invert([width / 2, height / 2]) as [number, number]
+      const centerLL = proj.invert!(centerBase)
+      let cTx = n / 2, cTy = n / 2
+      if (centerLL && isFinite(centerLL[0]) && isFinite(centerLL[1])) {
+        const clampedLat = Math.max(-85.051, Math.min(85.051, centerLL[1]))
+        const latR = clampedLat * Math.PI / 180
+        cTx = ((centerLL[0] + 180) / 360) * n
+        cTy = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n
+      }
+      const halfX = Math.ceil(width / tilePx / 2) + 2
+      const halfY = Math.ceil(height / tilePx / 2) + 2
+      const ix0 = Math.floor(cTx) - halfX
+      const ix1 = Math.floor(cTx) + halfX
+      const iy0 = Math.max(0, Math.floor(cTy) - halfY)
+      const iy1 = Math.min(n - 1, Math.floor(cTy) + halfY)
 
       for (let tx = ix0; tx <= ix1; tx++) {
         const wx = ((tx % n) + n) % n
@@ -216,12 +221,13 @@ export default function WorldMap({
           const [sx, sy] = cornerToScreen(tx, ty)
           const [ex, ey] = cornerToScreen(tx + 1, ty + 1)
           const tw = ex - sx, th = ey - sy
+          if (!isFinite(sx) || !isFinite(sy) || !isFinite(tw) || !isFinite(th)) continue
           if (sx > width || ex < 0 || sy > height || ey < 0 || tw <= 0 || th <= 0) continue
 
           const key = `${tileZ}/${wx}/${ty}`
           const cached = tileCacheRef.current.get(key)
           if (cached?.complete && cached.naturalWidth > 0) {
-            ctx.drawImage(cached, Math.round(sx), Math.round(sy), Math.ceil(tw), Math.ceil(th))
+            ctx.drawImage(cached, Math.round(sx), Math.round(sy), Math.max(1, Math.ceil(tw)), Math.max(1, Math.ceil(th)))
           } else if (!cached) {
             const img = new Image()
             img.crossOrigin = 'anonymous'

@@ -587,15 +587,15 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* ESRI intégré produit — texture gardée, présence calmée */
-  filter: brightness(0.97) saturate(0.72) contrast(0.82);
+  /* MapTiler Natural Earth 2 — palette native, très légèrement calmée */
+  filter: brightness(0.96) saturate(0.88) contrast(0.92);
 }
 
 .map-overlay {
   position: absolute;
   inset: 0;
-  /* voile blanc-bleuté — intègre la carte dans le produit sans la laver */
-  background: rgba(238, 244, 252, 0.28);
+  /* voile très léger — laisse la palette Natural Earth respirer */
+  background: rgba(238, 244, 252, 0.12);
   pointer-events: none;
 }
 

@@ -587,8 +587,8 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* Atlas physique premium : lumineux, terres beige/crème, océan bleu aérien */
-  filter: brightness(1.42) saturate(0.58) sepia(0.26) contrast(0.80);
+  /* Atlas physique : éclairci, couleurs naturelles, océan bleu conservé */
+  filter: brightness(1.28) saturate(0.68) contrast(0.84);
 }
 
 .map-overlay {

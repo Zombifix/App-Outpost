@@ -59,10 +59,16 @@ function customizeStyle(map: maplibregl.Map) {
       continue
     }
 
-    // ── Frontières admin → beige/gris très subtil, pas de noir
+    // ── Halos admin (admin-*-boundary-bg) → source des mauves/oranges → supprimés
+    if (type === 'line' && /boundary|admin|border/.test(id) && (/-bg$/.test(id) || /disputed|claim/.test(id))) {
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+
+    // ── Frontières admin principales → beige très fin et transparent
     if (type === 'line' && /boundary|admin|border/.test(id)) {
-      map.setPaintProperty(id, 'line-color', 'rgba(155,135,115,0.20)')
-      map.setPaintProperty(id, 'line-width', 0.55)
+      map.setPaintProperty(id, 'line-color', 'rgba(201,195,180,0.12)')
+      map.setPaintProperty(id, 'line-width', 0.45)
       continue
     }
 
@@ -82,7 +88,7 @@ function customizeStyle(map: maplibregl.Map) {
 
     // ── Eau de fond (océan/background) → bleu profond aquarelle
     if (type === 'background') {
-      map.setPaintProperty(id, 'background-color', '#9BBFD9')
+      map.setPaintProperty(id, 'background-color', '#8FBCD8')
       continue
     }
 
@@ -115,7 +121,7 @@ function customizeStyle(map: maplibregl.Map) {
     if (type === 'hillshade') {
       map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(55,42,22,0.35)')
       map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,252,238,0.32)')
-      map.setPaintProperty(id, 'hillshade-exaggeration', 0.42)
+      map.setPaintProperty(id, 'hillshade-exaggeration', 0.30)
       continue
     }
   }

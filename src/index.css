@@ -587,15 +587,15 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* NatGeo — palette native premium, juste très légèrement intégrée */
-  filter: brightness(0.97) saturate(0.85) contrast(0.93);
+  /* ESRI Physical — intégré produit : désaturé, contraste réduit, texture conservée */
+  filter: brightness(1.02) saturate(0.60) contrast(0.82);
 }
 
 .map-overlay {
   position: absolute;
   inset: 0;
-  /* voile très léger — laisse la palette Natural Earth respirer */
-  background: rgba(238, 244, 252, 0.12);
+  /* voile blanc-bleuté — intègre la carte comme fond produit, calme l'Himalaya et les océans */
+  background: rgba(245, 248, 255, 0.30);
   pointer-events: none;
 }
 

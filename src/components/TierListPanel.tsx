@@ -123,6 +123,7 @@ export default function TierListPanel({
           onClick={() => scrollRail(-1)}
         >
           <ChevronIcon direction="left" />
+          <span>Retour</span>
         </button>
         <div
           ref={railRef}
@@ -201,6 +202,7 @@ export default function TierListPanel({
           disabled={!canScrollNext}
           onClick={() => scrollRail(1)}
         >
+          <span>Suite</span>
           <ChevronIcon direction="right" />
         </button>
       </div>
@@ -213,6 +215,7 @@ export default function TierListPanel({
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d={collapsed ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
         </svg>
+        <span>{collapsed ? 'Afficher' : 'Masquer'}</span>
       </button>
     </section>
   )

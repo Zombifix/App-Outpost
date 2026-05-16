@@ -183,7 +183,7 @@ export default function WorldMap({
       ctx.clearRect(0, 0, width, height)
 
       const worldPx = 2 * Math.PI * proj.scale() * transform.k
-      const tileZ = Math.max(0, Math.min(Math.floor(Math.log2(worldPx / 256)), 12))
+      const tileZ = Math.max(0, Math.min(Math.floor(Math.log2(worldPx / 256)), 8)) // ESRI World Physical max zoom = 8
       const n = Math.pow(2, tileZ)
       const tilePx = worldPx / n // taille d'une tuile en pixels écran
 
@@ -237,7 +237,7 @@ export default function WorldMap({
             img.onload = () => {
               if (svgRef.current) drawTilesRef.current?.(d3.zoomTransform(svgRef.current))
             }
-            img.src = `https://tiles.stadiamaps.com/tiles/stamen_terrain_background/${tileZ}/${wx}/${ty}.png`
+            img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/${tileZ}/${ty}/${wx}`
             tileCacheRef.current.set(key, img)
           }
         }
@@ -504,12 +504,9 @@ export default function WorldMap({
         ))}
       </div>
       <p className="map-attribution">
-        Tiles by{' '}
-        <a href="https://stamen.com" target="_blank" rel="noopener noreferrer">Stamen Design</a>
-        {', hosted by '}
-        <a href="https://stadiamaps.com" target="_blank" rel="noopener noreferrer">Stadia Maps</a>
-        {' · Data © '}
-        <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+        Tiles ©{' '}
+        <a href="https://www.esri.com" target="_blank" rel="noopener noreferrer">Esri</a>
+        {' · Sources: USGS, Esri, TANA, DeLorme'}
       </p>
     </section>
   )

@@ -140,7 +140,7 @@ export default function WorldMap({
     const { width, height } = dimensions
     const svg = d3.select(svgRef.current)
     const projection = d3.geoMercator()
-      .scale(Math.min(width / 7.2, height / 4.6))
+      .scale(width / 6.0)
       .translate([width / 2, height / 2])
 
     projectionRef.current = projection

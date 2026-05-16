@@ -870,7 +870,7 @@ svg {
 
 .tier-s { background: var(--tier-s); }
 .tier-a { background: var(--tier-a); }
-.tier-b { background: #ffc94a; text-shadow: 0 0 4px rgba(0,0,0,0.45); }
+.tier-b { background: #ffc94a; }
 .tier-c { background: var(--tier-c); }
 .tier-d { background: var(--tier-d); }
 

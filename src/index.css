@@ -618,9 +618,9 @@ svg {
 
 .map-area::before {
   inset: -96px -130px -72px -76px;
+  /* Fond océan — visible aux bords avant chargement des tiles */
   background:
-    radial-gradient(ellipse at 50% 48%, rgba(205, 238, 250, 0.72) 0%, rgba(205, 238, 250, 0.46) 44%, transparent 73%),
-    radial-gradient(ellipse at 50% 56%, rgba(255, 255, 255, 0.72) 0%, transparent 58%);
+    radial-gradient(ellipse at 48% 46%, rgba(168, 210, 238, 0.90) 0%, rgba(120, 178, 222, 0.80) 42%, rgba(78, 140, 200, 0.60) 100%);
 }
 
 .map-area::after {
@@ -633,12 +633,40 @@ svg {
   opacity: 0.62;
 }
 
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: block;
+  /* Tiles légèrement désaturées + adoucies pour rester en fond discret à tout zoom */
+  filter: saturate(0.72) brightness(1.04);
+}
+
 .world-map {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
   background: transparent;
   will-change: transform;
+}
+
+.map-attribution {
+  position: absolute;
+  bottom: 6px;
+  right: 10px;
+  margin: 0;
+  font-size: 9px;
+  color: rgba(60, 60, 60, 0.65);
+  pointer-events: none;
+  line-height: 1.4;
+  z-index: 10;
+}
+.map-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  pointer-events: auto;
 }
 
 .world-map.is-zooming .countries path {
@@ -967,20 +995,131 @@ svg {
   background: #dce5f0;
 }
 
-.heart-button {
+.coup-de-coeur-button {
   width: 34px;
   height: 34px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #f25f73;
+  color: #c9a830;
   background: white;
   box-shadow: 0 10px 22px rgba(95, 119, 148, 0.12);
+  transition: background 0.15s, color 0.15s;
 }
 
-.heart-button.is-favorite {
+.coup-de-coeur-button.is-active {
   color: white;
-  background: #f25f73;
+  background: #e8a800;
+}
+
+.coup-de-coeur-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.floating-kebab-wrap {
+  position: absolute;
+  top: 16px;
+  right: 58px;
+  z-index: 2;
+}
+
+.card-kebab {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #27304d;
+  background: white;
+  box-shadow: 0 12px 24px rgba(65, 82, 110, 0.14);
+}
+
+.card-kebab.is-open {
+  background: #eef5fc;
+}
+
+.card-kebab-menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 8px 28px rgba(30, 41, 69, 0.16);
+}
+
+.card-kebab-menu > button {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: #24304b;
+  text-align: left;
+}
+
+.card-kebab-menu > button:hover {
+  background: #f4f7fb;
+}
+
+.card-kebab-menu > button.danger {
+  color: #e0364a;
+}
+
+.card-kebab-menu > button.danger:hover {
+  background: #fef1f1;
+}
+
+.card-delete-confirm {
+  padding: 12px 14px 10px;
+}
+
+.card-delete-confirm p {
+  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  color: #24304b;
+  line-height: var(--leading-normal);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.confirm-actions button {
+  flex: 1;
+  height: 34px;
+  border-radius: 8px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  background: #eef5fc;
+  color: #24304b;
+}
+
+.confirm-actions button:hover {
+  background: #ddeaf8;
+}
+
+.confirm-actions button.danger {
+  background: #fef1f1;
+  color: #e0364a;
+}
+
+.confirm-actions button.danger:hover {
+  background: #fde2e2;
+}
+
+.score-denom {
+  margin-left: 2px;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-normal);
+  color: #9aa3b5;
 }
 
 .destination-card p {
@@ -1044,37 +1183,6 @@ svg {
   font-weight: var(--weight-bold);
 }
 
-.destination-card-actions {
-  display: flex;
-  gap: 8px;
-  margin: 10px 7px 6px;
-}
-
-.card-action-edit,
-.card-action-delete {
-  flex: 1;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-}
-
-.card-action-edit {
-  background: #eef5fc;
-  color: #24304b;
-}
-
-.card-action-delete {
-  background: #fef1f1;
-  color: #e0364a;
-}
-
-.card-action-edit:hover { background: #ddeaf8; }
-.card-action-delete:hover { background: #fde2e2; }
 
 .mini-destination-delete {
   position: absolute;

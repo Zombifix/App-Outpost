@@ -34,7 +34,6 @@ export default function App() {
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
-  const [favoriteNames, setFavoriteNames] = useState<Set<string>>(() => new Set(['Kyoto']))
   const [filterTop, setFilterTop] = useState(false)
   const [sortByScore, setSortByScore] = useState(false)
   const [manageMode, setManageMode] = useState(false)
@@ -91,13 +90,18 @@ export default function App() {
     setFlyTarget({ lat: selected.lat, lng: selected.lng, name: selected.name })
   }
 
-  const toggleFavorite = (name: string) => {
-    setFavoriteNames(previous => {
-      const next = new Set(previous)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
-      return next
-    })
+  const coupDeCoeurCount = useMemo(
+    () => destinations.filter(d => d.coupDeCoeur).length,
+    [destinations],
+  )
+
+  const toggleCoupDeCoeur = (name: string) => {
+    setDestinations(previous => previous.map(d => {
+      if (d.name !== name) return d
+      if (d.coupDeCoeur) return { ...d, coupDeCoeur: false }
+      if (previous.filter(x => x.coupDeCoeur).length >= 2) return d
+      return { ...d, coupDeCoeur: true }
+    }))
   }
 
   const removeDestination = (name: string) => {
@@ -181,10 +185,11 @@ export default function App() {
       {activeView === 'map' && selected && (
         <DestinationCard
           destination={selected}
-          favorite={favoriteNames.has(selected.name)}
+          coupDeCoeur={selected.coupDeCoeur ?? false}
+          coupDeCoeurCount={coupDeCoeurCount}
           onClose={() => setSelectedName(null)}
           onFocus={focusSelected}
-          onFavorite={() => toggleFavorite(selected.name)}
+          onCoupDeCoeur={() => toggleCoupDeCoeur(selected.name)}
           onEdit={dest => setEditingDestination(dest)}
           onDelete={name => removeDestination(name)}
         />
@@ -349,29 +354,67 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
 
 interface DestinationCardProps {
   destination: Destination
-  favorite: boolean
+  coupDeCoeur: boolean
+  coupDeCoeurCount: number
   onClose: () => void
   onFocus: () => void
-  onFavorite: () => void
+  onCoupDeCoeur: () => void
   onEdit: (destination: Destination) => void
   onDelete: (name: string) => void
 }
 
-function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, onEdit, onDelete }: DestinationCardProps) {
+function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, onFocus, onCoupDeCoeur, onEdit, onDelete }: DestinationCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
   const criteria = [
     ['Gastronomie', destination.food, 'utensils'],
     ['Sorties & Vie nocturne', destination.night, 'martini'],
     ['Culture & Histoire', destination.culture, 'temple'],
     ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Accessibilite', Math.max(1, Math.round((destination.value + destination.nature) / 2)), 'plane'],
     ['Rapport qualite/prix', destination.value, 'coins'],
   ] as const
+
+  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
+
+  const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
 
   return (
     <aside className="destination-card" aria-label={`Detail de ${destination.name}`}>
       <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
         <Icon name="x" />
       </button>
+      <div className="floating-kebab-wrap">
+        <button
+          className={`card-kebab${menuOpen ? ' is-open' : ''}`}
+          aria-label="Options"
+          aria-expanded={menuOpen}
+          onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
+        >
+          <Icon name="more-vertical" />
+        </button>
+        {menuOpen && !confirmDelete && (
+          <div className="card-kebab-menu">
+            <button onClick={() => { closeMenu(); onEdit(destination) }}>
+              <Icon name="edit" />
+              Modifier
+            </button>
+            <button className="danger" onClick={() => setConfirmDelete(true)}>
+              <Icon name="trash" />
+              Supprimer
+            </button>
+          </div>
+        )}
+        {menuOpen && confirmDelete && (
+          <div className="card-kebab-menu card-delete-confirm">
+            <p>Supprimer <strong>{destination.name}</strong> ?</p>
+            <div className="confirm-actions">
+              <button onClick={closeMenu}>Annuler</button>
+              <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+            </div>
+          </div>
+        )}
+      </div>
       <div
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
@@ -382,7 +425,10 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, 
           <h2>{destination.name}, {destination.country}</h2>
           <div className="rating-line">
             <span className="star">★</span>
-            <strong>{(destination.score ?? 4).toFixed(1).replace('.', ',')}</strong>
+            <strong>
+              {destination.score != null ? destination.score.toFixed(1).replace('.', ',') : '—'}
+              <span className="score-denom">/5</span>
+            </strong>
             {destination.intent && (
               <>
                 <span />
@@ -392,11 +438,13 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, 
           </div>
         </div>
         <button
-          className={`heart-button ${favorite ? 'is-favorite' : ''}`}
-          aria-label={favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          onClick={onFavorite}
+          className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
+          aria-label={coupDeCoeur ? 'Retirer le coup de cœur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Coup de cœur · ${coupDeCoeurCount}/2 utilisé`}
+          title={coupDeCoeur ? 'Coup de cœur · retirer' : coupDeCoeurDisabled ? '2 coups de cœur déjà utilisés' : `Coup de cœur · ${coupDeCoeurCount}/2 utilisé`}
+          disabled={coupDeCoeurDisabled}
+          onClick={onCoupDeCoeur}
         >
-          <Icon name="heart" />
+          <Icon name="star" />
         </button>
       </div>
       <p>{destination.summary}</p>
@@ -414,23 +462,6 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, 
         <Icon name="map" />
         Voir sur la carte
       </button>
-      <div className="destination-card-actions">
-        <button className="card-action-edit" onClick={() => onEdit(destination)}>
-          <Icon name="edit" />
-          Modifier
-        </button>
-        <button
-          className="card-action-delete"
-          onClick={() => {
-            if (window.confirm(`Supprimer ${destination.name} de ta tier list ?`)) {
-              onDelete(destination.name)
-            }
-          }}
-        >
-          <Icon name="trash" />
-          Supprimer
-        </button>
-      </div>
     </aside>
   )
 }
@@ -458,6 +489,8 @@ function Icon({ name }: { name: string }) {
     coins: <><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" /><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></>,
     edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" /></>,
     trash: <><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>,
+    star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,
+    'more-vertical': <><circle cx="12" cy="5" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="19" r="1" fill="currentColor" /></>,
   }
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>

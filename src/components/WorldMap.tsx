@@ -264,24 +264,6 @@ function addRouteLayer(map: maplibregl.Map, d: Destination) {
       'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 1] as maplibregl.ExpressionSpecification,
     },
   })
-  map.addLayer({
-    id: `${sid}_labels_stage`, type: 'symbol', source: `${sid}_pts_stage`,
-    minzoom: 6.5,
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-size': 12,
-      'text-offset': [0, 1.1],
-      'text-anchor': 'top',
-      'text-allow-overlap': false,
-      'text-optional': true,
-    },
-    paint: {
-      'text-color': '#2a2a2a',
-      'text-halo-color': '#ffffff',
-      'text-halo-width': 1.4,
-    },
-  })
-
   if (passageStops.length) {
     map.addSource(`${sid}_pts_passage`, {
       type: 'geojson',
@@ -468,6 +450,7 @@ export default function WorldMap({
                         projection={projFnRef.current}
                         color={getTierColor(d.tier)!}
                         owner="friend"
+                        zoomK={zoomK}
                         onSelect={onSelect}
                       />
                     ))
@@ -483,6 +466,7 @@ export default function WorldMap({
                         projection={projFnRef.current}
                         color={getTierColor(d.tier)!}
                         owner="me"
+                        zoomK={zoomK}
                         onSelect={onSelect}
                       />
                     ))
@@ -554,11 +538,12 @@ interface RouteStopProps {
   projection: Proj
   color: string
   owner: 'me' | 'friend'
+  zoomK: number
   onSelect: (name: string) => void
 }
 
 const RouteStop = memo(function RouteStop({
-  stop, parentName, projection, color, owner, onSelect,
+  stop, parentName, projection, color, owner, zoomK, onSelect,
 }: RouteStopProps) {
   if (!stop.name.trim() || !Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return null
   const projected = projection([stop.lng, stop.lat])
@@ -583,6 +568,7 @@ const RouteStop = memo(function RouteStop({
         <>
           <circle className="route-stop-dot" r={5.5} />
           <circle className="route-stop-core" r={2.5} />
+          {zoomK >= 5 && <text className="route-stop-label" x={9} y={4}>{stop.name}</text>}
         </>
       )}
     </g>

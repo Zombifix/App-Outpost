@@ -163,7 +163,14 @@ export default function WorldMap({
       .attr('vector-effect', 'non-scaling-stroke')
       .attr('opacity', 1)
 
-    // Graticule supprimée — rendu trop technique sur fond terrain
+    const graticule = d3.geoGraticule().step([30, 30])
+    countries.append('path')
+      .datum(graticule())
+      .attr('d', pathGen as unknown as string)
+      .attr('fill', 'none')
+      .attr('stroke', 'rgba(80, 110, 130, 0.05)')
+      .attr('stroke-width', 0.4)
+      .attr('vector-effect', 'non-scaling-stroke')
 
     // --- Tile layer (Stadia Stamen Terrain Background) ---
     const drawTiles = (transform: d3.ZoomTransform) => {

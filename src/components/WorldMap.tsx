@@ -139,9 +139,11 @@ export default function WorldMap({
 
     const { width, height } = dimensions
     const svg = d3.select(svgRef.current)
+    const scale = width / 5.8
     const projection = d3.geoMercator()
-      .scale(width / 6.0)
-      .translate([width / 2, height / 2])
+      .scale(scale)
+      // Centrer sur ~10°N : montre plus de terres, moins d'océan austral
+      .translate([width / 2, height / 2 + scale * 0.18])
 
     projectionRef.current = projection
     const pathGen = d3.geoPath().projection(projection)

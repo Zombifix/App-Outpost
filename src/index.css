@@ -587,8 +587,17 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* Tiles légèrement désaturées + adoucies pour rester en fond discret à tout zoom */
-  filter: saturate(0.72) brightness(1.04);
+  /* désaturer + virage olive/beige + contraste réduit = rendu carnet de voyage premium */
+  filter: saturate(0.46) sepia(0.22) hue-rotate(-14deg) brightness(1.08) contrast(0.83);
+}
+
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  /* voile crème très léger — adoucit les tiles, unifie l'ensemble */
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(250, 246, 236, 0.08) 0%, rgba(200, 215, 235, 0.13) 100%);
+  pointer-events: none;
 }
 
 .world-map {

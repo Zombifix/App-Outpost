@@ -638,6 +638,8 @@ svg {
   inset: 0;
   pointer-events: none;
   display: block;
+  /* Tiles légèrement désaturées + adoucies pour rester en fond discret à tout zoom */
+  filter: saturate(0.72) brightness(1.04);
 }
 
 .world-map {

@@ -150,13 +150,15 @@ export default function WorldMap({
     const countries = svg.insert('g', ':first-child').attr('class', 'countries')
 
     // Pays en transparent — les tiles fournissent la texture, D3 garde les frontières
+    // vector-effect="non-scaling-stroke" : frontières restent fines à tous les niveaux de zoom
     countries.selectAll('path')
       .data(worldData.features)
       .join('path')
       .attr('d', pathGen as unknown as string)
       .attr('fill', 'none')
-      .attr('stroke', 'rgba(100, 135, 90, 0.45)')
-      .attr('stroke-width', 0.55)
+      .attr('stroke', 'rgba(100, 135, 90, 0.38)')
+      .attr('stroke-width', 0.6)
+      .attr('vector-effect', 'non-scaling-stroke')
       .attr('opacity', 1)
 
     const graticule = d3.geoGraticule().step([30, 30])
@@ -226,7 +228,7 @@ export default function WorldMap({
             img.onload = () => {
               if (svgRef.current) drawTilesRef.current?.(d3.zoomTransform(svgRef.current))
             }
-            img.src = `https://tiles.stadiamaps.com/tiles/stamen_terrain/${tileZ}/${wx}/${ty}.png`
+            img.src = `https://tiles.stadiamaps.com/tiles/stamen_terrain_background/${tileZ}/${wx}/${ty}.png`
             tileCacheRef.current.set(key, img)
           }
         }

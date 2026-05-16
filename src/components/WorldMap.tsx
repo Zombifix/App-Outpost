@@ -183,7 +183,7 @@ export default function WorldMap({
       ctx.clearRect(0, 0, width, height)
 
       const worldPx = 2 * Math.PI * proj.scale() * transform.k
-      const tileZ = Math.max(0, Math.min(Math.floor(Math.log2(worldPx / 256)), 6)) // MapTiler Natural Earth 2 max zoom = 6
+      const tileZ = Math.max(0, Math.min(Math.floor(Math.log2(worldPx / 256)), 12))
       const n = Math.pow(2, tileZ)
       const tilePx = worldPx / n // taille d'une tuile en pixels écran
 
@@ -237,7 +237,7 @@ export default function WorldMap({
             img.onload = () => {
               if (svgRef.current) drawTilesRef.current?.(d3.zoomTransform(svgRef.current))
             }
-            img.src = `https://api.maptiler.com/tiles/natural-earth-2/${tileZ}/${wx}/${ty}.jpg?key=aETkeQlWzYNolMJrUTIx`
+            img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/${tileZ}/${ty}/${wx}`
             tileCacheRef.current.set(key, img)
           }
         }
@@ -504,9 +504,9 @@ export default function WorldMap({
         ))}
       </div>
       <p className="map-attribution">
-        <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">© MapTiler</a>
-        {' · '}
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>
+        Tiles ©{' '}
+        <a href="https://www.esri.com" target="_blank" rel="noopener noreferrer">Esri</a>
+        {', National Geographic'}
       </p>
     </section>
   )

@@ -4,9 +4,8 @@
     {
       "name": "wander",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173,
-      "autoPort": true
+      "runtimeArgs": ["run", "dev", "--", "--port", "4747"],
+      "port": 4747
     }
   ]
 }

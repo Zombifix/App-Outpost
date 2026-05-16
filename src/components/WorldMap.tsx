@@ -453,27 +453,44 @@ function addRouteLayer(map: maplibregl.Map, d: Destination) {
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': color, 'line-width': 2.4, 'line-opacity': 0.9 },
   })
-  map.addSource(`${sid}_pts`, {
+  const validStops = d.stops.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng))
+  const stageStops   = validStops.filter(s => (s.type ?? 'stage') === 'stage')
+  const passageStops = validStops.filter(s => s.type === 'passage')
+
+  const toFeatures = (stops: typeof validStops) => stops.map(s => ({
+    type: 'Feature' as const,
+    geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
+    properties: { name: s.name, type: s.type ?? 'stage' },
+  }))
+
+  map.addSource(`${sid}_pts_stage`, {
     type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: d.stops.map(s => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
-        properties: {},
-      })),
-    },
+    data: { type: 'FeatureCollection', features: toFeatures(stageStops) },
   })
   map.addLayer({
-    id: `${sid}_dots`, type: 'circle', source: `${sid}_pts`,
+    id: `${sid}_dots_stage`, type: 'circle', source: `${sid}_pts_stage`,
     paint: {
       'circle-radius': 3.2, 'circle-color': color,
       'circle-stroke-width': 1, 'circle-stroke-color': 'white',
-      // Invisible au zoom monde, apparaît progressivement à partir de zoom 5
       'circle-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 0.9] as maplibregl.ExpressionSpecification,
       'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 1] as maplibregl.ExpressionSpecification,
     },
   })
+  if (passageStops.length) {
+    map.addSource(`${sid}_pts_passage`, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: toFeatures(passageStops) },
+    })
+    map.addLayer({
+      id: `${sid}_dots_passage`, type: 'circle', source: `${sid}_pts_passage`,
+      paint: {
+        'circle-radius': 2.2, 'circle-color': '#ffffff',
+        'circle-stroke-width': 1.2, 'circle-stroke-color': color,
+        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0, 7, 0.9] as maplibregl.ExpressionSpecification,
+        'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0, 7, 0.85] as maplibregl.ExpressionSpecification,
+      },
+    })
+  }
 }
 
 function syncZoneRouteLayers(
@@ -603,6 +620,24 @@ export default function WorldMap({
     mapRef.current?.flyTo({ center: INIT_CENTER, zoom: INIT_ZOOM, duration: 400 })
   }
 
+  const zoomToZone = (d: Destination) => {
+    const map = mapRef.current
+    if (!map) return
+    let bounds: [[number, number], [number, number]] | null = null
+    if (d.extent) {
+      const [w, s, e, n] = d.extent
+      bounds = [[w, s], [e, n]]
+    } else if (d.stops?.length) {
+      const valid = d.stops.filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+      if (valid.length) {
+        const lngs = valid.map(s => s.lng), lats = valid.map(s => s.lat)
+        bounds = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
+      }
+    }
+    if (!bounds) return
+    map.fitBounds(bounds, { padding: 80, maxZoom: 7, duration: 800 })
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <section className="map-area" aria-label="Carte des destinations">
@@ -627,6 +662,7 @@ export default function WorldMap({
                         projection={projFnRef.current}
                         color={getTierColor(d.tier)!}
                         owner="friend"
+                        zoomK={zoomK}
                         onSelect={onSelect}
                       />
                     ))
@@ -642,6 +678,7 @@ export default function WorldMap({
                         projection={projFnRef.current}
                         color={getTierColor(d.tier)!}
                         owner="me"
+                        zoomK={zoomK}
                         onSelect={onSelect}
                       />
                     ))
@@ -649,12 +686,12 @@ export default function WorldMap({
                 ))}
                 {friendOnly.map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
-                    zoomK={zoomK} selected={false} onSelect={onSelect}
+                    zoomK={zoomK} selected={false} onSelect={onSelect} onZoomToZone={zoomToZone}
                     owner="friend" badge={friendInitials} />
                 ))}
                 {destinations.map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
-                    zoomK={zoomK} selected={d.name === selectedName} onSelect={onSelect}
+                    zoomK={zoomK} selected={d.name === selectedName} onSelect={onSelect} onZoomToZone={zoomToZone}
                     owner="me" shared={shared.has(d.name.toLowerCase())} />
                 ))}
               </>
@@ -701,6 +738,7 @@ interface PinProps {
   zoomK: number
   selected: boolean
   onSelect: (name: string) => void
+  onZoomToZone?: (d: Destination) => void
   owner?: 'me' | 'friend'
   badge?: string
   shared?: boolean
@@ -712,36 +750,45 @@ interface RouteStopProps {
   projection: Proj
   color: string
   owner: 'me' | 'friend'
+  zoomK: number
   onSelect: (name: string) => void
 }
 
 const RouteStop = memo(function RouteStop({
-  stop, parentName, projection, color, owner, onSelect,
+  stop, parentName, projection, color, owner, zoomK, onSelect,
 }: RouteStopProps) {
   if (!stop.name.trim() || !Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return null
   const projected = projection([stop.lng, stop.lat])
   if (!projected) return null
   const [cx, cy] = projected
+  const isPassage = stop.type === 'passage'
 
   return (
     <g
-      className={`route-stop-root route-stop-root--${owner}`}
+      className={`route-stop-root route-stop-root--${owner}${isPassage ? ' route-stop-root--passage' : ''}`}
       data-lng={stop.lng}
       data-lat={stop.lat}
       transform={`translate(${cx},${cy})`}
       style={{ '--pin-color': color } as CSSProperties}
       onClick={() => onSelect(parentName)}
     >
-      <title>{stop.name}</title>
+      <title>{stop.name}{isPassage ? ' (passage)' : ''}</title>
       <circle className="route-stop-hit" r={15} />
-      <circle className="route-stop-dot" r={5.5} />
-      <circle className="route-stop-core" r={2.5} />
+      {isPassage ? (
+        <circle className="route-stop-dot route-stop-dot--passage" r={3.5} />
+      ) : (
+        <>
+          <circle className="route-stop-dot" r={5.5} />
+          <circle className="route-stop-core" r={2.5} />
+          {zoomK >= 5 && <text className="route-stop-label" x={9} y={4}>{stop.name}</text>}
+        </>
+      )}
     </g>
   )
 })
 
 const Pin = memo(function Pin({
-  destination, projection, zoomK, selected, onSelect, owner = 'me', badge, shared,
+  destination, projection, zoomK, selected, onSelect, onZoomToZone, owner = 'me', badge, shared,
 }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
@@ -786,7 +833,7 @@ const Pin = memo(function Pin({
           <div className="pin-stage pin-stage--route">
             <button
               className={`map-pin-route-card${owner === 'friend' ? ' map-pin--friend' : ''}`}
-              onClick={() => onSelect(destination.name)}
+              onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
               style={{ '--pin-color': color } as CSSProperties}>
               <span className="route-tier">{destination.tier}</span>
               <span className="route-copy">

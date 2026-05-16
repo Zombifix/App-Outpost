@@ -573,39 +573,8 @@ svg {
   right: var(--map-r-card);
   top: var(--map-t);
   bottom: var(--map-b-open);
-  overflow: visible; /* ::before/::after débordent intentionnellement */
+  overflow: hidden;
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1), right 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.map-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden; /* clip uniquement tiles + SVG, pas les pseudo-éléments de .map-area */
-}
-
-.map-area::before,
-.map-area::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.map-area::before {
-  inset: -96px -130px -72px -76px;
-  /* Fond océan — visible aux bords avant chargement des tiles */
-  background:
-    radial-gradient(ellipse at 48% 46%, rgba(168, 210, 238, 0.90) 0%, rgba(120, 178, 222, 0.80) 42%, rgba(78, 140, 200, 0.60) 100%);
-}
-
-.map-area::after {
-  inset: -36px -46px -30px -28px;
-  background:
-    repeating-linear-gradient(18deg, rgba(255, 255, 255, 0.12) 0 2px, transparent 2px 18px),
-    radial-gradient(circle at 28% 26%, rgba(255, 255, 255, 0.5), transparent 19%),
-    radial-gradient(circle at 66% 52%, rgba(109, 168, 133, 0.13), transparent 24%);
-  filter: blur(7px);
-  opacity: 0.62;
 }
 
 .map-canvas {

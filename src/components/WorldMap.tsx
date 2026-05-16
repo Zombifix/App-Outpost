@@ -425,8 +425,6 @@ export default function WorldMap({
 
   return (
     <section className="map-area" ref={wrapperRef} aria-label="Carte des destinations">
-      {/* map-layer : seul élément clipé — .map-area reste overflow:visible pour ses pseudo-éléments */}
-      <div className="map-layer">
       <canvas
         ref={canvasRef}
         width={dimensions.width}
@@ -480,7 +478,6 @@ export default function WorldMap({
           })()}
         </g>
       </svg>
-      </div>{/* /map-layer */}
 
       <div className="map-controls" aria-label="Controles de carte">
         <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>

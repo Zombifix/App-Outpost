@@ -423,19 +423,9 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
-          <div className="rating-line">
-            <span className="star">★</span>
-            <strong>
-              {destination.score != null ? destination.score.toFixed(1).replace('.', ',') : '—'}
-              <span className="score-denom">/5</span>
-            </strong>
-            {destination.intent && (
-              <>
-                <span />
-                <span className="intent-pill">{destination.intent}</span>
-              </>
-            )}
-          </div>
+          {destination.intent && (
+            <span className="intent-pill">{destination.intent}</span>
+          )}
         </div>
         <button
           className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}

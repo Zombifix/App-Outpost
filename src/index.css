@@ -2306,42 +2306,42 @@ svg {
   opacity: 0.7;
 }
 
-/* Zone label pin — flat pill, no teardrop */
+/* Zone label pin — badge style: white bg + colored dot + name */
 .map-pin-zone-label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px 4px 6px;
-  background: var(--pin-color);
-  color: #fff;
-  border: none;
-  border-radius: 20px;
+  gap: 6px;
+  padding: 5px 12px 5px 5px;
+  background: rgba(255,255,255,0.93);
+  color: var(--ink);
+  border: 1.5px solid var(--pin-color);
+  border-radius: 99px;
   cursor: pointer;
-  font-family: inherit;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
   transform-origin: center center;
-  opacity: 0.9;
+  opacity: 0.95;
   transition: opacity 0.15s, transform 0.15s;
 }
-.map-pin-zone-label:hover { opacity: 1; }
+.map-pin-zone-label:hover { opacity: 1; transform: scale(1.04); }
 .map-pin-zone-label span {
-  background: rgba(255,255,255,0.25);
+  background: var(--pin-color);
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: var(--weight-bold);
+  color: #fff;
   flex-shrink: 0;
 }
 .map-pin-zone-label strong {
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
+  color: var(--ink);
 }
 
 /* ===== Tier List Page ===== */

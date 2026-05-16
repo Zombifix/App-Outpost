@@ -25,10 +25,10 @@ interface WorldMapProps {
 }
 
 // ─── Customize MapTiler style layers ─────────────────────────────────────────
-// Stratégie : ESRI World Physical raster (hillshade baked) + labels MapTiler
-// Le vector outdoor-v2 au zoom monde n'a pas de hillshade visible → raster obligatoire
+// Stratégie : ESRI raster très désaturé (hillshade/texture) + fills vector atlas
+// sur palette : bleu glacier / blanc sable / vert sauge / frontières fantôme
 function customizeStyle(map: maplibregl.Map) {
-  // ── ESRI World Physical en fond — terrain + relief + couleurs physiques
+  // ── ESRI World Physical en fond — relief ombré, quasi greyscale
   map.addSource('esri-physical', {
     type: 'raster',
     tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'],
@@ -41,59 +41,131 @@ function customizeStyle(map: maplibregl.Map) {
     type: 'raster',
     source: 'esri-physical',
     paint: {
-      'raster-opacity': 1,
-      'raster-saturation': 0.40,      // boost → forêts vertes, déserts beiges, océan bleu
-      'raster-contrast': 0.12,        // légère hausse contraste
-      'raster-brightness-max': 0.92,  // évite surexposition zones claires
+      'raster-opacity': 0.32,        // texture relief uniquement — couleur via fills vector
+      'raster-saturation': -0.80,    // quasi greyscale → la couleur vient du vector
+      'raster-contrast': 0.22,
+      'raster-brightness-max': 0.88,
     }
   }, firstLayerId)
 
-  // ── Layers MapTiler vector : labels + frontières, tout le reste masqué
+  // ── Layers MapTiler vector : palette atlas premium
   for (const layer of map.getStyle().layers) {
     const { id, type } = layer
     const lid = id.toLowerCase()
 
-    // Labels pays / continents / océans / mers → conservés
-    if (type === 'symbol') {
-      const keep = /^(country labels|continent labels|ocean labels|sea labels)$/.test(lid)
-      if (!keep) map.setLayoutProperty(id, 'visibility', 'none')
-      continue
-    }
-
-    // Fills / background / hillshade → masqués (ESRI fournit le visuel)
-    if (type === 'background' || type === 'fill' || type === 'hillshade') {
+    // ── Hillshade → masqué (ESRI fournit)
+    if (type === 'hillshade') {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // Routes, transport, infra → masqués
+    // ── Background → fond terre blanc cassé sable
+    if (type === 'background') {
+      map.setPaintProperty(id, 'background-color', '#ede8dc')
+      continue
+    }
+
+    // ── Fills → palette sélective
+    if (type === 'fill') {
+      // Eau (océan / lacs) → bleu glacier pâle semi-transparent
+      if (/water/.test(lid) && !/waterway|waterfall|land/.test(lid)) {
+        map.setPaintProperty(id, 'fill-color', '#b6d4e3')
+        map.setPaintProperty(id, 'fill-opacity', 0.58)
+        continue
+      }
+      // Forêt → vert sauge désaturé
+      if (/wood|forest|tree/.test(lid)) {
+        map.setPaintProperty(id, 'fill-color', '#a8c490')
+        map.setPaintProperty(id, 'fill-opacity', 0.28)
+        continue
+      }
+      // Scrub / prairie / parc → vert sauge plus clair
+      if (/scrub|grass|meadow|park|green/.test(lid)) {
+        map.setPaintProperty(id, 'fill-color', '#b8cc9e')
+        map.setPaintProperty(id, 'fill-opacity', 0.22)
+        continue
+      }
+      // Glace / neige → blanc bleuté
+      if (/glacier|ice|snow/.test(lid)) {
+        map.setPaintProperty(id, 'fill-color', '#e8f2f5')
+        map.setPaintProperty(id, 'fill-opacity', 0.65)
+        continue
+      }
+      // Sable / désert → beige chaud
+      if (/sand|beach|desert/.test(lid)) {
+        map.setPaintProperty(id, 'fill-color', '#e8dfc8')
+        map.setPaintProperty(id, 'fill-opacity', 0.40)
+        continue
+      }
+      // Tout le reste (urbain, landuse, bâtiments…) → masqué
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+
+    // ── Labels : typographie atlas premium
+    if (type === 'symbol') {
+      // Pays → majeurs seulement, uppercase espacé, gris chaud
+      if (/country/.test(lid)) {
+        try { map.setFilter(id, ['<=', ['get', 'rank'], 2]) } catch { /* rank absent */ }
+        map.setPaintProperty(id, 'text-color', '#7a7060')
+        map.setPaintProperty(id, 'text-halo-color', 'rgba(242,238,228,0.82)')
+        map.setPaintProperty(id, 'text-halo-width', 1.8)
+        map.setLayoutProperty(id, 'text-font', ['Open Sans Bold'])
+        map.setLayoutProperty(id, 'text-transform', 'uppercase')
+        map.setLayoutProperty(id, 'text-letter-spacing', 0.18)
+        continue
+      }
+      // Océans → italique bleu pâle, large espacement
+      if (/ocean/.test(lid)) {
+        map.setPaintProperty(id, 'text-color', 'rgba(130,165,188,0.88)')
+        map.setPaintProperty(id, 'text-halo-color', 'rgba(180,215,235,0.20)')
+        map.setPaintProperty(id, 'text-halo-width', 1.2)
+        map.setLayoutProperty(id, 'text-font', ['Open Sans Italic'])
+        map.setLayoutProperty(id, 'text-letter-spacing', 0.22)
+        continue
+      }
+      // Mers → idem mais plus discret
+      if (/^sea/.test(lid)) {
+        map.setPaintProperty(id, 'text-color', 'rgba(130,165,188,0.72)')
+        map.setPaintProperty(id, 'text-halo-color', 'rgba(180,215,235,0.16)')
+        map.setPaintProperty(id, 'text-halo-width', 1.0)
+        map.setLayoutProperty(id, 'text-font', ['Open Sans Italic'])
+        map.setLayoutProperty(id, 'text-letter-spacing', 0.18)
+        continue
+      }
+      // Continents + tout le reste → masqués
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+
+    // ── Routes, transport, infra → masqués
     if (/road|tunnel|bridge|transit|rail|aeroway|building|poi|ferry|indoor|path|track|gate|aerodrome|runway|taxiway|pier|dam|parking|steps|pedestrian|cycleway|footway/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // Contours / graticule → masqués
+    // ── Contours / graticule → masqués
     if (/contour|graticule|grid|tropic|equator|arctic|antarctic|polar|meridian|parallel/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // Rivières / côtes → masqués (ESRI les montre déjà)
+    // ── Rivières / côtes → masqués (ESRI les montre)
     if (type === 'line' && /waterway|river|canal|stream|coast/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // Halos admin → masqués
+    // ── Halos admin / frontières disputées → masqués
     if (type === 'line' && /boundary|admin|border/.test(lid) && (/-bg$/.test(lid) || /disputed|claim/.test(lid))) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // Frontières → très légères
+    // ── Frontières → fantôme atlas (gris chaud très léger)
     if (type === 'line' && /boundary|admin|border/.test(lid)) {
-      map.setPaintProperty(id, 'line-color', 'rgba(140,125,105,0.25)')
-      map.setPaintProperty(id, 'line-width', 0.6)
+      map.setPaintProperty(id, 'line-color', 'rgba(168,152,128,0.16)')
+      map.setPaintProperty(id, 'line-width', 0.45)
       continue
     }
   }

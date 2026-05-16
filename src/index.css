@@ -588,9 +588,12 @@ svg {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(255, 250, 240, 0.06);
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
+  opacity: 0.042;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+  background-repeat: repeat;
 }
 
 .map-pins-overlay {

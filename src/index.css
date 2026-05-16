@@ -2310,13 +2310,9 @@ svg {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 16px 22px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(18px);
+  padding: 16px 4px 12px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .tier-list-title h2 {

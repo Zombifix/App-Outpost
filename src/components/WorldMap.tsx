@@ -50,6 +50,43 @@ const ATLAS_PREMIUM_PALETTE = {
   coast: 'rgba(172, 207, 220, 0.42)',
 }
 
+const ATLAS_COUNTRY_LABELS: GeoJSON.FeatureCollection<GeoJSON.Point, { name: string; priority: number }> = {
+  type: 'FeatureCollection',
+  features: [
+    { type: 'Feature', properties: { name: 'CANADA', priority: 1 }, geometry: { type: 'Point', coordinates: [-103, 58] } },
+    { type: 'Feature', properties: { name: 'UNITED STATES', priority: 1 }, geometry: { type: 'Point', coordinates: [-98, 39] } },
+    { type: 'Feature', properties: { name: 'MEXICO', priority: 2 }, geometry: { type: 'Point', coordinates: [-102, 23] } },
+    { type: 'Feature', properties: { name: 'BRAZIL', priority: 1 }, geometry: { type: 'Point', coordinates: [-52, -11] } },
+    { type: 'Feature', properties: { name: 'ARGENTINA', priority: 2 }, geometry: { type: 'Point', coordinates: [-64, -35] } },
+    { type: 'Feature', properties: { name: 'UNITED KINGDOM', priority: 2 }, geometry: { type: 'Point', coordinates: [-2, 54] } },
+    { type: 'Feature', properties: { name: 'FRANCE', priority: 1 }, geometry: { type: 'Point', coordinates: [2, 46] } },
+    { type: 'Feature', properties: { name: 'SPAIN', priority: 2 }, geometry: { type: 'Point', coordinates: [-3.5, 40] } },
+    { type: 'Feature', properties: { name: 'GERMANY', priority: 1 }, geometry: { type: 'Point', coordinates: [10, 51] } },
+    { type: 'Feature', properties: { name: 'ITALY', priority: 2 }, geometry: { type: 'Point', coordinates: [12, 43] } },
+    { type: 'Feature', properties: { name: 'POLAND', priority: 2 }, geometry: { type: 'Point', coordinates: [19, 52] } },
+    { type: 'Feature', properties: { name: 'UKRAINE', priority: 2 }, geometry: { type: 'Point', coordinates: [31, 49] } },
+    { type: 'Feature', properties: { name: 'TURKEY', priority: 2 }, geometry: { type: 'Point', coordinates: [35, 39] } },
+    { type: 'Feature', properties: { name: 'RUSSIA', priority: 1 }, geometry: { type: 'Point', coordinates: [80, 60] } },
+    { type: 'Feature', properties: { name: 'MOROCCO', priority: 2 }, geometry: { type: 'Point', coordinates: [-6, 31] } },
+    { type: 'Feature', properties: { name: 'ALGERIA', priority: 1 }, geometry: { type: 'Point', coordinates: [2, 28] } },
+    { type: 'Feature', properties: { name: 'MAURITANIA', priority: 2 }, geometry: { type: 'Point', coordinates: [-10, 20] } },
+    { type: 'Feature', properties: { name: 'LIBYA', priority: 2 }, geometry: { type: 'Point', coordinates: [18, 27] } },
+    { type: 'Feature', properties: { name: 'EGYPT', priority: 2 }, geometry: { type: 'Point', coordinates: [30, 27] } },
+    { type: 'Feature', properties: { name: 'MALI', priority: 3 }, geometry: { type: 'Point', coordinates: [-4, 17] } },
+    { type: 'Feature', properties: { name: 'NIGER', priority: 3 }, geometry: { type: 'Point', coordinates: [9, 17] } },
+    { type: 'Feature', properties: { name: 'CHAD', priority: 3 }, geometry: { type: 'Point', coordinates: [19, 15] } },
+    { type: 'Feature', properties: { name: 'SUDAN', priority: 2 }, geometry: { type: 'Point', coordinates: [30, 15] } },
+    { type: 'Feature', properties: { name: 'ETHIOPIA', priority: 3 }, geometry: { type: 'Point', coordinates: [40, 9] } },
+    { type: 'Feature', properties: { name: 'SOUTH AFRICA', priority: 2 }, geometry: { type: 'Point', coordinates: [24, -29] } },
+    { type: 'Feature', properties: { name: 'SAUDI ARABIA', priority: 2 }, geometry: { type: 'Point', coordinates: [45, 24] } },
+    { type: 'Feature', properties: { name: 'IRAN', priority: 2 }, geometry: { type: 'Point', coordinates: [53, 32] } },
+    { type: 'Feature', properties: { name: 'INDIA', priority: 1 }, geometry: { type: 'Point', coordinates: [78, 22] } },
+    { type: 'Feature', properties: { name: 'CHINA', priority: 1 }, geometry: { type: 'Point', coordinates: [104, 35] } },
+    { type: 'Feature', properties: { name: 'JAPAN', priority: 2 }, geometry: { type: 'Point', coordinates: [138, 38] } },
+    { type: 'Feature', properties: { name: 'AUSTRALIA', priority: 1 }, geometry: { type: 'Point', coordinates: [134, -25] } },
+  ],
+}
+
 function safeSetPaint(map: maplibregl.Map, layerId: string, property: string, value: unknown) {
   try { map.setPaintProperty(layerId, property, value) } catch { /* layer/property not supported in this style */ }
 }
@@ -70,12 +107,57 @@ function hideLayer(map: maplibregl.Map, layerId: string) {
   safeSetLayout(map, layerId, 'visibility', 'none')
 }
 
+function addAtlasCountryLabels(map: maplibregl.Map) {
+  if (map.getSource('atlas-country-labels')) return
+
+  map.addSource('atlas-country-labels', {
+    type: 'geojson',
+    data: ATLAS_COUNTRY_LABELS,
+  })
+
+  map.addLayer({
+    id: 'atlas-country-labels',
+    type: 'symbol',
+    source: 'atlas-country-labels',
+    minzoom: 0,
+    maxzoom: 8,
+    layout: {
+      'symbol-sort-key': ['get', 'priority'],
+      'text-allow-overlap': true,
+      'text-field': ['get', 'name'],
+      'text-font': ['Roboto Bold', 'Noto Sans Bold'],
+      'text-ignore-placement': false,
+      'text-letter-spacing': 0.16,
+      'text-max-width': 8,
+      'text-size': [
+        'interpolate', ['linear'], ['zoom'],
+        0, 9.5,
+        2, 11.5,
+        4, 13.5,
+        7, 15,
+      ],
+    },
+    paint: {
+      'text-color': ATLAS_PREMIUM_PALETTE.labelCountry,
+      'text-halo-blur': 0.35,
+      'text-halo-color': ATLAS_PREMIUM_PALETTE.labelHalo,
+      'text-halo-width': 1.5,
+      'text-opacity': [
+        'interpolate', ['linear'], ['zoom'],
+        0, 0.62,
+        2, 0.86,
+        7, 0.78,
+      ],
+    },
+  })
+}
+
 function customizeAtlasPremiumStyle(map: maplibregl.Map) {
   const palette = ATLAS_PREMIUM_PALETTE
 
   map.addSource('atlas-relief', {
     type: 'raster',
-    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'],
+    tiles: ['https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}'],
     tileSize: 256,
     attribution: '© Esri',
   })
@@ -156,21 +238,12 @@ function customizeAtlasPremiumStyle(map: maplibregl.Map) {
 
     if (type === 'symbol') {
       if (/country/.test(lid) && /label/.test(lid)) {
-        safeSetLayerZoomRange(map, id, 0, 24)
-        safeSetFilter(map, id, ['any', ['!', ['has', 'rank']], ['<=', ['to-number', ['get', 'rank']], 4]])
-        safeSetPaint(map, id, 'text-color', palette.labelCountry)
-        safeSetPaint(map, id, 'text-opacity', ['interpolate', ['linear'], ['zoom'], 0, 0.78, 2.2, 0.92, 5, 0.82])
-        safeSetPaint(map, id, 'text-halo-color', palette.labelHalo)
-        safeSetPaint(map, id, 'text-halo-width', 1.5)
-        safeSetPaint(map, id, 'text-halo-blur', 0.35)
-        safeSetLayout(map, id, 'text-font', ['Open Sans Semibold'])
-        safeSetLayout(map, id, 'text-transform', 'uppercase')
-        safeSetLayout(map, id, 'text-letter-spacing', 0.16)
-        safeSetLayout(map, id, 'text-size', ['interpolate', ['linear'], ['zoom'], 0, 10.5, 2, 12, 5, 14])
+        hideLayer(map, id)
         continue
       }
 
       if (/ocean/.test(lid) && /label/.test(lid)) {
+        safeSetLayout(map, id, 'visibility', 'visible')
         safeSetLayerZoomRange(map, id, 0, 24)
         safeSetPaint(map, id, 'text-color', palette.labelOcean)
         safeSetPaint(map, id, 'text-opacity', 0.72)
@@ -184,6 +257,7 @@ function customizeAtlasPremiumStyle(map: maplibregl.Map) {
       }
 
       if (/sea/.test(lid) && /label/.test(lid)) {
+        safeSetLayout(map, id, 'visibility', 'visible')
         safeSetLayerZoomRange(map, id, 0, 24)
         safeSetPaint(map, id, 'text-color', palette.labelOcean)
         safeSetPaint(map, id, 'text-opacity', 0.5)
@@ -243,6 +317,8 @@ function customizeAtlasPremiumStyle(map: maplibregl.Map) {
       safeSetPaint(map, id, 'line-opacity', 0.16)
     }
   }
+
+  addAtlasCountryLabels(map)
 }
 
 // ─── Customize MapTiler style layers ─────────────────────────────────────────
@@ -640,7 +716,11 @@ export default function WorldMap({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <section className="map-area" aria-label="Carte des destinations">
+    <section
+      className="map-area"
+      aria-label="Carte des destinations"
+      onDragStart={(event) => event.preventDefault()}
+    >
       <div ref={mapContainerRef} className="map-gl-container" />
 
       <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">

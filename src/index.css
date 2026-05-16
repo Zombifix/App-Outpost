@@ -577,12 +577,23 @@ svg {
   top: 0;
   bottom: 0;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .map-gl-container {
   position: absolute;
   inset: 0;
   background: #c9e3ee;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.map-area *,
+.map-gl-container canvas {
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .map-gl-container::before,

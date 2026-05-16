@@ -572,12 +572,12 @@ svg {
 }
 
 .map-area {
-  left: var(--content-l);
-  right: var(--map-r-card);
-  top: var(--map-t);
+  left: var(--sidebar-w);
+  right: 0;
+  top: calc(var(--topbar-t) + var(--topbar-h));
   bottom: var(--map-b-open);
   overflow: hidden;
-  transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1), right 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .map-canvas {
@@ -1693,10 +1693,7 @@ svg {
   right: var(--map-r-no-card);
 }
 
-/* === No destination card shown === */
-.travel-app.no-card .map-area {
-  right: var(--map-r-no-card);
-}
+/* === No destination card shown — map already at right: 0, nothing to override === */
 .travel-app.no-card .page-title {
   right: var(--map-r-no-card);
 }

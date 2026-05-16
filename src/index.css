@@ -812,6 +812,13 @@ svg {
   filter: drop-shadow(0 5px 10px rgba(32, 49, 76, 0.34));
 }
 
+.route-stop-dot--passage {
+  fill: #fff;
+  stroke: var(--pin-color);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 1px 2px rgba(32, 49, 76, 0.18));
+}
+
 .map-pin-route-card {
   position: relative;
   min-width: 154px;
@@ -2336,6 +2343,28 @@ svg {
   transition: background 0.12s, color 0.12s;
 }
 .wizard-stop-remove:hover { background: #fee2e2; color: #ef4444; }
+
+.wizard-stop-type {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wizard-stop-type:hover { background: #f3f4f6; }
+.wizard-stop-type.is-passage {
+  background: #f9fafb;
+  color: #9ca3af;
+  border-style: dashed;
+}
 
 .wizard-stop-suggestions {
   position: absolute;

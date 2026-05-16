@@ -141,11 +141,14 @@ function StopAutocomplete({
   }, [query, stop.name, stop.lat, country, state, centerLat, centerLng])
 
   const pick = (r: PhotonResult) => {
-    onChange({ name: r.name, lat: r.lat, lng: r.lng })
+    onChange({ name: r.name, lat: r.lat, lng: r.lng, type: stop.type })
     setQuery(r.name)
     setResults([])
     setOpen(false)
   }
+
+  const isPassage = stop.type === 'passage'
+  const toggleType = () => onChange({ ...stop, type: isPassage ? 'stage' : 'passage' })
 
   const rowClass = [
     'wizard-stop-row',
@@ -176,13 +179,20 @@ function StopAutocomplete({
           onChange={e => {
             setQuery(e.target.value)
             setOpen(true)
-            onChange({ name: e.target.value, lat: NaN, lng: NaN })
+            onChange({ name: e.target.value, lat: NaN, lng: NaN, type: stop.type })
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => {
             blurTimerRef.current = setTimeout(() => setOpen(false), 160)
           }}
         />
+        <button
+          className={`wizard-stop-type${isPassage ? ' is-passage' : ''}`}
+          type="button"
+          aria-label={isPassage ? 'Marquer comme étape' : 'Marquer comme passage'}
+          title={isPassage ? 'Ville de passage (cliquer pour marquer étape)' : 'Étape (cliquer pour marquer passage)'}
+          onClick={toggleType}
+        >{isPassage ? 'passage' : 'étape'}</button>
         <button
           className="wizard-stop-remove"
           aria-label="Supprimer"

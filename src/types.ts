@@ -12,6 +12,7 @@ export interface RoadTripStop {
   name: string
   lat: number
   lng: number
+  type?: 'stage' | 'passage'
 }
 
 export interface Destination {

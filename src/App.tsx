@@ -33,6 +33,7 @@ function normalizeStops(value: unknown): RoadTripStop[] | undefined {
       name: typeof stop.name === 'string' ? stop.name.trim() : '',
       lat: finiteNumber(stop.lat, NaN),
       lng: finiteNumber(stop.lng, NaN),
+      type: stop.type === 'passage' ? 'passage' as const : stop.type === 'stage' ? 'stage' as const : undefined,
     }))
     .filter(stop => stop.name && Number.isFinite(stop.lat) && Number.isFinite(stop.lng))
   return stops.length ? stops : undefined

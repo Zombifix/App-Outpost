@@ -58,7 +58,7 @@
   --tier-h: 260px;
   --tier-bottom: 20px;
   --map-b-open: calc(var(--tier-h) + var(--tier-bottom) + var(--gap));
-  --map-b-closed: var(--gap);
+  --map-b-closed: calc(58px + var(--tier-bottom) + 10px);
   --topbar-t: 20px;
   --topbar-h: 50px;
   --title-t: calc(var(--topbar-t) + var(--topbar-h) + 14px);
@@ -578,6 +578,7 @@ svg {
   bottom: 0;
   overflow: hidden;
   user-select: none;
+  -webkit-user-select: none;
   -webkit-user-drag: none;
 }
 
@@ -587,12 +588,14 @@ svg {
   background: #c9e3ee;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
   -webkit-user-drag: none;
 }
 
 .map-area *,
 .map-gl-container canvas {
   user-select: none;
+  -webkit-user-select: none;
   -webkit-user-drag: none;
 }
 
@@ -952,7 +955,7 @@ svg {
 .map-controls {
   position: absolute;
   left: 12px;
-  bottom: 14px;
+  bottom: var(--map-b-open);
   width: 44px;
   padding: 6px 0;
   border-radius: 28px;
@@ -965,6 +968,7 @@ svg {
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(16px);
   z-index: 2;
+  transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .map-controls button {
@@ -993,8 +997,8 @@ svg {
 
 .legend {
   position: absolute;
-  left: 50%;
-  bottom: 14px;
+  left: 72px;
+  bottom: var(--map-b-open);
   height: 46px;
   padding: 0 22px;
   border-radius: 999px;
@@ -1005,11 +1009,12 @@ svg {
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 14px 30px rgba(95, 119, 148, 0.13);
   backdrop-filter: blur(18px);
-  transform: translateX(-50%);
+  transform: none;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   white-space: nowrap;
   z-index: 2;
+  transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .legend span {
@@ -1389,24 +1394,22 @@ svg {
 }
 
 .tier-board.is-collapsed {
-  transform: translateX(calc(100% - 86px));
+  transform: translateY(calc(100% - 58px));
   overflow: visible;
 }
 
-.tier-board.is-collapsed .tier-columns {
+.tier-board.is-collapsed .tier-rail {
   opacity: 0;
   pointer-events: none;
 }
 
-.tier-board.is-collapsed .tier-board-title,
 .tier-board.is-collapsed .tier-board-head button {
   opacity: 0;
   pointer-events: none;
 }
 
 .tier-board.is-collapsed .next-control {
-  left: -20px;
-  right: auto;
+  top: -20px;
 }
 
 .tier-board-head {
@@ -1462,21 +1465,87 @@ svg {
   box-shadow: none;
 }
 
+.tier-rail {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  opacity: 1;
+  transition: opacity 0.22s ease, transform 0.28s ease;
+}
+
+.tier-rail::before,
+.tier-rail::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  width: 54px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tier-rail::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), transparent);
+}
+
+.tier-rail::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.78), transparent);
+}
+
 .tier-columns {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  flex: 1;
+  height: 100%;
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 4px;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  transition: opacity 0.22s ease, transform 0.28s ease;
+  cursor: grab;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  touch-action: pan-x;
+  user-select: none;
+}
+
+.tier-columns.is-grabbing {
+  cursor: grabbing;
+  scroll-behavior: auto;
 }
 
 .tier-columns::-webkit-scrollbar { display: none; }
+
+.tier-rail-control {
+  position: absolute;
+  top: calc(50% - 3px);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #26314d;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(208, 222, 240, 0.72);
+  box-shadow: 0 10px 22px rgba(93, 118, 151, 0.2);
+  transform: translateY(-50%);
+}
+
+.tier-rail-control:hover {
+  color: #5548ee;
+}
+
+.tier-rail-control:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tier-rail-control-prev { left: 6px; }
+.tier-rail-control-next { right: 6px; }
 
 .tier-column {
   flex: 0 0 clamp(214px, calc(56px + (var(--tier-items, 1) * 134px)), 720px);
@@ -1617,17 +1686,30 @@ svg {
   height: 28px;
   padding: 0;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   color: white;
   background: rgba(13, 22, 38, 0.24);
   border: 1px solid rgba(255, 255, 255, 0.42);
   backdrop-filter: blur(10px);
-  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease, width 0.18s ease;
   z-index: 3;
 }
 
+.mini-favorite-button span {
+  display: none;
+  color: inherit;
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  text-shadow: none;
+}
+
 .mini-favorite-button svg {
+  flex-shrink: 0;
   fill: transparent;
 }
 
@@ -1638,10 +1720,17 @@ svg {
 }
 
 .mini-favorite-button.is-active {
+  width: 92px;
+  padding: 0 9px;
+  border-radius: 999px;
   color: white;
   background: #f25f73;
   border-color: rgba(255, 255, 255, 0.78);
   box-shadow: 0 8px 18px rgba(242, 95, 115, 0.34);
+}
+
+.mini-favorite-button.is-active span {
+  display: inline;
 }
 
 .mini-favorite-button.is-active svg {
@@ -1670,6 +1759,12 @@ svg {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.42);
 }
 
+.mini-destination .mini-favorite-button span {
+  font-size: 9px;
+  line-height: 1;
+  text-shadow: none;
+}
+
 .mini-destination-delete {
   top: 8px;
   left: 8px;
@@ -1681,11 +1776,10 @@ svg {
 
 .next-control {
   position: absolute;
-  right: -18px;
-  top: 50%;
+  right: 22px;
+  top: -20px;
   width: 40px;
   height: 40px;
-  transform: translateY(-50%);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1696,7 +1790,7 @@ svg {
 }
 
 .is-collapsed .next-control svg {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 .explore-page {
@@ -1990,6 +2084,11 @@ svg {
   right: var(--map-r-no-card);
 }
 
+.travel-app.tier-collapsed .map-controls,
+.travel-app.tier-collapsed .legend {
+  bottom: var(--map-b-closed);
+}
+
 /* === No destination card shown — map already at right: 0, nothing to override === */
 .travel-app.no-card .page-title {
   right: var(--map-r-no-card);
@@ -2054,11 +2153,16 @@ svg {
 
   .legend {
     left: 50%;
+    bottom: 14px;
     transform: translateX(-50%);
     gap: 10px;
     padding: 0 14px;
     font-size: var(--text-2xs);
     overflow-x: auto;
+  }
+
+  .map-controls {
+    bottom: 14px;
   }
 
   .tier-board {

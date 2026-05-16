@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
@@ -10,8 +10,18 @@ const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAP
 const INIT_CENTER: [number, number] = [10, 10]
 const INIT_ZOOM = 1.5
 const MIN_PIN_SCALE = 0.86
+const PIN_DRAG_THRESHOLD = 4
 
 type Proj = (ll: [number, number]) => [number, number] | null
+
+interface PinPanState {
+  pointerId: number
+  lastX: number
+  lastY: number
+  totalX: number
+  totalY: number
+  moved: boolean
+}
 
 function pinScaleFromZoomK(zoomK: number) {
   if (!Number.isFinite(zoomK) || zoomK <= 0) return 1
@@ -597,6 +607,8 @@ export default function WorldMap({
   const svgRef          = useRef<SVGSVGElement>(null)
   const pinsGroupRef    = useRef<SVGGElement>(null)
   const projFnRef       = useRef<Proj>(() => null)
+  const pinPanRef       = useRef<PinPanState | null>(null)
+  const suppressClickRef = useRef(false)
 
   const [mapReady, setMapReady] = useState(false)
   const [zoomK, setZoomK]       = useState(1)
@@ -714,16 +726,81 @@ export default function WorldMap({
     map.fitBounds(bounds, { padding: 80, maxZoom: 7, duration: 800 })
   }
 
+  const isPinInteractionTarget = (target: EventTarget | null) => {
+    return target instanceof Element && Boolean(
+      target.closest('.map-pin, .map-pin-route-card, .stop-root, .route-stop-root'),
+    )
+  }
+
+  const handlePointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || !isPinInteractionTarget(event.target)) return
+    pinPanRef.current = {
+      pointerId: event.pointerId,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      totalX: 0,
+      totalY: 0,
+      moved: false,
+    }
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+
+  const handlePointerMoveCapture = (event: ReactPointerEvent<HTMLElement>) => {
+    const pan = pinPanRef.current
+    const map = mapRef.current
+    if (!pan || !map || pan.pointerId !== event.pointerId) return
+
+    const dx = event.clientX - pan.lastX
+    const dy = event.clientY - pan.lastY
+    if (dx === 0 && dy === 0) return
+
+    pan.totalX += dx
+    pan.totalY += dy
+    pan.lastX = event.clientX
+    pan.lastY = event.clientY
+
+    if (!pan.moved && Math.hypot(pan.totalX, pan.totalY) < PIN_DRAG_THRESHOLD) return
+    pan.moved = true
+    event.preventDefault()
+
+    const center = map.project(map.getCenter())
+    map.setCenter(map.unproject([center.x - dx, center.y - dy]))
+  }
+
+  const handlePointerEndCapture = (event: ReactPointerEvent<HTMLElement>) => {
+    const pan = pinPanRef.current
+    if (!pan || pan.pointerId !== event.pointerId) return
+    if (pan.moved) {
+      suppressClickRef.current = true
+      window.setTimeout(() => { suppressClickRef.current = false }, 0)
+    }
+    pinPanRef.current = null
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+  }
+
+  const handleClickCapture = (event: ReactMouseEvent<HTMLElement>) => {
+    if (!suppressClickRef.current) return
+    suppressClickRef.current = false
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <section
       className="map-area"
       aria-label="Carte des destinations"
-      onDragStart={(event) => event.preventDefault()}
+      draggable={false}
+      onDragStartCapture={(event) => event.preventDefault()}
+      onPointerDownCapture={handlePointerDownCapture}
+      onPointerMoveCapture={handlePointerMoveCapture}
+      onPointerUpCapture={handlePointerEndCapture}
+      onPointerCancelCapture={handlePointerEndCapture}
+      onClickCapture={handleClickCapture}
     >
-      <div ref={mapContainerRef} className="map-gl-container" />
+      <div ref={mapContainerRef} className="map-gl-container" draggable={false} />
 
-      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">
+      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations" draggable={false}>
         <g ref={pinsGroupRef}>
           {mapReady && (() => {
             const shared   = sharedNames ?? new Set<string>()
@@ -913,6 +990,7 @@ const Pin = memo(function Pin({
           <div className="pin-stage pin-stage--route">
             <button
               className={`map-pin-route-card${owner === 'friend' ? ' map-pin--friend' : ''}`}
+              draggable={false}
               onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
               style={{ '--pin-color': color } as CSSProperties}>
               <span className="route-tier">{destination.tier}</span>
@@ -938,6 +1016,7 @@ const Pin = memo(function Pin({
         <div className="pin-stage">
           <button
             className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}`}
+            draggable={false}
             onClick={() => onSelect(destination.name)}
             style={{ '--pin-color': color } as CSSProperties}>
             <span>{destination.tier}</span>

@@ -587,8 +587,8 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* Atlas physique : éclairci, couleurs naturelles, océan bleu conservé */
-  filter: brightness(1.28) saturate(0.68) contrast(0.84);
+  /* ESRI World Physical — palette déjà premium, juste très légèrement adoucie */
+  filter: brightness(1.04) saturate(0.92) contrast(0.95);
 }
 
 .map-overlay {

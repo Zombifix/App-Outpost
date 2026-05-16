@@ -151,41 +151,10 @@ svg {
   text-align: left;
 }
 
-.brand strong {
-  font-size: var(--text-xl);
-  line-height: var(--leading-tight);
-}
-
-.brand-mark {
-  position: relative;
-  width: 31px;
-  height: 30px;
-}
-
-.brand-mark span {
-  position: absolute;
-  bottom: 0;
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-}
-
-.brand-mark span:nth-child(1) {
-  left: 0;
-  border-bottom: 22px solid #6c63ff;
-}
-
-.brand-mark span:nth-child(2) {
-  left: 9px;
-  border-bottom: 29px solid #ffd257;
-  transform: scale(0.72);
-}
-
-.brand-mark span:nth-child(3) {
-  left: 16px;
-  border-bottom: 20px solid #f36d7b;
-  transform: scale(0.64);
+.brand-logo {
+  height: 34px;
+  width: auto;
+  display: block;
 }
 
 .create-button {

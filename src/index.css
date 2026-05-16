@@ -573,8 +573,14 @@ svg {
   right: var(--map-r-card);
   top: var(--map-t);
   bottom: var(--map-b-open);
-  overflow: hidden; /* clip tiles + SVG au container */
+  overflow: visible; /* ::before/::after débordent intentionnellement */
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1), right 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.map-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden; /* clip uniquement tiles + SVG, pas les pseudo-éléments de .map-area */
 }
 
 .map-area::before,

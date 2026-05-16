@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import type { Destination, Friend, Intent, Tier } from '../types'
 import {
   FRIENDS,
@@ -6,10 +6,7 @@ import {
   TIER_COLORS,
   TIER_ORDER,
   COUNTRY_TO_CONTINENT,
-  CONTINENTS,
-  type Continent,
 } from '../data'
-import WorldMap from './WorldMap'
 
 interface TierListPageProps {
   destinations: Destination[]
@@ -17,7 +14,7 @@ interface TierListPageProps {
 
 const INTENTS: Array<Intent | 'all'> = ['all', 'tourisme', 'sorties', 'gastro', 'nature', 'travail', 'city-trip']
 const INTENT_LABEL: Record<Intent | 'all', string> = {
-  all: 'Tous',
+  all: 'Toutes',
   tourisme: 'Tourisme',
   sorties: 'Sorties',
   gastro: 'Gastronomie',
@@ -25,192 +22,336 @@ const INTENT_LABEL: Record<Intent | 'all', string> = {
   travail: 'Travail',
   'city-trip': 'City-trip',
 }
-
-const tierLabels: Record<Tier, string> = {
-  S: 'Exceptionnel',
-  A: 'Genial',
-  B: 'Tres bien',
-  C: 'Correct',
-  D: 'Decouvrant',
+const INTENT_EMOJI: Record<Intent | 'all', string> = {
+  all: '',
+  tourisme: '🗺',
+  sorties: '🌙',
+  gastro: '🍽',
+  nature: '🌿',
+  travail: '💼',
+  'city-trip': '🏙',
 }
 
-function applyFilters(list: Destination[], intent: Intent | 'all', zone: Continent | 'all'): Destination[] {
+const TIER_DESCRIPTIONS: Record<Tier, string> = {
+  S: 'Des expériences inoubliables, qui restent dans la mémoire.',
+  A: 'Des voyages marquants à plusieurs niveaux.',
+  B: 'De très belles expériences avec quelques réserves.',
+  C: 'De bonnes expériences, sans plus.',
+  D: 'Potentiel à explorer ou intérêt limité.',
+}
+
+const TIER_LABEL: Record<Tier, string> = {
+  S: 'Exceptionnel',
+  A: 'Génial',
+  B: 'Très bien',
+  C: 'Correct',
+  D: 'Découvrant',
+}
+
+function applyFilters(list: Destination[], intent: Intent | 'all'): Destination[] {
   return list.filter(d => {
     if (intent !== 'all' && d.intent !== intent) return false
-    if (zone !== 'all') {
-      const c = COUNTRY_TO_CONTINENT[d.country]
-      if (c !== zone) return false
-    }
     return true
   })
 }
 
-function MiniCard({ destination, owner }: { destination: Destination; owner: 'me' | 'friend' }) {
+type SocialChipType = 'same' | 'diff' | 'unseen'
+interface SocialChip { type: SocialChipType; label: string }
+
+function getSocialChip(dest: Destination, friendDests: Destination[], friend: Friend | null): SocialChip | null {
+  if (!friend) return null
+  const match = friendDests.find(d => d.name.toLowerCase() === dest.name.toLowerCase())
+  if (!match) return { type: 'unseen', label: 'Pas visité' }
+  if (match.tier === dest.tier) return { type: 'same', label: 'Même tier' }
+  return { type: 'diff', label: `${friend.name.split(' ')[0]}: ${match.tier}` }
+}
+
+function DestCard({ destination, friendDests, friend }: {
+  destination: Destination
+  friendDests: Destination[]
+  friend: Friend | null
+}) {
+  const chip = getSocialChip(destination, friendDests, friend)
+  const intentLabel = INTENT_LABEL[destination.intent]
+  const intentEmoji = INTENT_EMOJI[destination.intent]
+
   return (
     <div
-      className={`tier-list-mini ${owner === 'friend' ? 'tier-list-mini--friend' : ''}`}
+      className="dest-card"
       style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
     >
-      <span>{destination.name}</span>
-      <small>* {(destination.score ?? 3).toFixed(1).replace('.', ',')}</small>
+      <div className="dest-card-body">
+        <span className="dest-card-name">{destination.name}</span>
+        <div className="dest-card-chips">
+          <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
+          {chip && (
+            <span className={`dest-chip dest-chip--${chip.type}`}>
+              {chip.type === 'same' ? '👥' : chip.type === 'diff' ? '⭐' : '○'} {chip.label}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
 
-function TierBadge({ tier }: { tier: Tier }) {
-  const { pin, label } = TIER_COLORS[tier]
+function ComparisonBanner({
+  friend,
+  myDests,
+  friendDests,
+  onClose,
+}: {
+  friend: Friend
+  myDests: Destination[]
+  friendDests: Destination[]
+  onClose: () => void
+}) {
+  const friendNames = useMemo(() => new Set(friendDests.map(d => d.name.toLowerCase())), [friendDests])
+
+  const commonCount = myDests.filter(d => friendNames.has(d.name.toLowerCase())).length
+  const gapCount = myDests.filter(d => {
+    const match = friendDests.find(f => f.name.toLowerCase() === d.name.toLowerCase())
+    return match && match.tier !== d.tier
+  }).length
+  const unseenCount = myDests.filter(d => !friendNames.has(d.name.toLowerCase())).length
+
+  const sharedIntents = myDests
+    .filter(d => friendNames.has(d.name.toLowerCase()))
+    .map(d => d.intent)
+  const intentCounts: Partial<Record<Intent, number>> = {}
+  sharedIntents.forEach(i => { intentCounts[i] = (intentCounts[i] ?? 0) + 1 })
+  const topIntent = (Object.entries(intentCounts) as [Intent, number][]).sort(([, a], [, b]) => b - a)[0]
+  const alignPhrase = topIntent
+    ? `Vous êtes très alignés sur les voyages ${INTENT_LABEL[topIntent[0]].toLowerCase()}.`
+    : 'Vos goûts se rejoignent sur plusieurs destinations.'
+
   return (
-    <span className="tier-list-badge" style={{ color: label, background: pin + '18', borderColor: pin + '44' }}>
-      {tier}
-    </span>
+    <div className="comparison-banner">
+      <div
+        className="comparison-banner-avatar"
+        style={{ background: friend.bg, color: friend.color, borderColor: friend.color }}
+      >
+        {friend.initials}
+      </div>
+      <div className="comparison-banner-info">
+        <strong>Comparaison avec {friend.name}</strong>
+        <span>{alignPhrase}</span>
+      </div>
+      <div className="comparison-banner-stats">
+        <div className="comparison-stat">
+          <strong>{commonCount}</strong>
+          <span>en commun</span>
+        </div>
+        <div className="comparison-stat">
+          <strong>{gapCount}</strong>
+          <span>gros écarts</span>
+        </div>
+        <div className="comparison-stat">
+          <strong>{unseenCount}</strong>
+          <span>pas vues par {friend.name.split(' ')[0]}</span>
+        </div>
+      </div>
+      <button className="comparison-banner-close" onClick={onClose} aria-label="Fermer la comparaison">✕</button>
+    </div>
+  )
+}
+
+function TierRow({
+  tier,
+  destinations,
+  friendDests,
+  friend,
+  collapsed,
+  onToggle,
+}: {
+  tier: Tier
+  destinations: Destination[]
+  friendDests: Destination[]
+  friend: Friend | null
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  const colors = TIER_COLORS[tier]
+  const dests = destinations.filter(d => d.tier === tier && d.kind !== 'stop')
+
+  return (
+    <article className={`tier-list-row tier-list-row-${tier.toLowerCase()}`}>
+      <header onClick={onToggle}>
+        <span
+          className={`tier-orb tier-${tier.toLowerCase()}`}
+          style={{ boxShadow: `0 6px 16px ${colors.pin}33` }}
+        >
+          {tier}
+        </span>
+        <div className="tier-row-label-group">
+          <strong style={{ color: colors.label }}>{TIER_LABEL[tier]}</strong>
+          <span className="tier-row-description">{TIER_DESCRIPTIONS[tier]}</span>
+        </div>
+        <div className="tier-row-right">
+          <span className="tier-row-count">{dests.length}</span>
+          <svg
+            className={`tier-row-chevron ${collapsed ? '' : 'is-open'}`}
+            width="16" height="16" viewBox="0 0 16 16" fill="none"
+          >
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </header>
+      {!collapsed && (
+        <div className="tier-list-row-strip">
+          {dests.map(d => (
+            <DestCard key={d.name} destination={d} friendDests={friendDests} friend={friend} />
+          ))}
+          {dests.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
+        </div>
+      )}
+    </article>
   )
 }
 
 export default function TierListPage({ destinations }: TierListPageProps) {
   const [friend, setFriend] = useState<Friend | null>(null)
   const [intent, setIntent] = useState<Intent | 'all'>('all')
-  const [zone, setZone] = useState<Continent | 'all'>('all')
+  const [collapsed, setCollapsed] = useState<Record<Tier, boolean>>({ S: false, A: false, B: true, C: true, D: true })
+  const [comparePicker, setComparePicker] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!comparePicker) return
+    function handleClick(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setComparePicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [comparePicker])
 
   const friendDests = friend ? (FRIEND_DESTINATIONS[friend.initials] ?? []) : []
+  const myFiltered = useMemo(() => applyFilters(destinations, intent), [destinations, intent])
+  const friendFiltered = useMemo(() => applyFilters(friendDests, intent), [friendDests, intent])
 
-  const myFiltered = useMemo(() => applyFilters(destinations, intent, zone), [destinations, intent, zone])
-  const friendFiltered = useMemo(() => applyFilters(friendDests, intent, zone), [friendDests, intent, zone])
+  const paysCount = useMemo(() => new Set(destinations.map(d => d.country)).size, [destinations])
+  const continentsCount = useMemo(
+    () => new Set(destinations.map(d => COUNTRY_TO_CONTINENT[d.country]).filter(Boolean)).size,
+    [destinations]
+  )
+  const topTier = destinations.find(d => d.tier === 'S')
 
-  const sharedNames = useMemo(() => {
-    if (!friend) return new Set<string>()
-    const mineLc = new Set(myFiltered.map(d => d.name.toLowerCase()))
-    return new Set(friendFiltered.filter(d => mineLc.has(d.name.toLowerCase())).map(d => d.name.toLowerCase()))
-  }, [friend, myFiltered, friendFiltered])
-
-  const commonList = useMemo(() => {
-    if (!friend) return []
-    return friendFiltered
-      .filter(d => sharedNames.has(d.name.toLowerCase()))
-      .map(d => ({
-        theirs: d,
-        mine: myFiltered.find(m => m.name.toLowerCase() === d.name.toLowerCase())!,
-      }))
-  }, [friend, friendFiltered, myFiltered, sharedNames])
+  function toggleCollapse(tier: Tier) {
+    setCollapsed(prev => ({ ...prev, [tier]: !prev[tier] }))
+  }
 
   return (
     <main className="tier-list-page" aria-label="Tier list">
       <header className="tier-list-head">
-        <div>
-          <h2>Ma tier list</h2>
-          <p>{myFiltered.length} destinations{friend ? ` · comparaison avec ${friend.name}` : ''}</p>
+        <div className="tier-list-title">
+          <h2>Ton classement voyage</h2>
+          <p>{myFiltered.length} destinations classées par ressenti global</p>
         </div>
-        <div className="tier-list-friends">
-          {FRIENDS.map(f => {
-            const active = friend?.initials === f.initials
-            return (
-              <button
-                key={f.initials}
-                className={`tier-list-friend ${active ? 'is-active' : ''}`}
-                onClick={() => setFriend(active ? null : f)}
-                style={{ '--friend-color': f.color, '--friend-bg': f.bg } as React.CSSProperties}
-                aria-pressed={active}
-              >
-                <span className="tier-list-friend-avatar">{f.initials}</span>
-                <span>{f.name}</span>
-                <small>{f.count}</small>
-              </button>
-            )
-          })}
+
+        <div className="tier-list-stats">
+          <div className="tier-stat">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <path d="M8 1.5C4.96 1.5 2.5 3.96 2.5 7c0 4.5 5.5 7.5 5.5 7.5s5.5-3 5.5-7.5c0-3.04-2.46-5.5-5.5-5.5zm0 7.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="currentColor" opacity=".6" />
+            </svg>
+            <strong>{destinations.length}</strong>
+            <span>destinations</span>
+          </div>
+          <div className="tier-stat">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.3" opacity=".6" />
+              <path d="M2.5 8h11M8 2.5c-1.5 2-2.5 3.5-2.5 5.5s1 3.5 2.5 5.5M8 2.5c1.5 2 2.5 3.5 2.5 5.5s-1 3.5-2.5 5.5" stroke="currentColor" strokeWidth="1.3" opacity=".6" />
+            </svg>
+            <strong>{paysCount}</strong>
+            <span>pays</span>
+          </div>
+          <div className="tier-stat">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <path d="M2.5 11l2.5-7 3 4 2-3 3 6H2.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" opacity=".6" />
+            </svg>
+            <strong>{continentsCount}</strong>
+            <span>continents</span>
+          </div>
+          {topTier && (
+            <div className="tier-stat tier-stat--top">
+              <span style={{ color: TIER_COLORS.S.pin }}>★</span>
+              <span>Top : <strong>{topTier.name}</strong></span>
+            </div>
+          )}
+        </div>
+
+        <div className="tier-list-actions" ref={pickerRef}>
+          <button
+            className={`tier-list-compare-btn ${friend ? 'is-active' : ''}`}
+            onClick={() => setComparePicker(v => !v)}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="5.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+              <circle cx="10.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+              <path d="M1 13c0-2.21 2.015-4 4.5-4s4.5 1.79 4.5 4M10.5 9c2.485 0 4.5 1.79 4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+            {friend ? `${friend.name.split(' ')[0]} ✕` : 'Comparer'}
+          </button>
+
+          {comparePicker && (
+            <div className="friend-picker">
+              {friend && (
+                <button className="friend-picker-clear" onClick={() => { setFriend(null); setComparePicker(false) }}>
+                  Désactiver la comparaison
+                </button>
+              )}
+              {FRIENDS.map(f => (
+                <button
+                  key={f.initials}
+                  className={`friend-picker-item ${friend?.initials === f.initials ? 'is-active' : ''}`}
+                  onClick={() => { setFriend(f); setComparePicker(false) }}
+                  style={{ '--friend-color': f.color, '--friend-bg': f.bg } as React.CSSProperties}
+                >
+                  <span className="friend-picker-avatar">{f.initials}</span>
+                  <span className="friend-picker-name">{f.name}</span>
+                  <span className="friend-picker-count">{f.count} dest.</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
-      <div className="tier-list-filters">
-        <label>
-          Intent
-          <select value={intent} onChange={e => setIntent(e.target.value as Intent | 'all')}>
-            {INTENTS.map(i => (
-              <option key={i} value={i}>{INTENT_LABEL[i]}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Zone
-          <select value={zone} onChange={e => setZone(e.target.value as Continent | 'all')}>
-            <option value="all">Toutes</option>
-            {CONTINENTS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </label>
+      <div className="tier-list-filters" role="group" aria-label="Filtrer par type">
+        {INTENTS.map(i => (
+          <button
+            key={i}
+            className={`tier-filter-pill ${intent === i ? 'is-active' : ''}`}
+            onClick={() => setIntent(i)}
+          >
+            {i !== 'all' && <span aria-hidden="true">{INTENT_EMOJI[i]}</span>}
+            {INTENT_LABEL[i]}
+          </button>
+        ))}
       </div>
 
-      <div className="tier-list-map">
-        <WorldMap
-          destinations={myFiltered}
-          flyTarget={null}
-          onSelect={() => { /* read-only here */ }}
-          onFlyTargetConsumed={() => { /* noop */ }}
-          friendDestinations={friend ? friendFiltered : undefined}
-          friendInitials={friend?.initials}
-          sharedNames={sharedNames}
+      {friend && (
+        <ComparisonBanner
+          friend={friend}
+          myDests={myFiltered}
+          friendDests={friendFiltered}
+          onClose={() => setFriend(null)}
         />
-        {friend && (
-          <div className="tier-list-legend">
-            <span><i className="legend-me" /> Moi</span>
-            <span><i className="legend-friend" /> {friend.name}</span>
-            <span><i className="legend-shared">2</i> En commun</span>
-          </div>
-        )}
-      </div>
-
-      {friend && commonList.length > 0 && (
-        <section className="tier-list-common">
-          <div className="tier-list-common-head">
-            En commun · {commonList.length}
-          </div>
-          <div className="tier-list-common-items">
-            {commonList.map(({ mine, theirs }) => (
-              <div className="tier-list-common-item" key={mine.name}>
-                <span className="dest-name">{mine.name}</span>
-                <span className="dest-country">{mine.country}</span>
-                <TierBadge tier={mine.tier!} />
-                <span className="vs">vs</span>
-                <TierBadge tier={theirs.tier!} />
-              </div>
-            ))}
-          </div>
-        </section>
       )}
 
-      <section className={`tier-list-rows ${friend ? 'compare' : ''}`} aria-label="Classement par tier">
-        {TIER_ORDER.map(tier => {
-          const colors = TIER_COLORS[tier]
-          const mine = myFiltered.filter(d => d.tier === tier && d.kind !== 'stop')
-          const theirs = friendFiltered.filter(d => d.tier === tier && d.kind !== 'stop')
-          return (
-            <article className={`tier-list-row tier-list-row-${tier.toLowerCase()}`} key={tier}>
-              <header>
-                <span className={`tier-orb tier-${tier.toLowerCase()}`}>{tier}</span>
-                <strong style={{ color: colors.label }}>{tierLabels[tier]}</strong>
-                <small>{friend ? `${mine.length} · ${theirs.length}` : mine.length}</small>
-              </header>
-              <div className="tier-list-row-body">
-                <div className="tier-list-row-cell">
-                  {friend && <p className="tier-list-row-label">Moi</p>}
-                  <div className="tier-list-row-strip">
-                    {mine.map(d => <MiniCard key={d.name} destination={d} owner="me" />)}
-                    {mine.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
-                  </div>
-                </div>
-                {friend && (
-                  <>
-                    <div className="tier-list-row-divider" />
-                    <div className="tier-list-row-cell">
-                      <p className="tier-list-row-label">{friend.name}</p>
-                      <div className="tier-list-row-strip">
-                        {theirs.map(d => <MiniCard key={d.name} destination={d} owner="friend" />)}
-                        {theirs.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </article>
-          )
-        })}
+      <section className="tier-list-rows" aria-label="Classement par tier">
+        {TIER_ORDER.map(tier => (
+          <TierRow
+            key={tier}
+            tier={tier}
+            destinations={myFiltered}
+            friendDests={friendFiltered}
+            friend={friend}
+            collapsed={collapsed[tier]}
+            onToggle={() => toggleCollapse(tier)}
+          />
+        ))}
       </section>
     </main>
   )

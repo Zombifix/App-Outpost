@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Destination } from './types'
+import type { Destination, Intent, RoadTripStop, Tier } from './types'
 import { DESTINATIONS } from './data'
 import WorldMap from './components/WorldMap'
 import Nav from './components/Nav'
@@ -12,10 +12,92 @@ const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore'
 
+const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
+const VALID_INTENTS: Intent[] = ['city-trip', 'tourisme', 'sorties', 'gastro', 'nature', 'travail']
+const VALID_KINDS: NonNullable<Destination['kind']>[] = ['place', 'zone', 'stop', 'stage']
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function finiteNumber(value: unknown, fallback = 0) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
+}
+
+function normalizeStops(value: unknown): RoadTripStop[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const stops = value
+    .filter(isRecord)
+    .map(stop => ({
+      name: typeof stop.name === 'string' ? stop.name.trim() : '',
+      lat: finiteNumber(stop.lat, NaN),
+      lng: finiteNumber(stop.lng, NaN),
+    }))
+    .filter(stop => stop.name && Number.isFinite(stop.lat) && Number.isFinite(stop.lng))
+  return stops.length ? stops : undefined
+}
+
+function normalizeDestination(value: unknown): Destination | null {
+  if (!isRecord(value)) return null
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  const lat = finiteNumber(value.lat, NaN)
+  const lng = finiteNumber(value.lng, NaN)
+  if (!name || !Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+  const country = typeof value.country === 'string' && value.country.trim()
+    ? value.country.trim()
+    : 'Inconnu'
+  const tier = VALID_TIERS.includes(value.tier as Tier) ? value.tier as Tier : undefined
+  const kind = VALID_KINDS.includes(value.kind as NonNullable<Destination['kind']>)
+    ? value.kind as Destination['kind']
+    : 'place'
+  const intent = VALID_INTENTS.includes(value.intent as Intent) ? value.intent as Intent : 'tourisme'
+  const extent = Array.isArray(value.extent) && value.extent.length === 4
+    ? value.extent.map(coord => finiteNumber(coord, NaN)) as [number, number, number, number]
+    : undefined
+
+  return {
+    ...(value as Destination),
+    name,
+    country,
+    lat,
+    lng,
+    tier,
+    kind,
+    intent,
+    food: finiteNumber(value.food, 3),
+    night: finiteNumber(value.night, 3),
+    culture: finiteNumber(value.culture, 3),
+    nature: finiteNumber(value.nature, 3),
+    value: finiteNumber(value.value, 3),
+    score: value.score === undefined ? undefined : finiteNumber(value.score, 3),
+    notes: value.notes === undefined ? undefined : finiteNumber(value.notes, 1),
+    stops: normalizeStops(value.stops),
+    extent: extent?.every(Number.isFinite) ? extent : undefined,
+    geojson: isRecord(value.geojson) ? value.geojson : undefined,
+    state: typeof value.state === 'string' ? value.state : undefined,
+    osmValue: typeof value.osmValue === 'string' ? value.osmValue : undefined,
+    image: typeof value.image === 'string' ? value.image : undefined,
+    summary: typeof value.summary === 'string' ? value.summary : undefined,
+    tripName: typeof value.tripName === 'string' ? value.tripName : undefined,
+    coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
+  }
+}
+
+function normalizeDestinations(value: unknown): Destination[] | null {
+  if (!Array.isArray(value)) return null
+  const normalized = value.map(normalizeDestination).filter((item): item is Destination => item !== null)
+  return normalized.length ? normalized : null
+}
+
 function loadDestinations(): Destination[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (saved) return JSON.parse(saved) as Destination[]
+    if (saved) {
+      const normalized = normalizeDestinations(JSON.parse(saved))
+      if (normalized) return normalized
+    }
   } catch {
     /* ignore */
   }

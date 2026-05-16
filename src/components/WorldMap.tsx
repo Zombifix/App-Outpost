@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import type { Destination, RoadTripStop } from '../types'
+import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 
 const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
@@ -16,6 +16,10 @@ type Proj = (ll: [number, number]) => [number, number] | null
 function pinScaleFromZoomK(zoomK: number) {
   if (!Number.isFinite(zoomK) || zoomK <= 0) return 1
   return Math.max(MIN_PIN_SCALE, Math.min(1, 1 / Math.sqrt(zoomK)))
+}
+
+function getTierColor(tier?: Tier) {
+  return tier ? TIER_COLORS[tier]?.pin : undefined
 }
 
 interface FlyTarget { lat: number; lng: number; name: string }
@@ -193,8 +197,8 @@ function clearZoneRouteLayers(map: maplibregl.Map) {
 }
 
 function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend') {
-  if (!d.tier) return
-  const color = TIER_COLORS[d.tier].pin
+  const color = getTierColor(d.tier)
+  if (!color) return
   const sid = `_z_${owner}_${d.name}`
 
   let geometry: GeoJSON.Geometry | null = null
@@ -223,8 +227,8 @@ function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend
 }
 
 function addRouteLayer(map: maplibregl.Map, d: Destination) {
-  if (!d.stops?.length || !d.tier) return
-  const color = TIER_COLORS[d.tier].pin
+  const color = getTierColor(d.tier)
+  if (!d.stops?.length || !color) return
   const sid = `_r_${d.name}`
   const coords = d.stops
     .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
@@ -402,14 +406,14 @@ export default function WorldMap({
             return (
               <>
                 {friendOnly.flatMap(d => (
-                  d.kind === 'zone' && d.stops?.length && d.tier
+                  d.kind === 'zone' && d.stops?.length && getTierColor(d.tier)
                     ? d.stops.map((stop, index) => (
                       <RouteStop
                         key={`friend-stop:${d.name}:${stop.name}:${index}`}
                         stop={stop}
                         parentName={d.name}
                         projection={projFnRef.current}
-                        color={TIER_COLORS[d.tier!].pin}
+                        color={getTierColor(d.tier)!}
                         owner="friend"
                         onSelect={onSelect}
                       />
@@ -417,14 +421,14 @@ export default function WorldMap({
                     : []
                 ))}
                 {destinations.flatMap(d => (
-                  d.kind === 'zone' && d.stops?.length && d.tier
+                  d.kind === 'zone' && d.stops?.length && getTierColor(d.tier)
                     ? d.stops.map((stop, index) => (
                       <RouteStop
                         key={`stop:${d.name}:${stop.name}:${index}`}
                         stop={stop}
                         parentName={d.name}
                         projection={projFnRef.current}
-                        color={TIER_COLORS[d.tier!].pin}
+                        color={getTierColor(d.tier)!}
                         owner="me"
                         onSelect={onSelect}
                       />
@@ -551,7 +555,8 @@ const Pin = memo(function Pin({
     )
   }
 
-  const color = TIER_COLORS[destination.tier!].pin
+  const color = getTierColor(destination.tier)
+  if (!color) return null
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
     .toFixed(1).replace('.', ',')
 

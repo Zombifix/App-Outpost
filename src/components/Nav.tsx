@@ -85,7 +85,7 @@ export default function Nav({
     <>
       <aside className="sidebar">
         <button className="brand" onClick={() => onViewChange('map')} aria-label="Accueil">
-          <svg viewBox="0 0 608.23 151.21" className="brand-logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="-5 0 618.23 151.21" className="brand-logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
             <g>
               <g>
                 <path fill="#0f1f38" d="M432.57,117.59c-17.73.77-33.19-6.6-42.74-20.75-17.27-25.59-7-61.08,21.77-72.58,16.23-6.5,34.03-4.16,47.87,6.14,13.04,9.7,20.26,26.14,18.77,43.25-2.11,24.22-20.78,42.86-45.67,43.94Z"/>

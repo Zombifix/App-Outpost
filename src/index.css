@@ -56,8 +56,8 @@
   --map-r-card: calc(var(--card-w) + var(--card-r) + var(--gap));
   --map-r-no-card: var(--card-r);
   --tier-h: 260px;
-  --tier-b: 20px;
-  --map-b-open: calc(var(--tier-h) + var(--tier-b) + var(--gap));
+  --tier-bottom: 20px;
+  --map-b-open: calc(var(--tier-h) + var(--tier-bottom) + var(--gap));
   --map-b-closed: var(--gap);
   --topbar-t: 20px;
   --topbar-h: 50px;
@@ -1165,7 +1165,7 @@ svg {
 .tier-board {
   left: var(--content-l);
   right: var(--card-r);
-  bottom: var(--tier-b);
+  bottom: var(--tier-bottom);
   height: var(--tier-h);
   padding: 18px 22px 14px;
   border-radius: 24px;
@@ -2294,7 +2294,7 @@ svg {
 .tier-list-page {
   position: absolute;
   z-index: 5;
-  top: var(--map-t);
+  top: var(--title-t);
   left: var(--content-l);
   right: var(--gap);
   bottom: var(--gap);
@@ -2318,7 +2318,7 @@ svg {
 .tier-list-title h2 {
   margin: 0 0 2px;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 500;
   color: var(--ink);
   letter-spacing: var(--tracking-tight);
@@ -2632,13 +2632,13 @@ svg {
 
 .tier-row-label-group strong {
   font-family: var(--font-serif);
-  font-size: var(--text-md);
+  font-size: 18px;
   font-weight: var(--weight-medium);
   line-height: 1.2;
 }
 
 .tier-row-description {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--muted);
   line-height: 1.4;
 }
@@ -2680,8 +2680,8 @@ svg {
 .dest-card {
   position: relative;
   flex-shrink: 0;
-  width: 180px;
-  height: 120px;
+  width: 220px;
+  height: 140px;
   border-radius: 14px;
   background-size: cover;
   background-position: center;
@@ -2711,7 +2711,7 @@ svg {
 }
 
 .dest-card-name {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: white;
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
@@ -2737,9 +2737,56 @@ svg {
 }
 
 .dest-chip--intent { background: rgba(255,255,255,0.18); color: white; }
-.dest-chip--same   { background: rgba(97,199,122,0.85);  color: white; }
-.dest-chip--diff   { background: rgba(251,139,69,0.85);  color: white; }
-.dest-chip--unseen { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.65); }
+
+.dest-card-shared-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(97,199,122,0.9);
+  color: white;
+  z-index: 2;
+  letter-spacing: 0.02em;
+}
+
+/* Compare mode — split tier rows */
+.tier-row-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.tier-row-body.compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+}
+
+.tier-row-divider {
+  width: 1px;
+  background: var(--line);
+  margin: 0 16px;
+  align-self: stretch;
+  min-height: 40px;
+}
+
+.tier-row-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tier-row-col-label {
+  margin: 10px 0 2px;
+  padding: 0;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 
 .tier-list-empty {
   color: var(--muted);

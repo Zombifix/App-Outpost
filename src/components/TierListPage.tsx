@@ -49,29 +49,14 @@ const TIER_LABEL: Record<Tier, string> = {
 }
 
 function applyFilters(list: Destination[], intent: Intent | 'all'): Destination[] {
-  return list.filter(d => {
-    if (intent !== 'all' && d.intent !== intent) return false
-    return true
-  })
+  return list.filter(d => intent === 'all' || d.intent === intent)
 }
 
-type SocialChipType = 'same' | 'diff' | 'unseen'
-interface SocialChip { type: SocialChipType; label: string }
-
-function getSocialChip(dest: Destination, friendDests: Destination[], friend: Friend | null): SocialChip | null {
-  if (!friend) return null
-  const match = friendDests.find(d => d.name.toLowerCase() === dest.name.toLowerCase())
-  if (!match) return { type: 'unseen', label: 'Pas visité' }
-  if (match.tier === dest.tier) return { type: 'same', label: 'Même tier' }
-  return { type: 'diff', label: `${friend.name.split(' ')[0]}: ${match.tier}` }
-}
-
-function DestCard({ destination, friendDests, friend }: {
+function DestCard({ destination, sharedNames }: {
   destination: Destination
-  friendDests: Destination[]
-  friend: Friend | null
+  sharedNames?: Set<string>
 }) {
-  const chip = getSocialChip(destination, friendDests, friend)
+  const isShared = sharedNames?.has(destination.name.toLowerCase())
   const intentLabel = INTENT_LABEL[destination.intent]
   const intentEmoji = INTENT_EMOJI[destination.intent]
 
@@ -80,15 +65,11 @@ function DestCard({ destination, friendDests, friend }: {
       className="dest-card"
       style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
     >
+      {isShared && <span className="dest-card-shared-badge">En commun</span>}
       <div className="dest-card-body">
         <span className="dest-card-name">{destination.name}</span>
         <div className="dest-card-chips">
           <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
-          {chip && (
-            <span className={`dest-chip dest-chip--${chip.type}`}>
-              {chip.type === 'same' ? '👥' : chip.type === 'diff' ? '⭐' : '○'} {chip.label}
-            </span>
-          )}
         </div>
       </div>
     </div>
@@ -109,21 +90,14 @@ function ComparisonBanner({
   const friendNames = useMemo(() => new Set(friendDests.map(d => d.name.toLowerCase())), [friendDests])
 
   const commonCount = myDests.filter(d => friendNames.has(d.name.toLowerCase())).length
+  const sameCount = myDests.filter(d => {
+    const match = friendDests.find(f => f.name.toLowerCase() === d.name.toLowerCase())
+    return match && match.tier === d.tier
+  }).length
   const gapCount = myDests.filter(d => {
     const match = friendDests.find(f => f.name.toLowerCase() === d.name.toLowerCase())
     return match && match.tier !== d.tier
   }).length
-  const unseenCount = myDests.filter(d => !friendNames.has(d.name.toLowerCase())).length
-
-  const sharedIntents = myDests
-    .filter(d => friendNames.has(d.name.toLowerCase()))
-    .map(d => d.intent)
-  const intentCounts: Partial<Record<Intent, number>> = {}
-  sharedIntents.forEach(i => { intentCounts[i] = (intentCounts[i] ?? 0) + 1 })
-  const topIntent = (Object.entries(intentCounts) as [Intent, number][]).sort(([, a], [, b]) => b - a)[0]
-  const alignPhrase = topIntent
-    ? `Vous êtes très alignés sur les voyages ${INTENT_LABEL[topIntent[0]].toLowerCase()}.`
-    : 'Vos goûts se rejoignent sur plusieurs destinations.'
 
   return (
     <div className="comparison-banner">
@@ -135,7 +109,7 @@ function ComparisonBanner({
       </div>
       <div className="comparison-banner-info">
         <strong>Comparaison avec {friend.name}</strong>
-        <span>{alignPhrase}</span>
+        <span>Ta tier list vs la sienne, tier par tier</span>
       </div>
       <div className="comparison-banner-stats">
         <div className="comparison-stat">
@@ -143,12 +117,12 @@ function ComparisonBanner({
           <span>en commun</span>
         </div>
         <div className="comparison-stat">
-          <strong>{gapCount}</strong>
-          <span>gros écarts</span>
+          <strong>{sameCount}</strong>
+          <span>même tier</span>
         </div>
         <div className="comparison-stat">
-          <strong>{unseenCount}</strong>
-          <span>pas vues par {friend.name.split(' ')[0]}</span>
+          <strong>{gapCount}</strong>
+          <span>tiers différents</span>
         </div>
       </div>
       <button className="comparison-banner-close" onClick={onClose} aria-label="Fermer la comparaison">✕</button>
@@ -158,21 +132,28 @@ function ComparisonBanner({
 
 function TierRow({
   tier,
-  destinations,
+  myDests,
   friendDests,
   friend,
+  sharedNames,
   collapsed,
   onToggle,
 }: {
   tier: Tier
-  destinations: Destination[]
+  myDests: Destination[]
   friendDests: Destination[]
   friend: Friend | null
+  sharedNames: Set<string>
   collapsed: boolean
   onToggle: () => void
 }) {
   const colors = TIER_COLORS[tier]
-  const dests = destinations.filter(d => d.tier === tier && d.kind !== 'stop')
+  const mine = myDests.filter(d => d.tier === tier && d.kind !== 'stop')
+  const theirs = friendDests.filter(d => d.tier === tier && d.kind !== 'stop')
+
+  const count = friend
+    ? `${mine.length} · ${theirs.length}`
+    : String(mine.length)
 
   return (
     <article className={`tier-list-row tier-list-row-${tier.toLowerCase()}`}>
@@ -188,7 +169,7 @@ function TierRow({
           <span className="tier-row-description">{TIER_DESCRIPTIONS[tier]}</span>
         </div>
         <div className="tier-row-right">
-          <span className="tier-row-count">{dests.length}</span>
+          <span className="tier-row-count">{count}</span>
           <svg
             className={`tier-row-chevron ${collapsed ? '' : 'is-open'}`}
             width="16" height="16" viewBox="0 0 16 16" fill="none"
@@ -197,12 +178,33 @@ function TierRow({
           </svg>
         </div>
       </header>
+
       {!collapsed && (
-        <div className="tier-list-row-strip">
-          {dests.map(d => (
-            <DestCard key={d.name} destination={d} friendDests={friendDests} friend={friend} />
-          ))}
-          {dests.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
+        <div className={`tier-row-body ${friend ? 'compare' : ''}`}>
+          <div className="tier-row-col">
+            {friend && <p className="tier-row-col-label">Moi</p>}
+            <div className="tier-list-row-strip">
+              {mine.map(d => (
+                <DestCard key={d.name} destination={d} sharedNames={friend ? sharedNames : undefined} />
+              ))}
+              {mine.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
+            </div>
+          </div>
+
+          {friend && (
+            <>
+              <div className="tier-row-divider" />
+              <div className="tier-row-col">
+                <p className="tier-row-col-label">{friend.name.split(' ')[0]}</p>
+                <div className="tier-list-row-strip">
+                  {theirs.map(d => (
+                    <DestCard key={d.name} destination={d} sharedNames={sharedNames} />
+                  ))}
+                  {theirs.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </article>
@@ -230,6 +232,12 @@ export default function TierListPage({ destinations }: TierListPageProps) {
   const friendDests = friend ? (FRIEND_DESTINATIONS[friend.initials] ?? []) : []
   const myFiltered = useMemo(() => applyFilters(destinations, intent), [destinations, intent])
   const friendFiltered = useMemo(() => applyFilters(friendDests, intent), [friendDests, intent])
+
+  const sharedNames = useMemo(() => {
+    if (!friend) return new Set<string>()
+    const myNames = new Set(myFiltered.map(d => d.name.toLowerCase()))
+    return new Set(friendFiltered.filter(d => myNames.has(d.name.toLowerCase())).map(d => d.name.toLowerCase()))
+  }, [friend, myFiltered, friendFiltered])
 
   const paysCount = useMemo(() => new Set(destinations.map(d => d.country)).size, [destinations])
   const continentsCount = useMemo(
@@ -345,9 +353,10 @@ export default function TierListPage({ destinations }: TierListPageProps) {
           <TierRow
             key={tier}
             tier={tier}
-            destinations={myFiltered}
+            myDests={myFiltered}
             friendDests={friendFiltered}
             friend={friend}
+            sharedNames={sharedNames}
             collapsed={collapsed[tier]}
             onToggle={() => toggleCollapse(tier)}
           />

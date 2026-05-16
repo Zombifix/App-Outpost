@@ -239,18 +239,18 @@ export default function Nav({
         </div>
       </header>
 
-      <section className="page-title" aria-label="Titre de la page">
-        <h1>
-          {activeView === 'map' && 'Mon carnet de voyages'}
-          {activeView === 'tier-list' && 'Tier list - Vue ensemble'}
-          {activeView === 'explore' && 'Explorer - Suggestions IA'}
-        </h1>
-        <p>
-          {activeView === 'map' && `${totalDestinations} destination${totalDestinations > 1 ? 's' : ''} notée${totalDestinations > 1 ? 's' : ''}`}
-          {activeView === 'tier-list' && 'Classement complet et comparaison avec tes amis'}
-          {activeView === 'explore' && 'Placeholder IA, bientot connecte a ton classement'}
-        </p>
-      </section>
+      {activeView !== 'tier-list' && (
+        <section className="page-title" aria-label="Titre de la page">
+          <h1>
+            {activeView === 'map' && 'Mon carnet de voyages'}
+            {activeView === 'explore' && 'Explorer - Suggestions IA'}
+          </h1>
+          <p>
+            {activeView === 'map' && `${totalDestinations} destination${totalDestinations > 1 ? 's' : ''} notée${totalDestinations > 1 ? 's' : ''}`}
+            {activeView === 'explore' && 'Placeholder IA, bientot connecte a ton classement'}
+          </p>
+        </section>
+      )}
     </>
   )
 }

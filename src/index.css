@@ -587,16 +587,15 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* désaturer + virage olive/beige + contraste réduit = rendu carnet de voyage premium */
-  filter: saturate(0.46) sepia(0.22) hue-rotate(-14deg) brightness(1.08) contrast(0.83);
+  /* Légèrement désaturé, virage olive très doux, contraste à peine réduit — garde le caractère terrain */
+  filter: saturate(0.65) hue-rotate(-6deg) sepia(0.07) brightness(1.05) contrast(0.93);
 }
 
 .map-overlay {
   position: absolute;
   inset: 0;
-  /* voile crème très léger — adoucit les tiles, unifie l'ensemble */
-  background:
-    radial-gradient(ellipse at 50% 38%, rgba(250, 246, 236, 0.08) 0%, rgba(200, 215, 235, 0.13) 100%);
+  /* voile quasi invisible — adoucit imperceptiblement sans laver */
+  background: rgba(245, 240, 228, 0.05);
   pointer-events: none;
 }
 

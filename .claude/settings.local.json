@@ -12,7 +12,8 @@
       "Bash(Remove-Item \"C:\\\\Users\\\\theop\\\\OneDrive\\\\Documents\\\\GitHub\\\\App-Outpost\\\\.git\\\\index.lock\" -Force)",
       "Bash(git checkout *)",
       "Bash(git merge *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git rebase *)"
     ]
   }
 }

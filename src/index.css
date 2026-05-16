@@ -600,6 +600,7 @@ svg {
   height: 100%;
   overflow: visible;
   pointer-events: none;
+  z-index: 4;
 }
 
 .map-attribution {
@@ -626,6 +627,13 @@ svg {
 .pin-foreign-object {
   overflow: visible;
   background: transparent;
+  pointer-events: auto;
+}
+
+.pin-root,
+.stop-root,
+.route-stop-root {
+  pointer-events: auto;
 }
 
 .pin-stage {
@@ -637,6 +645,18 @@ svg {
   justify-content: center;
   overflow: visible;
   background: transparent;
+  pointer-events: auto;
+}
+
+.pin-foreign-object--route {
+  overflow: visible;
+}
+
+.pin-stage--route {
+  width: 236px;
+  height: 78px;
+  padding: 0 0 14px;
+  align-items: flex-end;
 }
 
 .map-pin {
@@ -663,6 +683,8 @@ svg {
     box-shadow 0.32s ease,
     transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 /* Teardrop tail — tip at geographic point */
@@ -758,6 +780,120 @@ svg {
   max-height: 0;
   margin-top: 0;
   pointer-events: none;
+}
+
+.route-stop-root {
+  cursor: pointer;
+}
+
+.route-stop-hit {
+  fill: transparent;
+  pointer-events: auto;
+}
+
+.route-stop-dot {
+  fill: var(--pin-color);
+  stroke: #fff;
+  stroke-width: 2;
+  filter: drop-shadow(0 3px 7px rgba(32, 49, 76, 0.28));
+  pointer-events: none;
+}
+
+.route-stop-core {
+  fill: rgba(255, 255, 255, 0.86);
+  pointer-events: none;
+}
+
+.route-stop-root:hover .route-stop-dot {
+  stroke-width: 3;
+  filter: drop-shadow(0 5px 10px rgba(32, 49, 76, 0.34));
+}
+
+.map-pin-route-card {
+  position: relative;
+  min-width: 154px;
+  max-width: 220px;
+  min-height: 48px;
+  padding: 7px 11px 7px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #22304a;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 255, 0.9)),
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--pin-color) 24%, transparent), transparent 58%);
+  box-shadow:
+    0 14px 28px rgba(48, 70, 98, 0.22),
+    0 0 0 4px rgba(255, 255, 255, 0.26);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  pointer-events: auto;
+  transform-origin: center bottom;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.map-pin-route-card::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 16px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+  transform: translateX(-50%);
+}
+
+.map-pin-route-card:hover,
+.pin-selected .map-pin-route-card {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 18px 34px rgba(48, 70, 98, 0.28),
+    0 0 0 5px color-mix(in srgb, var(--pin-color) 18%, transparent);
+}
+
+.route-tier {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--pin-color);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.route-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+
+.route-copy strong {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #22304a;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.route-copy small {
+  color: #647084;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .map-controls {

@@ -2,15 +2,21 @@ import { memo, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import type { Destination } from '../types'
+import type { Destination, RoadTripStop } from '../types'
 import { TIER_COLORS } from '../data'
 
 const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
 const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
 const INIT_CENTER: [number, number] = [10, 10]
 const INIT_ZOOM = 1.5
+const MIN_PIN_SCALE = 0.86
 
 type Proj = (ll: [number, number]) => [number, number] | null
+
+function pinScaleFromZoomK(zoomK: number) {
+  if (!Number.isFinite(zoomK) || zoomK <= 0) return 1
+  return Math.max(MIN_PIN_SCALE, Math.min(1, 1 / Math.sqrt(zoomK)))
+}
 
 interface FlyTarget { lat: number; lng: number; name: string }
 interface WorldMapProps {
@@ -261,17 +267,25 @@ export default function WorldMap({
   function updatePins(map: maplibregl.Map) {
     if (!pinsGroupRef.current) return
     const k    = Math.pow(2, map.getZoom() - INIT_ZOOM)
-    const invK = 1 / k
+    const pinScale = pinScaleFromZoomK(k)
 
     pinsGroupRef.current.querySelectorAll<SVGGElement>('g.pin-root').forEach(el => {
       const lng = parseFloat(el.dataset.lng ?? '0')
       const lat = parseFloat(el.dataset.lat ?? '0')
       if (!isFinite(lng) || !isFinite(lat)) return
       const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
-      el.setAttribute('transform', `translate(${x},${y}) scale(${invK})`)
+      el.setAttribute('transform', `translate(${x},${y}) scale(${pinScale})`)
     })
 
     pinsGroupRef.current.querySelectorAll<SVGGElement>('g.stop-root').forEach(el => {
+      const lng = parseFloat(el.dataset.lng ?? '0')
+      const lat = parseFloat(el.dataset.lat ?? '0')
+      if (!isFinite(lng) || !isFinite(lat)) return
+      const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+      el.setAttribute('transform', `translate(${x},${y})`)
+    })
+
+    pinsGroupRef.current.querySelectorAll<SVGGElement>('g.route-stop-root').forEach(el => {
       const lng = parseFloat(el.dataset.lng ?? '0')
       const lat = parseFloat(el.dataset.lat ?? '0')
       if (!isFinite(lng) || !isFinite(lat)) return
@@ -315,6 +329,36 @@ export default function WorldMap({
               : []
             return (
               <>
+                {friendOnly.flatMap(d => (
+                  d.kind === 'zone' && d.stops?.length && d.tier
+                    ? d.stops.map((stop, index) => (
+                      <RouteStop
+                        key={`friend-stop:${d.name}:${stop.name}:${index}`}
+                        stop={stop}
+                        parentName={d.name}
+                        projection={projFnRef.current}
+                        color={TIER_COLORS[d.tier!].pin}
+                        owner="friend"
+                        onSelect={onSelect}
+                      />
+                    ))
+                    : []
+                ))}
+                {destinations.flatMap(d => (
+                  d.kind === 'zone' && d.stops?.length && d.tier
+                    ? d.stops.map((stop, index) => (
+                      <RouteStop
+                        key={`stop:${d.name}:${stop.name}:${index}`}
+                        stop={stop}
+                        parentName={d.name}
+                        projection={projFnRef.current}
+                        color={TIER_COLORS[d.tier!].pin}
+                        owner="me"
+                        onSelect={onSelect}
+                      />
+                    ))
+                    : []
+                ))}
                 {friendOnly.map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={false} onSelect={onSelect}
@@ -374,27 +418,63 @@ interface PinProps {
   shared?: boolean
 }
 
+interface RouteStopProps {
+  stop: RoadTripStop
+  parentName: string
+  projection: Proj
+  color: string
+  owner: 'me' | 'friend'
+  onSelect: (name: string) => void
+}
+
+const RouteStop = memo(function RouteStop({
+  stop, parentName, projection, color, owner, onSelect,
+}: RouteStopProps) {
+  if (!stop.name.trim() || !Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return null
+  const projected = projection([stop.lng, stop.lat])
+  if (!projected) return null
+  const [cx, cy] = projected
+
+  return (
+    <g
+      className={`route-stop-root route-stop-root--${owner}`}
+      data-lng={stop.lng}
+      data-lat={stop.lat}
+      transform={`translate(${cx},${cy})`}
+      style={{ '--pin-color': color } as CSSProperties}
+      onClick={() => onSelect(parentName)}
+    >
+      <title>{stop.name}</title>
+      <circle className="route-stop-hit" r={15} />
+      <circle className="route-stop-dot" r={5.5} />
+      <circle className="route-stop-core" r={2.5} />
+    </g>
+  )
+})
+
 const Pin = memo(function Pin({
   destination, projection, zoomK, selected, onSelect, owner = 'me', badge, shared,
 }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
   const [cx, cy] = projected
-  const invK = 1 / zoomK
+  const pinScale = pinScaleFromZoomK(zoomK)
   const isCompact = zoomK < 2
 
   // ── Stop (road trip waypoint) ──────────────────────────────────────────────
   if (destination.kind === 'stop') {
     return (
       <g className="stop-root" data-lng={destination.lng} data-lat={destination.lat}
-         transform={`translate(${cx},${cy})`}>
-        <circle r={5}
+         transform={`translate(${cx},${cy})`}
+         style={{ cursor: 'pointer' }}
+         onClick={() => onSelect(destination.name)}>
+        <circle r={16} fill="transparent" />
+        <circle r={6.5}
           fill={owner === 'friend' ? '#fff' : '#8b9db5'}
           stroke={owner === 'friend' ? '#7C8DB5' : 'white'}
-          strokeWidth={owner === 'friend' ? 1.6 : 1.2}
+          strokeWidth={owner === 'friend' ? 1.8 : 1.4}
           opacity={0.85}
-          style={{ cursor: 'pointer' }}
-          onClick={() => onSelect(destination.name)} />
+          pointerEvents="none" />
       </g>
     )
   }
@@ -405,17 +485,25 @@ const Pin = memo(function Pin({
 
   // ── Zone label ─────────────────────────────────────────────────────────────
   if (destination.kind === 'zone') {
+    const stopCount = destination.stops?.filter(stop => (
+      stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)
+    )).length ?? 0
+
     return (
       <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
          data-lng={destination.lng} data-lat={destination.lat}
-         transform={`translate(${cx},${cy}) scale(${invK})`}>
-        <foreignObject className="pin-foreign-object" x="-70" y="-36" width="140" height="40">
-          <div className="pin-stage">
+         transform={`translate(${cx},${cy}) scale(${pinScale})`}>
+        <foreignObject className="pin-foreign-object pin-foreign-object--route" x="-118" y="-58" width="236" height="78">
+          <div className="pin-stage pin-stage--route">
             <button
-              className={`map-pin map-pin-zone-label${owner === 'friend' ? ' map-pin--friend' : ''}`}
+              className={`map-pin-route-card${owner === 'friend' ? ' map-pin--friend' : ''}`}
               onClick={() => onSelect(destination.name)}
               style={{ '--pin-color': color } as CSSProperties}>
-              <strong>{destination.name}</strong>
+              <span className="route-tier">{destination.tier}</span>
+              <span className="route-copy">
+                <strong>{destination.name}</strong>
+                <small>{stopCount > 0 ? `${stopCount} lieu${stopCount > 1 ? 'x' : ''}` : 'Zone'}</small>
+              </span>
               {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
               {shared && <em className="pin-shared-badge">2</em>}
             </button>
@@ -429,7 +517,7 @@ const Pin = memo(function Pin({
   return (
     <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
-       transform={`translate(${cx},${cy}) scale(${invK})`}>
+       transform={`translate(${cx},${cy}) scale(${pinScale})`}>
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button

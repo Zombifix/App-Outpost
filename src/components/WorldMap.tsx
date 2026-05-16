@@ -484,7 +484,6 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
               onClick={() => onSelect(destination.name)}
               style={{ '--pin-color': color } as CSSProperties}
             >
-              <span>{destination.tier}</span>
               <strong>{destination.name}</strong>
               {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
               {shared && <em className="pin-shared-badge">2</em>}

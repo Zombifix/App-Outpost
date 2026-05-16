@@ -587,15 +587,15 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* Légèrement désaturé, virage olive très doux, contraste à peine réduit — garde le caractère terrain */
-  filter: saturate(0.65) hue-rotate(-6deg) sepia(0.07) brightness(1.05) contrast(0.93);
+  /* Atlas physique premium : lumineux, terres beige/crème, océan bleu aérien */
+  filter: brightness(1.42) saturate(0.58) sepia(0.26) contrast(0.80);
 }
 
 .map-overlay {
   position: absolute;
   inset: 0;
-  /* voile quasi invisible — adoucit imperceptiblement sans laver */
-  background: rgba(245, 240, 228, 0.05);
+  /* voile crème très léger — réchauffe les terres sans toucher les pins */
+  background: rgba(248, 242, 226, 0.07);
   pointer-events: none;
 }
 

@@ -96,6 +96,9 @@ export default function WorldMap({
 }: WorldMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const tileCacheRef = useRef<Map<string, HTMLImageElement>>(new Map())
+  const drawTilesRef = useRef<((t: d3.ZoomTransform) => void) | null>(null)
   const projectionRef = useRef<d3.GeoProjection | null>(null)
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
   // Refs for groups whose transforms D3 manages directly — no React state involved
@@ -136,9 +139,9 @@ export default function WorldMap({
 
     const { width, height } = dimensions
     const svg = d3.select(svgRef.current)
-    const projection = d3.geoNaturalEarth1()
-      .scale(Math.min(width / 5.85, height / 2.62))
-      .translate([width / 2, height / 2 + 6])
+    const projection = d3.geoMercator()
+      .scale(Math.min(width / 6.4, height / 4.0))
+      .translate([width / 2, height / 2])
 
     projectionRef.current = projection
     const pathGen = d3.geoPath().projection(projection)
@@ -146,23 +149,90 @@ export default function WorldMap({
     svg.select('g.countries').remove()
     const countries = svg.insert('g', ':first-child').attr('class', 'countries')
 
+    // Pays en transparent — les tiles fournissent la texture, D3 garde les frontières
     countries.selectAll('path')
       .data(worldData.features)
       .join('path')
       .attr('d', pathGen as unknown as string)
-      .attr('fill', 'url(#land-gradient)')
-      .attr('stroke', 'rgba(175, 194, 157, 0.62)')
+      .attr('fill', 'none')
+      .attr('stroke', 'rgba(100, 135, 90, 0.45)')
       .attr('stroke-width', 0.55)
-      .attr('opacity', 0.95)
-      .attr('filter', 'url(#land-relief)')
+      .attr('opacity', 1)
 
     const graticule = d3.geoGraticule().step([30, 30])
     countries.append('path')
       .datum(graticule())
       .attr('d', pathGen as unknown as string)
       .attr('fill', 'none')
-      .attr('stroke', 'rgba(74, 110, 130, 0.12)')
-      .attr('stroke-width', 0.7)
+      .attr('stroke', 'rgba(74, 110, 130, 0.10)')
+      .attr('stroke-width', 0.6)
+
+    // --- Tile layer (Stadia Stamen Terrain) ---
+    const drawTiles = (transform: d3.ZoomTransform) => {
+      const canvas = canvasRef.current
+      const proj = projectionRef.current
+      if (!canvas || !proj) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      ctx.clearRect(0, 0, width, height)
+
+      const worldPx = 2 * Math.PI * proj.scale() * transform.k
+      const tileZ = Math.max(1, Math.min(Math.floor(Math.log2(worldPx / 256)), 12))
+      const n = Math.pow(2, tileZ)
+
+      // Écran → coordonnées tuile
+      const screenToTileXY = (sx: number, sy: number): [number, number] => {
+        const bp = transform.invert([sx, sy]) as [number, number]
+        const ll = proj.invert!(bp)
+        if (!ll) return [-1, -1]
+        const tx = ((ll[0] + 180) / 360) * n
+        const latR = ll[1] * Math.PI / 180
+        const ty = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n
+        return [tx, ty]
+      }
+
+      const [x0t, y0t] = screenToTileXY(0, 0)
+      const [x1t, y1t] = screenToTileXY(width, height)
+      const ix0 = Math.floor(x0t) - 1
+      const ix1 = Math.ceil(x1t) + 1
+      const iy0 = Math.max(0, Math.floor(y0t) - 1)
+      const iy1 = Math.min(n - 1, Math.ceil(y1t) + 1)
+
+      // Coin de tuile → position écran via la projection D3
+      const cornerToScreen = (tx: number, ty: number): [number, number] => {
+        const lng = (tx / n) * 360 - 180
+        const lat = Math.atan(Math.sinh(Math.PI - (2 * Math.PI * ty) / n)) * 180 / Math.PI
+        const bp = proj([lng, lat])
+        if (!bp) return [0, 0]
+        return transform.apply(bp) as [number, number]
+      }
+
+      for (let tx = ix0; tx <= ix1; tx++) {
+        const wx = ((tx % n) + n) % n
+        for (let ty = iy0; ty <= iy1; ty++) {
+          const [sx, sy] = cornerToScreen(tx, ty)
+          const [ex, ey] = cornerToScreen(tx + 1, ty + 1)
+          const tw = ex - sx, th = ey - sy
+          if (sx > width || ex < 0 || sy > height || ey < 0 || tw <= 0 || th <= 0) continue
+
+          const key = `${tileZ}/${wx}/${ty}`
+          const cached = tileCacheRef.current.get(key)
+          if (cached?.complete && cached.naturalWidth > 0) {
+            ctx.drawImage(cached, Math.round(sx), Math.round(sy), Math.ceil(tw), Math.ceil(th))
+          } else if (!cached) {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => {
+              if (svgRef.current) drawTilesRef.current?.(d3.zoomTransform(svgRef.current))
+            }
+            img.src = `https://tiles.stadiamaps.com/tiles/stamen_terrain/${tileZ}/${wx}/${ty}.png`
+            tileCacheRef.current.set(key, img)
+          }
+        }
+      }
+    }
+    drawTilesRef.current = drawTiles
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 7])
@@ -186,6 +256,7 @@ export default function WorldMap({
             }
           })
         }
+        drawTiles(event.transform)
         svgRef.current?.classList.add('is-zooming')
       })
       .on('end', event => {
@@ -202,6 +273,8 @@ export default function WorldMap({
     if (routesGroupRef.current) routesGroupRef.current.removeAttribute('transform')
     if (pinsGroupRef.current) pinsGroupRef.current.removeAttribute('transform')
     setZoomK(1)
+    // Rendu initial des tiles
+    drawTiles(d3.zoomIdentity)
     setProjectionReady(true)
   }, [worldData, dimensions])
 
@@ -342,20 +415,14 @@ export default function WorldMap({
 
   return (
     <section className="map-area" ref={wrapperRef} aria-label="Carte des destinations">
+      <canvas
+        ref={canvasRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        className="map-canvas"
+        aria-hidden="true"
+      />
       <svg ref={svgRef} width={dimensions.width} height={dimensions.height} className="world-map">
-        <defs>
-          <linearGradient id="land-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f4f0dc" />
-            <stop offset="44%" stopColor="#dce8c9" />
-            <stop offset="100%" stopColor="#c4dfc4" />
-          </linearGradient>
-          <filter id="land-relief" x="-18%" y="-18%" width="136%" height="136%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.017" numOctaves="2" seed="8" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="rough" />
-            <feDropShadow in="rough" dx="1.8" dy="2.4" stdDeviation="1.2" floodColor="#8ba983" floodOpacity="0.28" result="shadow" />
-            <feBlend in="rough" in2="shadow" mode="normal" />
-          </filter>
-        </defs>
 
         {/* Zones: D3 manages the group transform via zonesGroupRef */}
         <g ref={zonesGroupRef}>{zonePaths}</g>
@@ -424,6 +491,14 @@ export default function WorldMap({
           </span>
         ))}
       </div>
+      <p className="map-attribution">
+        Tiles by{' '}
+        <a href="https://stamen.com" target="_blank" rel="noopener noreferrer">Stamen Design</a>
+        {', hosted by '}
+        <a href="https://stadiamaps.com" target="_blank" rel="noopener noreferrer">Stadia Maps</a>
+        {' · Data © '}
+        <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+      </p>
     </section>
   )
 }

@@ -618,9 +618,9 @@ svg {
 
 .map-area::before {
   inset: -96px -130px -72px -76px;
+  /* Fond océan — visible aux bords avant chargement des tiles */
   background:
-    radial-gradient(ellipse at 50% 48%, rgba(205, 238, 250, 0.72) 0%, rgba(205, 238, 250, 0.46) 44%, transparent 73%),
-    radial-gradient(ellipse at 50% 56%, rgba(255, 255, 255, 0.72) 0%, transparent 58%);
+    radial-gradient(ellipse at 48% 46%, rgba(168, 210, 238, 0.90) 0%, rgba(120, 178, 222, 0.80) 42%, rgba(78, 140, 200, 0.60) 100%);
 }
 
 .map-area::after {
@@ -633,12 +633,38 @@ svg {
   opacity: 0.62;
 }
 
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: block;
+}
+
 .world-map {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
   background: transparent;
   will-change: transform;
+}
+
+.map-attribution {
+  position: absolute;
+  bottom: 6px;
+  right: 10px;
+  margin: 0;
+  font-size: 9px;
+  color: rgba(60, 60, 60, 0.65);
+  pointer-events: none;
+  line-height: 1.4;
+  z-index: 10;
+}
+.map-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  pointer-events: auto;
 }
 
 .world-map.is-zooming .countries path {

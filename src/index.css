@@ -587,15 +587,15 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* ESRI World Physical — légèrement assombri et désaturé pour reculer derrière les pins */
-  filter: brightness(0.96) saturate(0.82) contrast(0.90);
+  /* ESRI intégré produit — texture gardée, présence calmée */
+  filter: brightness(0.97) saturate(0.72) contrast(0.82);
 }
 
 .map-overlay {
   position: absolute;
   inset: 0;
-  /* voile blanc-bleuté très léger — calme le fond sans le dénaturer */
-  background: rgba(235, 242, 250, 0.18);
+  /* voile blanc-bleuté — intègre la carte dans le produit sans la laver */
+  background: rgba(238, 244, 252, 0.28);
   pointer-events: none;
 }
 

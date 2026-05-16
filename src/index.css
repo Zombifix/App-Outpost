@@ -584,6 +584,15 @@ svg {
   inset: 0;
 }
 
+.map-gl-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 250, 240, 0.06);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .map-pins-overlay {
   position: absolute;
   inset: 0;

@@ -29,46 +29,94 @@ function customizeStyle(map: maplibregl.Map) {
   for (const layer of map.getStyle().layers) {
     const { id, type } = layer
 
-    // All labels / icons → hidden
+    // ── Tous les labels / icônes → masqués (custom pins prennent le dessus)
     if (type === 'symbol') {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
-    // Roads, transit, buildings, POI, aeroways → hidden
-    if (/road|transit|rail|aeroway|bridge|tunnel|building|poi|ferry|indoor|path|track|gate|motorway|pedestrian|cycleway|footway|steps|pier|dam/.test(id)) {
+
+    // ── Routes, transport, bâtiments, POI → masqués (pas une carte de nav)
+    if (/road|tunnel|bridge|transit|rail|aeroway|building|poi|ferry|indoor|path|track|gate|motorway|pedestrian|cycleway|footway|steps|pier|dam|aerodrome|runway|taxiway|piste|parking/.test(id)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
-    // Elevation contours → hidden (trop technique)
+
+    // ── Contours d'altitude → masqués (trop technique)
     if (/contour/.test(id)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
-    // Urban / human landuse → hidden
+
+    // ── Landuse urbain → masqué
     if (/landuse/.test(id)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
-    // Admin / country borders → très subtils
+
+    // ── Grille / tropiques / équateur / cercle polaire → masqués
+    if (/graticule|grid|tropic|equator|arctic|antarctic|polar|circle.of|meridian|parallel/.test(id)) {
+      map.setLayoutProperty(id, 'visibility', 'none')
+      continue
+    }
+
+    // ── Frontières admin → beige/gris très subtil, pas de noir
     if (type === 'line' && /boundary|admin|border/.test(id)) {
-      map.setPaintProperty(id, 'line-color', 'rgba(130,110,85,0.22)')
+      map.setPaintProperty(id, 'line-color', 'rgba(155,135,115,0.20)')
+      map.setPaintProperty(id, 'line-width', 0.55)
+      continue
+    }
+
+    // ── Côtes → très subtiles
+    if (type === 'line' && /coast/.test(id)) {
+      map.setPaintProperty(id, 'line-color', 'rgba(120,158,182,0.22)')
       map.setPaintProperty(id, 'line-width', 0.5)
       continue
     }
-    // Coastlines → subtiles
-    if (type === 'line' && /coast/.test(id)) {
-      map.setPaintProperty(id, 'line-color', 'rgba(100,140,170,0.28)')
-      map.setPaintProperty(id, 'line-width', 0.6)
+
+    // ── Cours d'eau (rivières, canaux) → bleu doux
+    if (type === 'line' && /waterway|river|canal|stream/.test(id)) {
+      map.setPaintProperty(id, 'line-color', '#A8D3EA')
+      map.setPaintProperty(id, 'line-opacity', 0.6)
       continue
     }
-    // Water fill → bleu premium doux
-    if (type === 'fill' && /^water$|^ocean$/.test(id)) {
-      map.setPaintProperty(id, 'fill-color', '#9ecce0')
+
+    // ── Eau de fond (océan/background) → bleu profond aquarelle
+    if (type === 'background') {
+      map.setPaintProperty(id, 'background-color', '#9BBFD9')
+      continue
     }
-    // Hillshade → ombres plus douces
+
+    // ── Eau intérieure (lacs, réservoirs) → bleu légèrement plus clair
+    if (type === 'fill' && /water|lake|reservoir|ocean|sea/.test(id)) {
+      map.setPaintProperty(id, 'fill-color', '#A8D3EA')
+      continue
+    }
+
+    // ── Terre de base → beige chaud
+    if (type === 'fill' && /^land$/.test(id)) {
+      map.setPaintProperty(id, 'fill-color', '#F2EBD8')
+      continue
+    }
+
+    // ── Végétation / landcover → vert olive doux
+    if (type === 'fill' && /landcover|wood|forest|grass|scrub|meadow|heath|vegetation/.test(id)) {
+      map.setPaintProperty(id, 'fill-color', '#B8C99A')
+      map.setPaintProperty(id, 'fill-opacity', 0.52)
+      continue
+    }
+
+    // ── Sable / désert / plage → beige sable
+    if (type === 'fill' && /sand|desert|beach|bare|dune/.test(id)) {
+      map.setPaintProperty(id, 'fill-color', '#E8D8B8')
+      continue
+    }
+
+    // ── Hillshade → relief doux, opacity 0.28, pas de contraste excessif
     if (type === 'hillshade') {
-      map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(50,40,20,0.28)')
-      map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,252,238,0.42)')
+      map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(55,42,22,0.35)')
+      map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,252,238,0.32)')
+      map.setPaintProperty(id, 'hillshade-exaggeration', 0.42)
+      continue
     }
   }
 }

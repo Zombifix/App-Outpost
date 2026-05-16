@@ -2283,12 +2283,11 @@ svg {
   opacity: 0.7;
 }
 
-/* Zone label pin — badge style: white bg + colored dot + name */
+/* Zone label pin — rectangle badge, nom seul, pas de dot */
 .map-pin-zone-label {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px 5px 5px;
+  padding: 5px 13px;
   background: rgba(255,255,255,0.93);
   color: var(--ink);
   border: 1.5px solid var(--pin-color);
@@ -2302,19 +2301,6 @@ svg {
   transition: opacity 0.15s, transform 0.15s;
 }
 .map-pin-zone-label:hover { opacity: 1; transform: scale(1.04); }
-.map-pin-zone-label span {
-  background: var(--pin-color);
-  border-radius: 50%;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  color: #fff;
-  flex-shrink: 0;
-}
 .map-pin-zone-label strong {
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);

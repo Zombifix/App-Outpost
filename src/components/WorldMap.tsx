@@ -28,96 +28,100 @@ interface WorldMapProps {
 function customizeStyle(map: maplibregl.Map) {
   for (const layer of map.getStyle().layers) {
     const { id, type } = layer
+    const lid = id.toLowerCase() // outdoor-v2 IDs start with uppercase (Water, Sand, Grass…)
 
-    // ── Tous les labels / icônes → masqués (custom pins prennent le dessus)
+    // ── Labels / icônes → tous masqués (custom pins prennent le dessus)
     if (type === 'symbol') {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // ── Routes, transport, bâtiments, POI → masqués (pas une carte de nav)
-    if (/road|tunnel|bridge|transit|rail|aeroway|building|poi|ferry|indoor|path|track|gate|motorway|pedestrian|cycleway|footway|steps|pier|dam|aerodrome|runway|taxiway|piste|parking/.test(id)) {
+    // ── Routes, transport, bâtiments, aéroports → masqués
+    if (/road|tunnel|bridge|transit|rail|aeroway|building|poi|ferry|indoor|path|track|gate|motorway|pedestrian|cycleway|footway|steps|pier|dam|aerodrome|runway|taxiway|piste|parking/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // ── Contours d'altitude → masqués (trop technique)
-    if (/contour/.test(id)) {
+    // ── Contours d'altitude → masqués
+    if (/contour/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // ── Landuse urbain → masqué
-    if (/landuse/.test(id)) {
+    // ── Landuse urbain → masqué (Residential, Industrial, Commercial, Military, Cemetery…)
+    if (/residential|industrial|commercial|military|cemetery|hospital|stadium/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
     // ── Grille / tropiques / équateur / cercle polaire → masqués
-    if (/graticule|grid|tropic|equator|arctic|antarctic|polar|circle.of|meridian|parallel/.test(id)) {
+    if (/graticule|grid|tropic|equator|arctic|antarctic|polar|meridian|parallel/.test(lid)) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
-    // ── Halos admin (admin-*-boundary-bg) → source des mauves/oranges → supprimés
-    if (type === 'line' && /boundary|admin|border/.test(id) && (/-bg$/.test(id) || /disputed|claim/.test(id))) {
+    // ── Halos admin (-bg, disputed) → source des mauves/oranges → supprimés
+    if (type === 'line' && /boundary|admin|border/.test(lid) && (/-bg$/.test(lid) || /disputed|claim/.test(lid))) {
       map.setLayoutProperty(id, 'visibility', 'none')
       continue
     }
 
     // ── Frontières admin principales → beige très fin et transparent
-    if (type === 'line' && /boundary|admin|border/.test(id)) {
+    if (type === 'line' && /boundary|admin|border/.test(lid)) {
       map.setPaintProperty(id, 'line-color', 'rgba(201,195,180,0.12)')
       map.setPaintProperty(id, 'line-width', 0.45)
       continue
     }
 
     // ── Côtes → très subtiles
-    if (type === 'line' && /coast/.test(id)) {
+    if (type === 'line' && /coast/.test(lid)) {
       map.setPaintProperty(id, 'line-color', 'rgba(120,158,182,0.22)')
       map.setPaintProperty(id, 'line-width', 0.5)
       continue
     }
 
     // ── Cours d'eau (rivières, canaux) → bleu doux
-    if (type === 'line' && /waterway|river|canal|stream/.test(id)) {
+    if (type === 'line' && /waterway|river|canal|stream/.test(lid)) {
       map.setPaintProperty(id, 'line-color', '#A8D3EA')
       map.setPaintProperty(id, 'line-opacity', 0.6)
       continue
     }
 
-    // ── Eau de fond (océan/background) → bleu profond aquarelle
+    // ── Background → couleur TERRE nue (beige chaud)
+    //    L'océan est dessiné par le layer "Water" (fill) par-dessus ce fond
     if (type === 'background') {
-      map.setPaintProperty(id, 'background-color', '#8FBCD8')
+      map.setPaintProperty(id, 'background-color', '#F2EBD8')
       continue
     }
 
-    // ── Eau intérieure (lacs, réservoirs) → bleu légèrement plus clair
-    if (type === 'fill' && /water|lake|reservoir|ocean|sea/.test(id)) {
-      map.setPaintProperty(id, 'fill-color', '#A8D3EA')
+    // ── Eau uniquement (whitelist stricte) → bleu aquarelle
+    //    Ne matche PAS hillshade, land, vegetation, etc.
+    if (type === 'fill' && /^(water|lake|reservoir|ocean|sea)$/.test(lid)) {
+      map.setPaintProperty(id, 'fill-color', '#8FBCD8')
       continue
     }
 
-    // ── Terre de base → beige chaud
-    if (type === 'fill' && /^land$/.test(id)) {
-      map.setPaintProperty(id, 'fill-color', '#F2EBD8')
-      continue
-    }
-
-    // ── Végétation / landcover → vert olive doux
-    if (type === 'fill' && /landcover|wood|forest|grass|scrub|meadow|heath|vegetation/.test(id)) {
+    // ── Végétation → vert olive doux (Grass, Scrub, Tree, Forest, Wood)
+    if (type === 'fill' && /^(grass|scrub|tree|forest|wood|meadow|heath|vegetation)$/.test(lid)) {
       map.setPaintProperty(id, 'fill-color', '#B8C99A')
-      map.setPaintProperty(id, 'fill-opacity', 0.52)
+      map.setPaintProperty(id, 'fill-opacity', 0.55)
       continue
     }
 
-    // ── Sable / désert / plage → beige sable
-    if (type === 'fill' && /sand|desert|beach|bare|dune/.test(id)) {
+    // ── Sable / désert / glacier → beige sable
+    if (type === 'fill' && /^(sand|desert|beach|bare|dune|glacier)$/.test(lid)) {
       map.setPaintProperty(id, 'fill-color', '#E8D8B8')
       continue
     }
 
-    // ── Hillshade → relief doux, opacity 0.28, pas de contraste excessif
+    // ── Parcs naturels → vert légèrement saturé, très transparent
+    if (type === 'fill' && /^park$/.test(lid)) {
+      map.setPaintProperty(id, 'fill-color', '#C8D8A8')
+      map.setPaintProperty(id, 'fill-opacity', 0.35)
+      continue
+    }
+
+    // ── Hillshade → relief doux, pas de contraste excessif
     if (type === 'hillshade') {
       map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(55,42,22,0.35)')
       map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,252,238,0.32)')

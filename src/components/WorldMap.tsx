@@ -158,18 +158,12 @@ export default function WorldMap({
       .join('path')
       .attr('d', pathGen as unknown as string)
       .attr('fill', 'none')
-      .attr('stroke', 'rgba(100, 135, 90, 0.38)')
-      .attr('stroke-width', 0.6)
+      .attr('stroke', 'rgba(90, 110, 80, 0.25)')
+      .attr('stroke-width', 0.5)
       .attr('vector-effect', 'non-scaling-stroke')
       .attr('opacity', 1)
 
-    const graticule = d3.geoGraticule().step([30, 30])
-    countries.append('path')
-      .datum(graticule())
-      .attr('d', pathGen as unknown as string)
-      .attr('fill', 'none')
-      .attr('stroke', 'rgba(74, 110, 130, 0.10)')
-      .attr('stroke-width', 0.6)
+    // Graticule supprimée — rendu trop technique sur fond terrain
 
     // --- Tile layer (Stadia Stamen Terrain Background) ---
     const drawTiles = (transform: d3.ZoomTransform) => {
@@ -432,6 +426,7 @@ export default function WorldMap({
         className="map-canvas"
         aria-hidden="true"
       />
+      <div className="map-overlay" aria-hidden="true" />
       <svg ref={svgRef} width={dimensions.width} height={dimensions.height} className="world-map">
 
         {/* Zones: D3 manages the group transform via zonesGroupRef */}

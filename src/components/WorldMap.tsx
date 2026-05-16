@@ -87,45 +87,56 @@ function customizeStyle(map: maplibregl.Map) {
       continue
     }
 
-    // ── Background → couleur TERRE nue (beige chaud)
-    //    L'océan est dessiné par le layer "Water" (fill) par-dessus ce fond
+    // ── Background → fond de terre nu, sable doré chaud (Sahara, steppes)
     if (type === 'background') {
-      map.setPaintProperty(id, 'background-color', '#F2EBD8')
+      map.setPaintProperty(id, 'background-color', '#C8A870')
       continue
     }
 
-    // ── Eau uniquement (whitelist stricte) → bleu aquarelle
-    //    Ne matche PAS hillshade, land, vegetation, etc.
+    // ── Eau (whitelist stricte) → bleu vif physique
     if (type === 'fill' && /^(water|lake|reservoir|ocean|sea)$/.test(lid)) {
-      map.setPaintProperty(id, 'fill-color', '#8FBCD8')
+      map.setPaintProperty(id, 'fill-color', '#52B0D4')
       continue
     }
 
-    // ── Végétation → vert olive doux (Grass, Scrub, Tree, Forest, Wood)
-    if (type === 'fill' && /^(grass|scrub|tree|forest|wood|meadow|heath|vegetation)$/.test(lid)) {
-      map.setPaintProperty(id, 'fill-color', '#B8C99A')
-      map.setPaintProperty(id, 'fill-opacity', 0.55)
+    // ── Forêts / arbres → vert forêt profond
+    if (type === 'fill' && /^(tree|forest|wood)$/.test(lid)) {
+      map.setPaintProperty(id, 'fill-color', '#4A7A38')
+      map.setPaintProperty(id, 'fill-opacity', 0.88)
       continue
     }
 
-    // ── Sable / désert / glacier → beige sable
-    if (type === 'fill' && /^(sand|desert|beach|bare|dune|glacier)$/.test(lid)) {
-      map.setPaintProperty(id, 'fill-color', '#E8D8B8')
+    // ── Prairies / scrub → vert olive moyen
+    if (type === 'fill' && /^(grass|scrub|meadow|heath|vegetation)$/.test(lid)) {
+      map.setPaintProperty(id, 'fill-color', '#7AAA50')
+      map.setPaintProperty(id, 'fill-opacity', 0.80)
       continue
     }
 
-    // ── Parcs naturels → vert légèrement saturé, très transparent
+    // ── Sable / désert / plage → beige doré
+    if (type === 'fill' && /^(sand|desert|beach|bare|dune)$/.test(lid)) {
+      map.setPaintProperty(id, 'fill-color', '#D4BA72')
+      continue
+    }
+
+    // ── Glacier / neige → blanc glacé
+    if (type === 'fill' && /^glacier$/.test(lid)) {
+      map.setPaintProperty(id, 'fill-color', '#E8EEF4')
+      continue
+    }
+
+    // ── Parcs naturels → vert légèrement saturé, transparent
     if (type === 'fill' && /^park$/.test(lid)) {
-      map.setPaintProperty(id, 'fill-color', '#C8D8A8')
-      map.setPaintProperty(id, 'fill-opacity', 0.35)
+      map.setPaintProperty(id, 'fill-color', '#5A8E42')
+      map.setPaintProperty(id, 'fill-opacity', 0.30)
       continue
     }
 
-    // ── Hillshade → relief doux, pas de contraste excessif
+    // ── Hillshade → relief physique visible, ombres chaudes
     if (type === 'hillshade') {
-      map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(55,42,22,0.35)')
-      map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,252,238,0.32)')
-      map.setPaintProperty(id, 'hillshade-exaggeration', 0.30)
+      map.setPaintProperty(id, 'hillshade-shadow-color', 'rgba(60,40,15,0.55)')
+      map.setPaintProperty(id, 'hillshade-highlight-color', 'rgba(255,250,230,0.50)')
+      map.setPaintProperty(id, 'hillshade-exaggeration', 0.55)
       continue
     }
   }

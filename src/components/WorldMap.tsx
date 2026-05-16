@@ -237,7 +237,7 @@ export default function WorldMap({
             img.onload = () => {
               if (svgRef.current) drawTilesRef.current?.(d3.zoomTransform(svgRef.current))
             }
-            img.src = `https://api.maptiler.com/tiles/natural-earth-2/${tileZ}/${wx}/${ty}.jpg?key=${import.meta.env.VITE_MAPTILER_KEY}`
+            img.src = `https://api.maptiler.com/tiles/natural-earth-2/${tileZ}/${wx}/${ty}.jpg?key=aETkeQlWzYNolMJrUTIx`
             tileCacheRef.current.set(key, img)
           }
         }

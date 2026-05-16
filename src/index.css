@@ -587,8 +587,8 @@ svg {
   height: 100%;
   pointer-events: none;
   display: block;
-  /* MapTiler Natural Earth 2 — palette native, très légèrement calmée */
-  filter: brightness(0.96) saturate(0.88) contrast(0.92);
+  /* NatGeo — palette native premium, juste très légèrement intégrée */
+  filter: brightness(0.97) saturate(0.85) contrast(0.93);
 }
 
 .map-overlay {

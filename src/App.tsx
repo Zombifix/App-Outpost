@@ -380,16 +380,9 @@ function DestinationCard({ destination, favorite, onClose, onFocus, onFavorite, 
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
-          <div className="rating-line">
-            <span className="star">★</span>
-            <strong>{(destination.score ?? 4).toFixed(1).replace('.', ',')}</strong>
-            {destination.intent && (
-              <>
-                <span />
-                <span className="intent-pill">{destination.intent}</span>
-              </>
-            )}
-          </div>
+          {destination.intent && (
+            <span className="intent-pill">{destination.intent}</span>
+          )}
         </div>
         <button
           className={`heart-button ${favorite ? 'is-favorite' : ''}`}

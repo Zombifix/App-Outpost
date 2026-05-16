@@ -513,7 +513,6 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
               {destination.name}
               {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}
             </strong>
-            <small>{score}</small>
             {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
             {shared && <em className="pin-shared-badge">2</em>}
           </button>

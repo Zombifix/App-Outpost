@@ -574,10 +574,9 @@ svg {
 .map-area {
   left: var(--sidebar-w);
   right: 0;
-  top: calc(var(--topbar-t) + var(--topbar-h));
-  bottom: var(--map-b-open);
+  top: 0;
+  bottom: 0;
   overflow: hidden;
-  transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .map-canvas {
@@ -1685,10 +1684,7 @@ svg {
   to { transform: translateX(0); }
 }
 
-/* === Tier list collapsed — map expands to fill freed space === */
-.travel-app.tier-collapsed .map-area {
-  bottom: var(--map-b-closed);
-}
+/* === Tier list collapsed — map already at bottom: 0, nothing to override === */
 .travel-app.tier-collapsed .page-title {
   right: var(--map-r-no-card);
 }

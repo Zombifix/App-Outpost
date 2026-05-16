@@ -604,7 +604,7 @@ svg {
   right: var(--map-r-card);
   top: var(--map-t);
   bottom: var(--map-b-open);
-  overflow: visible;
+  overflow: hidden; /* clip tiles + SVG au container */
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1), right 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -635,7 +635,9 @@ svg {
 
 .map-canvas {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  /* Taille définie par les attrs HTML width/height (ResizeObserver) — pas de CSS width/height */
   pointer-events: none;
   display: block;
   /* Tiles légèrement désaturées + adoucies pour rester en fond discret à tout zoom */
@@ -644,9 +646,9 @@ svg {
 
 .world-map {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  /* Taille définie par les attrs HTML width/height (ResizeObserver) — pas de CSS width/height */
   overflow: visible;
   background: transparent;
   will-change: transform;

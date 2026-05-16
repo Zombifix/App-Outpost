@@ -565,7 +565,7 @@ const Pin = memo(function Pin({ destination, projection, zoomK, selected, onSele
         <foreignObject className="pin-foreign-object" x="-70" y="-36" width="140" height="40">
           <div className="pin-stage">
             <button
-              className={`map-pin map-pin-zone-label${owner === 'friend' ? ' map-pin--friend' : ''}`}
+              className={`map-pin-zone-label${owner === 'friend' ? ' map-pin-zone-label--friend' : ''}`}
               onClick={() => onSelect(destination.name)}
               style={{ '--pin-color': color } as CSSProperties}
             >

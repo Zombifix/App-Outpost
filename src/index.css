@@ -2279,6 +2279,10 @@ svg {
   font-weight: var(--weight-semibold);
   color: var(--ink);
 }
+.map-pin-zone-label--friend {
+  border-color: #7C8DB5;
+  border-style: dashed;
+}
 
 /* ===== Tier List Page ===== */
 .tier-list-page {

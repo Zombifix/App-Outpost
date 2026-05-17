@@ -4,3 +4,4 @@ dist/
 *.local
 .claude/worktrees/
 .env
+supabase/.temp/

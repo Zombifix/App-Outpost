@@ -9,12 +9,13 @@ import TierListPage from './components/TierListPage'
 import AddDestinationWizard from './components/AddDestinationWizard'
 import FriendsView from './components/friends/FriendsView'
 import FriendProfileSheet from './components/friends/FriendProfileSheet'
-import FriendsOnMapPanel from './components/friends/FriendsOnMapPanel'
 import ActivityStrip from './components/friends/ActivityStrip'
 import AddFriendModal from './components/friends/AddFriendModal'
+import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import { AuthProvider, useAuth } from './lib/auth'
 import { supabase } from './lib/supabase'
 import { useFriends } from './hooks/useFriends'
+import { useMyProfile } from './hooks/useMyProfile'
 
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
@@ -149,6 +150,7 @@ export default function App() {
 function AppInner() {
   const { user } = useAuth()
   const { incoming } = useFriends()
+  const { needsSetup } = useMyProfile()
   const pendingFriendCount = incoming.length
 
   // Consommer un éventuel ?invite=<token> dès qu'on est connecté.
@@ -163,7 +165,12 @@ function AppInner() {
     })
   }, [user])
 
-  return <AppCore pendingFriendCount={pendingFriendCount} />
+  return (
+    <>
+      <AppCore pendingFriendCount={pendingFriendCount} />
+      {needsSetup && <ProfileSetupModal />}
+    </>
+  )
 }
 
 function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
@@ -413,12 +420,10 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           onUpdate={updateDestination}
         />
       )}
-      {activeView === 'map' && (
-        <FriendsOnMapPanel
-          onOpenProfile={setProfileFriendUserId}
-          onAddFriend={() => setAddFriendOpen(true)}
-        />
-      )}
+      {/* Le panneau "Amis" flottant sur la map a été retiré : il chevauchait
+          la destination card et le tier board. L'accès aux amis se fait via
+          le bouton "Amis" de la sidebar et l'ActivityStrip ci-dessous reste
+          contextuel (caché tant qu'il n'y a pas d'activité). */}
       {activeView === 'map' && (
         <ActivityStrip
           variant="compact"
@@ -513,14 +518,27 @@ interface AccountPanelProps {
 }
 
 function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps) {
+  const { user, signInWithEmail, signOut } = useAuth()
   const [draftId, setDraftId] = useState(publicId)
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
 
-  const save = () => {
+  const saveLocal = () => {
     const normalized = draftId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     onPublicIdChange(normalized)
-    onClose()
+  }
+
+  const sendMagicLink = async () => {
+    const cleaned = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
+      setFeedback({ kind: 'err', msg: 'Email invalide' })
+      return
+    }
+    setBusy(true)
+    const res = await signInWithEmail(cleaned)
+    setBusy(false)
+    setFeedback(res.error ? { kind: 'err', msg: res.error } : { kind: 'ok', msg: 'Lien envoyé. Ouvre ton email pour te connecter.' })
   }
 
   const shareLink = draftId.trim()
@@ -535,12 +553,49 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
         </button>
         <div className="account-avatar">{draftId ? draftId.slice(0, 1).toUpperCase() : '·'}</div>
         <h2>Mon compte</h2>
-        <p className="account-hint">
-          Tes destinations sont sauvegardées sur cet appareil. Crée un compte pour les retrouver partout
-          et garder un lien de partage stable.
-        </p>
+
+        {user ? (
+          <>
+            <p className="account-hint">Connecté en tant que <strong>{user.email}</strong></p>
+            <button
+              className="add-submit"
+              onClick={async () => { await signOut(); onClose() }}
+              style={{ background: 'transparent', color: '#b91c1c', border: '0.5px solid rgba(220,38,38,0.3)' }}
+            >
+              Me déconnecter
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="account-hint">
+              Connecte-toi par email pour synchroniser tes destinations dans le cloud
+              et activer le système d'amis.
+            </p>
+            <label>
+              Email
+              <input
+                type="email"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                placeholder="toi@email.com"
+                autoComplete="email"
+              />
+            </label>
+            <button className="add-submit" onClick={sendMagicLink} disabled={busy}>
+              {busy ? 'Envoi…' : 'Recevoir un lien magique'}
+            </button>
+            {feedback && (
+              <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
+                {feedback.msg}
+              </p>
+            )}
+          </>
+        )}
+
+        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(0,0,0,0.08)', margin: '20px 0' }} />
+
         <label>
-          Identifiant public
+          Identifiant public (lien de partage)
           <input
             value={draftId}
             onChange={event => setDraftId(event.target.value)}
@@ -550,29 +605,10 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
         {shareLink && (
           <label>
             Ton lien de partage
-            <input readOnly value={shareLink} />
+            <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
           </label>
         )}
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={event => setEmail(event.target.value)}
-            placeholder="toi@email.com"
-          />
-        </label>
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            value={password}
-            onChange={event => setPassword(event.target.value)}
-            placeholder="••••••••"
-          />
-        </label>
-        <p className="account-soon">La synchronisation cloud arrive bientôt.</p>
-        <button className="add-submit" onClick={save}>Enregistrer</button>
+        <button className="add-submit" onClick={saveLocal} style={{ marginTop: 8 }}>Enregistrer l'identifiant</button>
       </aside>
     </div>
   )

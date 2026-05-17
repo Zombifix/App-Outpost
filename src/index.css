@@ -3558,6 +3558,30 @@ svg {
   margin: 12px 0 0;
 }
 
+.profile-setup-handle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.profile-setup-handle-prefix {
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.profile-setup-handle-wrap input {
+  background: transparent;
+  border: none;
+  padding: 10px 0;
+  flex: 1;
+  font-size: 14px;
+  outline: none;
+}
+
 /* Sheet profil ami */
 .friend-profile-sheet {
   position: fixed;

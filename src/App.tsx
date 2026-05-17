@@ -521,14 +521,26 @@ interface AccountPanelProps {
 
 function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps) {
   const { user, signInWithEmail, signOut } = useAuth()
-  const [draftId, setDraftId] = useState(publicId)
+  const { profile } = useMyProfile()
+  const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
+  const [savedTick, setSavedTick] = useState(false)
+
+  // Synchronise le draftId avec le handle Supabase une fois qu'il est chargé
+  useEffect(() => {
+    if (profile?.handle && !publicId) {
+      setDraftId(profile.handle)
+      onPublicIdChange(profile.handle)
+    }
+  }, [profile, publicId, onPublicIdChange])
 
   const saveLocal = () => {
     const normalized = draftId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     onPublicIdChange(normalized)
+    setSavedTick(true)
+    window.setTimeout(() => setSavedTick(false), 1800)
   }
 
   const sendMagicLink = async () => {
@@ -610,7 +622,13 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
             <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
           </label>
         )}
-        <button className="add-submit" onClick={saveLocal} style={{ marginTop: 8 }}>Enregistrer l'identifiant</button>
+        <button
+          className="add-submit"
+          onClick={saveLocal}
+          style={{ marginTop: 8, background: savedTick ? '#3B6D11' : undefined }}
+        >
+          {savedTick ? 'Enregistré ✓' : "Enregistrer l'identifiant"}
+        </button>
       </aside>
     </div>
   )

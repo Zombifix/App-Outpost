@@ -150,7 +150,7 @@ export default function App() {
 function AppInner() {
   const { user } = useAuth()
   const { incoming } = useFriends()
-  const { needsSetup } = useMyProfile()
+  const { needsSetup, upsert: upsertProfile, checkHandleAvailable } = useMyProfile()
   const pendingFriendCount = incoming.length
 
   // Consommer un éventuel ?invite=<token> dès qu'on est connecté.
@@ -168,7 +168,9 @@ function AppInner() {
   return (
     <>
       <AppCore pendingFriendCount={pendingFriendCount} />
-      {needsSetup && <ProfileSetupModal />}
+      {needsSetup && (
+        <ProfileSetupModal upsert={upsertProfile} checkHandleAvailable={checkHandleAvailable} />
+      )}
     </>
   )
 }

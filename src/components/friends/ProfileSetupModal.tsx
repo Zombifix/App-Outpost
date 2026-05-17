@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
-import { useMyProfile } from '../../hooks/useMyProfile'
+import type { useMyProfile } from '../../hooks/useMyProfile'
 import { useAuth } from '../../lib/auth'
+
+type ProfileHook = ReturnType<typeof useMyProfile>
+
+interface ProfileSetupModalProps {
+  /** Les actions du hook useMyProfile détenu par le parent (AppInner). On les
+   *  passe en props pour que le upsert mute le MÊME state que celui qui
+   *  contrôle l'affichage du modal — sinon le modal reste ouvert après création. */
+  upsert: ProfileHook['upsert']
+  checkHandleAvailable: ProfileHook['checkHandleAvailable']
+}
 
 /**
  * Forcé au premier login : impossible de fermer tant que le handle + nom ne sont
@@ -9,9 +19,8 @@ import { useAuth } from '../../lib/auth'
  *
  * Rendu uniquement par App.tsx quand `useMyProfile().needsSetup === true`.
  */
-export default function ProfileSetupModal() {
+export default function ProfileSetupModal({ upsert, checkHandleAvailable }: ProfileSetupModalProps) {
   const { user, signOut } = useAuth()
-  const { upsert, checkHandleAvailable } = useMyProfile()
   const [handle, setHandle] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [handleStatus, setHandleStatus] = useState<'idle' | 'checking' | 'taken' | 'free' | 'invalid'>('idle')

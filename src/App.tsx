@@ -12,6 +12,7 @@ const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const PUBLIC_ID_KEY = 'outpost-public-id'
 const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
+const AUTO_IMAGE_VERSION = 5
 type View = 'map' | 'tier-list' | 'explore'
 
 const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
@@ -82,12 +83,13 @@ function normalizeDestination(value: unknown): Destination | null {
     state: typeof value.state === 'string' ? value.state : undefined,
     osmValue: typeof value.osmValue === 'string' ? value.osmValue : undefined,
     image: typeof value.image === 'string' ? value.image : undefined,
-    imageProvider: ['pexels', 'wikipedia', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
+    imageProvider: ['pexels', 'wikivoyage', 'wikipedia', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
       ? value.imageProvider as Destination['imageProvider']
       : undefined,
     imageAuthor: typeof value.imageAuthor === 'string' ? value.imageAuthor : undefined,
     imageSourceUrl: typeof value.imageSourceUrl === 'string' ? value.imageSourceUrl : undefined,
     imageQuery: typeof value.imageQuery === 'string' ? value.imageQuery : undefined,
+    imageSearchVersion: value.imageSearchVersion === undefined ? undefined : finiteNumber(value.imageSearchVersion, 0),
     summary: typeof value.summary === 'string' ? value.summary : undefined,
     tripName: typeof value.tripName === 'string' ? value.tripName : undefined,
     coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
@@ -122,7 +124,8 @@ function loadPublicId(): string {
 }
 
 function hasWeakAutoImage(destination: Destination) {
-  return destination.imageProvider === 'wikimedia'
+  return (destination.imageProvider === 'wikipedia' && destination.imageSearchVersion !== AUTO_IMAGE_VERSION)
+    || destination.imageProvider === 'wikimedia'
     || destination.imageProvider === 'fallback'
     || (!destination.imageProvider && destination.image === AUTO_IMAGE_FALLBACK)
 }
@@ -189,6 +192,7 @@ export default function App() {
               imageAuthor: upgrade.imageResult.imageAuthor,
               imageSourceUrl: upgrade.imageResult.imageSourceUrl,
               imageQuery: upgrade.imageResult.imageQuery,
+              imageSearchVersion: AUTO_IMAGE_VERSION,
             }
           : destination
       }))

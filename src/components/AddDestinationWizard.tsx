@@ -384,6 +384,7 @@ const TIER_EXPLANATIONS: Record<Tier, string> = {
 }
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
+const AUTO_IMAGE_VERSION = 5
 
 export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate }: WizardProps) {
   const isEditing = !!initialDestination
@@ -581,6 +582,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       imageAuthor: imageResult.imageAuthor,
       imageSourceUrl: imageResult.imageSourceUrl,
       imageQuery: imageResult.imageQuery,
+      imageSearchVersion: AUTO_IMAGE_VERSION,
       summary: `${TIER_LABELS[finalTier]}. ${s.name} — tier mis à jour.`,
     }
 

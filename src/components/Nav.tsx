@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import type { Destination } from '../types'
 
-type View = 'map' | 'tier-list' | 'explore'
-
-interface Friend {
-  name: string
-  handle: string
-  pending?: boolean
-}
+type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
 interface NavProps {
   totalDestinations: number
@@ -17,6 +11,7 @@ interface NavProps {
   sortByScore: boolean
   shareCopied: boolean
   publicId: string
+  pendingFriendCount: number
   onViewChange: (view: View) => void
   onAddClick: () => void
   onFilterToggle: () => void
@@ -26,11 +21,6 @@ interface NavProps {
   onAccountClick: () => void
 }
 
-const initialFriends: Friend[] = [
-  { name: 'Léa Martin', handle: 'lea-m' },
-  { name: 'Alex Bernard', handle: 'alex-b' },
-]
-
 export default function Nav({
   totalDestinations,
   destinations,
@@ -39,6 +29,7 @@ export default function Nav({
   sortByScore,
   shareCopied,
   publicId,
+  pendingFriendCount,
   onViewChange,
   onAddClick,
   onFilterToggle,
@@ -48,9 +39,6 @@ export default function Nav({
   onAccountClick,
 }: NavProps) {
   const [query, setQuery] = useState('')
-  const [friendHandle, setFriendHandle] = useState('')
-  const [friends, setFriends] = useState<Friend[]>(initialFriends)
-  const [networkOpen, setNetworkOpen] = useState(true)
 
   const submitSearch = () => {
     const normalized = query.trim().toLowerCase()
@@ -63,22 +51,6 @@ export default function Nav({
       onViewChange('map')
       onSearch(match.name)
     }
-  }
-
-  const followUser = () => {
-    const raw = friendHandle.trim().replace(/^@/, '').toLowerCase()
-    const handle = raw.replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-    if (!handle) return
-    if (friends.some(f => f.handle === handle)) {
-      setFriendHandle('')
-      return
-    }
-    setFriends(prev => [...prev, { name: handle, handle, pending: true }])
-    setFriendHandle('')
-  }
-
-  const unfollow = (handle: string) => {
-    setFriends(prev => prev.filter(f => f.handle !== handle))
   }
 
   return (
@@ -127,84 +99,21 @@ export default function Nav({
             <Icon name="sliders" />
             Tier list
           </button>
+          <button className={activeView === 'friends' ? 'active' : ''} onClick={() => onViewChange('friends')}>
+            <Icon name="users" />
+            Amis
+            {pendingFriendCount > 0 && (
+              <span className="side-menu-badge" aria-label={`${pendingFriendCount} demandes en attente`}>
+                {pendingFriendCount}
+              </span>
+            )}
+          </button>
           <button className={activeView === 'explore' ? 'active' : ''} onClick={() => onViewChange('explore')}>
             <Icon name="compass" />
             Explorer
           </button>
         </nav>
 
-        <section className={`network-drawer${networkOpen ? ' is-open' : ''}`} aria-label="Mon réseau">
-          <button
-            className="network-header"
-            onClick={() => setNetworkOpen(value => !value)}
-            aria-expanded={networkOpen}
-          >
-            <span className="network-title">
-              <Icon name="users" />
-              Réseau
-              <em>{friends.length}</em>
-            </span>
-            <Icon name={networkOpen ? 'chevron-down' : 'chevron-up'} />
-          </button>
-
-          {networkOpen && (
-            <>
-              <p className="network-hint">Suis d'autres voyageurs pour voir leur carte et comparer vos classements.</p>
-
-              <div className="network-list">
-                {friends.length === 0 ? (
-                  <p className="network-empty">Personne pour l'instant. Ajoute un pseudo ci-dessous.</p>
-                ) : (
-                  friends.map(friend => (
-                    <div className="network-row" key={friend.handle}>
-                      <span className="network-avatar">{friend.name.slice(0, 1).toUpperCase()}</span>
-                      <span className="network-meta">
-                        <strong>{friend.name}</strong>
-                        <small>@{friend.handle}{friend.pending ? ' · invité' : ''}</small>
-                      </span>
-                      <button
-                        className="network-action"
-                        title="Voir sa carte"
-                        aria-label={`Voir la carte de ${friend.name}`}
-                      >
-                        <Icon name="map" />
-                      </button>
-                      <button
-                        className="network-action"
-                        title="Comparer nos cartes"
-                        aria-label={`Comparer avec ${friend.name}`}
-                      >
-                        <Icon name="versus" />
-                      </button>
-                      <button
-                        className="network-remove"
-                        onClick={() => unfollow(friend.handle)}
-                        title="Ne plus suivre"
-                        aria-label={`Ne plus suivre ${friend.name}`}
-                      >
-                        <Icon name="x" />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="network-add">
-                <span className="network-add-prefix">@</span>
-                <input
-                  value={friendHandle}
-                  onChange={event => setFriendHandle(event.target.value)}
-                  onKeyDown={event => { if (event.key === 'Enter') followUser() }}
-                  placeholder="pseudo-a-suivre"
-                  aria-label="Pseudo à suivre"
-                />
-                <button onClick={followUser} disabled={!friendHandle.trim()}>
-                  Suivre
-                </button>
-              </div>
-            </>
-          )}
-        </section>
       </aside>
 
       <header className="topbar">
@@ -239,7 +148,7 @@ export default function Nav({
         </div>
       </header>
 
-      {activeView !== 'tier-list' && (
+      {activeView !== 'tier-list' && activeView !== 'friends' && (
         <section className="page-title" aria-label="Titre de la page">
           <h1>
             {activeView === 'map' && 'Mon carnet de voyages'}

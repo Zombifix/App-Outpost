@@ -6,11 +6,19 @@ import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
 import TierListPage from './components/TierListPage'
 import AddDestinationWizard from './components/AddDestinationWizard'
+import FriendsView from './components/friends/FriendsView'
+import FriendProfileSheet from './components/friends/FriendProfileSheet'
+import FriendsOnMapPanel from './components/friends/FriendsOnMapPanel'
+import ActivityStrip from './components/friends/ActivityStrip'
+import AddFriendModal from './components/friends/AddFriendModal'
+import { AuthProvider, useAuth } from './lib/auth'
+import { supabase } from './lib/supabase'
+import { useFriends } from './hooks/useFriends'
 
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const PUBLIC_ID_KEY = 'outpost-public-id'
-type View = 'map' | 'tier-list' | 'explore'
+type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
 const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
 const VALID_INTENTS: Intent[] = ['city-trip', 'tourisme', 'sorties', 'gastro', 'nature', 'travail']
@@ -120,6 +128,36 @@ function loadPublicId(): string {
 }
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
+  )
+}
+
+function AppInner() {
+  const { user } = useAuth()
+  const { incoming } = useFriends()
+  const pendingFriendCount = incoming.length
+
+  // Consommer un éventuel ?invite=<token> dès qu'on est connecté.
+  useEffect(() => {
+    if (!user || !supabase) return
+    const url = new URL(window.location.href)
+    const token = url.searchParams.get('invite')
+    if (!token) return
+    void supabase.rpc('consume_invite', { invite_token: token }).then(() => {
+      url.searchParams.delete('invite')
+      window.history.replaceState({}, '', url.toString())
+    })
+  }, [user])
+
+  return <AppCore pendingFriendCount={pendingFriendCount} />
+}
+
+function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
+  const [profileFriendUserId, setProfileFriendUserId] = useState<string | null>(null)
+  const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
@@ -255,6 +293,16 @@ export default function App() {
           }}
         />
       )}
+      {activeView === 'friends' && (
+        <FriendsView
+          onOpenProfile={setProfileFriendUserId}
+          onFlyTo={(lat, lng, name) => {
+            setActiveView('map')
+            setFlyTarget({ lat, lng, name })
+            setSelectedName(name)
+          }}
+        />
+      )}
       <Nav
         totalDestinations={visibleDestinations.length}
         activeView={activeView}
@@ -262,6 +310,7 @@ export default function App() {
         sortByScore={sortByScore}
         shareCopied={shareCopied}
         publicId={publicId}
+        pendingFriendCount={pendingFriendCount}
         onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
         onFilterToggle={() => setFilterTop(value => !value)}
@@ -309,6 +358,39 @@ export default function App() {
           initialDestination={editingDestination}
           onUpdate={updateDestination}
         />
+      )}
+      {activeView === 'map' && (
+        <FriendsOnMapPanel
+          onOpenProfile={setProfileFriendUserId}
+          onAddFriend={() => setAddFriendOpen(true)}
+        />
+      )}
+      {activeView === 'map' && (
+        <ActivityStrip
+          variant="compact"
+          onFlyTo={(lat, lng, name) => {
+            setFlyTarget({ lat, lng, name })
+            setSelectedName(name)
+          }}
+          onOpenProfile={setProfileFriendUserId}
+          onSeeAll={() => setActiveView('friends')}
+        />
+      )}
+      {profileFriendUserId && (
+        <FriendProfileSheet
+          friendUserId={profileFriendUserId}
+          myDestinations={destinations}
+          onClose={() => setProfileFriendUserId(null)}
+          onFlyTo={(lat, lng, name) => {
+            setProfileFriendUserId(null)
+            setActiveView('map')
+            setFlyTarget({ lat, lng, name })
+            setSelectedName(name)
+          }}
+        />
+      )}
+      {addFriendOpen && (
+        <AddFriendModal onClose={() => setAddFriendOpen(false)} />
       )}
       {accountOpen && (
         <AccountPanel

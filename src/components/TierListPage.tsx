@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import type { Destination, Friend, Intent, Tier } from '../types'
 import {
-  FRIENDS,
-  FRIEND_DESTINATIONS,
   TIER_COLORS,
   TIER_ORDER,
   COUNTRY_TO_CONTINENT,
 } from '../data'
+import { useFriends } from '../hooks/useFriends'
+import { useFriendDestinations } from '../hooks/useFriendDestinations'
 
 interface TierListPageProps {
   destinations: Destination[]
@@ -213,10 +213,13 @@ function TierRow({
 
 export default function TierListPage({ destinations }: TierListPageProps) {
   const [friend, setFriend] = useState<Friend | null>(null)
+  const [friendUserId, setFriendUserId] = useState<string | null>(null)
   const [intent, setIntent] = useState<Intent | 'all'>('all')
   const [collapsed, setCollapsed] = useState<Record<Tier, boolean>>({ S: false, A: false, B: true, C: true, D: true })
   const [comparePicker, setComparePicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
+  const { accepted: realFriends } = useFriends()
+  const { destinations: realFriendDests } = useFriendDestinations(friendUserId)
 
   useEffect(() => {
     if (!comparePicker) return
@@ -229,7 +232,7 @@ export default function TierListPage({ destinations }: TierListPageProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [comparePicker])
 
-  const friendDests = friend ? (FRIEND_DESTINATIONS[friend.initials] ?? []) : []
+  const friendDests = friend ? realFriendDests : []
   const myFiltered = useMemo(() => applyFilters(destinations, intent), [destinations, intent])
   const friendFiltered = useMemo(() => applyFilters(friendDests, intent), [friendDests, intent])
 
@@ -305,22 +308,37 @@ export default function TierListPage({ destinations }: TierListPageProps) {
           {comparePicker && (
             <div className="friend-picker">
               {friend && (
-                <button className="friend-picker-clear" onClick={() => { setFriend(null); setComparePicker(false) }}>
+                <button className="friend-picker-clear" onClick={() => { setFriend(null); setFriendUserId(null); setComparePicker(false) }}>
                   Désactiver la comparaison
                 </button>
               )}
-              {FRIENDS.map(f => (
-                <button
-                  key={f.initials}
-                  className={`friend-picker-item ${friend?.initials === f.initials ? 'is-active' : ''}`}
-                  onClick={() => { setFriend(f); setComparePicker(false) }}
-                  style={{ '--friend-color': f.color, '--friend-bg': f.bg } as React.CSSProperties}
-                >
-                  <span className="friend-picker-avatar">{f.initials}</span>
-                  <span className="friend-picker-name">{f.name}</span>
-                  <span className="friend-picker-count">{f.count} dest.</span>
-                </button>
-              ))}
+              {realFriends.length === 0 && (
+                <p className="friends-muted" style={{ padding: '8px 12px' }}>
+                  Aucun ami pour l'instant. Ajoute-en depuis la vue "Amis" pour comparer vos tier lists.
+                </p>
+              )}
+              {realFriends.map(f => {
+                const initials = f.displayName.slice(0, 2).toUpperCase()
+                const friendShape: Friend = {
+                  initials,
+                  name: f.displayName,
+                  color: f.avatarFg,
+                  bg: f.avatarBg,
+                  count: 0,
+                }
+                return (
+                  <button
+                    key={f.otherUser}
+                    className={`friend-picker-item ${friendUserId === f.otherUser ? 'is-active' : ''}`}
+                    onClick={() => { setFriend(friendShape); setFriendUserId(f.otherUser); setComparePicker(false) }}
+                    style={{ '--friend-color': f.avatarFg, '--friend-bg': f.avatarBg } as React.CSSProperties}
+                  >
+                    <span className="friend-picker-avatar">{initials}</span>
+                    <span className="friend-picker-name">{f.displayName}</span>
+                    <span className="friend-picker-count">@{f.handle}</span>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

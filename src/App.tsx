@@ -3,6 +3,10 @@ import type { Destination, Intent, RoadTripStop, Tier } from './types'
 import { DESTINATIONS } from './data'
 import { resolveDestinationImage } from './services/imageSearch'
 import WorldMap from './components/WorldMap'
+import DestinationSheet from './components/DestinationSheet'
+import BottomNav from './components/BottomNav'
+import { BrandLogo } from './components/BrandLogo'
+import { Icon } from './components/Icon'
 import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
 import TierListPage from './components/TierListPage'
@@ -382,6 +386,15 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
 
   return (
     <div className={appClass}>
+      <div className="mobile-brand" aria-hidden="true">
+        <BrandLogo className="mobile-brand-logo" />
+      </div>
+      <BottomNav
+        activeView={activeView}
+        pendingFriendCount={pendingFriendCount}
+        onViewChange={setActiveView}
+        onAddClick={() => setAddingDestination(true)}
+      />
       {activeView === 'map' && (
         <WorldMap
           destinations={visibleDestinations}
@@ -431,7 +444,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         onAccountClick={() => setAccountOpen(true)}
       />
       {activeView === 'map' && selected && (
-        <DestinationCard
+        <DestinationSheet
           destination={selected}
           coupDeCoeur={selected.coupDeCoeur ?? false}
           coupDeCoeurCount={coupDeCoeurCount}
@@ -679,6 +692,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
 }
 
 
+<<<<<<< HEAD
 interface DestinationCardProps {
   destination: Destination
   coupDeCoeur: boolean
@@ -892,3 +906,5 @@ function Icon({ name }: { name: string }) {
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>
 }
+=======
+>>>>>>> dcaa7d9505c81115a7cf47afc8ef156ed3d1e4b8

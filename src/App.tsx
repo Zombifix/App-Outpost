@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from './types'
 import { DESTINATIONS } from './data'
+import { resolveDestinationImage } from './services/imageSearch'
 import WorldMap from './components/WorldMap'
 import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
@@ -18,6 +19,8 @@ import { useFriends } from './hooks/useFriends'
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const PUBLIC_ID_KEY = 'outpost-public-id'
+const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
+const AUTO_IMAGE_VERSION = 5
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
 const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
@@ -88,12 +91,13 @@ function normalizeDestination(value: unknown): Destination | null {
     state: typeof value.state === 'string' ? value.state : undefined,
     osmValue: typeof value.osmValue === 'string' ? value.osmValue : undefined,
     image: typeof value.image === 'string' ? value.image : undefined,
-    imageProvider: ['pexels', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
+    imageProvider: ['pexels', 'wikivoyage', 'wikipedia', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
       ? value.imageProvider as Destination['imageProvider']
       : undefined,
     imageAuthor: typeof value.imageAuthor === 'string' ? value.imageAuthor : undefined,
     imageSourceUrl: typeof value.imageSourceUrl === 'string' ? value.imageSourceUrl : undefined,
     imageQuery: typeof value.imageQuery === 'string' ? value.imageQuery : undefined,
+    imageSearchVersion: value.imageSearchVersion === undefined ? undefined : finiteNumber(value.imageSearchVersion, 0),
     summary: typeof value.summary === 'string' ? value.summary : undefined,
     tripName: typeof value.tripName === 'string' ? value.tripName : undefined,
     coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
@@ -125,6 +129,13 @@ function loadPublicId(): string {
   } catch {
     return ''
   }
+}
+
+function hasWeakAutoImage(destination: Destination) {
+  return (destination.imageProvider === 'wikipedia' && destination.imageSearchVersion !== AUTO_IMAGE_VERSION)
+    || destination.imageProvider === 'wikimedia'
+    || destination.imageProvider === 'fallback'
+    || (!destination.imageProvider && destination.image === AUTO_IMAGE_FALLBACK)
 }
 
 export default function App() {
@@ -186,6 +197,49 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(destinations))
     } catch {
       /* ignore */
+    }
+  }, [destinations])
+
+  useEffect(() => {
+    const refreshTargets = destinations.filter(hasWeakAutoImage)
+    if (!refreshTargets.length) return
+
+    let cancelled = false
+    Promise.all(refreshTargets.map(async destination => {
+      const imageResult = await resolveDestinationImage({
+        name: destination.name,
+        country: destination.country,
+        kind: destination.kind,
+        stops: destination.stops,
+        fallbackImage: destination.image ?? AUTO_IMAGE_FALLBACK,
+      })
+
+      if (imageResult.imageProvider === 'fallback' || imageResult.imageProvider === 'wikimedia') return null
+      return { name: destination.name, imageResult }
+    })).then(results => {
+      if (cancelled) return
+      const upgrades = results.filter((result): result is NonNullable<typeof result> => result !== null)
+      if (!upgrades.length) return
+      setDestinations(previous => previous.map(destination => {
+        const upgrade = upgrades.find(item => item.name === destination.name)
+        return upgrade
+          ? {
+              ...destination,
+              image: upgrade.imageResult.image,
+              imageProvider: upgrade.imageResult.imageProvider,
+              imageAuthor: upgrade.imageResult.imageAuthor,
+              imageSourceUrl: upgrade.imageResult.imageSourceUrl,
+              imageQuery: upgrade.imageResult.imageQuery,
+              imageSearchVersion: AUTO_IMAGE_VERSION,
+            }
+          : destination
+      }))
+    }).catch(() => {
+      /* keep the current stored images */
+    })
+
+    return () => {
+      cancelled = true
     }
   }, [destinations])
 
@@ -592,16 +646,6 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       />
-      {destination.imageSourceUrl && destination.imageProvider !== 'fallback' && (
-        <a
-          className="destination-image-credit"
-          href={destination.imageSourceUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Photo {destination.imageAuthor ? `par ${destination.imageAuthor}` : `via ${destination.imageProvider}`}
-        </a>
-      )}
       <div className="destination-title-row">
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>

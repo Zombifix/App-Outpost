@@ -719,11 +719,12 @@ export default function WorldMap({
     <section
       className="map-area"
       aria-label="Carte des destinations"
-      onDragStart={(event) => event.preventDefault()}
+      draggable={false}
+      onDragStartCapture={(event) => event.preventDefault()}
     >
-      <div ref={mapContainerRef} className="map-gl-container" />
+      <div ref={mapContainerRef} className="map-gl-container" draggable={false} />
 
-      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">
+      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations" draggable={false}>
         <g ref={pinsGroupRef}>
           {mapReady && (() => {
             const shared   = sharedNames ?? new Set<string>()
@@ -913,6 +914,7 @@ const Pin = memo(function Pin({
           <div className="pin-stage pin-stage--route">
             <button
               className={`map-pin-route-card${owner === 'friend' ? ' map-pin--friend' : ''}`}
+              draggable={false}
               onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
               style={{ '--pin-color': color } as CSSProperties}>
               <span className="route-tier">{destination.tier}</span>
@@ -938,6 +940,7 @@ const Pin = memo(function Pin({
         <div className="pin-stage">
           <button
             className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}`}
+            draggable={false}
             onClick={() => onSelect(destination.name)}
             style={{ '--pin-color': color } as CSSProperties}>
             <span>{destination.tier}</span>

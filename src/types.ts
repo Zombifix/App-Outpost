@@ -28,10 +28,11 @@ export interface Destination {
   state?: string
   osmValue?: string
   image?: string
-  imageProvider?: 'pexels' | 'wikimedia' | 'fallback'
+  imageProvider?: 'pexels' | 'wikivoyage' | 'wikipedia' | 'wikimedia' | 'fallback'
   imageAuthor?: string
   imageSourceUrl?: string
   imageQuery?: string
+  imageSearchVersion?: number
   score?: number
   notes?: number
   summary?: string

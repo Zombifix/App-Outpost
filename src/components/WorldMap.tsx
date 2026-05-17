@@ -650,6 +650,23 @@ export default function WorldMap({
       const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
       el.setAttribute('transform', `translate(${x},${y})`)
     })
+
+    // Re-project route paths on every map move (otherwise they get stuck at old coords)
+    pinsGroupRef.current.querySelectorAll<SVGGElement>('g.route-path-root').forEach(group => {
+      const raw = group.dataset.stops
+      if (!raw) return
+      const points: [number, number][] = []
+      for (const pair of raw.split(';')) {
+        const [lngStr, latStr] = pair.split(',')
+        const lng = parseFloat(lngStr)
+        const lat = parseFloat(latStr)
+        if (!isFinite(lng) || !isFinite(lat)) continue
+        const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+        points.push([x, y])
+      }
+      const d = points.length >= 2 ? smoothPath(points) : ''
+      group.querySelectorAll<SVGPathElement>('path').forEach(p => p.setAttribute('d', d))
+    })
   }
 
   // ── Fly to destination ──────────────────────────────────────────────────────
@@ -889,14 +906,20 @@ function smoothPath(points: [number, number][]): string {
 }
 
 const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: RoutePathProps) {
-  const points = stops
-    .filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng))
+  const validStops = stops.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng))
+  const points = validStops
     .map(s => projection([s.lng, s.lat]))
     .filter((p): p is [number, number] => Array.isArray(p))
   if (points.length < 2) return null
   const d = smoothPath(points)
+  // Serialize stops as `lng,lat;lng,lat;...` for imperative re-projection on map move.
+  const stopsAttr = validStops.map(s => `${s.lng},${s.lat}`).join(';')
   return (
-    <g className={`route-path-root route-path-root--${owner}`} style={{ '--pin-color': color } as CSSProperties}>
+    <g
+      className={`route-path-root route-path-root--${owner}`}
+      data-stops={stopsAttr}
+      style={{ '--pin-color': color } as CSSProperties}
+    >
       <path className="route-path-glow" d={d} />
       <path className="route-path-halo" d={d} />
       <path className="route-path" d={d} />

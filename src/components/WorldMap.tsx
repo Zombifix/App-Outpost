@@ -708,40 +708,44 @@ export default function WorldMap({
             const friendOnly = friendDestinations
               ? friendDestinations.filter(d => !shared.has(d.name.toLowerCase()))
               : []
+            const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
+              const color = getTierColor(d.tier)
+              if (!d.stops?.length || !color) return [] as JSX.Element[]
+              // Numérotation : seules les stages comptent (les passages restent en dot blanc)
+              let stageCounter = 0
+              const stopEls = d.stops.map((stop, index) => {
+                const isPassage = stop.type === 'passage'
+                const stageNumber = isPassage ? undefined : ++stageCounter
+                return (
+                  <RouteStop
+                    key={`${owner}-stop:${d.name}:${stop.name}:${index}`}
+                    stop={stop}
+                    parentName={d.name}
+                    projection={projFnRef.current}
+                    color={color}
+                    owner={owner}
+                    zoomK={zoomK}
+                    onSelect={onSelect}
+                    stageNumber={stageNumber}
+                  />
+                )
+              })
+              return [
+                <RoutePath
+                  key={`${owner}-path:${d.name}`}
+                  stops={d.stops}
+                  projection={projFnRef.current}
+                  color={color}
+                  owner={owner}
+                />,
+                ...stopEls,
+              ]
+            }
+
             return (
               <>
-                {friendOnly.flatMap(d => (
-                  d.kind === 'zone' && d.stops?.length && getTierColor(d.tier)
-                    ? d.stops.map((stop, index) => (
-                      <RouteStop
-                        key={`friend-stop:${d.name}:${stop.name}:${index}`}
-                        stop={stop}
-                        parentName={d.name}
-                        projection={projFnRef.current}
-                        color={getTierColor(d.tier)!}
-                        owner="friend"
-                        zoomK={zoomK}
-                        onSelect={onSelect}
-                      />
-                    ))
-                    : []
-                ))}
-                {destinations.flatMap(d => (
-                  d.kind === 'zone' && d.stops?.length && getTierColor(d.tier)
-                    ? d.stops.map((stop, index) => (
-                      <RouteStop
-                        key={`stop:${d.name}:${stop.name}:${index}`}
-                        stop={stop}
-                        parentName={d.name}
-                        projection={projFnRef.current}
-                        color={getTierColor(d.tier)!}
-                        owner="me"
-                        zoomK={zoomK}
-                        onSelect={onSelect}
-                      />
-                    ))
-                    : []
-                ))}
+                {friendOnly.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'friend') : [])}
+                {destinations.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'me') : [])}
                 {friendOnly.map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={false} onSelect={onSelect} onZoomToZone={zoomToZone}
@@ -810,10 +814,11 @@ interface RouteStopProps {
   owner: 'me' | 'friend'
   zoomK: number
   onSelect: (name: string) => void
+  stageNumber?: number
 }
 
 const RouteStop = memo(function RouteStop({
-  stop, parentName, projection, color, owner, zoomK, onSelect,
+  stop, parentName, projection, color, owner, zoomK, onSelect, stageNumber,
 }: RouteStopProps) {
   if (!stop.name.trim() || !Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return null
   const projected = projection([stop.lng, stop.lat])
@@ -831,16 +836,70 @@ const RouteStop = memo(function RouteStop({
       onClick={() => onSelect(parentName)}
     >
       <title>{stop.name}{isPassage ? ' (passage)' : ''}</title>
-      <circle className="route-stop-hit" r={15} />
+      <circle className="route-stop-hit" r={18} />
       {isPassage ? (
-        <circle className="route-stop-dot route-stop-dot--passage" r={3.5} />
+        // Passage : petit dot fin posé sur la ligne
+        <circle className="route-stop-passage" r={4} />
       ) : (
+        // Stage : mini pin photo-style (couleur tier + numéro)
         <>
-          <circle className="route-stop-dot" r={5.5} />
-          <circle className="route-stop-core" r={2.5} />
-          {zoomK >= 5 && <text className="route-stop-label" x={9} y={4}>{stop.name}</text>}
+          <circle className="route-stop-stage-outer" r={15} />
+          <circle className="route-stop-stage-inner" r={12} />
+          {stageNumber !== undefined && (
+            <text className="route-stop-number" x={0} y={4} textAnchor="middle">{stageNumber}</text>
+          )}
+          {zoomK >= 5 && <text className="route-stop-label" x={19} y={4}>{stop.name}</text>}
         </>
       )}
+    </g>
+  )
+})
+
+// ── Route polyline ───────────────────────────────────────────────────────────
+interface RoutePathProps {
+  stops: RoadTripStop[]
+  projection: Proj
+  color: string
+  owner: 'me' | 'friend'
+}
+
+/**
+ * Build a roadtrip path between stops. Each segment is a quadratic bezier with a
+ * subtle perpendicular offset (~3% of length) — almost straight but with the slight
+ * organic curve that distinguishes a "route" from a "GPS line".
+ */
+function smoothPath(points: [number, number][]): string {
+  if (points.length < 2) return ''
+  const parts: string[] = [`M ${points[0][0]} ${points[0][1]}`]
+  for (let i = 0; i < points.length - 1; i++) {
+    const [ax, ay] = points[i]
+    const [bx, by] = points[i + 1]
+    const dx = bx - ax
+    const dy = by - ay
+    const len = Math.hypot(dx, dy) || 1
+    // Subtle offset = 3% of segment length, capped at 9px. Alternate side.
+    const offset = Math.min(9, len * 0.03) * (i % 2 === 0 ? 1 : -1)
+    const px = -dy / len
+    const py = dx / len
+    const mx = (ax + bx) / 2 + px * offset
+    const my = (ay + by) / 2 + py * offset
+    parts.push(`Q ${mx.toFixed(2)} ${my.toFixed(2)} ${bx} ${by}`)
+  }
+  return parts.join(' ')
+}
+
+const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: RoutePathProps) {
+  const points = stops
+    .filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng))
+    .map(s => projection([s.lng, s.lat]))
+    .filter((p): p is [number, number] => Array.isArray(p))
+  if (points.length < 2) return null
+  const d = smoothPath(points)
+  return (
+    <g className={`route-path-root route-path-root--${owner}`} style={{ '--pin-color': color } as CSSProperties}>
+      <path className="route-path-glow" d={d} />
+      <path className="route-path-halo" d={d} />
+      <path className="route-path" d={d} />
     </g>
   )
 })
@@ -877,35 +936,10 @@ const Pin = memo(function Pin({
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
     .toFixed(1).replace('.', ',')
 
-  // ── Zone label ─────────────────────────────────────────────────────────────
+  // ── Zone : pas de gros pin sur la carte. La route + les stops racontent le voyage.
+  // Le clic sur un stop ou sur la ligne ouvre déjà la zone parent dans le sheet.
   if (destination.kind === 'zone') {
-    const stopCount = destination.stops?.filter(stop => (
-      stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)
-    )).length ?? 0
-
-    return (
-      <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
-         data-lng={destination.lng} data-lat={destination.lat}
-         transform={`translate(${cx},${cy}) scale(${pinScale})`}>
-        <foreignObject className="pin-foreign-object pin-foreign-object--route" x="-118" y="-58" width="236" height="78">
-          <div className="pin-stage pin-stage--route">
-            <button
-              className={`map-pin-route-card${owner === 'friend' ? ' map-pin--friend' : ''}`}
-              draggable={false}
-              onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
-              style={{ '--pin-color': color } as CSSProperties}>
-              <span className="route-tier">{destination.tier}</span>
-              <span className="route-copy">
-                <strong>{destination.name}</strong>
-                <small>{stopCount > 0 ? `${stopCount} lieu${stopCount > 1 ? 'x' : ''}` : 'Zone'}</small>
-              </span>
-              {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
-              {shared && <em className="pin-shared-badge">2</em>}
-            </button>
-          </div>
-        </foreignObject>
-      </g>
-    )
+    return null
   }
 
   // ── Full destination pin ───────────────────────────────────────────────────
@@ -916,11 +950,14 @@ const Pin = memo(function Pin({
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
-            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}`}
+            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}`}
             draggable={false}
             onClick={() => onSelect(destination.name)}
-            style={{ '--pin-color': color } as CSSProperties}>
-            <span>{destination.tier}</span>
+            style={{
+              '--pin-color': color,
+              '--pin-photo': destination.image ? `url("${destination.image}")` : 'none',
+            } as CSSProperties}>
+            <span className="map-pin-tier">{destination.tier}</span>
             <strong>
               {destination.name}
               {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}

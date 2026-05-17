@@ -168,8 +168,8 @@ svg {
   font-size: var(--text-sm);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
-  background: linear-gradient(135deg, #4c3fe0, #7a6bff);
-  box-shadow: 0 6px 22px rgba(76, 63, 224, 0.38);
+  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  box-shadow: 0 6px 22px rgba(27, 95, 232, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
@@ -603,8 +603,8 @@ svg {
   min-width: 118px;
   justify-content: center;
   color: white;
-  background: linear-gradient(135deg, #4c3fe0, #7a6bff);
-  box-shadow: 0 4px 18px rgba(76, 63, 224, 0.38);
+  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  box-shadow: 0 4px 18px rgba(27, 95, 232, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 

@@ -155,32 +155,9 @@ function addAtlasCountryLabels(map: maplibregl.Map) {
 function customizeAtlasPremiumStyle(map: maplibregl.Map) {
   const palette = ATLAS_PREMIUM_PALETTE
 
-  map.addSource('atlas-relief', {
-    type: 'raster',
-    tiles: ['https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}'],
-    tileSize: 256,
-    attribution: '© Esri',
-  })
-
-  const firstVectorLayerId = map.getStyle().layers.find(layer => layer.type !== 'background')?.id
-  map.addLayer({
-    id: 'atlas-relief-raster',
-    type: 'raster',
-    source: 'atlas-relief',
-    paint: {
-      'raster-opacity': 0.18,
-      'raster-saturation': -1,
-      'raster-contrast': 0.12,
-      'raster-brightness-min': 0.12,
-      'raster-brightness-max': 0.96,
-    },
-  }, firstVectorLayerId)
-
   for (const layer of map.getStyle().layers) {
     const { id, type } = layer
     const lid = id.toLowerCase()
-
-    if (id === 'atlas-relief-raster') continue
 
     if (type === 'hillshade') {
       safeSetPaint(map, id, 'hillshade-shadow-color', palette.relief)

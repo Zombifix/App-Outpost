@@ -3298,12 +3298,26 @@ svg {
 }
 
 .friends-view {
-  position: fixed;
-  inset: 0;
-  padding: 80px 24px 40px calc(var(--sidebar-w, 280px) + 32px);
-  overflow-y: auto;
-  background: #f5f7fa;
+  position: absolute;
   z-index: 5;
+  top: var(--title-t);
+  left: var(--content-l);
+  right: var(--gap);
+  bottom: var(--gap);
+  padding: 16px 6px 24px 4px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.friends-view--unconfigured,
+.friends-view--signin {
+  /* Empty states : centrer le contenu */
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  padding-top: 80px;
 }
 
 .friends-view h1 {
@@ -3426,12 +3440,6 @@ svg {
 .friends-empty p {
   color: #6b7280;
   margin: 0 0 20px;
-}
-
-.friends-view--unconfigured,
-.friends-view--signin {
-  text-align: center;
-  padding-top: 120px;
 }
 
 .friends-view--unconfigured code {

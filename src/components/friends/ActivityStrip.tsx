@@ -19,6 +19,8 @@ interface ActivityStripProps {
 export default function ActivityStrip({ onFlyTo, onOpenProfile, onSeeAll, variant = 'compact' }: ActivityStripProps) {
   const { events, loading } = useActivityFeed(variant === 'full' ? 60 : 12)
   const [collapsed, setCollapsed] = useState(false)
+  // ⚠️ Rules of Hooks : tous les hooks DOIVENT être appelés avant tout early return.
+  const grouped = useMemo(() => groupSameActorSameKindRecent(events), [events])
 
   if (variant === 'compact' && collapsed) {
     return (
@@ -29,8 +31,6 @@ export default function ActivityStrip({ onFlyTo, onOpenProfile, onSeeAll, varian
   }
 
   if (variant === 'compact' && events.length === 0 && !loading) return null
-
-  const grouped = useMemo(() => groupSameActorSameKindRecent(events), [events])
 
   if (variant === 'full') {
     return (

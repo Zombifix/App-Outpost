@@ -4,6 +4,7 @@ import { DESTINATIONS } from './data'
 import { resolveDestinationImage } from './services/imageSearch'
 import WorldMap from './components/WorldMap'
 import DestinationSheet from './components/DestinationSheet'
+import BottomNav from './components/BottomNav'
 import { BrandLogo } from './components/BrandLogo'
 import { Icon } from './components/Icon'
 import Nav from './components/Nav'
@@ -360,6 +361,12 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       <div className="mobile-brand" aria-hidden="true">
         <BrandLogo className="mobile-brand-logo" />
       </div>
+      <BottomNav
+        activeView={activeView}
+        pendingFriendCount={pendingFriendCount}
+        onViewChange={setActiveView}
+        onAddClick={() => setAddingDestination(true)}
+      />
       {activeView === 'map' && (
         <WorldMap
           destinations={visibleDestinations}

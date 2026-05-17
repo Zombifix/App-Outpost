@@ -16,8 +16,8 @@ interface DestinationSheetProps {
 
 type SnapState = 'peek' | 'full'
 
-const PEEK_RATIO = 0.62
-const FULL_RATIO = 0.12
+const PEEK_RATIO = 0.40
+const FULL_RATIO = 0.08
 const CLOSE_RATIO = 0.85
 
 export default function DestinationSheet(props: DestinationSheetProps) {

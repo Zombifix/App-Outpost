@@ -38,7 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithEmail = async (email: string, inviteToken?: string) => {
     if (!supabase) return { error: 'Supabase non configuré' }
     const redirectBase = `${window.location.origin}${window.location.pathname}`
-    const redirectTo = inviteToken ? `${redirectBase}?invite=${encodeURIComponent(inviteToken)}` : redirectBase
+    // Si pas de token explicite, on regarde s'il y en a un dans l'URL courante
+    // (cas d'un destinataire d'invitation pas encore inscrit qui se logue depuis
+    //  la page sur laquelle il a atterri).
+    const tokenFromUrl = inviteToken ?? new URL(window.location.href).searchParams.get('invite') ?? undefined
+    const redirectTo = tokenFromUrl ? `${redirectBase}?invite=${encodeURIComponent(tokenFromUrl)}` : redirectBase
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
     return error ? { error: error.message } : {}
   }

@@ -12,6 +12,7 @@ import FriendProfileSheet from './components/friends/FriendProfileSheet'
 import ActivityStrip from './components/friends/ActivityStrip'
 import AddFriendModal from './components/friends/AddFriendModal'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
+import FriendToast from './components/friends/FriendToast'
 import { AuthProvider, useAuth } from './lib/auth'
 import { supabase } from './lib/supabase'
 import { useFriends } from './hooks/useFriends'
@@ -149,27 +150,45 @@ export default function App() {
 
 function AppInner() {
   const { user } = useAuth()
-  const { incoming } = useFriends()
+  const { incoming, refresh: refreshFriends } = useFriends()
   const { needsSetup, upsert: upsertProfile, checkHandleAvailable } = useMyProfile()
   const pendingFriendCount = incoming.length
+  const [friendToast, setFriendToast] = useState<string | null>(null)
 
   // Consommer un éventuel ?invite=<token> dès qu'on est connecté.
+  // Le RPC retourne le user_id de l'inviteur ; on récupère son profil pour
+  // afficher un toast "Tu es maintenant ami avec X".
   useEffect(() => {
     if (!user || !supabase) return
     const url = new URL(window.location.href)
     const token = url.searchParams.get('invite')
     if (!token) return
-    void supabase.rpc('consume_invite', { invite_token: token }).then(() => {
+    const client = supabase
+    void (async () => {
+      const { data: inviterId } = await client.rpc('consume_invite', { invite_token: token })
       url.searchParams.delete('invite')
       window.history.replaceState({}, '', url.toString())
-    })
-  }, [user])
+      if (inviterId) {
+        const { data: inviterProfile } = await client
+          .from('public_profiles')
+          .select('display_name, handle')
+          .eq('user_id', inviterId as string)
+          .maybeSingle()
+        const name = inviterProfile?.display_name ?? inviterProfile?.handle ?? 'ton ami'
+        setFriendToast(`Tu es maintenant ami avec ${name}`)
+        void refreshFriends()
+      }
+    })()
+  }, [user, refreshFriends])
 
   return (
     <>
       <AppCore pendingFriendCount={pendingFriendCount} />
       {needsSetup && (
         <ProfileSetupModal upsert={upsertProfile} checkHandleAvailable={checkHandleAvailable} />
+      )}
+      {friendToast && (
+        <FriendToast message={friendToast} onDismiss={() => setFriendToast(null)} />
       )}
     </>
   )

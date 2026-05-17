@@ -41,6 +41,7 @@ export const DESTINATIONS: Destination[] = [
     image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=900&q=85',
     score: 4.4, notes: 20,
     summary: 'Architecture solaire, tapas, plage et nuits animees.',
+    tripYear: 2024, tripDays: 5, companions: 'amis', personalBudget: 450, standout: 'Ambiance',
     food: 5, night: 5, culture: 4, nature: 3, value: 4, intent: 'sorties',
   },
   {

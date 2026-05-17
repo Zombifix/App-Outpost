@@ -45,6 +45,11 @@ interface WizardState {
   vibeBoost: number | null
   retourBonus: number
   intent: Intent
+  tripYear: number | null
+  tripDays: number | null
+  companions: Destination['companions'] | null
+  personalBudget: number | null
+  standout: string
 }
 
 async function fetchNominatimGeojson(name: string, country: string): Promise<object | undefined> {
@@ -367,6 +372,16 @@ const TYPE_OPTIONS: { kind: DestKind; icon: string; label: string; desc: string 
   { kind: 'zone', icon: '🗺️', label: 'Road trip / Zone', desc: 'Une région, un itinéraire' },
 ]
 
+const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; label: string }> = [
+  { value: 'solo', label: 'Solo' },
+  { value: 'couple', label: 'Couple' },
+  { value: 'amis', label: 'Amis' },
+  { value: 'famille', label: 'Famille' },
+  { value: 'travail', label: 'Travail' },
+]
+
+const STANDOUT_OPTIONS = ['Ambiance', 'Bouffe', 'Rencontres', 'Paysages', 'Activites', 'Calme', 'Depaysement']
+
 const TIER_LABELS: Record<Tier, string> = {
   S: 'Exceptionnel',
   A: 'Génial',
@@ -414,6 +429,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           vibeBoost: null,
           retourBonus: 0,
           intent: initialDestination.intent,
+          tripYear: initialDestination.tripYear ?? null,
+          tripDays: initialDestination.tripDays ?? null,
+          companions: initialDestination.companions ?? null,
+          personalBudget: initialDestination.personalBudget ?? null,
+          standout: initialDestination.standout ?? '',
         }
       : {
           name: '', country: '', state: undefined, osmValue: undefined, lat: 0, lng: 0,
@@ -421,6 +441,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           food: null, night: null, culture: null, nature: null, value: null,
           vibeBoost: null, retourBonus: 0,
           intent: 'tourisme',
+          tripYear: null, tripDays: null, companions: null, personalBudget: null, standout: '',
         }
   )
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -583,6 +604,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       imageSourceUrl: imageResult.imageSourceUrl,
       imageQuery: imageResult.imageQuery,
       imageSearchVersion: AUTO_IMAGE_VERSION,
+      tripYear: Number.isFinite(s.tripYear) ? s.tripYear ?? undefined : undefined,
+      tripDays: Number.isFinite(s.tripDays) ? s.tripDays ?? undefined : undefined,
+      companions: s.companions ?? undefined,
+      personalBudget: Number.isFinite(s.personalBudget) ? s.personalBudget ?? undefined : undefined,
+      standout: s.standout.trim() || undefined,
       summary: `${TIER_LABELS[finalTier]}. ${s.name} — tier mis à jour.`,
     }
 
@@ -790,6 +816,66 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 )}
               </div>
             )}
+            <div className="wizard-context">
+              <p className="wizard-context-title">Contexte optionnel</p>
+              <div className="wizard-context-grid">
+                <label>
+                  <span>Année</span>
+                  <input
+                    value={state.tripYear ?? ''}
+                    inputMode="numeric"
+                    placeholder="2024"
+                    onChange={e => setState(prev => ({ ...prev, tripYear: e.target.value ? Number(e.target.value) : null }))}
+                  />
+                </label>
+                <label>
+                  <span>Durée</span>
+                  <input
+                    value={state.tripDays ?? ''}
+                    inputMode="numeric"
+                    placeholder="5 jours"
+                    onChange={e => setState(prev => ({ ...prev, tripDays: e.target.value ? Number(e.target.value) : null }))}
+                  />
+                </label>
+                <label>
+                  <span>Budget perso</span>
+                  <input
+                    value={state.personalBudget ?? ''}
+                    inputMode="numeric"
+                    placeholder="450 €"
+                    onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
+                  />
+                </label>
+              </div>
+              <div className="wizard-context-group">
+                <span>Avec qui ?</span>
+                <div className="wizard-chip-row" aria-label="Avec qui">
+                  {COMPANION_OPTIONS.map(option => (
+                    <button
+                      key={option.value}
+                      className={state.companions === option.value ? 'is-selected' : ''}
+                      onClick={() => setState(prev => ({ ...prev, companions: prev.companions === option.value ? null : option.value }))}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="wizard-context-group">
+                <span>Ce qui t'a marque ?</span>
+                <div className="wizard-chip-row" aria-label="Ce qui t'a marqué">
+                  {STANDOUT_OPTIONS.map(option => (
+                    <button
+                      key={option}
+                      className={state.standout === option ? 'is-selected' : ''}
+                      onClick={() => setState(prev => ({ ...prev, standout: prev.standout === option ? '' : option }))}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             <button className="wizard-submit" onClick={confirmAdd} disabled={resolvingImage}>
               {resolvingImage
                 ? 'Recherche de la photo...'

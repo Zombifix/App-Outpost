@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { DestinationFilters } from '../App'
 import type { Destination } from '../types'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
@@ -7,14 +8,14 @@ interface NavProps {
   totalDestinations: number
   destinations: Destination[]
   activeView: View
-  filterTop: boolean
+  filters: DestinationFilters
   sortByScore: boolean
   shareCopied: boolean
   publicId: string
   pendingFriendCount: number
   onViewChange: (view: View) => void
   onAddClick: () => void
-  onFilterToggle: () => void
+  onFiltersChange: (filters: DestinationFilters) => void
   onSortToggle: () => void
   onSearch: (name: string) => void
   onShare: () => void
@@ -25,20 +26,32 @@ export default function Nav({
   totalDestinations,
   destinations,
   activeView,
-  filterTop,
+  filters,
   sortByScore,
   shareCopied,
   publicId,
   pendingFriendCount,
   onViewChange,
   onAddClick,
-  onFilterToggle,
+  onFiltersChange,
   onSortToggle,
   onSearch,
   onShare,
   onAccountClick,
 }: NavProps) {
   const [query, setQuery] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const activeFilterCount = [
+    filters.topTiers,
+    filters.under300,
+    filters.recentOnly,
+    filters.duration !== 'all',
+    filters.ambiance,
+  ].filter(Boolean).length
+
+  const updateFilters = (patch: Partial<DestinationFilters>) => {
+    onFiltersChange({ ...filters, ...patch })
+  }
 
   const submitSearch = () => {
     const normalized = query.trim().toLowerCase()
@@ -129,10 +142,53 @@ export default function Nav({
           />
         </label>
         <div className="top-actions">
-          <button className={filterTop ? 'active-action' : ''} onClick={onFilterToggle}>
-            <Icon name="sliders" />
-            {filterTop ? 'Top tiers' : 'Filtres'}
-          </button>
+          <div className="filter-menu-wrap">
+            <button
+              className={activeFilterCount ? 'active-action' : ''}
+              onClick={() => setFiltersOpen(value => !value)}
+              aria-expanded={filtersOpen}
+            >
+              <Icon name="sliders" />
+              Filtres{activeFilterCount ? ` (${activeFilterCount})` : ''}
+            </button>
+            {filtersOpen && (
+              <div className="filter-popover">
+                <div className="filter-popover-head">
+                  <strong>Filtres</strong>
+                  {activeFilterCount > 0 && (
+                    <button
+                      type="button"
+                      onPointerDown={() => onFiltersChange({ topTiers: false, under300: false, recentOnly: false, duration: 'all', ambiance: false })}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="filter-chip-grid">
+                  <button type="button" className={filters.topTiers ? 'is-active' : ''} onPointerDown={() => updateFilters({ topTiers: !filters.topTiers })}>
+                    Top tiers
+                  </button>
+                  <button type="button" className={filters.under300 ? 'is-active' : ''} onPointerDown={() => updateFilters({ under300: !filters.under300 })}>
+                    &lt; 300 €
+                  </button>
+                  <button type="button" className={filters.recentOnly ? 'is-active' : ''} onPointerDown={() => updateFilters({ recentOnly: !filters.recentOnly })}>
+                    Récent
+                  </button>
+                  <button type="button" className={filters.ambiance ? 'is-active' : ''} onPointerDown={() => updateFilters({ ambiance: !filters.ambiance })}>
+                    Ambiance
+                  </button>
+                </div>
+                <div className="filter-duration">
+                  <span>Durée</span>
+                  <div>
+                    <button type="button" className={filters.duration === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'all' })}>Tout</button>
+                    <button type="button" className={filters.duration === 'short' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'short' })}>Court</button>
+                    <button type="button" className={filters.duration === 'long' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'long' })}>Long</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <button className={sortByScore ? 'active-action' : ''} onClick={onSortToggle}>
             <Icon name="sort" />
             {sortByScore ? 'Score' : 'Trier'}

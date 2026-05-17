@@ -24,10 +24,25 @@ const PUBLIC_ID_KEY = 'outpost-public-id'
 const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 const AUTO_IMAGE_VERSION = 5
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
+export type DestinationFilters = {
+  topTiers: boolean
+  under300: boolean
+  recentOnly: boolean
+  duration: 'all' | 'short' | 'long'
+  ambiance: boolean
+}
 
 const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
 const VALID_INTENTS: Intent[] = ['city-trip', 'tourisme', 'sorties', 'gastro', 'nature', 'travail']
 const VALID_KINDS: NonNullable<Destination['kind']>[] = ['place', 'zone', 'stop', 'stage']
+const VALID_COMPANIONS: NonNullable<Destination['companions']>[] = ['solo', 'couple', 'amis', 'famille', 'travail']
+const DEFAULT_FILTERS: DestinationFilters = {
+  topTiers: false,
+  under300: false,
+  recentOnly: false,
+  duration: 'all',
+  ambiance: false,
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -102,6 +117,13 @@ function normalizeDestination(value: unknown): Destination | null {
     imageSearchVersion: value.imageSearchVersion === undefined ? undefined : finiteNumber(value.imageSearchVersion, 0),
     summary: typeof value.summary === 'string' ? value.summary : undefined,
     tripName: typeof value.tripName === 'string' ? value.tripName : undefined,
+    tripYear: value.tripYear === undefined ? undefined : finiteNumber(value.tripYear, undefined),
+    tripDays: value.tripDays === undefined ? undefined : finiteNumber(value.tripDays, undefined),
+    companions: VALID_COMPANIONS.includes(value.companions as NonNullable<Destination['companions']>)
+      ? value.companions as Destination['companions']
+      : undefined,
+    personalBudget: value.personalBudget === undefined ? undefined : finiteNumber(value.personalBudget, undefined),
+    standout: typeof value.standout === 'string' ? value.standout : undefined,
     coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
   }
 }
@@ -200,9 +222,8 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
-  const [filterTop, setFilterTop] = useState(false)
+  const [filters, setFilters] = useState<DestinationFilters>(DEFAULT_FILTERS)
   const [sortByScore, setSortByScore] = useState(false)
-  const [manageMode, setManageMode] = useState(false)
   const [tierListCollapsed, setTierListCollapsed] = useState(false)
   const [addingDestination, setAddingDestination] = useState(false)
   const [editingDestination, setEditingDestination] = useState<Destination | null>(null)
@@ -272,15 +293,22 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   }, [destinations])
 
   const visibleDestinations = useMemo(() => {
-    const filtered = filterTop
-      ? destinations.filter(destination => destination.tier === 'S' || destination.tier === 'A')
-      : destinations
+    const currentYear = new Date().getFullYear()
+    const filtered = destinations.filter(destination => {
+      if (filters.topTiers && destination.tier !== 'S' && destination.tier !== 'A') return false
+      if (filters.under300 && (!destination.personalBudget || destination.personalBudget > 300)) return false
+      if (filters.recentOnly && (!destination.tripYear || destination.tripYear < currentYear - 1)) return false
+      if (filters.duration === 'short' && (!destination.tripDays || destination.tripDays > 4)) return false
+      if (filters.duration === 'long' && (!destination.tripDays || destination.tripDays < 7)) return false
+      if (filters.ambiance && destination.standout !== 'Ambiance') return false
+      return true
+    })
 
     return [...filtered].sort((a, b) => {
       if (sortByScore) return (b.score ?? 0) - (a.score ?? 0)
       return a.name.localeCompare(b.name)
     })
-  }, [destinations, filterTop, sortByScore])
+  }, [destinations, filters, sortByScore])
 
   const selected = useMemo(
     () => destinations.find(destination => destination.name === selectedName) ?? null,
@@ -388,14 +416,14 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       <Nav
         totalDestinations={visibleDestinations.length}
         activeView={activeView}
-        filterTop={filterTop}
+        filters={filters}
         sortByScore={sortByScore}
         shareCopied={shareCopied}
         publicId={publicId}
         pendingFriendCount={pendingFriendCount}
         onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
-        onFilterToggle={() => setFilterTop(value => !value)}
+        onFiltersChange={setFilters}
         onSortToggle={() => setSortByScore(value => !value)}
         onSearch={selectByName}
         destinations={destinations}
@@ -417,14 +445,11 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       {activeView === 'map' && (
         <TierListPanel
           destinations={visibleDestinations}
-          manageMode={manageMode}
           collapsed={tierListCollapsed}
           coupDeCoeurCount={coupDeCoeurCount}
-          onManageToggle={() => setManageMode(value => !value)}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
           onCoupDeCoeurToggle={toggleCoupDeCoeur}
           onFlyTo={selectByName}
-          onDelete={removeDestination}
         />
       )}
       {addingDestination && (
@@ -665,9 +690,49 @@ interface DestinationCardProps {
   onDelete: (name: string) => void
 }
 
+const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> = {
+  solo: 'Solo',
+  couple: 'Couple',
+  amis: 'Amis',
+  famille: 'Famille',
+  travail: 'Travail',
+}
+
+function formatEuro(value: number) {
+  return `${Math.round(value).toLocaleString('fr-FR')} €`
+}
+
+function getDestinationContext(destination: Destination) {
+  const meta: Array<{ icon: string; label: string }> = []
+  const details: Array<{ icon: string; label: string; value: string }> = []
+
+  if (destination.tripYear) {
+    meta.push({ icon: 'calendar', label: String(destination.tripYear) })
+  }
+  if (destination.tripDays) {
+    meta.push({ icon: 'clock', label: `${destination.tripDays} jour${destination.tripDays > 1 ? 's' : ''}` })
+  }
+  if (destination.companions) {
+    details.push({ icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })
+  }
+  if (destination.personalBudget) {
+    const perDay = destination.tripDays ? destination.personalBudget / destination.tripDays : destination.personalBudget
+    meta.push({
+      icon: 'coins',
+      label: destination.tripDays ? `~${formatEuro(perDay)}/jour` : `~${formatEuro(destination.personalBudget)}`,
+    })
+  }
+  if (destination.standout) {
+    details.push({ icon: 'sparkles', label: 'Marquant', value: destination.standout })
+  }
+
+  return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
+}
+
 function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, onFocus, onCoupDeCoeur, onEdit, onDelete }: DestinationCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const context = getDestinationContext(destination)
 
   const criteria = [
     ['Gastronomie', destination.food, 'utensils'],
@@ -725,11 +790,23 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
-          {destination.intent && (
-            <span className="intent-pill">{destination.intent}</span>
-          )}
+          <div className="destination-pill-row">
+            {destination.intent && (
+              <span className="intent-pill">{destination.intent}</span>
+            )}
+            <button
+              className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
+              aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Coup de coeur · ${coupDeCoeurCount}/2 utilise`}
+              title={coupDeCoeur ? 'Coup de coeur · retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur · ${coupDeCoeurCount}/2 utilise`}
+              disabled={coupDeCoeurDisabled}
+              onClick={onCoupDeCoeur}
+            >
+              <Icon name="heart" />
+              Coup de coeur
+            </button>
+          </div>
         </div>
-        <button
+        {/*
           className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
           aria-label={coupDeCoeur ? 'Retirer le coup de cœur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Coup de cœur · ${coupDeCoeurCount}/2 utilisé`}
           title={coupDeCoeur ? 'Coup de cœur · retirer' : coupDeCoeurDisabled ? '2 coups de cœur déjà utilisés' : `Coup de cœur · ${coupDeCoeurCount}/2 utilisé`}
@@ -737,9 +814,33 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
           onClick={onCoupDeCoeur}
         >
           <Icon name="heart" />
-        </button>
+        */}
       </div>
-      <p>{destination.summary}</p>
+      {context.hasContext && (
+        <div className="destination-context" aria-label="Contexte du voyage">
+          {context.meta.length > 0 && (
+            <div className="destination-context-meta">
+              {context.meta.map(item => (
+                <span key={`${item.icon}-${item.label}`}>
+                  <Icon name={item.icon} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {context.details.length > 0 && (
+            <div className="destination-context-details">
+              {context.details.map(item => (
+                <div key={`${item.icon}-${item.label}`}>
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <h3>Notes par critere</h3>
       <div className="criteria-list">
         {criteria.map(([label, value, icon]) => (
@@ -779,6 +880,10 @@ function Icon({ name }: { name: string }) {
     mountain: <><path d="m3 20 7-13 4 7 2-3 5 9Z" /><path d="m10 7 2 4 2-3" /></>,
     plane: <><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" /></>,
     coins: <><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" /><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></>,
+    calendar: <><path d="M8 2v4" /><path d="M16 2v4" /><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M3 10h18" /></>,
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
+    sparkles: <><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z" /><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8Z" /><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8Z" /></>,
     edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" /></>,
     trash: <><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>,
     star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,

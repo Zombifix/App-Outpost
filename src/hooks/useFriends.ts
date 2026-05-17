@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Friendship, PublicProfile } from '../types'
@@ -61,12 +61,16 @@ export function useFriends() {
     void refresh()
   }, [refresh])
 
-  // Realtime : refetch dès qu'une ligne friendships impliquant moi change
+  // Realtime : refetch dès qu'une ligne friendships impliquant moi change.
+  // Suffixe random pour qu'il n'y ait pas de collision quand plusieurs composants
+  // appellent useFriends() en parallèle (sinon supabase-js réutilise le channel
+  // déjà subscribed et .on() après .subscribe() crashe).
+  const channelIdRef = useRef<string>(Math.random().toString(36).slice(2, 10))
   useEffect(() => {
     if (!supabase || !user) return
     const client = supabase
     const channel = client
-      .channel(`friendships:${user.id}`)
+      .channel(`friendships:${user.id}:${channelIdRef.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
         void refresh()
       })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { ActivityEvent, ActivityKind } from '../types'
@@ -83,11 +83,14 @@ export function useActivityFeed(limit = 30) {
 
   useEffect(() => { void refresh() }, [refresh])
 
+  // Suffixe random pour éviter les collisions de channel name entre plusieurs
+  // instances de useActivityFeed (cf. même commentaire dans useFriends).
+  const channelIdRef = useRef<string>(Math.random().toString(36).slice(2, 10))
   useEffect(() => {
     if (!supabase || !user) return
     const client = supabase
     const channel = client
-      .channel(`activities:${user.id}`)
+      .channel(`activities:${user.id}:${channelIdRef.current}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activities' }, () => {
         void refresh()
       })

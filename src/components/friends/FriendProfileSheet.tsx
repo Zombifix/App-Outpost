@@ -27,8 +27,12 @@ export default function FriendProfileSheet({
   onFlyTo,
   onToggleMapOverlay,
 }: FriendProfileSheetProps) {
-  const { accepted, removeFriendship } = useFriends()
-  const friend = accepted.find(f => f.otherUser === friendUserId) ?? null
+  const { accepted, incoming, outgoing, removeFriendship } = useFriends()
+  const friend =
+    accepted.find(f => f.otherUser === friendUserId)
+    ?? incoming.find(f => f.otherUser === friendUserId)
+    ?? outgoing.find(f => f.otherUser === friendUserId)
+    ?? null
   const { destinations: theirDestinations, loading } = useFriendDestinations(friendUserId)
   const [tab, setTab] = useState<Tab>('overview')
 

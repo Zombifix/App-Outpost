@@ -13,7 +13,9 @@
       "Bash(git checkout *)",
       "Bash(git merge *)",
       "Bash(git rm *)",
-      "Bash(git rebase *)"
+      "Bash(git rebase *)",
+      "Bash(git ls-remote *)",
+      "Bash(git stash *)"
     ]
   }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { ActivityEvent, ActivityKind } from '../types'
+import { FAKE_FRIENDS_MODE, FAKE_ACTIVITY, subscribeFakeLive } from './_fakeFriends'
 
 interface ActivityRow {
   id: string
@@ -26,7 +27,9 @@ interface EnrichedActivity extends ActivityEvent {
  */
 export function useActivityFeed(limit = 30) {
   const { user } = useAuth()
-  const [events, setEvents] = useState<EnrichedActivity[]>([])
+  const [events, setEvents] = useState<EnrichedActivity[]>(
+    FAKE_FRIENDS_MODE ? (FAKE_ACTIVITY.slice(0, limit) as EnrichedActivity[]) : []
+  )
   const [loading, setLoading] = useState(false)
 
   const fetchProfiles = useCallback(async (actorIds: string[]) => {
@@ -46,6 +49,10 @@ export function useActivityFeed(limit = 30) {
   }, [])
 
   const refresh = useCallback(async () => {
+    if (FAKE_FRIENDS_MODE) {
+      setEvents(FAKE_ACTIVITY.slice(0, limit) as EnrichedActivity[])
+      return
+    }
     if (!supabase || !user) {
       setEvents([])
       return
@@ -82,6 +89,16 @@ export function useActivityFeed(limit = 30) {
   }, [user, limit, fetchProfiles])
 
   useEffect(() => { void refresh() }, [refresh])
+
+  // Abonnement au "live ticker" du mode fake : chaque tick prepend un event
+  // au feed pour simuler la liveness (la sidebar et le pulse 'Live' réagissent).
+  useEffect(() => {
+    if (!FAKE_FRIENDS_MODE) return
+    const off = subscribeFakeLive(event => {
+      setEvents(prev => [event, ...prev].slice(0, limit))
+    })
+    return off
+  }, [limit])
 
   // Suffixe random pour éviter les collisions de channel name entre plusieurs
   // instances de useActivityFeed (cf. même commentaire dans useFriends).

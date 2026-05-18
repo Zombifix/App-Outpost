@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
 import type { Destination } from '../types'
 import { BrandLogo } from './BrandLogo'
+import { useActivityFeed } from '../hooks/useActivityFeed'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
@@ -10,17 +11,18 @@ interface NavProps {
   destinations: Destination[]
   activeView: View
   filters: DestinationFilters
-  sortByScore: boolean
   shareCopied: boolean
   publicId: string
   pendingFriendCount: number
   onViewChange: (view: View) => void
   onAddClick: () => void
   onFiltersChange: (filters: DestinationFilters) => void
-  onSortToggle: () => void
   onSearch: (name: string) => void
   onShare: () => void
   onAccountClick: () => void
+  onOpenFriends: () => void
+  viewingFriend?: { userId: string; handle: string; displayName: string } | null
+  onBackToMyCarnet?: () => void
 }
 
 export default function Nav({
@@ -28,17 +30,18 @@ export default function Nav({
   destinations,
   activeView,
   filters,
-  sortByScore,
   shareCopied,
   publicId,
   pendingFriendCount,
   onViewChange,
   onAddClick,
   onFiltersChange,
-  onSortToggle,
   onSearch,
   onShare,
   onAccountClick,
+  onOpenFriends,
+  viewingFriend,
+  onBackToMyCarnet,
 }: NavProps) {
   const [query, setQuery] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -88,20 +91,13 @@ export default function Nav({
             <Icon name="sliders" />
             Tier list
           </button>
-          <button className={activeView === 'friends' ? 'active' : ''} onClick={() => onViewChange('friends')}>
-            <Icon name="users" />
-            Amis
-            {pendingFriendCount > 0 && (
-              <span className="side-menu-badge" aria-label={`${pendingFriendCount} demandes en attente`}>
-                {pendingFriendCount}
-              </span>
-            )}
-          </button>
           <button className={activeView === 'explore' ? 'active' : ''} onClick={() => onViewChange('explore')}>
             <Icon name="compass" />
             Explorer
           </button>
         </nav>
+
+        <SidebarActivity onSeeAll={onOpenFriends} />
 
       </aside>
 
@@ -165,10 +161,14 @@ export default function Nav({
               </div>
             )}
           </div>
-          <button className={sortByScore ? 'active-action' : ''} onClick={onSortToggle}>
-            <Icon name="sort" />
-            {sortByScore ? 'Score' : 'Trier'}
-            <Icon name="chevron" />
+          <button onClick={onOpenFriends} aria-label="Amis">
+            <Icon name="users" />
+            Amis
+            {pendingFriendCount > 0 && (
+              <span className="top-action-badge" aria-label={`${pendingFriendCount} demandes en attente`}>
+                {pendingFriendCount}
+              </span>
+            )}
           </button>
           <button className="share" onClick={onShare}>
             <Icon name="share" />
@@ -182,8 +182,19 @@ export default function Nav({
 
       {activeView !== 'tier-list' && activeView !== 'friends' && (
         <section className="page-title" aria-label="Titre de la page">
+          {viewingFriend && activeView === 'map' && onBackToMyCarnet && (
+            <button
+              type="button"
+              className="page-title-back"
+              onClick={onBackToMyCarnet}
+              aria-label="Retour à mon carnet"
+            >
+              <Icon name="arrow-left" />
+              <span>Mon carnet</span>
+            </button>
+          )}
           <h1>
-            {activeView === 'map' && 'Mon carnet de voyages'}
+            {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · carnet de voyage` : 'Mon carnet de voyages')}
             {activeView === 'explore' && 'Explorer - Suggestions IA'}
           </h1>
           <p>
@@ -213,6 +224,7 @@ function Icon({ name }: { name: string }) {
     compass: <><circle cx="12" cy="12" r="9" /><path d="m15 9-2 5-5 2 2-5Z" /></>,
     users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
     arrow: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
+    'arrow-left': <><path d="M19 12H5" /><path d="m11 18-6-6 6-6" /></>,
     chevron: <path d="m6 9 6 6 6-6" />,
     search: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
     sliders: <><path d="M4 21v-7" /><path d="M4 10V3" /><path d="M12 21v-9" /><path d="M12 8V3" /><path d="M20 21v-5" /><path d="M20 12V3" /><path d="M1 14h6" /><path d="M9 8h6" /><path d="M17 16h6" /></>,
@@ -226,4 +238,97 @@ function Icon({ name }: { name: string }) {
   }
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>
+}
+
+function SidebarActivity({ onSeeAll }: { onSeeAll: () => void }) {
+  const { events } = useActivityFeed(10)
+
+  // Mémorise les IDs déjà vus pour ne marquer "is-new" que les arrivées live.
+  const seenRef = useRef<Set<string>>(new Set())
+  const initializedRef = useRef(false)
+  const [pulseId, setPulseId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!initializedRef.current) {
+      events.forEach(e => seenRef.current.add(e.id))
+      initializedRef.current = true
+      return
+    }
+    const fresh = events.find(e => !seenRef.current.has(e.id))
+    if (fresh) {
+      seenRef.current.add(fresh.id)
+      setPulseId(fresh.id)
+      const t = setTimeout(() => setPulseId(null), 2200)
+      return () => clearTimeout(t)
+    }
+  }, [events])
+
+  if (events.length === 0) return null
+  const top = events.slice(0, 5)
+
+  return (
+    <section className="sidebar-activity" aria-label="Activité récente">
+      <header className="sidebar-activity-head">
+        <h4>
+          <span className="sidebar-activity-live" aria-hidden="true" />
+          Activité récente
+        </h4>
+        <button className="sidebar-activity-link" onClick={onSeeAll}>Tout voir</button>
+      </header>
+      <ul>
+        {top.map(ev => {
+          const actor = ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'
+          const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
+            || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
+            || ''
+          const image = typeof ev.payload?.image === 'string' ? ev.payload.image : undefined
+          const isPulse = pulseId === ev.id
+          return (
+            <li key={ev.id} className={isPulse ? 'is-new' : ''}>
+              <button className="sidebar-activity-row" onClick={onSeeAll}>
+                <span
+                  className="sidebar-activity-thumb"
+                  style={image
+                    ? { backgroundImage: `url(${image})` }
+                    : { background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
+                  aria-hidden="true"
+                >
+                  {!image && actor.slice(0, 1).toUpperCase()}
+                </span>
+                <span className="sidebar-activity-text">
+                  <strong>{actor}</strong>
+                  <span className="sidebar-activity-snippet">{renderShortLabel(ev.kind, name)}</span>
+                </span>
+                <span className="sidebar-activity-time">{shortTime(ev.createdAt)}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+function renderShortLabel(kind: string, name: string): string {
+  switch (kind) {
+    case 'destination_added': return name ? `+ ${name}` : 'nouvelle destination'
+    case 'tier_changed': return name ? `déplace ${name}` : 'déplacement de tier'
+    case 'coup_de_coeur_set': return name ? `❤ ${name}` : 'coup de cœur'
+    case 'roadtrip_created': return name ? `roadtrip ${name}` : 'nouveau roadtrip'
+    case 'roadtrip_stop_added': return name ? `étape ${name}` : 'nouvelle étape'
+    case 'friendship_accepted': return 'nouvel ami'
+    case 'mutual_destination': return name ? `partage ${name}` : 'destination partagée'
+    case 'milestone': return name ? `cap : ${name}` : 'a atteint un cap'
+    default: return kind
+  }
+}
+
+function shortTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'à l’instant'
+  if (min < 60) return `${min}m`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h`
+  return `${Math.floor(hr / 24)}j`
 }

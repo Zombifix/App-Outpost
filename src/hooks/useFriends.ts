@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Friendship, PublicProfile } from '../types'
+import { FAKE_FRIENDS_MODE, FAKE_FRIENDSHIPS } from './_fakeFriends'
 
 interface FriendshipRow {
   other_user: string
@@ -36,11 +37,17 @@ function rowToFriendship(row: FriendshipRow, myUserId: string): Friendship {
  */
 export function useFriends() {
   const { user } = useAuth()
-  const [friendships, setFriendships] = useState<Friendship[]>([])
+  const [friendships, setFriendships] = useState<Friendship[]>(
+    FAKE_FRIENDS_MODE ? FAKE_FRIENDSHIPS : []
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
+    if (FAKE_FRIENDS_MODE) {
+      setFriendships(FAKE_FRIENDSHIPS)
+      return
+    }
     if (!supabase || !user) {
       setFriendships([])
       return

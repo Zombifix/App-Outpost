@@ -624,7 +624,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       companions: s.companions ?? undefined,
       personalBudget: Number.isFinite(s.personalBudget) ? s.personalBudget ?? undefined : undefined,
       standout: s.standout.trim() || undefined,
-      summary: `${TIER_LABELS[finalTier]}. ${s.name} — tier mis à jour.`,
     }
 
     if (isEditing && onUpdate) {

@@ -354,7 +354,14 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   }
 
   const updateDestination = (updated: Destination) => {
-    setDestinations(previous => previous.map(item => item.name === updated.name ? updated : item))
+    const originalName = editingDestination?.name ?? updated.name
+    const merged = editingDestination
+      ? { ...updated, coupDeCoeur: editingDestination.coupDeCoeur }
+      : updated
+
+    setDestinations(previous => previous.map(item => item.name === originalName ? merged : item))
+    setSelectedName(merged.name)
+    setFlyTarget({ lat: merged.lat, lng: merged.lng, name: merged.name })
     setEditingDestination(null)
   }
 

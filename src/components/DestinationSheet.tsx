@@ -1,17 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { Destination } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { TIER_COLORS } from '../data'
+import { findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 
 interface DestinationSheetProps {
   destination: Destination
   coupDeCoeur: boolean
   coupDeCoeurCount: number
+  allDestinations?: Destination[]
   onClose: () => void
   onFocus: () => void
   onCoupDeCoeur: () => void
   onEdit: (destination: Destination) => void
   onDelete: (name: string) => void
+  onOpenTrip?: (tripName: string) => void
 }
 
 type SnapState = 'peek' | 'full'
@@ -133,11 +138,13 @@ function DestinationCardContent({
   destination,
   coupDeCoeur,
   coupDeCoeurCount,
+  allDestinations,
   onClose,
   onFocus,
   onCoupDeCoeur,
   onEdit,
   onDelete,
+  onOpenTrip,
 }: DestinationSheetProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -151,6 +158,24 @@ function DestinationCardContent({
   ] as const
 
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
+
+  const tripStopsHere = useMemo(() => {
+    if (!allDestinations?.length) return []
+    if (destination.kind === 'zone' || destination.kind === 'stop') return []
+    return findRoadtripStopsAtLocation(destination, allDestinations, destination.name)
+  }, [destination, allDestinations])
+
+  const tripsHereByName = useMemo(() => {
+    const map = new Map<string, { stages: number[]; color: string }>()
+    for (const m of tripStopsHere) {
+      const trip = allDestinations?.find(d => d.name === m.tripName)
+      const tierColor = trip?.tier ? TIER_COLORS[trip.tier]?.pin : undefined
+      const entry = map.get(m.tripName) ?? { stages: [], color: tierColor ?? '#1B5FE8' }
+      if (m.stageNumber !== undefined) entry.stages.push(m.stageNumber)
+      map.set(m.tripName, entry)
+    }
+    return Array.from(map.entries())
+  }, [tripStopsHere, allDestinations])
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
 
@@ -223,6 +248,36 @@ function DestinationCardContent({
           </div>
         ))}
       </div>
+      {tripsHereByName.length > 0 && (
+        <div className="sheet-cross-links">
+          <p className="sheet-cross-links-title">Aussi étape de</p>
+          <ul>
+            {tripsHereByName.map(([tripName, info]) => {
+              const stageLabel = info.stages.length
+                ? `stop #${info.stages.join(', #')}`
+                : 'passage'
+              return (
+                <li key={tripName}>
+                  <span className="trip-dot" style={{ '--trip-color': info.color } as CSSProperties} />
+                  {onOpenTrip ? (
+                    <button
+                      type="button"
+                      className="trip-link"
+                      onClick={() => onOpenTrip(tripName)}
+                      style={{ background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', font: 'inherit', textAlign: 'left' }}
+                    >
+                      {tripName}
+                    </button>
+                  ) : (
+                    <span>{tripName}</span>
+                  )}
+                  <span className="stop-num">{stageLabel}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
       <button className="map-button" onClick={onFocus}>
         <Icon name="map" />
         Voir sur la carte

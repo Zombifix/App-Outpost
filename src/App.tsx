@@ -11,6 +11,8 @@ import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
 import TierListPage from './components/TierListPage'
 import AddDestinationWizard from './components/AddDestinationWizard'
+import DuplicateFoundModal from './components/DuplicateFoundModal'
+import { findDuplicate } from './utils/duplicates'
 import FriendsView from './components/friends/FriendsView'
 import FriendProfileSheet from './components/friends/FriendProfileSheet'
 import ActivityStrip from './components/friends/ActivityStrip'
@@ -231,6 +233,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const [tierListCollapsed, setTierListCollapsed] = useState(false)
   const [addingDestination, setAddingDestination] = useState(false)
   const [editingDestination, setEditingDestination] = useState<Destination | null>(null)
+  const [duplicateConflict, setDuplicateConflict] = useState<{ existing: Destination; incoming: Destination } | null>(null)
   const [activeView, setActiveView] = useState<View>('map')
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
@@ -356,10 +359,13 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   }
 
   const addDestination = (destination: Destination) => {
-    setDestinations(previous => {
-      const exists = previous.some(item => item.name.toLowerCase() === destination.name.toLowerCase())
-      return exists ? previous : [...previous, destination]
-    })
+    const dup = findDuplicate(destination, destinations)
+    if (dup) {
+      setDuplicateConflict({ existing: dup, incoming: destination })
+      setAddingDestination(false)
+      return
+    }
+    setDestinations(previous => [...previous, destination])
     setSelectedName(destination.name)
     setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
     setAddingDestination(false)
@@ -448,11 +454,13 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           destination={selected}
           coupDeCoeur={selected.coupDeCoeur ?? false}
           coupDeCoeurCount={coupDeCoeurCount}
+          allDestinations={destinations}
           onClose={() => setSelectedName(null)}
           onFocus={focusSelected}
           onCoupDeCoeur={() => toggleCoupDeCoeur(selected.name)}
           onEdit={dest => setEditingDestination(dest)}
           onDelete={name => removeDestination(name)}
+          onOpenTrip={selectByName}
         />
       )}
       {activeView === 'map' && (
@@ -469,6 +477,14 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         <AddDestinationWizard
           onClose={() => setAddingDestination(false)}
           onAdd={addDestination}
+          existingDestinations={destinations}
+          onDuplicateFound={(existing, incomingName) => {
+            setAddingDestination(false)
+            setDuplicateConflict({
+              existing,
+              incoming: { ...existing, name: incomingName },
+            })
+          }}
         />
       )}
       {editingDestination && (
@@ -477,6 +493,18 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           onAdd={addDestination}
           initialDestination={editingDestination}
           onUpdate={updateDestination}
+          existingDestinations={destinations}
+        />
+      )}
+      {duplicateConflict && (
+        <DuplicateFoundModal
+          existing={duplicateConflict.existing}
+          incoming={duplicateConflict.incoming}
+          onCancel={() => setDuplicateConflict(null)}
+          onMerge={() => {
+            setEditingDestination(duplicateConflict.existing)
+            setDuplicateConflict(null)
+          }}
         />
       )}
       {/* Le panneau "Amis" flottant sur la map a été retiré : il chevauchait

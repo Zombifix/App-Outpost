@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
+import { haversineMeters } from '../utils/duplicates'
 
 const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
 const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
@@ -725,6 +726,33 @@ export default function WorldMap({
             const friendOnly = friendDestinations
               ? friendDestinations.filter(d => !shared.has(d.name.toLowerCase()))
               : []
+
+            // Index of standalone destinations (place/stage) — used to detect
+            // when a roadtrip stop sits at the same location as one of them.
+            const placeDests = destinations.filter(d => d.kind !== 'zone' && d.kind !== 'stop')
+            const overlapsByDest: Record<string, PinTripBadge[]> = {}
+            const skipStops = new Set<string>() // `${tripName}|${stopIndex}`
+
+            for (const trip of destinations) {
+              if (trip.kind !== 'zone' || !trip.stops?.length) continue
+              const tripColor = getTierColor(trip.tier) ?? '#1B5FE8'
+              let stageCounter = 0
+              trip.stops.forEach((stop, index) => {
+                const isPassage = stop.type === 'passage'
+                const stageNumber = isPassage ? undefined : ++stageCounter
+                if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return
+                const match = placeDests.find(p => haversineMeters(p, stop) <= 50)
+                if (match) {
+                  ;(overlapsByDest[match.name] ||= []).push({
+                    tripName: trip.name,
+                    color: tripColor,
+                    stageNumber,
+                  })
+                  skipStops.add(`${trip.name}|${index}`)
+                }
+              })
+            }
+
             const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
               const color = getTierColor(d.tier)
               if (!d.stops?.length || !color) return [] as JSX.Element[]
@@ -733,6 +761,8 @@ export default function WorldMap({
               const stopEls = d.stops.map((stop, index) => {
                 const isPassage = stop.type === 'passage'
                 const stageNumber = isPassage ? undefined : ++stageCounter
+                // Stop fusionné avec une destination solo → masqué au profit du pin photo
+                if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
                 return (
                   <RouteStop
                     key={`${owner}-stop:${d.name}:${stop.name}:${index}`}
@@ -755,7 +785,7 @@ export default function WorldMap({
                   color={color}
                   owner={owner}
                 />,
-                ...stopEls,
+                ...stopEls.filter((el): el is JSX.Element => el !== null),
               ]
             }
 
@@ -771,7 +801,8 @@ export default function WorldMap({
                 {destinations.map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={d.name === selectedName} onSelect={onSelect} onZoomToZone={zoomToZone}
-                    owner="me" shared={shared.has(d.name.toLowerCase())} />
+                    owner="me" shared={shared.has(d.name.toLowerCase())}
+                    tripBadges={overlapsByDest[d.name]} />
                 ))}
               </>
             )
@@ -811,6 +842,12 @@ export default function WorldMap({
 }
 
 // ─── Pin component ────────────────────────────────────────────────────────────
+export interface PinTripBadge {
+  tripName: string
+  color: string
+  stageNumber?: number
+}
+
 interface PinProps {
   destination: Destination
   projection: Proj
@@ -821,6 +858,7 @@ interface PinProps {
   owner?: 'me' | 'friend'
   badge?: string
   shared?: boolean
+  tripBadges?: PinTripBadge[]
 }
 
 interface RouteStopProps {
@@ -928,7 +966,7 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
 })
 
 const Pin = memo(function Pin({
-  destination, projection, zoomK, selected, onSelect, onZoomToZone, owner = 'me', badge, shared,
+  destination, projection, zoomK, selected, onSelect, onZoomToZone, owner = 'me', badge, shared, tripBadges,
 }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
@@ -987,6 +1025,20 @@ const Pin = memo(function Pin({
             </strong>
             {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
             {shared && <em className="pin-shared-badge">2</em>}
+            {tripBadges && tripBadges.length > 0 && (
+              <span className="pin-trip-badges" aria-hidden="true">
+                {tripBadges.map((b, i) => (
+                  <span
+                    key={`${b.tripName}-${i}`}
+                    className="pin-trip-badge"
+                    title={`Étape de ${b.tripName}`}
+                    style={{ '--trip-color': b.color } as CSSProperties}
+                  >
+                    {b.stageNumber !== undefined ? `#${b.stageNumber}` : '•'}
+                  </span>
+                ))}
+              </span>
+            )}
           </button>
         </div>
       </foreignObject>

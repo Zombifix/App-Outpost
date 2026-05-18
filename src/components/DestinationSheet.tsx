@@ -256,15 +256,16 @@ function DestinationCardContent({
       <div
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
-      />
+      >
+        {destination.intent && (
+          <span className="intent-pill destination-hero-pill">{destination.intent}</span>
+        )}
+      </div>
       <div className="destination-title-row">
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
           <div className="destination-pill-row">
-            {destination.intent && (
-              <span className="intent-pill">{destination.intent}</span>
-            )}
             {coupDeCoeur && (
               <button
                 className="coup-de-coeur-button is-active"

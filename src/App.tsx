@@ -357,6 +357,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
 
   const appClass = [
     'travel-app',
+    `view-${activeView}`,
     tierListCollapsed ? 'tier-collapsed' : '',
     !(activeView === 'map' && selected) ? 'no-card' : '',
   ].filter(Boolean).join(' ')
@@ -447,7 +448,6 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           collapsed={tierListCollapsed}
           coupDeCoeurCount={coupDeCoeurCount}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
-          onCoupDeCoeurToggle={toggleCoupDeCoeur}
           onFlyTo={selectByName}
         />
       )}

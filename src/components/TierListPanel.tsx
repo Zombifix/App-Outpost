@@ -8,7 +8,6 @@ interface TierListPanelProps {
   collapsed: boolean
   coupDeCoeurCount: number
   onCollapseToggle: () => void
-  onCoupDeCoeurToggle: (name: string) => void
   onFlyTo: (name: string) => void
 }
 
@@ -25,7 +24,6 @@ export default function TierListPanel({
   collapsed,
   coupDeCoeurCount,
   onCollapseToggle,
-  onCoupDeCoeurToggle,
   onFlyTo,
 }: TierListPanelProps) {
   const railRef = useRef<HTMLDivElement>(null)
@@ -172,16 +170,10 @@ export default function TierListPanel({
                           <span>{destination.name}</span>
                         </button>
                         {isCoupDeCoeur && (
-                          <button
-                            className="mini-favorite-button is-active"
-                            aria-label={`Retirer ${destination.name} des coups de coeur`}
-                            aria-pressed={isCoupDeCoeur}
-                            title="Coup de coeur"
-                            onClick={() => onCoupDeCoeurToggle(destination.name)}
-                          >
+                          <span className="mini-favorite-button is-active" aria-label="Coup de coeur" title="Coup de coeur">
                             <HeartIcon />
-                            <span>Coup coeur</span>
-                          </button>
+                            <span>Coup de coeur</span>
+                          </span>
                         )}
                       </article>
                     )

@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Destination, Friend, Intent, Tier } from '../types'
 import {
+  COUNTRY_TO_CONTINENT,
+  FRIENDS,
+  FRIEND_DESTINATIONS,
   TIER_COLORS,
   TIER_ORDER,
-  COUNTRY_TO_CONTINENT,
 } from '../data'
 import { useFriends } from '../hooks/useFriends'
 import { useFriendDestinations } from '../hooks/useFriendDestinations'
@@ -13,9 +15,34 @@ interface TierListPageProps {
   onSelect: (name: string) => void
 }
 
-const INTENTS: Array<Intent | 'all'> = ['all', 'tourisme', 'sorties', 'gastro', 'nature', 'travail', 'city-trip']
-const INTENT_LABEL: Record<Intent | 'all', string> = {
+type TierListFilter = 'all' | 'recent' | 'favorites' | 'friends' | 'solo' | 'top' | 'shared' | 'disagreements'
+
+const BASE_TIER_FILTERS: TierListFilter[] = ['all', 'recent', 'favorites', 'friends', 'solo']
+const COMPARE_TIER_FILTERS: TierListFilter[] = ['all', 'shared', 'disagreements', 'favorites']
+
+const TIER_FILTER_LABEL: Record<TierListFilter, string> = {
   all: 'Toutes',
+  recent: 'Recents',
+  favorites: 'Coups de coeur',
+  friends: 'Entre amis',
+  solo: 'Solo',
+  top: 'Top S/A',
+  shared: 'Vues tous les deux',
+  disagreements: 'Avis opposes',
+}
+
+const TIER_FILTER_ICON: Record<TierListFilter, string> = {
+  all: '✦',
+  recent: '🕒',
+  favorites: '❤️',
+  friends: '👥',
+  solo: '🧭',
+  top: '🏆',
+  shared: '🤝',
+  disagreements: '⚡',
+}
+
+const INTENT_LABEL: Record<Intent, string> = {
   tourisme: 'Tourisme',
   sorties: 'Sorties',
   gastro: 'Gastronomie',
@@ -23,8 +50,8 @@ const INTENT_LABEL: Record<Intent | 'all', string> = {
   travail: 'Travail',
   'city-trip': 'City-trip',
 }
-const INTENT_EMOJI: Record<Intent | 'all', string> = {
-  all: '',
+
+const INTENT_EMOJI: Record<Intent, string> = {
   tourisme: '🗺',
   sorties: '🌙',
   gastro: '🍽',
@@ -33,51 +60,166 @@ const INTENT_EMOJI: Record<Intent | 'all', string> = {
   'city-trip': '🏙',
 }
 
+const COMPANION_LABEL: Record<NonNullable<Destination['companions']>, string> = {
+  solo: 'Solo',
+  couple: 'Couple',
+  amis: 'Amis',
+  famille: 'Famille',
+  travail: 'Travail',
+}
+
+const COMPANION_EMOJI: Record<NonNullable<Destination['companions']>, string> = {
+  solo: '🧭',
+  couple: '💞',
+  amis: '👥',
+  famille: '🏡',
+  travail: '💼',
+}
+
+const TIER_RANK: Record<Tier, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 }
+
+const DEMO_FRIEND_DESTINATIONS: Record<string, Destination[]> = {
+  AS: (FRIEND_DESTINATIONS.AS ?? []).map(destination => ({
+    ...destination,
+    tier: destination.name === 'Kyoto'
+      ? 'A'
+      : destination.name === 'Lisbonne'
+        ? 'S'
+        : destination.name === 'Barcelone'
+          ? 'B'
+          : destination.tier,
+    coupDeCoeur: destination.name === 'Lisbonne' || destination.name === 'Bali',
+    personalBudget: destination.personalBudget ?? {
+      Kyoto: 520,
+      Bali: 390,
+      Lisbonne: 320,
+      Barcelone: 540,
+      Bangkok: 280,
+      'Le Cap': 610,
+      Vancouver: 760,
+    }[destination.name],
+    tripDays: destination.tripDays ?? {
+      Kyoto: 7,
+      Bali: 8,
+      Lisbonne: 4,
+      Barcelone: 3,
+      Bangkok: 5,
+      'Le Cap': 6,
+      Vancouver: 5,
+    }[destination.name],
+    companions: destination.companions ?? (destination.name === 'Lisbonne' ? 'couple' : 'amis'),
+  })),
+  LM: (FRIEND_DESTINATIONS.LM ?? []).map(destination => ({
+    ...destination,
+    tier: destination.name === 'Bangkok'
+      ? 'A'
+      : destination.name === 'Dubai'
+        ? 'D'
+        : destination.tier,
+    coupDeCoeur: destination.name === 'Le Cap' || destination.name === 'Mexico',
+    personalBudget: destination.personalBudget ?? 420,
+    tripDays: destination.tripDays ?? 5,
+    companions: destination.companions ?? 'solo',
+  })),
+  JB: (FRIEND_DESTINATIONS.JB ?? []).map(destination => ({
+    ...destination,
+    tier: destination.name === 'Rio de Janeiro'
+      ? 'A'
+      : destination.name === 'New York'
+        ? 'C'
+        : destination.tier,
+    coupDeCoeur: destination.name === 'Bangkok' || destination.name === 'Rio de Janeiro',
+    personalBudget: destination.personalBudget ?? 680,
+    tripDays: destination.tripDays ?? 6,
+    companions: destination.companions ?? 'amis',
+  })),
+}
+
 const TIER_DESCRIPTIONS: Record<Tier, string> = {
-  S: 'Des expériences inoubliables, qui restent dans la mémoire.',
-  A: 'Des voyages marquants à plusieurs niveaux.',
-  B: 'De très belles expériences avec quelques réserves.',
-  C: 'De bonnes expériences, sans plus.',
-  D: 'Potentiel à explorer ou intérêt limité.',
+  S: 'Des experiences inoubliables, qui restent dans la memoire.',
+  A: 'Des voyages marquants a plusieurs niveaux.',
+  B: 'De tres belles experiences avec quelques reserves.',
+  C: 'De bonnes experiences, sans plus.',
+  D: 'Potentiel a explorer ou interet limite.',
 }
 
 const TIER_LABEL: Record<Tier, string> = {
   S: 'Exceptionnel',
-  A: 'Génial',
-  B: 'Très bien',
+  A: 'Genial',
+  B: 'Tres bien',
   C: 'Correct',
-  D: 'Découvrant',
+  D: 'Decouvrant',
 }
 
-function applyFilters(list: Destination[], intent: Intent | 'all'): Destination[] {
-  return list.filter(d => intent === 'all' || d.intent === intent)
+function filterDestinations(list: Destination[], filter: TierListFilter, compareList: Destination[] = []): Destination[] {
+  const compareByName = new Map(compareList.map(destination => [destination.name.toLowerCase(), destination]))
+  const currentYear = new Date().getFullYear()
+
+  return list.filter(destination => {
+    if (filter === 'recent') return Boolean(destination.tripYear && destination.tripYear >= currentYear - 2)
+    if (filter === 'favorites') return Boolean(destination.coupDeCoeur)
+    if (filter === 'friends') return destination.companions === 'amis'
+    if (filter === 'solo') return destination.companions === 'solo'
+    if (filter === 'top') return destination.tier === 'S' || destination.tier === 'A'
+    if (filter === 'shared') return compareByName.has(destination.name.toLowerCase())
+    if (filter === 'disagreements') {
+      const theirs = compareByName.get(destination.name.toLowerCase())
+      return Boolean(theirs && theirs.tier !== destination.tier)
+    }
+    return true
+  }).sort((a, b) => {
+    if (filter === 'recent') return (b.tripYear ?? 0) - (a.tripYear ?? 0)
+    if (filter === 'favorites') return Number(Boolean(b.coupDeCoeur)) - Number(Boolean(a.coupDeCoeur))
+    if (filter === 'top') return (b.score ?? 0) - (a.score ?? 0)
+    if (filter === 'disagreements') {
+      const aTier = compareByName.get(a.name.toLowerCase())?.tier ?? a.tier
+      const bTier = compareByName.get(b.name.toLowerCase())?.tier ?? b.tier
+      return Math.abs(TIER_RANK[b.tier ?? 'B'] - TIER_RANK[bTier ?? 'B']) - Math.abs(TIER_RANK[a.tier ?? 'B'] - TIER_RANK[aTier ?? 'B'])
+    }
+    return 0
+  })
 }
 
-function DestCard({ destination, sharedNames, onSelect }: {
+function DestCard({
+  destination,
+  sharedNames,
+  onSelect,
+}: {
   destination: Destination
   sharedNames?: Set<string>
-  onSelect?: (name: string) => void
+  onSelect?: (destination: Destination) => void
 }) {
   const isShared = sharedNames?.has(destination.name.toLowerCase())
+  const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
   const intentLabel = INTENT_LABEL[destination.intent]
   const intentEmoji = INTENT_EMOJI[destination.intent]
 
   return (
-    <button
-      type="button"
-      className="dest-card"
+    <article
+      className={`dest-card ${isCoupDeCoeur ? 'is-coup-de-coeur' : ''}`}
       style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
-      onClick={() => onSelect?.(destination.name)}
-      aria-label={`Voir ${destination.name} sur la carte`}
     >
       {isShared && <span className="dest-card-shared-badge">En commun</span>}
-      <div className="dest-card-body">
-        <span className="dest-card-name">{destination.name}</span>
-        <div className="dest-card-chips">
-          <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
+      <button
+        type="button"
+        className="dest-card-main"
+        onClick={() => onSelect?.(destination)}
+        aria-label={`Voir ${destination.name}`}
+      >
+        <div className="dest-card-body">
+          <span className="dest-card-name">{destination.name}</span>
+          <span className="dest-card-country">{destination.country}</span>
+          <div className="dest-card-chips">
+            <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      {isCoupDeCoeur && (
+        <span className="dest-card-favorite is-active is-readonly" aria-label="Coup de coeur">
+          <HeartIcon />
+        </span>
+      )}
+    </article>
   )
 }
 
@@ -92,17 +234,40 @@ function ComparisonBanner({
   friendDests: Destination[]
   onClose: () => void
 }) {
-  const friendNames = useMemo(() => new Set(friendDests.map(d => d.name.toLowerCase())), [friendDests])
+  const commonItems = myDests
+    .map(my => {
+      const theirs = friendDests.find(friendDestination => friendDestination.name.toLowerCase() === my.name.toLowerCase())
+      return theirs ? { my, theirs } : null
+    })
+    .filter((item): item is { my: Destination; theirs: Destination } => item !== null)
 
-  const commonCount = myDests.filter(d => friendNames.has(d.name.toLowerCase())).length
-  const sameCount = myDests.filter(d => {
-    const match = friendDests.find(f => f.name.toLowerCase() === d.name.toLowerCase())
-    return match && match.tier === d.tier
-  }).length
-  const gapCount = myDests.filter(d => {
-    const match = friendDests.find(f => f.name.toLowerCase() === d.name.toLowerCase())
-    return match && match.tier !== d.tier
-  }).length
+  const commonCount = commonItems.length
+  const sameCount = commonItems.filter(item => item.my.tier === item.theirs.tier).length
+  const gapItems = commonItems.filter(item => item.my.tier !== item.theirs.tier)
+  const gapCount = gapItems.length
+  const alignmentScore = commonCount ? Math.round((sameCount / commonCount) * 100) : 0
+  const widestGap = gapItems
+    .slice()
+    .sort((a, b) => Math.abs(TIER_RANK[b.my.tier ?? 'B'] - TIER_RANK[b.theirs.tier ?? 'B']) - Math.abs(TIER_RANK[a.my.tier ?? 'B'] - TIER_RANK[a.theirs.tier ?? 'B']))[0]
+  const friendFirstName = friend.name.split(' ')[0]
+  const myBudget = getAverage(myDests.map(destination => destination.personalBudget))
+  const friendBudget = getAverage(friendDests.map(destination => destination.personalBudget))
+  const myDays = getAverage(myDests.map(destination => destination.tripDays))
+  const friendDays = getAverage(friendDests.map(destination => destination.tripDays))
+  const myIntent = getDominantIntent(myDests)
+  const friendIntent = getDominantIntent(friendDests)
+  const budgetLead = myBudget !== null && friendBudget !== null
+    ? myBudget < friendBudget
+      ? 'tu voyages plus leger'
+      : myBudget > friendBudget
+        ? `${friendFirstName} voyage plus leger`
+        : 'budget similaire'
+    : 'budget a completer'
+  const verdict = alignmentScore >= 70
+    ? 'Profils proches'
+    : gapCount > sameCount
+      ? 'Vrais partis pris'
+      : 'Compatibles'
 
   return (
     <div className="comparison-banner">
@@ -113,25 +278,84 @@ function ComparisonBanner({
         {friend.initials}
       </div>
       <div className="comparison-banner-info">
-        <strong>Comparaison avec {friend.name}</strong>
-        <span>Ta tier list vs la sienne, tier par tier</span>
+        <strong>Comparatif avec {friend.name}</strong>
+        <span className="comparison-smart-summary">✨ {verdict} · {budgetLead}</span>
       </div>
-      <div className="comparison-banner-stats">
-        <div className="comparison-stat">
-          <strong>{commonCount}</strong>
-          <span>en commun</span>
-        </div>
-        <div className="comparison-stat">
-          <strong>{sameCount}</strong>
-          <span>même tier</span>
-        </div>
-        <div className="comparison-stat">
-          <strong>{gapCount}</strong>
-          <span>tiers différents</span>
-        </div>
+      <div className="comparison-insights" aria-label="Comparatif de style">
+        <ComparisonInsight icon="💸" label="Depenses" value={`${formatEuroAverage(myBudget).replace(' €', '')} / ${formatEuroAverage(friendBudget)}`} />
+        <ComparisonInsight icon="⏱" label="Sejours" value={`${formatDayAverage(myDays)} vs ${formatDayAverage(friendDays)}`} />
+        <ComparisonInsight icon="🧭" label="Styles" value={`${myIntent} vs ${friendIntent}`} />
+        <ComparisonInsight icon="🤝" label="Accord" value={`${alignmentScore}% · ${commonCount} communs`} />
+        {widestGap && (
+          <ComparisonInsight icon="⚡" label="Ecart" value={`${widestGap.my.name} · ${widestGap.my.tier}/${widestGap.theirs.tier}`} />
+        )}
       </div>
-      <button className="comparison-banner-close" onClick={onClose} aria-label="Fermer la comparaison">✕</button>
+      <button className="comparison-banner-close" onClick={onClose} aria-label="Fermer la comparaison">×</button>
     </div>
+  )
+}
+
+function ComparisonInsight({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div className="comparison-insight">
+      <span className="comparison-insight-label"><span aria-hidden="true">{icon}</span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}
+
+function DestinationPreview({
+  destination,
+  ownerLabel,
+  ownerColor,
+  onClose,
+  onOpenMap,
+}: {
+  destination: Destination
+  ownerLabel: string
+  ownerColor?: string
+  onClose: () => void
+  onOpenMap: (name: string) => void
+}) {
+  const stats = getPreviewStats(destination)
+
+  return (
+    <aside className="tier-destination-preview" aria-label={`Apercu de ${destination.name}`}>
+      <div
+        className="tier-destination-preview-image"
+        style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
+      >
+        <span className="tier-preview-owner" style={ownerColor ? { '--owner-color': ownerColor } as React.CSSProperties : undefined}>
+          {ownerLabel}
+        </span>
+      </div>
+      <div className="tier-destination-preview-body">
+        <button className="tier-destination-preview-close" onClick={onClose} aria-label="Fermer l'apercu">×</button>
+        <div className="tier-preview-heading">
+          <span className={`tier-orb tier-${destination.tier?.toLowerCase() ?? 'b'}`}>{destination.tier ?? '-'}</span>
+          {destination.coupDeCoeur && <span className="tier-preview-favorite">♥ Coup de coeur</span>}
+        </div>
+        <h3>{destination.name}, {destination.country}</h3>
+        {destination.summary && <p>{destination.summary}</p>}
+        <dl className="tier-preview-stats">
+          {stats.map(item => (
+            <div key={item.label}>
+              <dt><span aria-hidden="true">{item.icon}</span>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {destination.standout && (
+          <div className="tier-preview-note">
+            <span>✨ Marquant</span>
+            <strong>{destination.standout}</strong>
+          </div>
+        )}
+        <button className="tier-preview-map-button" onClick={() => onOpenMap(destination.name)}>
+          Voir sur la carte
+        </button>
+      </div>
+    </aside>
   )
 }
 
@@ -143,7 +367,8 @@ function TierRow({
   sharedNames,
   collapsed,
   onToggle,
-  onSelect,
+  onSelectMine,
+  onSelectFriend,
 }: {
   tier: Tier
   myDests: Destination[]
@@ -152,11 +377,12 @@ function TierRow({
   sharedNames: Set<string>
   collapsed: boolean
   onToggle: () => void
-  onSelect: (name: string) => void
+  onSelectMine: (destination: Destination) => void
+  onSelectFriend: (destination: Destination) => void
 }) {
   const colors = TIER_COLORS[tier]
-  const mine = myDests.filter(d => d.tier === tier && d.kind !== 'stop')
-  const theirs = friendDests.filter(d => d.tier === tier && d.kind !== 'stop')
+  const mine = myDests.filter(destination => destination.tier === tier && destination.kind !== 'stop')
+  const theirs = friendDests.filter(destination => destination.tier === tier && destination.kind !== 'stop')
 
   const count = friend
     ? `${mine.length} · ${theirs.length}`
@@ -188,11 +414,21 @@ function TierRow({
 
       {!collapsed && (
         <div className={`tier-row-body ${friend ? 'compare' : ''}`}>
-          <div className="tier-row-col">
-            {friend && <p className="tier-row-col-label">Moi</p>}
+          <div className="tier-row-col tier-row-col-me">
+            {friend && (
+              <p className="tier-row-col-label tier-row-col-label-me">
+                <span className="tier-row-owner-avatar">Moi</span>
+                <strong>Mon classement</strong>
+              </p>
+            )}
             <div className="tier-list-row-strip">
-              {mine.map(d => (
-                <DestCard key={d.name} destination={d} sharedNames={friend ? sharedNames : undefined} onSelect={onSelect} />
+              {mine.map(destination => (
+                <DestCard
+                  key={destination.name}
+                  destination={destination}
+                  sharedNames={friend ? sharedNames : undefined}
+                  onSelect={onSelectMine}
+                />
               ))}
               {mine.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
             </div>
@@ -201,11 +437,19 @@ function TierRow({
           {friend && (
             <>
               <div className="tier-row-divider" />
-              <div className="tier-row-col">
-                <p className="tier-row-col-label">{friend.name.split(' ')[0]}</p>
+              <div className="tier-row-col tier-row-col-friend">
+                <p className="tier-row-col-label tier-row-col-label-friend" style={{ '--friend-color': friend.color, '--friend-bg': friend.bg } as React.CSSProperties}>
+                  <span className="tier-row-owner-avatar">{friend.initials}</span>
+                  <strong>{friend.name.split(' ')[0]}</strong>
+                </p>
                 <div className="tier-list-row-strip">
-                  {theirs.map(d => (
-                    <DestCard key={d.name} destination={d} sharedNames={sharedNames} />
+                  {theirs.map(destination => (
+                    <DestCard
+                      key={destination.name}
+                      destination={destination}
+                      sharedNames={sharedNames}
+                      onSelect={onSelectFriend}
+                    />
                   ))}
                   {theirs.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
                 </div>
@@ -218,12 +462,16 @@ function TierRow({
   )
 }
 
-export default function TierListPage({ destinations, onSelect }: TierListPageProps) {
+export default function TierListPage({
+  destinations,
+  onSelect,
+}: TierListPageProps) {
   const [friend, setFriend] = useState<Friend | null>(null)
   const [friendUserId, setFriendUserId] = useState<string | null>(null)
-  const [intent, setIntent] = useState<Intent | 'all'>('all')
+  const [filter, setFilter] = useState<TierListFilter>('all')
   const [collapsed, setCollapsed] = useState<Record<Tier, boolean>>({ S: false, A: false, B: true, C: true, D: true })
   const [comparePicker, setComparePicker] = useState(false)
+  const [preview, setPreview] = useState<{ destination: Destination; ownerLabel: string; ownerColor?: string } | null>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const { accepted: realFriends } = useFriends()
   const { destinations: realFriendDests } = useFriendDestinations(friendUserId)
@@ -239,22 +487,31 @@ export default function TierListPage({ destinations, onSelect }: TierListPagePro
     return () => document.removeEventListener('mousedown', handleClick)
   }, [comparePicker])
 
-  const friendDests = friend ? realFriendDests : []
-  const myFiltered = useMemo(() => applyFilters(destinations, intent), [destinations, intent])
-  const friendFiltered = useMemo(() => applyFilters(friendDests, intent), [friendDests, intent])
+  const friendDests = friend
+    ? friendUserId
+      ? realFriendDests
+      : DEMO_FRIEND_DESTINATIONS[friend.initials] ?? FRIEND_DESTINATIONS[friend.initials] ?? []
+    : []
+  const visibleFilters = friend ? COMPARE_TIER_FILTERS : BASE_TIER_FILTERS
+  const myFiltered = useMemo(() => filterDestinations(destinations, filter, friendDests), [destinations, filter, friendDests])
+  const friendFiltered = useMemo(() => filterDestinations(friendDests, filter, destinations), [friendDests, filter, destinations])
+
+  useEffect(() => {
+    if (!visibleFilters.includes(filter)) setFilter('all')
+  }, [filter, visibleFilters])
 
   const sharedNames = useMemo(() => {
     if (!friend) return new Set<string>()
-    const myNames = new Set(myFiltered.map(d => d.name.toLowerCase()))
-    return new Set(friendFiltered.filter(d => myNames.has(d.name.toLowerCase())).map(d => d.name.toLowerCase()))
+    const myNames = new Set(myFiltered.map(destination => destination.name.toLowerCase()))
+    return new Set(friendFiltered.filter(destination => myNames.has(destination.name.toLowerCase())).map(destination => destination.name.toLowerCase()))
   }, [friend, myFiltered, friendFiltered])
 
-  const paysCount = useMemo(() => new Set(destinations.map(d => d.country)).size, [destinations])
+  const paysCount = useMemo(() => new Set(destinations.map(destination => destination.country)).size, [destinations])
   const continentsCount = useMemo(
-    () => new Set(destinations.map(d => COUNTRY_TO_CONTINENT[d.country]).filter(Boolean)).size,
+    () => new Set(destinations.map(destination => COUNTRY_TO_CONTINENT[destination.country]).filter(Boolean)).size,
     [destinations]
   )
-  const topTier = destinations.find(d => d.tier === 'S')
+  const topTier = destinations.find(destination => destination.tier === 'S')
 
   function toggleCollapse(tier: Tier) {
     setCollapsed(prev => ({ ...prev, [tier]: !prev[tier] }))
@@ -264,8 +521,8 @@ export default function TierListPage({ destinations, onSelect }: TierListPagePro
     <main className="tier-list-page" aria-label="Tier list">
       <header className="tier-list-head">
         <div className="tier-list-title">
-          <h2>Ton classement voyage</h2>
-          <p>{myFiltered.length} destinations classées par ressenti global</p>
+          <h2>Tier list</h2>
+          <p>{myFiltered.length} destinations classees par ressenti global</p>
         </div>
 
         <div className="tier-list-stats">
@@ -302,64 +559,76 @@ export default function TierListPage({ destinations, onSelect }: TierListPagePro
         <div className="tier-list-actions" ref={pickerRef}>
           <button
             className={`tier-list-compare-btn ${friend ? 'is-active' : ''}`}
-            onClick={() => setComparePicker(v => !v)}
+            onClick={() => setComparePicker(value => !value)}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <circle cx="5.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
               <circle cx="10.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
               <path d="M1 13c0-2.21 2.015-4 4.5-4s4.5 1.79 4.5 4M10.5 9c2.485 0 4.5 1.79 4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
-            {friend ? `${friend.name.split(' ')[0]} ✕` : 'Comparer'}
+            {friend ? `${friend.name.split(' ')[0]} ×` : 'Comparer'}
           </button>
 
           {comparePicker && (
             <div className="friend-picker">
               {friend && (
                 <button className="friend-picker-clear" onClick={() => { setFriend(null); setFriendUserId(null); setComparePicker(false) }}>
-                  Désactiver la comparaison
+                  Desactiver la comparaison
                 </button>
               )}
               {realFriends.length === 0 && (
                 <p className="friends-muted" style={{ padding: '8px 12px' }}>
-                  Aucun ami pour l'instant. Ajoute-en depuis la vue "Amis" pour comparer vos tier lists.
+                  Amis demo locaux pour tester la comparaison.
                 </p>
               )}
-              {realFriends.map(f => {
-                const initials = f.displayName.slice(0, 2).toUpperCase()
+              {realFriends.map(realFriend => {
+                const initials = realFriend.displayName.slice(0, 2).toUpperCase()
                 const friendShape: Friend = {
                   initials,
-                  name: f.displayName,
-                  color: f.avatarFg,
-                  bg: f.avatarBg,
+                  name: realFriend.displayName,
+                  color: realFriend.avatarFg,
+                  bg: realFriend.avatarBg,
                   count: 0,
                 }
                 return (
                   <button
-                    key={f.otherUser}
-                    className={`friend-picker-item ${friendUserId === f.otherUser ? 'is-active' : ''}`}
-                    onClick={() => { setFriend(friendShape); setFriendUserId(f.otherUser); setComparePicker(false) }}
-                    style={{ '--friend-color': f.avatarFg, '--friend-bg': f.avatarBg } as React.CSSProperties}
+                    key={realFriend.otherUser}
+                    className={`friend-picker-item ${friendUserId === realFriend.otherUser ? 'is-active' : ''}`}
+                    onClick={() => { setFriend(friendShape); setFriendUserId(realFriend.otherUser); setComparePicker(false) }}
+                    style={{ '--friend-color': realFriend.avatarFg, '--friend-bg': realFriend.avatarBg } as React.CSSProperties}
                   >
                     <span className="friend-picker-avatar">{initials}</span>
-                    <span className="friend-picker-name">{f.displayName}</span>
-                    <span className="friend-picker-count">@{f.handle}</span>
+                    <span className="friend-picker-name">{realFriend.displayName}</span>
+                    <span className="friend-picker-count">@{realFriend.handle}</span>
                   </button>
                 )
               })}
+              {realFriends.length === 0 && FRIENDS.map(demoFriend => (
+                <button
+                  key={demoFriend.initials}
+                  className={`friend-picker-item ${friend?.name === demoFriend.name ? 'is-active' : ''}`}
+                  onClick={() => { setFriend(demoFriend); setFriendUserId(null); setComparePicker(false) }}
+                  style={{ '--friend-color': demoFriend.color, '--friend-bg': demoFriend.bg } as React.CSSProperties}
+                >
+                  <span className="friend-picker-avatar">{demoFriend.initials}</span>
+                  <span className="friend-picker-name">{demoFriend.name}</span>
+                  <span className="friend-picker-count">{demoFriend.count} destinations</span>
+                </button>
+              ))}
             </div>
           )}
         </div>
       </header>
 
-      <div className="tier-list-filters" role="group" aria-label="Filtrer par type">
-        {INTENTS.map(i => (
+      <div className="tier-list-filters" role="group" aria-label="Filtrer la tier list">
+        {visibleFilters.map(filterItem => (
           <button
-            key={i}
-            className={`tier-filter-pill ${intent === i ? 'is-active' : ''}`}
-            onClick={() => setIntent(i)}
+            key={filterItem}
+            className={`tier-filter-pill ${filter === filterItem ? 'is-active' : ''}`}
+            onClick={() => setFilter(filterItem)}
           >
-            {i !== 'all' && <span aria-hidden="true">{INTENT_EMOJI[i]}</span>}
-            {INTENT_LABEL[i]}
+            <span aria-hidden="true">{TIER_FILTER_ICON[filterItem]}</span>
+            {TIER_FILTER_LABEL[filterItem]}
           </button>
         ))}
       </div>
@@ -367,8 +636,8 @@ export default function TierListPage({ destinations, onSelect }: TierListPagePro
       {friend && (
         <ComparisonBanner
           friend={friend}
-          myDests={myFiltered}
-          friendDests={friendFiltered}
+          myDests={destinations}
+          friendDests={friendDests}
           onClose={() => setFriend(null)}
         />
       )}
@@ -384,10 +653,66 @@ export default function TierListPage({ destinations, onSelect }: TierListPagePro
             sharedNames={sharedNames}
             collapsed={collapsed[tier]}
             onToggle={() => toggleCollapse(tier)}
-            onSelect={onSelect}
+            onSelectMine={destination => setPreview({ destination, ownerLabel: 'Moi', ownerColor: '#1B5FE8' })}
+            onSelectFriend={destination => setPreview({ destination, ownerLabel: friend?.name.split(' ')[0] ?? 'Ami', ownerColor: friend?.color })}
           />
         ))}
       </section>
+      {preview && (
+        <DestinationPreview
+          destination={preview.destination}
+          ownerLabel={preview.ownerLabel}
+          ownerColor={preview.ownerColor}
+          onClose={() => setPreview(null)}
+          onOpenMap={onSelect}
+        />
+      )}
     </main>
+  )
+}
+
+function getAverage(values: Array<number | undefined>): number | null {
+  const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0)
+  if (!valid.length) return null
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length
+}
+
+function formatEuroAverage(value: number | null) {
+  if (value === null) return 'n/r'
+  return `${Math.round(value)} €`
+}
+
+function formatDayAverage(value: number | null) {
+  if (value === null) return 'n/r'
+  const rounded = Math.round(value * 10) / 10
+  return `${String(rounded).replace('.', ',')} j`
+}
+
+function getDominantIntent(destinations: Destination[]) {
+  const counts = new Map<Intent, number>()
+  for (const destination of destinations) {
+    counts.set(destination.intent, (counts.get(destination.intent) ?? 0) + 1)
+  }
+  const dominant = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0]
+  return dominant ? INTENT_LABEL[dominant] : 'n/r'
+}
+
+function getPreviewStats(destination: Destination) {
+  const stats: Array<{ icon: string; label: string; value: string }> = []
+  if (destination.personalBudget) stats.push({ icon: '💸', label: 'Depense', value: `${Math.round(destination.personalBudget)} €` })
+  if (destination.tripDays) stats.push({ icon: '⏱', label: 'Duree', value: `${destination.tripDays} j` })
+  if (destination.tripYear) stats.push({ icon: '🗓', label: 'Voyage', value: String(destination.tripYear) })
+  if (destination.companions) stats.push({ icon: COMPANION_EMOJI[destination.companions], label: 'Avec', value: COMPANION_LABEL[destination.companions] })
+  stats.push({ icon: INTENT_EMOJI[destination.intent], label: 'Style', value: INTENT_LABEL[destination.intent] })
+  if (destination.score !== undefined) stats.push({ icon: '⭐', label: 'Score', value: destination.score.toFixed(1).replace('.', ',') })
+  if (destination.value !== undefined) stats.push({ icon: '💶', label: 'Valeur', value: `${destination.value.toFixed(1).replace('.', ',')}/5` })
+  return stats
+}
+
+function HeartIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
+    </svg>
   )
 }

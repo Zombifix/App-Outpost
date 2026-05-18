@@ -37,6 +37,24 @@ function formatEuro(value: number) {
   return `${Math.round(value).toLocaleString('fr-FR')} €`
 }
 
+const INTENT_LABELS: Record<Destination['intent'], string> = {
+  tourisme: 'Tourisme',
+  sorties: 'Sorties',
+  gastro: 'Gastronomie',
+  nature: 'Nature',
+  travail: 'Travail',
+  'city-trip': 'City-trip',
+}
+
+const INTENT_EMOJIS: Record<Destination['intent'], string> = {
+  tourisme: '🗺',
+  sorties: '🌙',
+  gastro: '🍽',
+  nature: '🌿',
+  travail: '💼',
+  'city-trip': '🏙',
+}
+
 function getDestinationContext(destination: Destination) {
   const meta: Array<{ icon: string; label: string }> = []
   const details: Array<{ icon: string; label: string; value: string }> = []
@@ -216,6 +234,7 @@ function DestinationCardContent({
   }, [tripStopsHere, allDestinations])
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
+  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
 
   return (
     <>
@@ -258,7 +277,10 @@ function DestinationCardContent({
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
         {destination.intent && (
-          <span className="intent-pill destination-hero-pill">{destination.intent}</span>
+          <span className="intent-pill destination-hero-pill">
+            <span aria-hidden="true">{INTENT_EMOJIS[destination.intent]}</span>
+            {INTENT_LABELS[destination.intent]}
+          </span>
         )}
       </div>
       <div className="destination-title-row">
@@ -266,17 +288,16 @@ function DestinationCardContent({
         <div>
           <h2>{destination.name}, {destination.country}</h2>
           <div className="destination-pill-row">
-            {coupDeCoeur && (
-              <button
-                className="coup-de-coeur-button is-active"
-                aria-label="Retirer le coup de coeur"
-                title="Coup de coeur - retirer"
-                onClick={onCoupDeCoeur}
-              >
-                <Icon name="heart" />
-                Coup de coeur
-              </button>
-            )}
+            <button
+              className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
+              aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Ajouter en coup de coeur - ${coupDeCoeurCount}/2 utilises`}
+              title={coupDeCoeur ? 'Coup de coeur - retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur - ${coupDeCoeurCount}/2 utilises`}
+              disabled={coupDeCoeurDisabled}
+              onClick={onCoupDeCoeur}
+            >
+              <Icon name="heart" />
+              {coupDeCoeur ? 'Coup de coeur' : `${coupDeCoeurCount}/2 coup de coeur`}
+            </button>
           </div>
         </div>
       </div>

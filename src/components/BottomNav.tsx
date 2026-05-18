@@ -7,9 +7,10 @@ interface BottomNavProps {
   pendingFriendCount: number
   onViewChange: (view: View) => void
   onAddClick: () => void
+  onOpenFriends: () => void
 }
 
-export default function BottomNav({ activeView, pendingFriendCount, onViewChange, onAddClick }: BottomNavProps) {
+export default function BottomNav({ activeView, pendingFriendCount, onViewChange, onAddClick, onOpenFriends }: BottomNavProps) {
   return (
     <nav className="bottom-nav" aria-label="Navigation mobile">
       <button
@@ -41,10 +42,9 @@ export default function BottomNav({ activeView, pendingFriendCount, onViewChange
       </button>
 
       <button
-        className={`bottom-nav-item${activeView === 'friends' ? ' is-active' : ''}`}
-        onClick={() => onViewChange('friends')}
+        className="bottom-nav-item"
+        onClick={onOpenFriends}
         aria-label="Amis"
-        aria-current={activeView === 'friends' ? 'page' : undefined}
       >
         <Icon name="users" />
         <span>Amis</span>

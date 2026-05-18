@@ -11,7 +11,6 @@ import TierListPanel from './components/TierListPanel'
 import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
-import ActivityStrip from './components/friends/ActivityStrip'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 
@@ -20,13 +19,14 @@ import FriendToast from './components/friends/FriendToast'
 // utilisateur — un spinner brièvement visible ferait plus de bruit qu'autre chose.
 const TierListPage = lazy(() => import('./components/TierListPage'))
 const AddDestinationWizard = lazy(() => import('./components/AddDestinationWizard'))
-const FriendsView = lazy(() => import('./components/friends/FriendsView'))
 const FriendProfileSheet = lazy(() => import('./components/friends/FriendProfileSheet'))
 const AddFriendModal = lazy(() => import('./components/friends/AddFriendModal'))
+const FriendsManagePanel = lazy(() => import('./components/friends/FriendsManagePanel'))
 import { AuthProvider, useAuth } from './lib/auth'
 import { supabase } from './lib/supabase'
 import { useFriends } from './hooks/useFriends'
 import { useMyProfile } from './hooks/useMyProfile'
+import { getFakeFriendDestinations } from './hooks/_fakeFriends'
 
 const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
@@ -208,7 +208,13 @@ function AppInner() {
 function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const [profileFriendUserId, setProfileFriendUserId] = useState<string | null>(null)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
-  const [destinations, setDestinations] = useDestinationsStore(normalizeDestinations)
+  const [friendsManageOpen, setFriendsManageOpen] = useState(false)
+  const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
+  const [myDestinations, setDestinations] = useDestinationsStore(normalizeDestinations)
+  const destinations = useMemo(
+    () => viewingFriend ? getFakeFriendDestinations(viewingFriend.userId) : myDestinations,
+    [viewingFriend, myDestinations],
+  )
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
   const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
@@ -372,6 +378,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         pendingFriendCount={pendingFriendCount}
         onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
+        onOpenFriends={() => setFriendsManageOpen(true)}
       />
       {activeView === 'map' && (
         <WorldMap
@@ -399,35 +406,39 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           }}
         />
       )}
-      {activeView === 'friends' && (
-        <Suspense fallback={null}>
-          <FriendsView
-            onOpenProfile={setProfileFriendUserId}
-            onFlyTo={(lat, lng, name) => {
-              setActiveView('map')
-              setFlyTarget({ lat, lng, name })
-              setSelectedName(name)
-            }}
-          />
-        </Suspense>
-      )}
       <Nav
         totalDestinations={visibleDestinations.length}
         activeView={activeView}
         filters={filters}
-        sortByScore={sortByScore}
         shareCopied={shareCopied}
         publicId={publicId}
         pendingFriendCount={pendingFriendCount}
         onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
         onFiltersChange={setFilters}
-        onSortToggle={() => setSortByScore(value => !value)}
         onSearch={selectByName}
         destinations={destinations}
         onShare={shareTierList}
         onAccountClick={() => setAccountOpen(true)}
+        onOpenFriends={() => setFriendsManageOpen(true)}
+        viewingFriend={viewingFriend}
+        onBackToMyCarnet={() => { setViewingFriend(null); setSelectedName(null) }}
       />
+      {friendsManageOpen && (
+        <Suspense fallback={null}>
+          <FriendsManagePanel
+            onClose={() => setFriendsManageOpen(false)}
+            onOpenAddFriend={() => { setFriendsManageOpen(false); setAddFriendOpen(true) }}
+            onOpenProfile={(userId: string) => { setFriendsManageOpen(false); setProfileFriendUserId(userId) }}
+            onViewFriendCarnet={f => {
+              setFriendsManageOpen(false)
+              setViewingFriend({ userId: f.otherUser, handle: f.handle, displayName: f.displayName })
+              setActiveView('map')
+              setSelectedName(null)
+            }}
+          />
+        </Suspense>
+      )}
       {activeView === 'map' && selected && (
         <DestinationSheet
           destination={selected}
@@ -491,21 +502,10 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           }}
         />
       )}
-      {/* Le panneau "Amis" flottant sur la map a été retiré : il chevauchait
-          la destination card et le tier board. L'accès aux amis se fait via
-          le bouton "Amis" de la sidebar et l'ActivityStrip ci-dessous reste
-          contextuel (caché tant qu'il n'y a pas d'activité). */}
-      {activeView === 'map' && (
-        <ActivityStrip
-          variant="compact"
-          onFlyTo={(lat, lng, name) => {
-            setFlyTarget({ lat, lng, name })
-            setSelectedName(name)
-          }}
-          onOpenProfile={setProfileFriendUserId}
-          onSeeAll={() => setActiveView('friends')}
-        />
-      )}
+      {/* Activité récente : autrefois en bandeau fixe en bas de la map, ce qui
+          chevauchait la tier list. L'aperçu vit désormais dans la sidebar
+          (composant <SidebarActivity /> dans Nav.tsx) et la liste complète
+          reste accessible via l'onglet "Amis". */}
       {profileFriendUserId && (
         <Suspense fallback={null}>
           <FriendProfileSheet

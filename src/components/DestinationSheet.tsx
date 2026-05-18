@@ -25,6 +25,45 @@ const PEEK_RATIO = 0.40
 const FULL_RATIO = 0.08
 const CLOSE_RATIO = 0.85
 
+const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> = {
+  solo: 'Solo',
+  couple: 'Couple',
+  amis: 'Amis',
+  famille: 'Famille',
+  travail: 'Travail',
+}
+
+function formatEuro(value: number) {
+  return `${Math.round(value).toLocaleString('fr-FR')} €`
+}
+
+function getDestinationContext(destination: Destination) {
+  const meta: Array<{ icon: string; label: string }> = []
+  const details: Array<{ icon: string; label: string; value: string }> = []
+
+  if (destination.tripYear) {
+    meta.push({ icon: 'calendar', label: String(destination.tripYear) })
+  }
+  if (destination.tripDays) {
+    meta.push({ icon: 'clock', label: `${destination.tripDays} jour${destination.tripDays > 1 ? 's' : ''}` })
+  }
+  if (destination.personalBudget) {
+    const perDay = destination.tripDays ? destination.personalBudget / destination.tripDays : destination.personalBudget
+    meta.push({
+      icon: 'coins',
+      label: destination.tripDays ? `~${formatEuro(perDay)}/jour` : `~${formatEuro(destination.personalBudget)}`,
+    })
+  }
+  if (destination.companions) {
+    details.push({ icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })
+  }
+  if (destination.standout) {
+    details.push({ icon: 'sparkles', label: 'Marquant', value: destination.standout })
+  }
+
+  return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
+}
+
 export default function DestinationSheet(props: DestinationSheetProps) {
   const isMobile = useMediaQuery('(max-width: 760px)')
 
@@ -148,6 +187,7 @@ function DestinationCardContent({
 }: DestinationSheetProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const context = getDestinationContext(destination)
 
   const criteria = [
     ['Gastronomie', destination.food, 'utensils'],
@@ -237,7 +277,31 @@ function DestinationCardContent({
           <Icon name="heart" />
         </button>
       </div>
-      <p>{destination.summary}</p>
+      {context.hasContext && (
+        <div className="destination-context" aria-label="Contexte du voyage">
+          {context.meta.length > 0 && (
+            <div className="destination-context-meta">
+              {context.meta.map(item => (
+                <span key={`${item.icon}-${item.label}`}>
+                  <Icon name={item.icon} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {context.details.length > 0 && (
+            <div className="destination-context-details">
+              {context.details.map(item => (
+                <div key={`${item.icon}-${item.label}`}>
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <h3>Notes par critere</h3>
       <div className="criteria-list">
         {criteria.map(([label, value, icon]) => (

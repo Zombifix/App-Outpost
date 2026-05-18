@@ -197,8 +197,6 @@ function DestinationCardContent({
     ['Rapport qualite/prix', destination.value, 'coins'],
   ] as const
 
-  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
-
   const tripStopsHere = useMemo(() => {
     if (!allDestinations?.length) return []
     if (destination.kind === 'zone' || destination.kind === 'stop') return []
@@ -263,19 +261,23 @@ function DestinationCardContent({
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
-          {destination.intent && (
-            <span className="intent-pill">{destination.intent}</span>
-          )}
+          <div className="destination-pill-row">
+            {destination.intent && (
+              <span className="intent-pill">{destination.intent}</span>
+            )}
+            {coupDeCoeur && (
+              <button
+                className="coup-de-coeur-button is-active"
+                aria-label="Retirer le coup de coeur"
+                title="Coup de coeur - retirer"
+                onClick={onCoupDeCoeur}
+              >
+                <Icon name="heart" />
+                Coup de coeur
+              </button>
+            )}
+          </div>
         </div>
-        <button
-          className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
-          aria-label={coupDeCoeur ? 'Retirer le coup de cœur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Coup de cœur · ${coupDeCoeurCount}/2 utilisé`}
-          title={coupDeCoeur ? 'Coup de cœur · retirer' : coupDeCoeurDisabled ? '2 coups de cœur déjà utilisés' : `Coup de cœur · ${coupDeCoeurCount}/2 utilisé`}
-          disabled={coupDeCoeurDisabled}
-          onClick={onCoupDeCoeur}
-        >
-          <Icon name="heart" />
-        </button>
       </div>
       {context.hasContext && (
         <div className="destination-context" aria-label="Contexte du voyage">

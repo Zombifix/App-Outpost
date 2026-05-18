@@ -31,6 +31,7 @@ export default function TierListPanel({
   const railRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 })
   const suppressClickRef = useRef(false)
+  const scrollFrameRef = useRef<number | null>(null)
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
 
@@ -42,10 +43,21 @@ export default function TierListPanel({
     setCanScrollNext(rail.scrollLeft < maxScroll - 2)
   }
 
+  const scheduleRailControlsUpdate = () => {
+    if (scrollFrameRef.current !== null) return
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null
+      updateRailControls()
+    })
+  }
+
   useEffect(() => {
     updateRailControls()
     window.addEventListener('resize', updateRailControls)
-    return () => window.removeEventListener('resize', updateRailControls)
+    return () => {
+      window.removeEventListener('resize', updateRailControls)
+      if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current)
+    }
   }, [destinations])
 
   const scrollRail = (direction: -1 | 1) => {
@@ -56,6 +68,8 @@ export default function TierListPanel({
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
+    if (event.pointerType !== 'mouse') return
+    if ((event.target as HTMLElement).closest('button')) return
     const rail = event.currentTarget
     dragRef.current = {
       active: true,
@@ -73,7 +87,7 @@ export default function TierListPanel({
     const delta = event.clientX - drag.startX
     if (Math.abs(delta) > 6) drag.moved = true
     event.currentTarget.scrollLeft = drag.scrollLeft - delta
-    updateRailControls()
+    scheduleRailControlsUpdate()
   }
 
   const endPointerDrag = (event: PointerEvent<HTMLDivElement>) => {
@@ -117,7 +131,7 @@ export default function TierListPanel({
         <div
           ref={railRef}
           className="tier-columns"
-          onScroll={updateRailControls}
+          onScroll={scheduleRailControlsUpdate}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerDrag}
@@ -139,7 +153,8 @@ export default function TierListPanel({
                   <span style={{ color: colors.label }}>{tierLabels[tier]}</span>
                   <small>{items.length}</small>
                 </header>
-                <div className="destination-strip">
+                <div className="destination-strip-wrap">
+                  <div className="destination-strip">
                   {items.map(destination => {
                     const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
 
@@ -171,6 +186,10 @@ export default function TierListPanel({
                       </article>
                     )
                   })}
+                  </div>
+                  {items.length > 3 && (
+                    <span className="destination-strip-more">+{items.length - 3}</span>
+                  )}
                 </div>
               </article>
             )

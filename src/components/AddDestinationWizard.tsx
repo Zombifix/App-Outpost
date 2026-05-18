@@ -6,11 +6,16 @@ import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 
 interface WizardProps {
   onClose: () => void
-  onAdd: (destination: Destination) => void
+  onAdd: (destination: Destination, options?: SaveOptions) => void
   initialDestination?: Destination
-  onUpdate?: (destination: Destination) => void
+  onUpdate?: (destination: Destination, options?: SaveOptions) => void
   existingDestinations?: Destination[]
+  coupDeCoeurDestinations?: Destination[]
   onDuplicateFound?: (existing: Destination, incomingName: string) => void
+}
+
+export interface SaveOptions {
+  replaceCoupDeCoeurName?: string
 }
 
 type DestKind = 'place' | 'zone' | 'stop' | 'stage'
@@ -53,6 +58,8 @@ interface WizardState {
   companions: Destination['companions'] | null
   personalBudget: number | null
   standout: string
+  coupDeCoeur: boolean
+  replaceCoupDeCoeurName: string
 }
 
 async function fetchNominatimGeojson(name: string, country: string): Promise<object | undefined> {
@@ -404,7 +411,7 @@ const TIER_EXPLANATIONS: Record<Tier, string> = {
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 const AUTO_IMAGE_VERSION = 5
 
-export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate, existingDestinations, onDuplicateFound }: WizardProps) {
+export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate, existingDestinations, coupDeCoeurDestinations = [], onDuplicateFound }: WizardProps) {
   const isEditing = !!initialDestination
   const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'type')
   const [query, setQuery] = useState('')
@@ -437,6 +444,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           companions: initialDestination.companions ?? null,
           personalBudget: initialDestination.personalBudget ?? null,
           standout: initialDestination.standout ?? '',
+          coupDeCoeur: Boolean(initialDestination.coupDeCoeur),
+          replaceCoupDeCoeurName: '',
         }
       : {
           name: '', country: '', state: undefined, osmValue: undefined, lat: 0, lng: 0,
@@ -445,6 +454,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           vibeBoost: null, retourBonus: 0,
           intent: 'tourisme',
           tripYear: null, tripDays: null, companions: null, personalBudget: null, standout: '',
+          coupDeCoeur: false, replaceCoupDeCoeurName: '',
         }
   )
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -459,6 +469,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [resolvingImage, setResolvingImage] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
+  const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= 2
 
   // En mode édition, précalculer le score/tier depuis les valeurs initiales
   // pour ne pas afficher 0 / 'B' sur l'écran résultat.
@@ -570,6 +582,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   const confirmAdd = async () => {
     if (resolvingImage) return
+    if (needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName) return
     setResolvingImage(true)
     const s = state
     const isZone = s.kind === 'zone'
@@ -624,12 +637,17 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       companions: s.companions ?? undefined,
       personalBudget: Number.isFinite(s.personalBudget) ? s.personalBudget ?? undefined : undefined,
       standout: s.standout.trim() || undefined,
+      coupDeCoeur: s.coupDeCoeur,
     }
 
+    const saveOptions: SaveOptions | undefined = s.replaceCoupDeCoeurName
+      ? { replaceCoupDeCoeurName: s.replaceCoupDeCoeurName }
+      : undefined
+
     if (isEditing && onUpdate) {
-      onUpdate(result)
+      onUpdate(result, saveOptions)
     } else {
-      onAdd(result)
+      onAdd(result, saveOptions)
     }
     setResolvingImage(false)
   }
@@ -900,8 +918,42 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   ))}
                 </div>
               </div>
+              <div className="wizard-context-group">
+                <span>Coup de coeur ?</span>
+                <div className="wizard-chip-row" aria-label="Coup de coeur">
+                  <button
+                    type="button"
+                    data-kind="favorite"
+                    className={state.coupDeCoeur ? 'is-selected' : ''}
+                    onClick={() => setState(prev => ({
+                      ...prev,
+                      coupDeCoeur: !prev.coupDeCoeur,
+                      replaceCoupDeCoeurName: prev.coupDeCoeur ? '' : prev.replaceCoupDeCoeurName,
+                    }))}
+                  >
+                    <span aria-hidden="true">♥</span>
+                    Coup de coeur
+                  </button>
+                </div>
+                {needsCoupDeCoeurReplacement && (
+                  <div className="wizard-replace-choice">
+                    <span>Tu as deja 2 coups de coeur. Remplacer lequel ?</span>
+                    <div className="wizard-chip-row" aria-label="Remplacer un coup de coeur">
+                      {replaceOptions.map(destination => (
+                        <button
+                          key={destination.name}
+                          className={state.replaceCoupDeCoeurName === destination.name ? 'is-selected' : ''}
+                          onClick={() => setState(prev => ({ ...prev, replaceCoupDeCoeurName: destination.name }))}
+                        >
+                          {destination.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <button className="wizard-submit" onClick={confirmAdd} disabled={resolvingImage}>
+            <button className="wizard-submit" onClick={confirmAdd} disabled={resolvingImage || (needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName)}>
               {resolvingImage
                 ? 'Recherche de la photo...'
                 : isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}

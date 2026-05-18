@@ -11,6 +11,7 @@ import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
 import TierListPage from './components/TierListPage'
 import AddDestinationWizard from './components/AddDestinationWizard'
+import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import FriendsView from './components/friends/FriendsView'
@@ -228,6 +229,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
+  const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
   const [filters, setFilters] = useState<DestinationFilters>(DEFAULT_FILTERS)
   const [sortByScore, setSortByScore] = useState(false)
   const [tierListCollapsed, setTierListCollapsed] = useState(false)
@@ -329,6 +331,25 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
     setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
   }
 
+  const openDestinationOnMap = (name: string) => {
+    const destination = destinations.find(item => item.name === name)
+    if (!destination) return
+    setSelectedName(destination.name)
+    setPendingMapFocusName(destination.name)
+    setActiveView('map')
+  }
+
+  useEffect(() => {
+    if (activeView !== 'map' || !pendingMapFocusName) return
+    const destination = destinations.find(item => item.name === pendingMapFocusName)
+    if (!destination) {
+      setPendingMapFocusName(null)
+      return
+    }
+    setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
+    setPendingMapFocusName(null)
+  }, [activeView, destinations, pendingMapFocusName])
+
   const focusSelected = () => {
     if (!selected) return
     setFlyTarget({ lat: selected.lat, lng: selected.lng, name: selected.name })
@@ -353,26 +374,38 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
     if (selectedName === name) setSelectedName(null)
   }
 
-  const updateDestination = (updated: Destination) => {
+  const updateDestination = (updated: Destination, options?: SaveOptions) => {
     const originalName = editingDestination?.name ?? updated.name
     const merged = editingDestination
-      ? { ...updated, coupDeCoeur: editingDestination.coupDeCoeur }
+      ? { ...updated }
       : updated
 
-    setDestinations(previous => previous.map(item => item.name === originalName ? merged : item))
+    setDestinations(previous => previous.map(item => {
+      if (options?.replaceCoupDeCoeurName && item.name === options.replaceCoupDeCoeurName) {
+        return { ...item, coupDeCoeur: false }
+      }
+      return item.name === originalName ? merged : item
+    }))
     setSelectedName(merged.name)
     setFlyTarget({ lat: merged.lat, lng: merged.lng, name: merged.name })
     setEditingDestination(null)
   }
 
-  const addDestination = (destination: Destination) => {
+  const addDestination = (destination: Destination, options?: SaveOptions) => {
     const dup = findDuplicate(destination, destinations)
     if (dup) {
       setDuplicateConflict({ existing: dup, incoming: destination })
       setAddingDestination(false)
       return
     }
-    setDestinations(previous => [...previous, destination])
+    setDestinations(previous => [
+      ...previous.map(item => (
+        options?.replaceCoupDeCoeurName && item.name === options.replaceCoupDeCoeurName
+          ? { ...item, coupDeCoeur: false }
+          : item
+      )),
+      destination,
+    ])
     setSelectedName(destination.name)
     setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
     setAddingDestination(false)
@@ -418,7 +451,10 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         />
       )}
       {activeView === 'tier-list' && (
-        <TierListPage destinations={destinations} />
+        <TierListPage
+          destinations={destinations}
+          onSelect={openDestinationOnMap}
+        />
       )}
       {activeView === 'explore' && (
         <ExploreView
@@ -485,6 +521,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           onClose={() => setAddingDestination(false)}
           onAdd={addDestination}
           existingDestinations={destinations}
+          coupDeCoeurDestinations={destinations.filter(destination => destination.coupDeCoeur)}
           onDuplicateFound={(existing, incomingName) => {
             setAddingDestination(false)
             setDuplicateConflict({
@@ -501,6 +538,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           initialDestination={editingDestination}
           onUpdate={updateDestination}
           existingDestinations={destinations}
+          coupDeCoeurDestinations={destinations.filter(destination => destination.coupDeCoeur)}
         />
       )}
       {duplicateConflict && (

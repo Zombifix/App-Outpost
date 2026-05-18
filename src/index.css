@@ -1394,29 +1394,38 @@ svg {
 }
 
 .coup-de-coeur-button {
-  min-height: 23px;
-  padding: 3px 9px;
+  min-height: 27px;
+  padding: 5px 10px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  color: #a8870c;
-  background: rgba(232, 168, 0, 0.1);
+  gap: 6px;
+  color: #9f2339;
+  background: linear-gradient(135deg, rgba(255, 245, 225, 0.95), rgba(255, 232, 237, 0.95));
+  border: 1px solid rgba(232, 88, 112, 0.22);
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   line-height: 1;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.01em;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
 .coup-de-coeur-button svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
 }
 
 .coup-de-coeur-button.is-active {
   color: white;
-  background: #e8a800;
-  box-shadow: 0 8px 18px rgba(232, 168, 0, 0.22);
+  background: linear-gradient(135deg, #f25f73 0%, #ff9f43 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 10px 22px rgba(242, 95, 115, 0.32);
+}
+
+.coup-de-coeur-button.is-active:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(242, 95, 115, 0.38);
 }
 
 .coup-de-coeur-button:disabled {
@@ -1939,6 +1948,32 @@ svg {
   -ms-overflow-style: none;
 }
 .destination-strip::-webkit-scrollbar { display: none; }
+
+.destination-strip-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.destination-strip-more {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  z-index: 4;
+  transform: translateY(-50%);
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #26324d;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(205, 216, 232, 0.9);
+  box-shadow: 0 8px 18px rgba(45, 65, 96, 0.16);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  pointer-events: none;
+}
 
 .mini-destination {
   position: relative;
@@ -2478,7 +2513,12 @@ svg {
 
   body { overflow: auto; }
 
-  .travel-app { min-height: 100vh; height: auto; overflow: hidden; }
+  .travel-app {
+    min-height: calc(64px + 60vh + 12px + 250px + 92px);
+    height: auto;
+    overflow: visible;
+    background: linear-gradient(180deg, #f8fbff 0%, #edf7ff 48%, #f7fbff 100%);
+  }
 
   .sidebar { display: none; }
 
@@ -2496,6 +2536,7 @@ svg {
     align-items: center;
     justify-content: center;
     z-index: 5;
+    background: linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(248, 251, 255, 0));
   }
   .mobile-brand-logo {
     height: 32px;
@@ -2507,13 +2548,30 @@ svg {
 
   /* Map = hero. Take the bulk of the viewport. */
   .map-area {
-    left: 12px;
-    right: 12px;
+    position: relative;
+    left: 14px;
+    right: 14px;
     top: 64px;
+    width: calc(100% - 28px);
     height: 60vh;
     min-height: 380px;
     bottom: auto;
+    border-radius: 26px;
+    overflow: hidden;
+    border: 1px solid rgba(198, 217, 236, 0.8);
+    box-shadow: 0 18px 40px rgba(44, 79, 112, 0.16);
+    margin-bottom: 76px;
     transition: none;
+  }
+
+  .map-area::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.82), inset 0 -18px 34px rgba(74, 126, 160, 0.08);
+    z-index: 12;
   }
 
   /* Bottom nav visible on mobile */
@@ -2557,7 +2615,7 @@ svg {
   }
 
   .bottom-nav-item.is-active {
-    color: #5039ee;
+    color: #1B5FE8;
   }
 
   .bottom-nav-add {
@@ -2569,7 +2627,7 @@ svg {
     gap: 2px;
     border: none;
     background: transparent;
-    color: #5039ee;
+    color: #1B5FE8;
     font-size: var(--text-3xs, 10px);
     font-weight: var(--weight-bold);
     cursor: pointer;
@@ -2580,11 +2638,11 @@ svg {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #5039ee, #8986ff);
+    background: linear-gradient(135deg, #1B5FE8, #3D80F5);
     color: white;
     display: grid;
     place-items: center;
-    box-shadow: 0 6px 14px rgba(80, 57, 238, 0.32);
+    box-shadow: 0 6px 14px rgba(27, 95, 232, 0.28);
   }
 
   .bottom-nav-add-icon svg {
@@ -2612,7 +2670,8 @@ svg {
   .legend { display: none; }
 
   .map-controls {
-    bottom: 12px;
+    bottom: 14px;
+    left: 14px;
   }
   /* Pinch + double-tap suffisent — on garde uniquement le dezoom */
   .map-controls button[aria-label="Zoomer"],
@@ -2642,31 +2701,88 @@ svg {
     background: linear-gradient(to left, rgba(255,255,255,0.85), rgba(255,255,255,0));
   }
   .tier-columns {
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: none;
     -webkit-overflow-scrolling: touch;
   }
-  .tier-column { scroll-snap-align: start; }
+  .tier-column { scroll-snap-align: none; }
 
   /* Tier list slimmer — sits just below the map */
   .tier-board {
-    left: 12px;
-    right: 12px;
-    top: calc(64px + 60vh + 12px);
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
     bottom: auto;
     height: auto;
-    padding: 12px;
-    margin-bottom: 76px; /* breathing room above bottom nav */
+    padding: 14px 12px 12px;
+    margin: 10px 14px 82px; /* breathing room above bottom nav */
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(216, 228, 242, 0.88);
+    box-shadow: 0 14px 34px rgba(55, 79, 108, 0.12);
+    backdrop-filter: blur(14px);
     transition: none;
+  }
+
+  .tier-board-head {
+    margin-bottom: 10px;
   }
 
   .tier-columns {
     display: flex;
+    gap: 12px;
     height: auto;
     overflow-x: auto;
-    padding-bottom: 4px;
+    overflow-y: hidden;
+    padding: 0 2px 8px;
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
   }
 
-  .tier-column { min-width: 150px; }
+  .tier-column {
+    flex: 0 0 min(82vw, 340px);
+    min-width: min(82vw, 340px);
+    max-width: min(82vw, 340px);
+    border-radius: 20px;
+    padding: 12px;
+    box-shadow: 0 10px 24px rgba(67, 90, 120, 0.1);
+  }
+
+  .destination-strip {
+    gap: 9px;
+    padding: 0 48px 8px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+  }
+
+  .destination-strip-more {
+    display: grid;
+  }
+
+  .mini-destination {
+    width: 116px;
+    height: 142px;
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(35, 55, 82, 0.18);
+  }
+
+  .mini-destination-main {
+    padding: 0 10px 12px;
+  }
+
+  .bottom-nav {
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+    height: calc(58px + env(safe-area-inset-bottom, 0px));
+    border: 1px solid rgba(214, 226, 242, 0.88);
+    border-radius: 22px;
+    box-shadow: 0 14px 34px rgba(33, 54, 85, 0.16);
+  }
 
   .next-control { display: none; }
 }
@@ -3203,6 +3319,46 @@ svg {
   background: rgba(27, 95, 232, 0.1);
 }
 
+.wizard-chip-row button[data-kind="favorite"] {
+  gap: 6px;
+  color: #9f2339;
+  border-color: rgba(242, 95, 115, 0.28);
+  background: linear-gradient(135deg, rgba(255, 245, 225, 0.95), rgba(255, 232, 237, 0.95));
+}
+
+.wizard-chip-row button[data-kind="favorite"] span {
+  color: #f25f73;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.wizard-chip-row button[data-kind="favorite"].is-selected {
+  color: white;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f25f73 0%, #ff9f43 100%);
+  box-shadow: 0 10px 20px rgba(242, 95, 115, 0.24);
+}
+
+.wizard-chip-row button[data-kind="favorite"].is-selected span {
+  color: white;
+}
+
+.wizard-replace-choice {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(242, 95, 115, 0.22);
+  border-radius: 12px;
+  background: rgba(242, 95, 115, 0.06);
+}
+
+.wizard-replace-choice > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #a13a4d;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
 .wizard-submit {
   width: 100%;
   padding: 15px;
@@ -3684,6 +3840,8 @@ svg {
   flex-shrink: 0;
   width: 220px;
   height: 140px;
+  padding: 0;
+  border: 0;
   border-radius: 14px;
   background-size: cover;
   background-position: center;
@@ -3693,6 +3851,8 @@ svg {
   flex-direction: column;
   justify-content: flex-end;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  cursor: pointer;
+  text-align: left;
 }
 
 .dest-card::before {

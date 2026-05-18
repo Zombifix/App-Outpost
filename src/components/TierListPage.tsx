@@ -10,6 +10,7 @@ import { useFriendDestinations } from '../hooks/useFriendDestinations'
 
 interface TierListPageProps {
   destinations: Destination[]
+  onSelect: (name: string) => void
 }
 
 const INTENTS: Array<Intent | 'all'> = ['all', 'tourisme', 'sorties', 'gastro', 'nature', 'travail', 'city-trip']
@@ -55,15 +56,19 @@ function applyFilters(list: Destination[], intent: Intent | 'all'): Destination[
 function DestCard({ destination, sharedNames }: {
   destination: Destination
   sharedNames?: Set<string>
+  onSelect?: (name: string) => void
 }) {
   const isShared = sharedNames?.has(destination.name.toLowerCase())
   const intentLabel = INTENT_LABEL[destination.intent]
   const intentEmoji = INTENT_EMOJI[destination.intent]
 
   return (
-    <div
+    <button
+      type="button"
       className="dest-card"
       style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
+      onClick={() => onSelect?.(destination.name)}
+      aria-label={`Voir ${destination.name} sur la carte`}
     >
       {isShared && <span className="dest-card-shared-badge">En commun</span>}
       <div className="dest-card-body">
@@ -72,7 +77,7 @@ function DestCard({ destination, sharedNames }: {
           <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -138,6 +143,7 @@ function TierRow({
   sharedNames,
   collapsed,
   onToggle,
+  onSelect,
 }: {
   tier: Tier
   myDests: Destination[]
@@ -146,6 +152,7 @@ function TierRow({
   sharedNames: Set<string>
   collapsed: boolean
   onToggle: () => void
+  onSelect: (name: string) => void
 }) {
   const colors = TIER_COLORS[tier]
   const mine = myDests.filter(d => d.tier === tier && d.kind !== 'stop')
@@ -185,7 +192,7 @@ function TierRow({
             {friend && <p className="tier-row-col-label">Moi</p>}
             <div className="tier-list-row-strip">
               {mine.map(d => (
-                <DestCard key={d.name} destination={d} sharedNames={friend ? sharedNames : undefined} />
+                <DestCard key={d.name} destination={d} sharedNames={friend ? sharedNames : undefined} onSelect={onSelect} />
               ))}
               {mine.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
             </div>
@@ -211,7 +218,7 @@ function TierRow({
   )
 }
 
-export default function TierListPage({ destinations }: TierListPageProps) {
+export default function TierListPage({ destinations, onSelect }: TierListPageProps) {
   const [friend, setFriend] = useState<Friend | null>(null)
   const [friendUserId, setFriendUserId] = useState<string | null>(null)
   const [intent, setIntent] = useState<Intent | 'all'>('all')
@@ -377,6 +384,7 @@ export default function TierListPage({ destinations }: TierListPageProps) {
             sharedNames={sharedNames}
             collapsed={collapsed[tier]}
             onToggle={() => toggleCollapse(tier)}
+            onSelect={onSelect}
           />
         ))}
       </section>

@@ -113,7 +113,6 @@ export default function TierListPanel({
           onClick={() => scrollRail(-1)}
         >
           <ChevronIcon direction="left" />
-          <span>Retour</span>
         </button>
         <div
           ref={railRef}
@@ -183,7 +182,6 @@ export default function TierListPanel({
           disabled={!canScrollNext}
           onClick={() => scrollRail(1)}
         >
-          <span>Suite</span>
           <ChevronIcon direction="right" />
         </button>
       </div>

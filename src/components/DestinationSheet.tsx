@@ -276,29 +276,29 @@ function DestinationCardContent({
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
-        {destination.intent && (
-          <span className="intent-pill destination-hero-pill">
-            <span aria-hidden="true">{INTENT_EMOJIS[destination.intent]}</span>
-            {INTENT_LABELS[destination.intent]}
-          </span>
-        )}
+        <div className="destination-hero-pills">
+          {destination.intent && (
+            <span className="intent-pill destination-hero-pill">
+              <span aria-hidden="true">{INTENT_EMOJIS[destination.intent]}</span>
+              {INTENT_LABELS[destination.intent]}
+            </span>
+          )}
+          <button
+            className={`coup-de-coeur-button destination-hero-favorite${coupDeCoeur ? ' is-active' : ''}`}
+            aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Ajouter en coup de coeur - ${coupDeCoeurCount}/2 utilises`}
+            title={coupDeCoeur ? 'Coup de coeur - retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur - ${coupDeCoeurCount}/2 utilises`}
+            disabled={coupDeCoeurDisabled}
+            onClick={onCoupDeCoeur}
+          >
+            <span aria-hidden="true">❤️</span>
+            Coup de coeur
+          </button>
+        </div>
       </div>
       <div className="destination-title-row">
         {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
         <div>
           <h2>{destination.name}, {destination.country}</h2>
-          <div className="destination-pill-row">
-            <button
-              className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
-              aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Ajouter en coup de coeur - ${coupDeCoeurCount}/2 utilises`}
-              title={coupDeCoeur ? 'Coup de coeur - retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur - ${coupDeCoeurCount}/2 utilises`}
-              disabled={coupDeCoeurDisabled}
-              onClick={onCoupDeCoeur}
-            >
-              <Icon name="heart" />
-              {coupDeCoeur ? 'Coup de coeur' : `${coupDeCoeurCount}/2 coup de coeur`}
-            </button>
-          </div>
         </div>
       </div>
       {context.hasContext && (

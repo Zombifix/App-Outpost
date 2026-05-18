@@ -211,14 +211,10 @@ function DestCard({
           <span className="dest-card-country">{destination.country}</span>
           <div className="dest-card-chips">
             <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
+            {isCoupDeCoeur && <span className="dest-chip dest-chip--favorite">❤️ Coup de coeur</span>}
           </div>
         </div>
       </button>
-      {isCoupDeCoeur && (
-        <span className="dest-card-favorite is-active is-readonly" aria-label="Coup de coeur">
-          <HeartIcon />
-        </span>
-      )}
     </article>
   )
 }
@@ -709,10 +705,3 @@ function getPreviewStats(destination: Destination) {
   return stats
 }
 
-function HeartIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
-    </svg>
-  )
-}

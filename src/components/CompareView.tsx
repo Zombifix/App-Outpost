@@ -120,9 +120,9 @@ function CommonDests({ mine, theirs }: { mine: Destination[]; theirs: Destinatio
             <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
               <span>{d.country}</span>
               <span style={{ fontWeight: 500, color: '#1a1a1a' }}>{d.name}</span>
-              <TierBadge tier={myDest.tier} />
+              <TierBadge tier={myDest.tier ?? 'D'} />
               <span style={{ color: '#bbb' }}>vs</span>
-              <TierBadge tier={d.tier} />
+              <TierBadge tier={d.tier ?? 'D'} />
             </div>
           )
         })}

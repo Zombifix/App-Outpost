@@ -3,6 +3,7 @@ import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 import { resolveDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
+import { INTENT_WEIGHTS, scoreToTier } from '../utils'
 
 interface WizardProps {
   onClose: () => void
@@ -42,7 +43,7 @@ interface WizardState {
   lat: number
   lng: number
   extent?: [number, number, number, number]
-  geojson?: object
+  geojson?: GeoJSON.Geometry
   kind: DestKind
   tripName: string
   food: number | null
@@ -62,7 +63,7 @@ interface WizardState {
   replaceCoupDeCoeurName: string
 }
 
-async function fetchNominatimGeojson(name: string, country: string): Promise<object | undefined> {
+async function fetchNominatimGeojson(name: string, country: string): Promise<GeoJSON.Geometry | undefined> {
   const q = country ? `${name}, ${country}` : name
   try {
     const res = await fetch(
@@ -70,28 +71,20 @@ async function fetchNominatimGeojson(name: string, country: string): Promise<obj
       { headers: { 'Accept-Language': 'fr' } },
     )
     const data = await res.json()
-    return (data.features?.[0]?.geometry as object | undefined)
+    const geom = data?.features?.[0]?.geometry
+    // Validation minimale du shape — Nominatim peut renvoyer n'importe quoi en erreur
+    if (geom && typeof geom === 'object' && typeof (geom as { type?: unknown }).type === 'string') {
+      return geom as GeoJSON.Geometry
+    }
+    return undefined
   } catch {
     return undefined
   }
 }
 
-const INTENT_WEIGHTS: Record<Intent, Record<string, number>> = {
-  gastro:     { food: 2.0, night: 1.0, culture: 1.0, nature: 1.0, value: 1.0 },
-  nature:     { food: 1.0, night: 0.8, culture: 1.0, nature: 2.0, value: 1.1 },
-  sorties:    { food: 1.2, night: 1.8, culture: 1.0, nature: 0.8, value: 1.0 },
-  tourisme:   { food: 1.0, night: 1.0, culture: 1.5, nature: 1.2, value: 1.0 },
-  travail:    { food: 1.1, night: 0.8, culture: 1.0, nature: 0.9, value: 1.5 },
-  'city-trip': { food: 1.0, night: 1.0, culture: 1.0, nature: 1.0, value: 1.0 },
-}
-
-function scoreToTier(score: number): Tier {
-  if (score >= 4.5) return 'S'
-  if (score >= 3.5) return 'A'
-  if (score >= 2.5) return 'B'
-  if (score >= 1.5) return 'C'
-  return 'D'
-}
+// INTENT_WEIGHTS et scoreToTier importés de ../utils — source unique.
+// Le wizard rajoute sa propre logique (axes optionnels, vibeBoost, retourBonus)
+// au-dessus des poids partagés.
 
 function computeScore(state: WizardState): number {
   const w = INTENT_WEIGHTS[state.intent]
@@ -102,7 +95,7 @@ function computeScore(state: WizardState): number {
     ['nature', state.nature],
     ['value', state.value],
   ] as const
-  const active = axes.filter(([, v]) => v !== null) as [string, number][]
+  const active = axes.filter(([, v]) => v !== null) as [keyof typeof w, number][]
   const totalWeight = active.reduce((sum, [k]) => sum + w[k], 0)
   const weighted = totalWeight === 0 ? 3 : active.reduce((sum, [k, v]) => sum + v * w[k], 0) / totalWeight
   const vibe = state.vibeBoost ?? 3

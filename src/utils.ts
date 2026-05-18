@@ -1,9 +1,10 @@
 import type { Tier, Intent } from './types'
 
-type Ratings = { food: number; night: number; culture: number; nature: number; value: number }
-type Weights = Record<keyof Ratings, number>
+export type Ratings = { food: number; night: number; culture: number; nature: number; value: number }
+export type Weights = Record<keyof Ratings, number>
 
-const INTENT_WEIGHTS: Record<Intent, Weights> = {
+// Source unique des poids — importée par utils + AddDestinationWizard.
+export const INTENT_WEIGHTS: Record<Intent, Weights> = {
   tourisme:   { culture: 1.5, nature: 1.2, food: 1.0, night: 1.0, value: 1.0 },
   sorties:    { night: 1.8, food: 1.2, culture: 1.0, nature: 1.0, value: 1.0 },
   gastro:     { food: 2.0, night: 1.0, culture: 1.0, nature: 1.0, value: 1.0 },

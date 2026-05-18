@@ -20,7 +20,7 @@ interface AddFriendModalProps {
 export default function AddFriendModal({ onClose }: AddFriendModalProps) {
   const [tab, setTab] = useState<Tab>('handle')
   const { user, signInWithEmail } = useAuth()
-  const { searchProfiles, sendRequestByUserId, createEmailInvite } = useFriends()
+  const { searchProfiles, sendRequestByUserId, createEmailInvite, pendingActions } = useFriends()
 
   const [handleQuery, setHandleQuery] = useState('')
   const [results, setResults] = useState<PublicProfile[]>([])
@@ -50,6 +50,8 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
   }, [handleQuery, tab, searchProfiles, user])
 
   const sendHandle = async (profile: PublicProfile) => {
+    // Garde anti double-clic locale, complétée par le pendingActions du hook
+    if (pendingActions.has(`user:${profile.userId}`)) return
     const res = await sendRequestByUserId(profile.userId)
     if (res.ok) {
       setSentTo(prev => new Set(prev).add(profile.userId))
@@ -168,10 +170,12 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
                   </div>
                   <button
                     className="add-submit friends-action-btn"
-                    disabled={sentTo.has(p.userId)}
+                    disabled={sentTo.has(p.userId) || pendingActions.has(`user:${p.userId}`)}
                     onClick={() => sendHandle(p)}
                   >
-                    {sentTo.has(p.userId) ? 'Envoyé ✓' : 'Demander'}
+                    {sentTo.has(p.userId)
+                      ? 'Envoyé ✓'
+                      : pendingActions.has(`user:${p.userId}`) ? 'Envoi…' : 'Demander'}
                   </button>
                 </div>
               ))}

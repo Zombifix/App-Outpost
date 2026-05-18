@@ -466,7 +466,7 @@ function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend
 
   let geometry: GeoJSON.Geometry | null = null
   if (d.geojson) {
-    geometry = d.geojson as GeoJSON.Geometry
+    geometry = d.geojson
   } else if (d.extent) {
     const [w, s, e, n] = d.extent
     geometry = { type: 'Polygon', coordinates: [[[w,s],[e,s],[e,n],[w,n],[w,s]]] }
@@ -724,7 +724,7 @@ export default function WorldMap({
     >
       <div ref={mapContainerRef} className="map-gl-container" draggable={false} />
 
-      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations" draggable={false}>
+      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">
         <g ref={pinsGroupRef}>
           {mapReady && (() => {
             const shared   = sharedNames ?? new Set<string>()

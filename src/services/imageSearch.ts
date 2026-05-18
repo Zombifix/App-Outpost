@@ -82,6 +82,39 @@ interface WikipediaSummary {
 
 const CACHE_KEY = 'outpost-destination-image-cache-v5'
 const CACHE_LIMIT = 180
+
+/**
+ * Fetch avec retry exponentiel sur erreurs réseau et 5xx.
+ * 429 (rate limit) déclenche aussi un retry.
+ * Les 4xx (sauf 429) sont retournés tels quels — pas la peine de retry.
+ */
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  opts: { retries?: number; baseDelayMs?: number } = {},
+): Promise<Response> {
+  const retries = opts.retries ?? 2
+  const baseDelay = opts.baseDelayMs ?? 300
+  let lastError: unknown = null
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(input, init)
+      if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+        return response
+      }
+      // 5xx ou 429 → retry
+      lastError = new Error(`http_${response.status}`)
+    } catch (err) {
+      lastError = err
+    }
+    if (attempt < retries) {
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
+  // Plus de retry : on rejette comme une erreur normale pour que le caller catch.
+  throw lastError instanceof Error ? lastError : new Error('fetch_failed')
+}
 const MIN_LANDSCAPE_RATIO = 1.15
 const TRAVEL_KEYWORDS = [
   'landscape',
@@ -254,7 +287,7 @@ async function searchPexels(query: string): Promise<DestinationImageResult | nul
   url.searchParams.set('per_page', '12')
   url.searchParams.set('locale', 'en-US')
 
-  const response = await fetch(url, { headers: { Authorization: key } })
+  const response = await fetchWithRetry(url, { headers: { Authorization: key } })
   if (!response.ok) return null
 
   const data = await response.json() as { photos?: PexelsPhoto[] }
@@ -297,7 +330,7 @@ function summaryImageIsUsable(summary: WikipediaSummary): boolean {
 
 async function searchWikipediaSummaryImage(name: string): Promise<DestinationImageResult | null> {
   const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}?redirect=true`
-  const response = await fetch(url)
+  const response = await fetchWithRetry(url)
   if (!response.ok) return null
 
   const summary = await response.json() as WikipediaSummary
@@ -329,7 +362,7 @@ async function searchWikiExactImage(
   url.searchParams.set('inprop', 'url')
   url.searchParams.set('pithumbsize', '1200')
 
-  const response = await fetch(url)
+  const response = await fetchWithRetry(url)
   if (!response.ok) return null
 
   const data = await response.json() as { query?: { pages?: Record<string, WikipediaPage> } }
@@ -364,7 +397,7 @@ async function searchWikipediaSearchImage(query: string, input: ResolveDestinati
   url.searchParams.set('inprop', 'url')
   url.searchParams.set('pithumbsize', '1200')
 
-  const response = await fetch(url)
+  const response = await fetchWithRetry(url)
   if (!response.ok) return null
 
   const data = await response.json() as { query?: { pages?: Record<string, WikipediaPage> } }
@@ -448,7 +481,7 @@ async function searchWikimedia(query: string, input: ResolveDestinationImageInpu
   url.searchParams.set('iiprop', 'url|size|mime|extmetadata')
   url.searchParams.set('iiurlwidth', '1200')
 
-  const response = await fetch(url)
+  const response = await fetchWithRetry(url)
   if (!response.ok) return null
 
   const data = await response.json() as { query?: { pages?: Record<string, WikimediaPage> } }
@@ -466,7 +499,7 @@ async function searchWikimedia(query: string, input: ResolveDestinationImageInpu
 
   const info = page?.imageinfo?.[0]
   const image = info?.thumburl ?? info?.url
-  if (!page || !image) return null
+  if (!page || !info || !image) return null
 
   return {
     image,

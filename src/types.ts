@@ -24,7 +24,7 @@ export interface Destination {
   kind?: 'place' | 'zone' | 'stop' | 'stage'
   tripName?: string
   extent?: [number, number, number, number]
-  geojson?: object
+  geojson?: GeoJSON.Geometry
   state?: string
   osmValue?: string
   image?: string

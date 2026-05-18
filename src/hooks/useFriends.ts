@@ -78,42 +78,62 @@ export function useFriends() {
     return () => { void client.removeChannel(channel) }
   }, [user, refresh])
 
+  // Set d'IDs (handle, userId, email) en cours de traitement pour éviter les doubles requêtes
+  const [pendingActions, setPendingActions] = useState<Set<string>>(new Set())
+  const withPending = useCallback(async <T,>(key: string, fn: () => Promise<T>): Promise<T | { ok: false; error: string }> => {
+    if (pendingActions.has(key)) return { ok: false as const, error: 'Action déjà en cours' }
+    setPendingActions(prev => { const next = new Set(prev); next.add(key); return next })
+    try {
+      return await fn()
+    } finally {
+      setPendingActions(prev => { const next = new Set(prev); next.delete(key); return next })
+    }
+  }, [pendingActions])
+
   const sendRequestByHandle = useCallback(async (handle: string): Promise<{ ok: boolean; error?: string }> => {
     if (!supabase) return { ok: false, error: 'Supabase non configuré' }
     const cleanHandle = handle.trim().toLowerCase().replace(/^@/, '')
     if (!cleanHandle) return { ok: false, error: 'Handle vide' }
-    const { data: targetId, error: lookupErr } = await supabase.rpc('find_user_by_handle', { target_handle: cleanHandle })
-    if (lookupErr) return { ok: false, error: lookupErr.message }
-    if (!targetId) return { ok: false, error: 'Aucun utilisateur avec ce handle' }
-    const { error: sendErr } = await supabase.rpc('send_friend_request', { target_user: targetId })
-    if (sendErr) return { ok: false, error: sendErr.message }
-    await refresh()
-    return { ok: true }
-  }, [refresh])
+    return withPending(`handle:${cleanHandle}`, async () => {
+      const { data: targetId, error: lookupErr } = await supabase!.rpc('find_user_by_handle', { target_handle: cleanHandle })
+      if (lookupErr) return { ok: false, error: lookupErr.message }
+      if (!targetId) return { ok: false, error: 'Aucun utilisateur avec ce handle' }
+      const { error: sendErr } = await supabase!.rpc('send_friend_request', { target_user: targetId })
+      if (sendErr) return { ok: false, error: sendErr.message }
+      await refresh()
+      return { ok: true }
+    }) as Promise<{ ok: boolean; error?: string }>
+  }, [refresh, withPending])
 
   const sendRequestByUserId = useCallback(async (targetUserId: string): Promise<{ ok: boolean; error?: string }> => {
     if (!supabase) return { ok: false, error: 'Supabase non configuré' }
-    const { error: err } = await supabase.rpc('send_friend_request', { target_user: targetUserId })
-    if (err) return { ok: false, error: err.message }
-    await refresh()
-    return { ok: true }
-  }, [refresh])
+    return withPending(`user:${targetUserId}`, async () => {
+      const { error: err } = await supabase!.rpc('send_friend_request', { target_user: targetUserId })
+      if (err) return { ok: false, error: err.message }
+      await refresh()
+      return { ok: true }
+    }) as Promise<{ ok: boolean; error?: string }>
+  }, [refresh, withPending])
 
   const acceptRequest = useCallback(async (otherUser: string) => {
     if (!supabase) return { ok: false as const, error: 'Supabase non configuré' }
-    const { error: err } = await supabase.rpc('accept_friend_request', { other_user: otherUser })
-    if (err) return { ok: false as const, error: err.message }
-    await refresh()
-    return { ok: true as const }
-  }, [refresh])
+    return withPending(`accept:${otherUser}`, async () => {
+      const { error: err } = await supabase!.rpc('accept_friend_request', { other_user: otherUser })
+      if (err) return { ok: false as const, error: err.message }
+      await refresh()
+      return { ok: true as const }
+    }) as Promise<{ ok: true } | { ok: false; error: string }>
+  }, [refresh, withPending])
 
   const removeFriendship = useCallback(async (otherUser: string) => {
     if (!supabase) return { ok: false as const, error: 'Supabase non configuré' }
-    const { error: err } = await supabase.rpc('remove_friendship', { other_user: otherUser })
-    if (err) return { ok: false as const, error: err.message }
-    await refresh()
-    return { ok: true as const }
-  }, [refresh])
+    return withPending(`remove:${otherUser}`, async () => {
+      const { error: err } = await supabase!.rpc('remove_friendship', { other_user: otherUser })
+      if (err) return { ok: false as const, error: err.message }
+      await refresh()
+      return { ok: true as const }
+    }) as Promise<{ ok: true } | { ok: false; error: string }>
+  }, [refresh, withPending])
 
   const createEmailInvite = useCallback(async (email: string): Promise<{ token?: string; error?: string }> => {
     if (!supabase) return { error: 'Supabase non configuré' }
@@ -123,13 +143,16 @@ export function useFriends() {
   }, [])
 
   const searchProfiles = useCallback(async (query: string): Promise<PublicProfile[]> => {
-    if (!supabase) return []
+    // Auth requise pour éviter l'énumération anonyme
+    if (!supabase || !user) return []
     const q = query.trim().replace(/^@/, '')
-    if (q.length < 2) return []
+    if (q.length < 3) return []
+    // Échappe les wildcards SQL ILIKE (% et _) pour éviter les patterns abusifs
+    const safe = q.replace(/[\\%_]/g, c => `\\${c}`)
     const { data, error: err } = await supabase
       .from('public_profiles')
       .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio')
-      .or(`handle.ilike.%${q}%,display_name.ilike.%${q}%`)
+      .or(`handle.ilike.%${safe}%,display_name.ilike.%${safe}%`)
       .limit(8)
     if (err || !data) return []
     return data.map(row => ({
@@ -140,7 +163,7 @@ export function useFriends() {
       avatarFg: row.avatar_fg,
       bio: row.bio ?? undefined,
     }))
-  }, [])
+  }, [user])
 
   const accepted = useMemo(() => friendships.filter(f => f.status === 'accepted'), [friendships])
   const incoming = useMemo(() => friendships.filter(f => f.status === 'pending' && f.initiator === 'them'), [friendships])
@@ -160,5 +183,6 @@ export function useFriends() {
     removeFriendship,
     createEmailInvite,
     searchProfiles,
+    pendingActions,
   }
 }

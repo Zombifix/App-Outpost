@@ -65,6 +65,7 @@ export function useFriendDestinations(friendUserId: string | null) {
       .from('destinations')
       .select('id, user_id, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, score, coup_de_coeur, summary, image, trip_name')
       .eq('user_id', friendUserId)
+      .limit(200)
     if (err) {
       setError(err.message)
       setDestinations([])

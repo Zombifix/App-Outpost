@@ -53,7 +53,7 @@ function applyFilters(list: Destination[], intent: Intent | 'all'): Destination[
   return list.filter(d => intent === 'all' || d.intent === intent)
 }
 
-function DestCard({ destination, sharedNames }: {
+function DestCard({ destination, sharedNames, onSelect }: {
   destination: Destination
   sharedNames?: Set<string>
   onSelect?: (name: string) => void

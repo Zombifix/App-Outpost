@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from './types'
-import { DESTINATIONS } from './data'
-import { resolveDestinationImage } from './services/imageSearch'
+import { useDestinationsStore } from './hooks/useDestinationsStore'
 import WorldMap from './components/WorldMap'
 import DestinationSheet from './components/DestinationSheet'
 import BottomNav from './components/BottomNav'
@@ -9,27 +8,27 @@ import { BrandLogo } from './components/BrandLogo'
 import { Icon } from './components/Icon'
 import Nav from './components/Nav'
 import TierListPanel from './components/TierListPanel'
-import TierListPage from './components/TierListPage'
-import AddDestinationWizard from './components/AddDestinationWizard'
 import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
-import FriendsView from './components/friends/FriendsView'
-import FriendProfileSheet from './components/friends/FriendProfileSheet'
 import ActivityStrip from './components/friends/ActivityStrip'
-import AddFriendModal from './components/friends/AddFriendModal'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
+
+// Routes / panels lourds chargés à la demande pour réduire le bundle initial.
+// Le fallback est `null` parce que ces écrans apparaissent en réponse à un clic
+// utilisateur — un spinner brièvement visible ferait plus de bruit qu'autre chose.
+const TierListPage = lazy(() => import('./components/TierListPage'))
+const AddDestinationWizard = lazy(() => import('./components/AddDestinationWizard'))
+const FriendsView = lazy(() => import('./components/friends/FriendsView'))
+const FriendProfileSheet = lazy(() => import('./components/friends/FriendProfileSheet'))
+const AddFriendModal = lazy(() => import('./components/friends/AddFriendModal'))
 import { AuthProvider, useAuth } from './lib/auth'
 import { supabase } from './lib/supabase'
 import { useFriends } from './hooks/useFriends'
 import { useMyProfile } from './hooks/useMyProfile'
 
-const STORAGE_KEY = 'outpost-destinations-v2'
-const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const PUBLIC_ID_KEY = 'outpost-public-id'
-const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
-const AUTO_IMAGE_VERSION = 5
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 export type DestinationFilters = {
   topTiers: boolean
@@ -93,8 +92,9 @@ function normalizeDestination(value: unknown): Destination | null {
     ? value.extent.map(coord => finiteNumber(coord, NaN)) as [number, number, number, number]
     : undefined
 
+  // Construction explicite : on ne fait PAS de spread du record d'entrée pour
+  // éviter de propager des champs inconnus (sécurité de typage + invariants types).
   return {
-    ...(value as Destination),
     name,
     country,
     lat,
@@ -111,7 +111,9 @@ function normalizeDestination(value: unknown): Destination | null {
     notes: value.notes === undefined ? undefined : finiteNumber(value.notes, 1),
     stops: normalizeStops(value.stops),
     extent: extent?.every(Number.isFinite) ? extent : undefined,
-    geojson: isRecord(value.geojson) ? value.geojson : undefined,
+    geojson: isRecord(value.geojson) && typeof (value.geojson as { type?: unknown }).type === 'string'
+      ? (value.geojson as unknown as GeoJSON.Geometry)
+      : undefined,
     state: typeof value.state === 'string' ? value.state : undefined,
     osmValue: typeof value.osmValue === 'string' ? value.osmValue : undefined,
     image: typeof value.image === 'string' ? value.image : undefined,
@@ -141,32 +143,12 @@ function normalizeDestinations(value: unknown): Destination[] | null {
   return normalized.length ? normalized : null
 }
 
-function loadDestinations(): Destination[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (saved) {
-      const normalized = normalizeDestinations(JSON.parse(saved))
-      if (normalized) return normalized
-    }
-  } catch {
-    /* ignore */
-  }
-  return DESTINATIONS
-}
-
 function loadPublicId(): string {
   try {
     return localStorage.getItem(PUBLIC_ID_KEY) ?? ''
   } catch {
     return ''
   }
-}
-
-function hasWeakAutoImage(destination: Destination) {
-  return (destination.imageProvider === 'wikipedia' && destination.imageSearchVersion !== AUTO_IMAGE_VERSION)
-    || destination.imageProvider === 'wikimedia'
-    || destination.imageProvider === 'fallback'
-    || (!destination.imageProvider && destination.image === AUTO_IMAGE_FALLBACK)
 }
 
 export default function App() {
@@ -226,7 +208,7 @@ function AppInner() {
 function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const [profileFriendUserId, setProfileFriendUserId] = useState<string | null>(null)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
-  const [destinations, setDestinations] = useState<Destination[]>(loadDestinations)
+  const [destinations, setDestinations] = useDestinationsStore(normalizeDestinations)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
   const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
@@ -249,57 +231,6 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       /* ignore */
     }
   }, [publicId])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(destinations))
-    } catch {
-      /* ignore */
-    }
-  }, [destinations])
-
-  useEffect(() => {
-    const refreshTargets = destinations.filter(hasWeakAutoImage)
-    if (!refreshTargets.length) return
-
-    let cancelled = false
-    Promise.all(refreshTargets.map(async destination => {
-      const imageResult = await resolveDestinationImage({
-        name: destination.name,
-        country: destination.country,
-        kind: destination.kind,
-        stops: destination.stops,
-        fallbackImage: destination.image ?? AUTO_IMAGE_FALLBACK,
-      })
-
-      if (imageResult.imageProvider === 'fallback' || imageResult.imageProvider === 'wikimedia') return null
-      return { name: destination.name, imageResult }
-    })).then(results => {
-      if (cancelled) return
-      const upgrades = results.filter((result): result is NonNullable<typeof result> => result !== null)
-      if (!upgrades.length) return
-      setDestinations(previous => previous.map(destination => {
-        const upgrade = upgrades.find(item => item.name === destination.name)
-        return upgrade
-          ? {
-              ...destination,
-              image: upgrade.imageResult.image,
-              imageProvider: upgrade.imageResult.imageProvider,
-              imageAuthor: upgrade.imageResult.imageAuthor,
-              imageSourceUrl: upgrade.imageResult.imageSourceUrl,
-              imageQuery: upgrade.imageResult.imageQuery,
-              imageSearchVersion: AUTO_IMAGE_VERSION,
-            }
-          : destination
-      }))
-    }).catch(() => {
-      /* keep the current stored images */
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [destinations])
 
   const visibleDestinations = useMemo(() => {
     const currentYear = new Date().getFullYear()
@@ -451,10 +382,12 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         />
       )}
       {activeView === 'tier-list' && (
-        <TierListPage
-          destinations={destinations}
-          onSelect={openDestinationOnMap}
-        />
+        <Suspense fallback={null}>
+          <TierListPage
+            destinations={destinations}
+            onSelect={openDestinationOnMap}
+          />
+        </Suspense>
       )}
       {activeView === 'explore' && (
         <ExploreView
@@ -466,14 +399,16 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         />
       )}
       {activeView === 'friends' && (
-        <FriendsView
-          onOpenProfile={setProfileFriendUserId}
-          onFlyTo={(lat, lng, name) => {
-            setActiveView('map')
-            setFlyTarget({ lat, lng, name })
-            setSelectedName(name)
-          }}
-        />
+        <Suspense fallback={null}>
+          <FriendsView
+            onOpenProfile={setProfileFriendUserId}
+            onFlyTo={(lat, lng, name) => {
+              setActiveView('map')
+              setFlyTarget({ lat, lng, name })
+              setSelectedName(name)
+            }}
+          />
+        </Suspense>
       )}
       <Nav
         totalDestinations={visibleDestinations.length}
@@ -517,29 +452,33 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         />
       )}
       {addingDestination && (
-        <AddDestinationWizard
-          onClose={() => setAddingDestination(false)}
-          onAdd={addDestination}
-          existingDestinations={destinations}
-          coupDeCoeurDestinations={destinations.filter(destination => destination.coupDeCoeur)}
-          onDuplicateFound={(existing, incomingName) => {
-            setAddingDestination(false)
-            setDuplicateConflict({
-              existing,
-              incoming: { ...existing, name: incomingName },
-            })
-          }}
-        />
+        <Suspense fallback={null}>
+          <AddDestinationWizard
+            onClose={() => setAddingDestination(false)}
+            onAdd={addDestination}
+            existingDestinations={destinations}
+            coupDeCoeurDestinations={destinations.filter(destination => destination.coupDeCoeur)}
+            onDuplicateFound={(existing, incomingName) => {
+              setAddingDestination(false)
+              setDuplicateConflict({
+                existing,
+                incoming: { ...existing, name: incomingName },
+              })
+            }}
+          />
+        </Suspense>
       )}
       {editingDestination && (
-        <AddDestinationWizard
-          onClose={() => setEditingDestination(null)}
-          onAdd={addDestination}
-          initialDestination={editingDestination}
-          onUpdate={updateDestination}
-          existingDestinations={destinations}
-          coupDeCoeurDestinations={destinations.filter(destination => destination.coupDeCoeur)}
-        />
+        <Suspense fallback={null}>
+          <AddDestinationWizard
+            onClose={() => setEditingDestination(null)}
+            onAdd={addDestination}
+            initialDestination={editingDestination}
+            onUpdate={updateDestination}
+            existingDestinations={destinations}
+            coupDeCoeurDestinations={destinations.filter(destination => destination.coupDeCoeur)}
+          />
+        </Suspense>
       )}
       {duplicateConflict && (
         <DuplicateFoundModal
@@ -568,20 +507,24 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         />
       )}
       {profileFriendUserId && (
-        <FriendProfileSheet
-          friendUserId={profileFriendUserId}
-          myDestinations={destinations}
-          onClose={() => setProfileFriendUserId(null)}
-          onFlyTo={(lat, lng, name) => {
-            setProfileFriendUserId(null)
-            setActiveView('map')
-            setFlyTarget({ lat, lng, name })
-            setSelectedName(name)
-          }}
-        />
+        <Suspense fallback={null}>
+          <FriendProfileSheet
+            friendUserId={profileFriendUserId}
+            myDestinations={destinations}
+            onClose={() => setProfileFriendUserId(null)}
+            onFlyTo={(lat, lng, name) => {
+              setProfileFriendUserId(null)
+              setActiveView('map')
+              setFlyTarget({ lat, lng, name })
+              setSelectedName(name)
+            }}
+          />
+        </Suspense>
       )}
       {addFriendOpen && (
-        <AddFriendModal onClose={() => setAddFriendOpen(false)} />
+        <Suspense fallback={null}>
+          <AddFriendModal onClose={() => setAddFriendOpen(false)} />
+        </Suspense>
       )}
       {accountOpen && (
         <AccountPanel

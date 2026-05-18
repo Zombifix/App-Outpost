@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
+import { haversineMeters } from '../utils/duplicates'
 
 const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
 const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
@@ -651,20 +652,25 @@ export default function WorldMap({
       el.setAttribute('transform', `translate(${x},${y})`)
     })
 
-    // Re-project route paths on every map move (otherwise they get stuck at old coords)
+    // Re-build route paths every map move — geodesic samples + fresh projection.
+    const project: Proj = ([lng, lat]) => {
+      const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+      return [x, y]
+    }
     pinsGroupRef.current.querySelectorAll<SVGGElement>('g.route-path-root').forEach(group => {
       const raw = group.dataset.stops
-      if (!raw) return
-      const points: [number, number][] = []
+      if (!raw) {
+        group.querySelectorAll<SVGPathElement>('path').forEach(p => p.setAttribute('d', ''))
+        return
+      }
+      const stops: { lng: number; lat: number }[] = []
       for (const pair of raw.split(';')) {
         const [lngStr, latStr] = pair.split(',')
         const lng = parseFloat(lngStr)
         const lat = parseFloat(latStr)
-        if (!isFinite(lng) || !isFinite(lat)) continue
-        const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
-        points.push([x, y])
+        if (isFinite(lng) && isFinite(lat)) stops.push({ lng, lat })
       }
-      const d = points.length >= 2 ? smoothPath(points) : ''
+      const d = stops.length >= 2 ? buildRoutePath(stops, project) : ''
       group.querySelectorAll<SVGPathElement>('path').forEach(p => p.setAttribute('d', d))
     })
   }
@@ -725,6 +731,33 @@ export default function WorldMap({
             const friendOnly = friendDestinations
               ? friendDestinations.filter(d => !shared.has(d.name.toLowerCase()))
               : []
+
+            // Index of standalone destinations (place/stage) — used to detect
+            // when a roadtrip stop sits at the same location as one of them.
+            const placeDests = destinations.filter(d => d.kind !== 'zone' && d.kind !== 'stop')
+            const overlapsByDest: Record<string, PinTripBadge[]> = {}
+            const skipStops = new Set<string>() // `${tripName}|${stopIndex}`
+
+            for (const trip of destinations) {
+              if (trip.kind !== 'zone' || !trip.stops?.length) continue
+              const tripColor = getTierColor(trip.tier) ?? '#1B5FE8'
+              let stageCounter = 0
+              trip.stops.forEach((stop, index) => {
+                const isPassage = stop.type === 'passage'
+                const stageNumber = isPassage ? undefined : ++stageCounter
+                if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return
+                const match = placeDests.find(p => haversineMeters(p, stop) <= 50)
+                if (match) {
+                  ;(overlapsByDest[match.name] ||= []).push({
+                    tripName: trip.name,
+                    color: tripColor,
+                    stageNumber,
+                  })
+                  skipStops.add(`${trip.name}|${index}`)
+                }
+              })
+            }
+
             const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
               const color = getTierColor(d.tier)
               if (!d.stops?.length || !color) return [] as JSX.Element[]
@@ -733,6 +766,8 @@ export default function WorldMap({
               const stopEls = d.stops.map((stop, index) => {
                 const isPassage = stop.type === 'passage'
                 const stageNumber = isPassage ? undefined : ++stageCounter
+                // Stop fusionné avec une destination solo → masqué au profit du pin photo
+                if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
                 return (
                   <RouteStop
                     key={`${owner}-stop:${d.name}:${stop.name}:${index}`}
@@ -755,7 +790,7 @@ export default function WorldMap({
                   color={color}
                   owner={owner}
                 />,
-                ...stopEls,
+                ...stopEls.filter((el): el is JSX.Element => el !== null),
               ]
             }
 
@@ -771,7 +806,8 @@ export default function WorldMap({
                 {destinations.map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={d.name === selectedName} onSelect={onSelect} onZoomToZone={zoomToZone}
-                    owner="me" shared={shared.has(d.name.toLowerCase())} />
+                    owner="me" shared={shared.has(d.name.toLowerCase())}
+                    tripBadges={overlapsByDest[d.name]} />
                 ))}
               </>
             )
@@ -811,6 +847,12 @@ export default function WorldMap({
 }
 
 // ─── Pin component ────────────────────────────────────────────────────────────
+export interface PinTripBadge {
+  tripName: string
+  color: string
+  stageNumber?: number
+}
+
 interface PinProps {
   destination: Destination
   projection: Proj
@@ -821,6 +863,7 @@ interface PinProps {
   owner?: 'me' | 'friend'
   badge?: string
   shared?: boolean
+  tripBadges?: PinTripBadge[]
 }
 
 interface RouteStopProps {
@@ -853,19 +896,19 @@ const RouteStop = memo(function RouteStop({
       onClick={() => onSelect(parentName)}
     >
       <title>{stop.name}{isPassage ? ' (passage)' : ''}</title>
-      <circle className="route-stop-hit" r={18} />
+      <circle className="route-stop-hit" r={16} />
       {isPassage ? (
         // Passage : petit dot fin posé sur la ligne
-        <circle className="route-stop-passage" r={4} />
+        <circle className="route-stop-passage" r={3.5} />
       ) : (
-        // Stage : mini pin photo-style (couleur tier + numéro)
+        // Stage : mini pin photo-style (couleur tier + numéro) — discret
         <>
-          <circle className="route-stop-stage-outer" r={15} />
-          <circle className="route-stop-stage-inner" r={12} />
+          <circle className="route-stop-stage-outer" r={12} />
+          <circle className="route-stop-stage-inner" r={9.5} />
           {stageNumber !== undefined && (
-            <text className="route-stop-number" x={0} y={4} textAnchor="middle">{stageNumber}</text>
+            <text className="route-stop-number" x={0} y={3.4} textAnchor="middle">{stageNumber}</text>
           )}
-          {zoomK >= 5 && <text className="route-stop-label" x={19} y={4}>{stop.name}</text>}
+          {zoomK >= 5 && <text className="route-stop-label" x={16} y={4}>{stop.name}</text>}
         </>
       )}
     </g>
@@ -881,37 +924,69 @@ interface RoutePathProps {
 }
 
 /**
- * Build a roadtrip path between stops. Each segment is a quadratic bezier with a
- * subtle perpendicular offset (~3% of length) — almost straight but with the slight
- * organic curve that distinguishes a "route" from a "GPS line".
+ * Sample N intermediate points along the great circle between two lng/lat coords.
+ * Returns [a, ..., b] (inclusive). Used so long segments curve along Earth's surface
+ * instead of cutting straight through unrelated geography on a Mercator map.
  */
-function smoothPath(points: [number, number][]): string {
-  if (points.length < 2) return ''
-  const parts: string[] = [`M ${points[0][0]} ${points[0][1]}`]
-  for (let i = 0; i < points.length - 1; i++) {
-    const [ax, ay] = points[i]
-    const [bx, by] = points[i + 1]
-    const dx = bx - ax
-    const dy = by - ay
-    const len = Math.hypot(dx, dy) || 1
-    // Subtle offset = 3% of segment length, capped at 9px. Alternate side.
-    const offset = Math.min(9, len * 0.03) * (i % 2 === 0 ? 1 : -1)
-    const px = -dy / len
-    const py = dx / len
-    const mx = (ax + bx) / 2 + px * offset
-    const my = (ay + by) / 2 + py * offset
-    parts.push(`Q ${mx.toFixed(2)} ${my.toFixed(2)} ${bx} ${by}`)
+function greatCircleSamples(a: [number, number], b: [number, number], segments = 24): [number, number][] {
+  const toRad = (d: number) => d * Math.PI / 180
+  const toDeg = (r: number) => r * 180 / Math.PI
+  const lon1 = toRad(a[0]), lat1 = toRad(a[1])
+  const lon2 = toRad(b[0]), lat2 = toRad(b[1])
+  const haver = Math.sin((lat2 - lat1) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2
+  const d = 2 * Math.atan2(Math.sqrt(haver), Math.sqrt(1 - haver))
+  if (d < 1e-9) return [a, b]
+  const out: [number, number][] = []
+  for (let i = 0; i <= segments; i++) {
+    const f = i / segments
+    const A = Math.sin((1 - f) * d) / Math.sin(d)
+    const B = Math.sin(f * d) / Math.sin(d)
+    const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2)
+    const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2)
+    const z = A * Math.sin(lat1) + B * Math.sin(lat2)
+    const latI = Math.atan2(z, Math.sqrt(x * x + y * y))
+    const lonI = Math.atan2(y, x)
+    out.push([toDeg(lonI), toDeg(latI)])
+  }
+  return out
+}
+
+/**
+ * Build the screen-space path for a sequence of geographic stops.
+ * Each consecutive pair is interpolated along the great circle (so the rendered
+ * curve follows Earth, not a Mercator straight line) and the resulting screen
+ * points are connected with a cubic-smooth polyline.
+ */
+function buildRoutePath(stops: { lng: number; lat: number }[], project: (ll: [number, number]) => [number, number] | null): string {
+  if (stops.length < 2) return ''
+  // Adaptive segments: more for longer geodesic distance
+  const allScreen: [number, number][] = []
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a: [number, number] = [stops[i].lng, stops[i].lat]
+    const b: [number, number] = [stops[i + 1].lng, stops[i + 1].lat]
+    const dLng = Math.abs(b[0] - a[0]); const dLat = Math.abs(b[1] - a[1])
+    const rough = Math.hypot(dLng, dLat)
+    const segs = Math.max(4, Math.min(48, Math.round(rough * 1.2)))
+    const samples = greatCircleSamples(a, b, segs)
+    for (let k = i === 0 ? 0 : 1; k < samples.length; k++) {
+      const p = project(samples[k])
+      if (p) allScreen.push(p)
+    }
+  }
+  if (allScreen.length < 2) return ''
+  // Smooth Catmull-Rom-style through the projected points
+  const parts: string[] = [`M ${allScreen[0][0].toFixed(2)} ${allScreen[0][1].toFixed(2)}`]
+  for (let i = 1; i < allScreen.length; i++) {
+    const [x, y] = allScreen[i]
+    parts.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`)
   }
   return parts.join(' ')
 }
 
 const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: RoutePathProps) {
   const validStops = stops.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng))
-  const points = validStops
-    .map(s => projection([s.lng, s.lat]))
-    .filter((p): p is [number, number] => Array.isArray(p))
-  if (points.length < 2) return null
-  const d = smoothPath(points)
+  if (validStops.length < 2) return null
+  const d = buildRoutePath(validStops, projection)
   // Serialize stops as `lng,lat;lng,lat;...` for imperative re-projection on map move.
   const stopsAttr = validStops.map(s => `${s.lng},${s.lat}`).join(';')
   return (
@@ -928,7 +1003,7 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
 })
 
 const Pin = memo(function Pin({
-  destination, projection, zoomK, selected, onSelect, onZoomToZone, owner = 'me', badge, shared,
+  destination, projection, zoomK, selected, onSelect, onZoomToZone, owner = 'me', badge, shared, tripBadges,
 }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
@@ -987,6 +1062,20 @@ const Pin = memo(function Pin({
             </strong>
             {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
             {shared && <em className="pin-shared-badge">2</em>}
+            {tripBadges && tripBadges.length > 0 && (
+              <span className="pin-trip-badges" aria-hidden="true">
+                {tripBadges.map((b, i) => (
+                  <span
+                    key={`${b.tripName}-${i}`}
+                    className="pin-trip-badge"
+                    title={`Étape de ${b.tripName}`}
+                    style={{ '--trip-color': b.color } as CSSProperties}
+                  >
+                    {b.stageNumber !== undefined ? `#${b.stageNumber}` : '•'}
+                  </span>
+                ))}
+              </span>
+            )}
           </button>
         </div>
       </foreignObject>

@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 import { resolveDestinationImage } from '../services/imageSearch'
+import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 
 interface WizardProps {
   onClose: () => void
   onAdd: (destination: Destination) => void
   initialDestination?: Destination
   onUpdate?: (destination: Destination) => void
+  existingDestinations?: Destination[]
+  onDuplicateFound?: (existing: Destination, incomingName: string) => void
 }
 
 type DestKind = 'place' | 'zone' | 'stop' | 'stage'
@@ -401,7 +404,7 @@ const TIER_EXPLANATIONS: Record<Tier, string> = {
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 const AUTO_IMAGE_VERSION = 5
 
-export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate }: WizardProps) {
+export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate, existingDestinations, onDuplicateFound }: WizardProps) {
   const isEditing = !!initialDestination
   const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'type')
   const [query, setQuery] = useState('')
@@ -509,6 +512,18 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   }, [query, state.kind])
 
   const selectSuggestion = (r: PhotonResult) => {
+    // Détection précoce du doublon : dès qu'on sait le nom + les coords, on
+    // évite de faire remplir tout le questionnaire pour rien.
+    if (onDuplicateFound && existingDestinations && !isEditing) {
+      const dup = findDuplicate(
+        { name: r.name, lat: r.lat, lng: r.lng, kind: state.kind },
+        existingDestinations,
+      )
+      if (dup) {
+        onDuplicateFound(dup, r.name)
+        return
+      }
+    }
     setSelected(r)
     setQuery(r.name + (r.country ? `, ${r.country}` : ''))
     setSuggestions([])
@@ -769,43 +784,54 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             {state.kind === 'zone' && (
               <div className="wizard-stops">
                 <p className="wizard-stops-title">Étapes du road trip <span>(optionnel)</span></p>
-                {stops.map((stop, i) => (
-                  <StopAutocomplete
-                    key={i}
-                    index={i}
-                    stop={stop}
-                    country={state.country}
-                    state={stopStateFilter}
-                    centerLat={stopCenter.lat}
-                    centerLng={stopCenter.lng}
-                    isDragging={dragIndex === i}
-                    isDragTarget={dragOverIndex === i && dragIndex !== null && dragIndex !== i}
-                    onDragStart={() => setDragIndex(i)}
-                    onDragOver={e => {
-                      if (dragIndex === null) return
-                      e.preventDefault()
-                      if (dragOverIndex !== i) setDragOverIndex(i)
-                    }}
-                    onDragLeave={() => {
-                      if (dragOverIndex === i) setDragOverIndex(null)
-                    }}
-                    onDrop={() => {
-                      if (dragIndex !== null && dragIndex !== i) reorderStops(dragIndex, i)
-                      setDragIndex(null)
-                      setDragOverIndex(null)
-                    }}
-                    onDragEnd={() => {
-                      setDragIndex(null)
-                      setDragOverIndex(null)
-                    }}
-                    onChange={next => {
-                      const updated = [...stops]
-                      updated[i] = next
-                      setStops(updated)
-                    }}
-                    onRemove={() => setStops(stops.filter((_, j) => j !== i))}
-                  />
-                ))}
+                {stops.map((stop, i) => {
+                  const stopLinkedDest = stop.name && Number.isFinite(stop.lat) && Number.isFinite(stop.lng) && existingDestinations
+                    ? findDestinationAtLocation(stop, existingDestinations)
+                    : null
+                  return (
+                    <div key={i}>
+                      <StopAutocomplete
+                        index={i}
+                        stop={stop}
+                        country={state.country}
+                        state={stopStateFilter}
+                        centerLat={stopCenter.lat}
+                        centerLng={stopCenter.lng}
+                        isDragging={dragIndex === i}
+                        isDragTarget={dragOverIndex === i && dragIndex !== null && dragIndex !== i}
+                        onDragStart={() => setDragIndex(i)}
+                        onDragOver={e => {
+                          if (dragIndex === null) return
+                          e.preventDefault()
+                          if (dragOverIndex !== i) setDragOverIndex(i)
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverIndex === i) setDragOverIndex(null)
+                        }}
+                        onDrop={() => {
+                          if (dragIndex !== null && dragIndex !== i) reorderStops(dragIndex, i)
+                          setDragIndex(null)
+                          setDragOverIndex(null)
+                        }}
+                        onDragEnd={() => {
+                          setDragIndex(null)
+                          setDragOverIndex(null)
+                        }}
+                        onChange={next => {
+                          const updated = [...stops]
+                          updated[i] = next
+                          setStops(updated)
+                        }}
+                        onRemove={() => setStops(stops.filter((_, j) => j !== i))}
+                      />
+                      {stopLinkedDest && (
+                        <p className="wizard-dup-hint">
+                          📍 Tu as déjà noté <strong>{stopLinkedDest.name}</strong> — le stop sera lié automatiquement.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
                 {stops.length < 7 && (
                   <button
                     className="wizard-add-stop"

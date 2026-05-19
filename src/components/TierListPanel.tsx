@@ -13,6 +13,7 @@ interface TierListPanelProps {
   onFlyTo: (name: string) => void
   onCompareFriend?: (friend: Friendship) => void
   onMobileToggle?: () => void
+  onViewTierList?: () => void
 }
 
 const tierLabels: Record<Tier, string> = {
@@ -31,7 +32,12 @@ export default function TierListPanel({
   onFlyTo,
   onCompareFriend,
   onMobileToggle,
+  onViewTierList,
 }: TierListPanelProps) {
+  const tiersWithItems = TIER_ORDER.filter(t =>
+    destinations.some(d => d.tier === t && d.kind !== 'stop')
+  )
+  const [mobileTier, setMobileTier] = useState<Tier | 'all'>('all')
   const railRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 })
   const suppressClickRef = useRef(false)
@@ -114,8 +120,24 @@ export default function TierListPanel({
     event.stopPropagation()
   }
 
+  const mobileTierItems = destinations.filter(d => {
+    if (d.kind === 'stop') return false
+    if (mobileTier === 'all') return Boolean(d.tier)
+    return d.tier === mobileTier
+  })
+
   return (
     <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}`} aria-label="Ma tier list">
+      {/* iOS drag handle — clickable to collapse/expand on mobile */}
+      <button
+        type="button"
+        className="tier-board-handle"
+        onClick={onCollapseToggle}
+        aria-label={collapsed ? 'Déplier' : 'Replier'}
+      >
+        <span className="tier-board-handle-bar" />
+      </button>
+
       <div className="tier-board-head">
         <div className="tier-board-title">
           <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
@@ -137,6 +159,66 @@ export default function TierListPanel({
         )}
       </div>
 
+      {/* ── Mobile view: heading + tier pills + cards ── */}
+      <div className="tier-mobile-section">
+        <h2 className="tier-mobile-title">Ma tier list</h2>
+        <div className="tier-mobile-tabs">
+          <button
+            className={`tier-pill tier-pill-all${mobileTier === 'all' ? ' is-active' : ''}`}
+            onClick={() => setMobileTier('all')}
+          >
+            Tous
+          </button>
+          {tiersWithItems.map(tier => {
+            const colors = TIER_COLORS[tier]
+            return (
+              <button
+                key={tier}
+                className={`tier-pill tier-pill-${tier.toLowerCase()}${mobileTier === tier ? ' is-active' : ''}`}
+                onClick={() => setMobileTier(tier)}
+                style={{ '--tier-color': colors.label, '--tier-bg': colors.column, '--tier-pin': colors.pin } as CSSProperties}
+              >
+                {tier}
+              </button>
+            )
+          })}
+        </div>
+        <div className="tier-mobile-strip">
+          {mobileTierItems.map(destination => {
+            const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
+            const colors = destination.tier ? TIER_COLORS[destination.tier] : null
+            return (
+              <article
+                key={destination.name}
+                className={`mini-destination${isCoupDeCoeur ? ' is-coup-de-coeur' : ''}`}
+                style={{
+                  backgroundImage: destination.image ? `url(${destination.image})` : undefined,
+                  '--tier-pin': colors?.pin,
+                } as CSSProperties}
+              >
+                <button
+                  className="mini-destination-main"
+                  onClick={() => onFlyTo(destination.name)}
+                  aria-label={`Voir ${destination.name} sur la carte`}
+                >
+                  <span>{destination.name}</span>
+                  <em>{destination.country}</em>
+                </button>
+                {destination.tier && (
+                  <span className="mini-tier-badge" aria-hidden="true" style={{ background: colors?.pin } as CSSProperties}>
+                    {destination.tier}
+                  </span>
+                )}
+                <span className={`mini-heart-badge${isCoupDeCoeur ? ' is-active' : ''}`} aria-label={isCoupDeCoeur ? 'Coup de coeur' : 'Non coup de coeur'}>
+                  <HeartIcon filled={isCoupDeCoeur} />
+                </span>
+              </article>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Desktop view: full tier columns ── */}
       <div className="tier-rail">
         <button
           className="tier-rail-control tier-rail-control-prev"
@@ -239,9 +321,9 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   )
 }
 
-function HeartIcon() {
+function HeartIcon({ filled = false }: { filled?: boolean }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
     </svg>
   )

@@ -461,8 +461,16 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
 
   return (
     <div className={appClass}>
-      <div className="mobile-brand" aria-hidden="true">
+      <div className="mobile-header">
         <BrandLogo className="mobile-brand-logo" />
+        <button
+          className={`mobile-header-avatar${accountOpen ? ' is-active' : ''}`}
+          onClick={() => setAccountOpen(v => !v)}
+          aria-label={accountOpen ? 'Fermer mon compte' : 'Mon compte'}
+          aria-expanded={accountOpen}
+        >
+          {publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />}
+        </button>
       </div>
       <BottomNav
         activeView={activeView}
@@ -482,17 +490,6 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           friendInitials={compareFriend ? compareFriend.displayName.slice(0, 1).toUpperCase() : undefined}
           sharedNames={compareFriend ? compareSharedNames : undefined}
         />
-      )}
-      {activeView === 'map' && tierListCollapsed && (
-        <button
-          type="button"
-          className="mobile-tier-toggle"
-          aria-expanded={!tierListCollapsed}
-          onClick={() => setTierListCollapsed(value => !value)}
-        >
-          <Icon name="sliders" />
-          <span>{tierListCollapsed ? 'Tier list' : 'Masquer'}</span>
-        </button>
       )}
       {/* Barre flottante compare quand on superpose les pins d'un ami */}
       {compareFriend && activeView === 'map' && !viewingFriend && (
@@ -622,6 +619,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           onFlyTo={selectByName}
           onCompareFriend={viewingFriend ? undefined : setCompareFriend}
           onMobileToggle={() => setTierListCollapsed(value => !value)}
+          onViewTierList={() => setActiveView('tier-list')}
         />
       )}
       {addingDestination && (

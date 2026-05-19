@@ -1066,14 +1066,15 @@ const Pin = memo(function Pin({
   }
 
   // ── Full destination pin ───────────────────────────────────────────────────
+  const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
   return (
-    <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
+    <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
        transform={`translate(${cx},${cy}) scale(${pinScale})`}>
       <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
         <div className="pin-stage">
           <button
-            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}`}
+            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}${isCoupDeCoeur ? ' map-pin--coup-de-coeur' : ''}`}
             draggable={false}
             onClick={() => onSelect(destination.name)}
             style={{
@@ -1081,6 +1082,13 @@ const Pin = memo(function Pin({
               '--pin-photo': destination.image ? `url("${destination.image}")` : 'none',
             } as CSSProperties}>
             <span className="map-pin-tier">{destination.tier}</span>
+            {isCoupDeCoeur && (
+              <span className="map-pin-heart" aria-label="Coup de coeur">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
+                </svg>
+              </span>
+            )}
             <strong>
               {destination.name}
               {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}

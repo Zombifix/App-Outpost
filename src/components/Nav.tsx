@@ -21,7 +21,7 @@ interface NavProps {
   onShare: () => void
   onAccountClick: () => void
   onOpenFriends: () => void
-  onActivityFlyTo?: (lat: number, lng: number, name: string) => void
+  onActivityFlyTo?: (lat: number, lng: number, name: string, actor?: { userId: string; handle: string; displayName: string }) => void
   viewingFriend?: { userId: string; handle: string; displayName: string } | null
   onBackToMyCarnet?: () => void
 }
@@ -242,7 +242,7 @@ function Icon({ name }: { name: string }) {
   return <svg {...common}>{paths[name] ?? paths.map}</svg>
 }
 
-function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?: (lat: number, lng: number, name: string) => void }) {
+function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?: (lat: number, lng: number, name: string, actor?: { userId: string; handle: string; displayName: string }) => void }) {
   const { events } = useActivityFeed(10)
 
   // Mémorise les IDs déjà vus pour ne marquer "is-new" que les arrivées live.
@@ -286,10 +286,13 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
           const image = typeof ev.payload?.image === 'string' ? ev.payload.image : undefined
           const lat = typeof ev.payload?.lat === 'number' ? ev.payload.lat : undefined
           const lng = typeof ev.payload?.lng === 'number' ? ev.payload.lng : undefined
+          const actorInfo = ev.actorHandle
+            ? { userId: ev.actor, handle: ev.actorHandle, displayName: ev.actorDisplayName ?? ev.actorHandle }
+            : undefined
           const isPulse = pulseId === ev.id
           const canFly = lat !== undefined && lng !== undefined && name && onFlyTo
           const handleClick = canFly
-            ? () => onFlyTo!(lat as number, lng as number, name)
+            ? () => onFlyTo!(lat as number, lng as number, name, actorInfo)
             : () => onSeeAll()
           return (
             <li key={ev.id} className={isPulse ? 'is-new' : ''}>

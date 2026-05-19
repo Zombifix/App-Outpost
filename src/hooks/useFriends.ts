@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Friendship, PublicProfile } from '../types'
@@ -35,7 +36,7 @@ function rowToFriendship(row: FriendshipRow, myUserId: string): Friendship {
  * Charge mes amitiés via RPC `my_friendships`, s'abonne au realtime sur la table
  * `friendships`, et expose les actions pending/accept/remove + ajout par handle/email.
  */
-export function useFriends() {
+function useFriendsState() {
   const { user } = useAuth()
   const [friendships, setFriendships] = useState<Friendship[]>(
     FAKE_FRIENDS_MODE ? FAKE_FRIENDSHIPS : []
@@ -69,15 +70,12 @@ export function useFriends() {
   }, [refresh])
 
   // Realtime : refetch dès qu'une ligne friendships impliquant moi change.
-  // Suffixe random pour qu'il n'y ait pas de collision quand plusieurs composants
-  // appellent useFriends() en parallèle (sinon supabase-js réutilise le channel
-  // déjà subscribed et .on() après .subscribe() crashe).
-  const channelIdRef = useRef<string>(Math.random().toString(36).slice(2, 10))
+  // Le provider garde un seul channel actif même si plusieurs composants lisent les amis.
   useEffect(() => {
     if (!supabase || !user) return
     const client = supabase
     const channel = client
-      .channel(`friendships:${user.id}:${channelIdRef.current}`)
+      .channel(`friendships:${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
         void refresh()
       })
@@ -87,15 +85,23 @@ export function useFriends() {
 
   // Set d'IDs (handle, userId, email) en cours de traitement pour éviter les doubles requêtes
   const [pendingActions, setPendingActions] = useState<Set<string>>(new Set())
+  const pendingActionsRef = useRef(pendingActions)
+  const updatePendingActions = useCallback((updater: (previous: Set<string>) => Set<string>) => {
+    setPendingActions(previous => {
+      const next = updater(previous)
+      pendingActionsRef.current = next
+      return next
+    })
+  }, [])
   const withPending = useCallback(async <T,>(key: string, fn: () => Promise<T>): Promise<T | { ok: false; error: string }> => {
-    if (pendingActions.has(key)) return { ok: false as const, error: 'Action déjà en cours' }
-    setPendingActions(prev => { const next = new Set(prev); next.add(key); return next })
+    if (pendingActionsRef.current.has(key)) return { ok: false as const, error: 'Action déjà en cours' }
+    updatePendingActions(prev => { const next = new Set(prev); next.add(key); return next })
     try {
       return await fn()
     } finally {
-      setPendingActions(prev => { const next = new Set(prev); next.delete(key); return next })
+      updatePendingActions(prev => { const next = new Set(prev); next.delete(key); return next })
     }
-  }, [pendingActions])
+  }, [updatePendingActions])
 
   const sendRequestByHandle = useCallback(async (handle: string): Promise<{ ok: boolean; error?: string }> => {
     if (!supabase) return { ok: false, error: 'Supabase non configuré' }
@@ -192,4 +198,21 @@ export function useFriends() {
     searchProfiles,
     pendingActions,
   }
+}
+
+type FriendsContextValue = ReturnType<typeof useFriendsState>
+
+const FriendsContext = createContext<FriendsContextValue | null>(null)
+
+export function FriendsProvider({ children }: { children: ReactNode }) {
+  const value = useFriendsState()
+  return createElement(FriendsContext.Provider, { value }, children)
+}
+
+export function useFriends() {
+  const context = useContext(FriendsContext)
+  if (!context) {
+    throw new Error('useFriends must be used within FriendsProvider')
+  }
+  return context
 }

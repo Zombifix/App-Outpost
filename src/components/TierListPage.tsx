@@ -9,6 +9,7 @@ import {
 } from '../data'
 import { useFriends } from '../hooks/useFriends'
 import { useFriendDestinations } from '../hooks/useFriendDestinations'
+import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
 
 interface TierListPageProps {
   destinations: Destination[]
@@ -152,7 +153,7 @@ const TIER_LABEL: Record<Tier, string> = {
 }
 
 function filterDestinations(list: Destination[], filter: TierListFilter, compareList: Destination[] = []): Destination[] {
-  const compareByName = new Map(compareList.map(destination => [destination.name.toLowerCase(), destination]))
+  const compareByName = new Map(compareList.map(destination => [destinationNameKey(destination), destination]))
   const currentYear = new Date().getFullYear()
 
   return list.filter(destination => {
@@ -161,9 +162,9 @@ function filterDestinations(list: Destination[], filter: TierListFilter, compare
     if (filter === 'friends') return destination.companions === 'amis'
     if (filter === 'solo') return destination.companions === 'solo'
     if (filter === 'top') return destination.tier === 'S' || destination.tier === 'A'
-    if (filter === 'shared') return compareByName.has(destination.name.toLowerCase())
+    if (filter === 'shared') return compareByName.has(destinationNameKey(destination))
     if (filter === 'disagreements') {
-      const theirs = compareByName.get(destination.name.toLowerCase())
+      const theirs = compareByName.get(destinationNameKey(destination))
       return Boolean(theirs && theirs.tier !== destination.tier)
     }
     return true
@@ -172,8 +173,8 @@ function filterDestinations(list: Destination[], filter: TierListFilter, compare
     if (filter === 'favorites') return Number(Boolean(b.coupDeCoeur)) - Number(Boolean(a.coupDeCoeur))
     if (filter === 'top') return (b.score ?? 0) - (a.score ?? 0)
     if (filter === 'disagreements') {
-      const aTier = compareByName.get(a.name.toLowerCase())?.tier ?? a.tier
-      const bTier = compareByName.get(b.name.toLowerCase())?.tier ?? b.tier
+      const aTier = compareByName.get(destinationNameKey(a))?.tier ?? a.tier
+      const bTier = compareByName.get(destinationNameKey(b))?.tier ?? b.tier
       return Math.abs(TIER_RANK[b.tier ?? 'B'] - TIER_RANK[bTier ?? 'B']) - Math.abs(TIER_RANK[a.tier ?? 'B'] - TIER_RANK[aTier ?? 'B'])
     }
     return 0
@@ -189,7 +190,7 @@ function DestCard({
   sharedNames?: Set<string>
   onSelect?: (destination: Destination) => void
 }) {
-  const isShared = sharedNames?.has(destination.name.toLowerCase())
+  const isShared = sharedNames?.has(destinationNameKey(destination))
   const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
   const intentLabel = INTENT_LABEL[destination.intent]
   const intentEmoji = INTENT_EMOJI[destination.intent]
@@ -232,7 +233,7 @@ function ComparisonBanner({
 }) {
   const commonItems = myDests
     .map(my => {
-      const theirs = friendDests.find(friendDestination => friendDestination.name.toLowerCase() === my.name.toLowerCase())
+      const theirs = friendDests.find(friendDestination => destinationNameKey(friendDestination) === destinationNameKey(my))
       return theirs ? { my, theirs } : null
     })
     .filter((item): item is { my: Destination; theirs: Destination } => item !== null)
@@ -498,8 +499,8 @@ export default function TierListPage({
 
   const sharedNames = useMemo(() => {
     if (!friend) return new Set<string>()
-    const myNames = new Set(myFiltered.map(destination => destination.name.toLowerCase()))
-    return new Set(friendFiltered.filter(destination => myNames.has(destination.name.toLowerCase())).map(destination => destination.name.toLowerCase()))
+    const myNames = destinationNameSet(myFiltered)
+    return new Set(friendFiltered.filter(destination => myNames.has(destinationNameKey(destination))).map(destinationNameKey))
   }, [friend, myFiltered, friendFiltered])
 
   const paysCount = useMemo(() => new Set(destinations.map(destination => destination.country)).size, [destinations])

@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
+import { destinationNameKey } from '../utils/destinationIdentity'
 import { haversineMeters } from '../utils/duplicates'
 
 const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
@@ -560,7 +561,7 @@ function syncZoneRouteLayers(
   }
   if (friendDestinations) {
     for (const d of friendDestinations) {
-      if (d.kind === 'zone' && !shared.has(d.name.toLowerCase())) addZoneLayer(map, d, 'friend')
+      if (d.kind === 'zone' && !shared.has(destinationNameKey(d))) addZoneLayer(map, d, 'friend')
     }
   }
 }
@@ -729,7 +730,7 @@ export default function WorldMap({
           {mapReady && (() => {
             const shared   = sharedNames ?? new Set<string>()
             const friendOnly = friendDestinations
-              ? friendDestinations.filter(d => !shared.has(d.name.toLowerCase()))
+              ? friendDestinations.filter(d => !shared.has(destinationNameKey(d)))
               : []
 
             // Index of standalone destinations (place/stage) — used to detect
@@ -806,7 +807,7 @@ export default function WorldMap({
                 {destinations.map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={d.name === selectedName} onSelect={onSelect} onZoomToZone={zoomToZone}
-                    owner="me" shared={shared.has(d.name.toLowerCase())}
+                    owner="me" shared={shared.has(destinationNameKey(d))}
                     tripBadges={overlapsByDest[d.name]} />
                 ))}
               </>

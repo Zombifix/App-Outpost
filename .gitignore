@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .DS_Store
+desktop.ini
 *.local
 .claude/worktrees/
 .env

@@ -1,5 +1,6 @@
 import type { Destination, Friendship, Tier } from '../../types'
 import { TIER_COLORS, TIER_ORDER } from '../../data'
+import { destinationNameKey } from '../../utils/destinationIdentity'
 
 interface FriendCompareViewProps {
   friend: Friendship
@@ -29,9 +30,9 @@ export default function FriendCompareView({ friend, myDestinations, theirDestina
 }
 
 function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs: Destination[]; friendName: string }) {
-  const myMap = new Map(mine.map(d => [d.name.toLowerCase(), d]))
+  const myMap = new Map(mine.map(d => [destinationNameKey(d), d]))
   const common = theirs
-    .map(t => ({ them: t, mine: myMap.get(t.name.toLowerCase()) }))
+    .map(t => ({ them: t, mine: myMap.get(destinationNameKey(t)) }))
     .filter((x): x is { them: Destination; mine: Destination } => !!x.mine)
   if (common.length === 0) {
     return <p className="friends-muted">Aucune destination en commun avec {friendName} pour le moment.</p>

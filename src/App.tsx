@@ -11,6 +11,7 @@ import TierListPanel from './components/TierListPanel'
 import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
+import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 
@@ -23,7 +24,7 @@ const AddFriendModal = lazy(() => import('./components/friends/AddFriendModal'))
 const FriendsManagePanel = lazy(() => import('./components/friends/FriendsManagePanel'))
 import { AuthProvider, useAuth } from './lib/auth'
 import { supabase } from './lib/supabase'
-import { useFriends } from './hooks/useFriends'
+import { FriendsProvider, useFriends } from './hooks/useFriends'
 import { useFriendDestinations } from './hooks/useFriendDestinations'
 import { useMyProfile } from './hooks/useMyProfile'
 import { FAKE_FRIENDS_MODE, findFakeFriendByHandle, getFakeFriendDestinations } from './hooks/_fakeFriends'
@@ -154,7 +155,9 @@ function loadPublicId(): string {
 export default function App() {
   return (
     <AuthProvider>
-      <AppInner />
+      <FriendsProvider>
+        <AppInner />
+      </FriendsProvider>
     </AuthProvider>
   )
 }
@@ -236,27 +239,26 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   // WorldMap les compare au .name brut de chaque destination.
   const compareSharedNames = useMemo(() => {
     if (!compareFriend) return undefined
-    const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
-    const myNorm = new Set(myDestinations.map(d => norm(d.name)))
+    const myNorm = destinationNameSet(myDestinations)
     const set = new Set<string>()
     for (const d of compareFriendDests) {
-      if (myNorm.has(norm(d.name))) {
-        set.add(d.name)
-        const mineMatch = myDestinations.find(m => norm(m.name) === norm(d.name))
-        if (mineMatch) set.add(mineMatch.name)
-      }
+      const key = destinationNameKey(d)
+      if (!myNorm.has(key)) continue
+      set.add(key)
+      set.add(d.name)
+      const mineMatch = myDestinations.find(m => destinationNameKey(m) === key)
+      if (mineMatch) set.add(mineMatch.name)
     }
     return set
   }, [compareFriend, compareFriendDests, myDestinations])
   // Compteur "en commun" (uniques, par nom normalisé) pour l'UI.
   const compareCommonCount = useMemo(() => {
     if (!compareFriend) return 0
-    const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
-    const myNorm = new Set(myDestinations.map(d => norm(d.name)))
+    const myNorm = destinationNameSet(myDestinations)
     let n = 0
     const seen = new Set<string>()
     for (const d of compareFriendDests) {
-      const k = norm(d.name)
+      const k = destinationNameKey(d)
       if (myNorm.has(k) && !seen.has(k)) { seen.add(k); n++ }
     }
     return n

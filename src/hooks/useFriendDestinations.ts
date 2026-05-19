@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Destination, Intent, Tier } from '../types'
 
@@ -46,34 +46,94 @@ function rowToDestination(row: DbDestinationRow): Destination {
   }
 }
 
+const FRIEND_DESTINATIONS_CACHE_TTL_MS = 60_000
+const friendDestinationsCache = new Map<string, { data: Destination[]; fetchedAt: number }>()
+const friendDestinationsInFlight = new Map<string, Promise<Destination[]>>()
+
+function getFreshCachedFriendDestinations(friendUserId: string) {
+  const cached = friendDestinationsCache.get(friendUserId)
+  if (!cached) return null
+  if (Date.now() - cached.fetchedAt > FRIEND_DESTINATIONS_CACHE_TTL_MS) return null
+  return cached.data
+}
+
+async function loadFriendDestinations(friendUserId: string, force = false): Promise<Destination[]> {
+  const cached = force ? null : getFreshCachedFriendDestinations(friendUserId)
+  if (cached) return cached
+
+  const existingRequest = force ? undefined : friendDestinationsInFlight.get(friendUserId)
+  if (existingRequest) return existingRequest
+
+  if (!supabase) return []
+
+  const request = supabase
+    .from('destinations')
+    .select('id, user_id, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, score, coup_de_coeur, summary, image, trip_name')
+    .eq('user_id', friendUserId)
+    .limit(200)
+    .then(({ data, error: err }) => {
+      if (err) throw err
+      const destinations = (data as DbDestinationRow[]).map(rowToDestination)
+      friendDestinationsCache.set(friendUserId, { data: destinations, fetchedAt: Date.now() })
+      return destinations
+    })
+    .finally(() => {
+      if (friendDestinationsInFlight.get(friendUserId) === request) {
+        friendDestinationsInFlight.delete(friendUserId)
+      }
+    })
+
+  friendDestinationsInFlight.set(friendUserId, request)
+  return request
+}
+
+export function invalidateFriendDestinations(friendUserId?: string) {
+  if (friendUserId) {
+    friendDestinationsCache.delete(friendUserId)
+    return
+  }
+  friendDestinationsCache.clear()
+}
+
 /**
  * Charge les destinations d'un ami (RLS autorise la lecture si amitié acceptée).
  * Renvoie [] si non configuré ou sans ami sélectionné.
  */
 export function useFriendDestinations(friendUserId: string | null) {
-  const [destinations, setDestinations] = useState<Destination[]>([])
+  const [destinations, setDestinations] = useState<Destination[]>(() => friendUserId ? getFreshCachedFriendDestinations(friendUserId) ?? [] : [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestIdRef = useRef(0)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (options?: { force?: boolean }) => {
+    const requestId = ++requestIdRef.current
     if (!supabase || !friendUserId) {
       setDestinations([])
+      setLoading(false)
+      setError(null)
       return
     }
-    setLoading(true)
-    const { data, error: err } = await supabase
-      .from('destinations')
-      .select('id, user_id, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, score, coup_de_coeur, summary, image, trip_name')
-      .eq('user_id', friendUserId)
-      .limit(200)
-    if (err) {
-      setError(err.message)
-      setDestinations([])
-    } else {
+    const cached = options?.force ? null : getFreshCachedFriendDestinations(friendUserId)
+    if (cached) {
+      setDestinations(cached)
+      setLoading(false)
       setError(null)
-      setDestinations((data as DbDestinationRow[]).map(rowToDestination))
+      return
     }
-    setLoading(false)
+
+    setLoading(true)
+    try {
+      const nextDestinations = await loadFriendDestinations(friendUserId, options?.force)
+      if (requestIdRef.current !== requestId) return
+      setError(null)
+      setDestinations(nextDestinations)
+    } catch (err) {
+      if (requestIdRef.current !== requestId) return
+      setError(err instanceof Error ? err.message : 'Impossible de charger les destinations')
+      setDestinations([])
+    } finally {
+      if (requestIdRef.current === requestId) setLoading(false)
+    }
   }, [friendUserId])
 
   useEffect(() => {

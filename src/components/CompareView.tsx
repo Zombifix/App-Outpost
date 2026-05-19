@@ -1,5 +1,6 @@
 import type { Destination, Friend, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER, FRIEND_DESTINATIONS } from '../data'
+import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
 
 interface CompareViewProps {
   friend: Friend
@@ -98,8 +99,8 @@ function DestList({ destinations, label, color }: { destinations: Destination[];
 }
 
 function CommonDests({ mine, theirs }: { mine: Destination[]; theirs: Destination[] }) {
-  const myNames = new Set(mine.map(d => d.name.toLowerCase()))
-  const common = theirs.filter(d => myNames.has(d.name.toLowerCase()))
+  const myNames = destinationNameSet(mine)
+  const common = theirs.filter(d => myNames.has(destinationNameKey(d)))
   if (common.length === 0) return null
 
   return (
@@ -115,7 +116,7 @@ function CommonDests({ mine, theirs }: { mine: Destination[]; theirs: Destinatio
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {common.map(d => {
-          const myDest = mine.find(m => m.name.toLowerCase() === d.name.toLowerCase())!
+          const myDest = mine.find(m => destinationNameKey(m) === destinationNameKey(d))!
           return (
             <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
               <span>{d.country}</span>

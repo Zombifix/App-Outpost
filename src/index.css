@@ -697,7 +697,7 @@ svg {
    la map et pas sur le bord gauche de la page. */
 .compare-inline-bar {
   position: absolute;
-  left: calc(var(--content-l) + 24px);
+  left: calc(var(--content-l) + 72px);
   bottom: var(--map-b-open);
   z-index: 9;
   display: flex;
@@ -3598,7 +3598,8 @@ svg {
 }
 
 .travel-app.tier-collapsed .map-controls,
-.travel-app.tier-collapsed .legend {
+.travel-app.tier-collapsed .legend,
+.travel-app.tier-collapsed .compare-inline-bar {
   bottom: var(--map-b-closed);
 }
 

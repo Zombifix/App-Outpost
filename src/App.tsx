@@ -267,7 +267,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
   const [filters, setFilters] = useState<DestinationFilters>(DEFAULT_FILTERS)
   const [sortByScore, setSortByScore] = useState(false)
-  const [tierListCollapsed, setTierListCollapsed] = useState(false)
+  const [tierListCollapsed, setTierListCollapsed] = useState(true)
   const [addingDestination, setAddingDestination] = useState(false)
   const [editingDestination, setEditingDestination] = useState<Destination | null>(null)
   const [duplicateConflict, setDuplicateConflict] = useState<{ existing: Destination; incoming: Destination } | null>(null)

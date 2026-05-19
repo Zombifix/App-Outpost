@@ -67,7 +67,7 @@ export default function Nav({
 
         <button className="create-button" onClick={onAddClick}>
           <span className="create-icon"><Icon name="plus" /></span>
-          <span>Ajouter une destination</span>
+          <span>Destination</span>
         </button>
 
         <nav className="side-menu" aria-label="Navigation principale">

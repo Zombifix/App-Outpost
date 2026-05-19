@@ -142,6 +142,14 @@ export function getFakeFriendDestinations(userId: string): Destination[] {
   return FRIEND_DESTS_BY_USER[userId] ?? []
 }
 
+/** Recherche un faux ami par handle (sans le @, case-insensitive). */
+export function findFakeFriendByHandle(handle: string): { userId: string; handle: string; displayName: string } | null {
+  const clean = handle.trim().toLowerCase().replace(/^@/, '')
+  const match = FAKE_FRIENDSHIPS.find(f => f.handle.toLowerCase() === clean)
+  if (!match) return null
+  return { userId: match.otherUser, handle: match.handle, displayName: match.displayName }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Live ticker : en mode fake on simule l'arrivée de nouveaux events régulièrement
 // pour montrer le caractère "live" du fil d'activité dans la sidebar.

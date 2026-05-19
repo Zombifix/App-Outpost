@@ -19,14 +19,14 @@ import FriendToast from './components/friends/FriendToast'
 // utilisateur — un spinner brièvement visible ferait plus de bruit qu'autre chose.
 const TierListPage = lazy(() => import('./components/TierListPage'))
 const AddDestinationWizard = lazy(() => import('./components/AddDestinationWizard'))
-const FriendProfileSheet = lazy(() => import('./components/friends/FriendProfileSheet'))
 const AddFriendModal = lazy(() => import('./components/friends/AddFriendModal'))
 const FriendsManagePanel = lazy(() => import('./components/friends/FriendsManagePanel'))
 import { AuthProvider, useAuth } from './lib/auth'
 import { supabase } from './lib/supabase'
 import { useFriends } from './hooks/useFriends'
+import { useFriendDestinations } from './hooks/useFriendDestinations'
 import { useMyProfile } from './hooks/useMyProfile'
-import { getFakeFriendDestinations } from './hooks/_fakeFriends'
+import { FAKE_FRIENDS_MODE, findFakeFriendByHandle, getFakeFriendDestinations } from './hooks/_fakeFriends'
 
 const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
@@ -206,15 +206,62 @@ function AppInner() {
 }
 
 function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
-  const [profileFriendUserId, setProfileFriendUserId] = useState<string | null>(null)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
+  const [compareFriend, setCompareFriend] = useState<import('./types').Friendship | null>(null)
   const [myDestinations, setDestinations] = useDestinationsStore(normalizeDestinations)
-  const destinations = useMemo(
-    () => viewingFriend ? getFakeFriendDestinations(viewingFriend.userId) : myDestinations,
-    [viewingFriend, myDestinations],
-  )
+  // Quand on visite le carnet d'un ami : en mode fake on lit depuis _fakeFriends, sinon
+  // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
+  // friendUserId est null, donc on peut l'appeler systématiquement.
+  const friendUserIdProd = !FAKE_FRIENDS_MODE && viewingFriend ? viewingFriend.userId : null
+  const { destinations: friendDestsProd } = useFriendDestinations(friendUserIdProd)
+  const destinations = useMemo(() => {
+    if (!viewingFriend) return myDestinations
+    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(viewingFriend.userId)
+    return friendDestsProd
+  }, [viewingFriend, myDestinations, friendDestsProd])
+
+  // Mode "comparer" : on superpose les destinations de l'ami sur ma map.
+  // Hook conditionnel safe : useFriendDestinations(null) renvoie [].
+  const compareFriendUserIdProd = compareFriend && !FAKE_FRIENDS_MODE ? compareFriend.otherUser : null
+  const { destinations: compareFriendDestsProd } = useFriendDestinations(compareFriendUserIdProd)
+  const compareFriendDests = useMemo(() => {
+    if (!compareFriend) return [] as Destination[]
+    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(compareFriend.otherUser)
+    return compareFriendDestsProd
+  }, [compareFriend, compareFriendDestsProd])
+  // Noms partagés (insensible casse + accents) — sert au visuel.
+  // On y ajoute les deux orthographes (la mienne et celle de l'ami) parce que
+  // WorldMap les compare au .name brut de chaque destination.
+  const compareSharedNames = useMemo(() => {
+    if (!compareFriend) return undefined
+    const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
+    const myNorm = new Set(myDestinations.map(d => norm(d.name)))
+    const set = new Set<string>()
+    for (const d of compareFriendDests) {
+      if (myNorm.has(norm(d.name))) {
+        set.add(d.name)
+        const mineMatch = myDestinations.find(m => norm(m.name) === norm(d.name))
+        if (mineMatch) set.add(mineMatch.name)
+      }
+    }
+    return set
+  }, [compareFriend, compareFriendDests, myDestinations])
+  // Compteur "en commun" (uniques, par nom normalisé) pour l'UI.
+  const compareCommonCount = useMemo(() => {
+    if (!compareFriend) return 0
+    const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
+    const myNorm = new Set(myDestinations.map(d => norm(d.name)))
+    let n = 0
+    const seen = new Set<string>()
+    for (const d of compareFriendDests) {
+      const k = norm(d.name)
+      if (myNorm.has(k) && !seen.has(k)) { seen.add(k); n++ }
+    }
+    return n
+  }, [compareFriend, compareFriendDests, myDestinations])
+
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
   const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
@@ -237,6 +284,47 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       /* ignore */
     }
   }, [publicId])
+
+  // Lien partagé `?u=handle` → on charge directement le carnet de cet ami.
+  // En mode fake, lookup local ; en prod, RPC find_user_by_handle + public_profiles.
+  // Strip le query param de l'URL après consommation.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const handle = url.searchParams.get('u')
+    if (!handle) return
+    let cancelled = false
+    void (async () => {
+      if (FAKE_FRIENDS_MODE) {
+        const match = findFakeFriendByHandle(handle)
+        if (!cancelled && match) {
+          setViewingFriend(match)
+          setActiveView('map')
+        }
+      } else if (supabase) {
+        const clean = handle.trim().toLowerCase().replace(/^@/, '')
+        const { data: targetId } = await supabase.rpc('find_user_by_handle', { target_handle: clean })
+        if (targetId) {
+          const { data: profile } = await supabase
+            .from('public_profiles')
+            .select('handle, display_name')
+            .eq('user_id', targetId as string)
+            .maybeSingle()
+          if (!cancelled && profile) {
+            setViewingFriend({
+              userId: targetId as string,
+              handle: profile.handle,
+              displayName: profile.display_name ?? profile.handle,
+            })
+            setActiveView('map')
+          }
+        }
+      }
+      url.searchParams.delete('u')
+      window.history.replaceState({}, '', url.toString())
+    })()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const visibleDestinations = useMemo(() => {
     const currentYear = new Date().getFullYear()
@@ -366,6 +454,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
     `view-${activeView}`,
     tierListCollapsed ? 'tier-collapsed' : '',
     !(activeView === 'map' && selected) ? 'no-card' : '',
+    compareFriend && activeView === 'map' && !viewingFriend ? 'compare-active' : '',
   ].filter(Boolean).join(' ')
 
   return (
@@ -387,7 +476,59 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           selectedName={selected?.name}
           onSelect={selectByName}
           onFlyTargetConsumed={() => setFlyTarget(null)}
+          friendDestinations={compareFriend ? compareFriendDests : undefined}
+          friendInitials={compareFriend ? compareFriend.displayName.slice(0, 1).toUpperCase() : undefined}
+          sharedNames={compareFriend ? compareSharedNames : undefined}
         />
+      )}
+      {/* Barre flottante compare quand on superpose les pins d'un ami */}
+      {compareFriend && activeView === 'map' && !viewingFriend && (
+        <div className="compare-inline-bar" role="status">
+          <div className="compare-inline-legend">
+            <span className="compare-inline-item">
+              <span className="compare-legend-dot compare-legend-dot--mine" aria-hidden="true" />
+              Toi
+            </span>
+            <span className="compare-inline-item">
+              <span
+                className="compare-legend-dot compare-legend-dot--theirs"
+                aria-hidden="true"
+              >
+                {compareFriend.displayName.slice(0, 1).toUpperCase()}
+              </span>
+              {compareFriend.displayName.split(' ')[0]}
+            </span>
+            <span className="compare-inline-item">
+              <span className="compare-legend-dot compare-legend-dot--shared" aria-hidden="true" />
+              {compareCommonCount} en commun
+            </span>
+          </div>
+          <button
+            type="button"
+            className="compare-inline-close"
+            onClick={() => setCompareFriend(null)}
+            aria-label={`Quitter la comparaison avec ${compareFriend.displayName}`}
+          >
+            <Icon name="x" /> Quitter la comparaison
+          </button>
+        </div>
+      )}
+      {/* Empty state quand on visite le carnet d'un ami qui n'a pas encore
+          ajouté de destinations (ami qui débute, ou un seed sans data). */}
+      {viewingFriend && activeView === 'map' && destinations.length === 0 && (
+        <div className="empty-friend-carnet" role="status">
+          <div className="empty-friend-carnet-card">
+            <h3>@{viewingFriend.handle} n'a pas encore ajouté de destinations.</h3>
+            <p>Reviens un peu plus tard, ou retourne à ton carnet.</p>
+            <button
+              type="button"
+              className="friends-action-btn friends-action-secondary"
+              onClick={() => { setViewingFriend(null); setSelectedName(null) }}
+            >
+              ← Mon carnet
+            </button>
+          </div>
+        </div>
       )}
       {activeView === 'tier-list' && (
         <Suspense fallback={null}>
@@ -434,13 +575,13 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           <FriendsManagePanel
             onClose={() => setFriendsManageOpen(false)}
             onOpenAddFriend={() => { setFriendsManageOpen(false); setAddFriendOpen(true) }}
-            onOpenProfile={(userId: string) => { setFriendsManageOpen(false); setProfileFriendUserId(userId) }}
             onViewFriendCarnet={f => {
               setFriendsManageOpen(false)
               setViewingFriend({ userId: f.otherUser, handle: f.handle, displayName: f.displayName })
               setActiveView('map')
               setSelectedName(null)
             }}
+            onCompareFriend={f => { setFriendsManageOpen(false); setCompareFriend(f) }}
           />
         </Suspense>
       )}
@@ -465,6 +606,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           coupDeCoeurCount={coupDeCoeurCount}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
           onFlyTo={selectByName}
+          onCompareFriend={viewingFriend ? undefined : setCompareFriend}
         />
       )}
       {addingDestination && (
@@ -510,22 +652,8 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       {/* Activité récente : autrefois en bandeau fixe en bas de la map, ce qui
           chevauchait la tier list. L'aperçu vit désormais dans la sidebar
           (composant <SidebarActivity /> dans Nav.tsx) et la liste complète
-          reste accessible via l'onglet "Amis". */}
-      {profileFriendUserId && (
-        <Suspense fallback={null}>
-          <FriendProfileSheet
-            friendUserId={profileFriendUserId}
-            myDestinations={destinations}
-            onClose={() => setProfileFriendUserId(null)}
-            onFlyTo={(lat, lng, name) => {
-              setProfileFriendUserId(null)
-              setActiveView('map')
-              setFlyTarget({ lat, lng, name })
-              setSelectedName(name)
-            }}
-          />
-        </Suspense>
-      )}
+          reste accessible via l'onglet "Amis". Le clic sur un ami va direct
+          au carnet ami (viewingFriend) plutôt que d'ouvrir un profil modal. */}
       {addFriendOpen && (
         <Suspense fallback={null}>
           <AddFriendModal onClose={() => setAddFriendOpen(false)} />

@@ -45,7 +45,6 @@ export default function Nav({
   viewingFriend,
   onBackToMyCarnet,
 }: NavProps) {
-  const [query, setQuery] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const activeFilterCount = [
     filters.topTiers,
@@ -57,19 +56,6 @@ export default function Nav({
 
   const updateFilters = (patch: Partial<DestinationFilters>) => {
     onFiltersChange({ ...filters, ...patch })
-  }
-
-  const submitSearch = () => {
-    const normalized = query.trim().toLowerCase()
-    if (!normalized) return
-    const match = destinations.find(destination =>
-      destination.name.toLowerCase().includes(normalized) ||
-      destination.country.toLowerCase().includes(normalized),
-    )
-    if (match) {
-      onViewChange('map')
-      onSearch(match.name)
-    }
   }
 
   return (
@@ -104,17 +90,29 @@ export default function Nav({
       </aside>
 
       <header className="topbar">
-        <label className="search-box">
-          <Icon name="search" />
-          <input
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            onKeyDown={event => {
-              if (event.key === 'Enter') submitSearch()
-            }}
-            placeholder="Rechercher une destination, une activite..."
-          />
-        </label>
+        <div className="topbar-title" aria-label="Titre de la page">
+          {viewingFriend && activeView === 'map' && onBackToMyCarnet && (
+            <button
+              type="button"
+              className="page-title-back"
+              onClick={onBackToMyCarnet}
+              aria-label="Retour à mon carnet"
+            >
+              <Icon name="arrow-left" />
+              <span>Mon carnet</span>
+            </button>
+          )}
+          <div className="topbar-title-text">
+            <h1>
+              {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · carnet de voyage` : 'Mon carnet de voyages')}
+              {activeView === 'explore' && 'Explorer · Suggestions IA'}
+              {activeView === 'tier-list' && 'Tier list'}
+            </h1>
+            {activeView === 'map' && (
+              <span className="topbar-title-sub">{totalDestinations} destination{totalDestinations > 1 ? 's' : ''} notée{totalDestinations > 1 ? 's' : ''}</span>
+            )}
+          </div>
+        </div>
         <div className="top-actions">
           <div className="filter-menu-wrap">
             <button
@@ -182,29 +180,6 @@ export default function Nav({
         </div>
       </header>
 
-      {activeView !== 'tier-list' && activeView !== 'friends' && (
-        <section className="page-title" aria-label="Titre de la page">
-          {viewingFriend && activeView === 'map' && onBackToMyCarnet && (
-            <button
-              type="button"
-              className="page-title-back"
-              onClick={onBackToMyCarnet}
-              aria-label="Retour à mon carnet"
-            >
-              <Icon name="arrow-left" />
-              <span>Mon carnet</span>
-            </button>
-          )}
-          <h1>
-            {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · carnet de voyage` : 'Mon carnet de voyages')}
-            {activeView === 'explore' && 'Explorer - Suggestions IA'}
-          </h1>
-          <p>
-            {activeView === 'map' && `${totalDestinations} destination${totalDestinations > 1 ? 's' : ''} notée${totalDestinations > 1 ? 's' : ''}`}
-            {activeView === 'explore' && 'Placeholder IA, bientot connecte a ton classement'}
-          </p>
-        </section>
-      )}
     </>
   )
 }
@@ -266,7 +241,27 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
   }, [events])
 
   if (events.length === 0) return null
-  const top = events.slice(0, 6)
+  // Pour le hero, on préfère une destination_added récente (riche en visuel : image + tier).
+  // Si aucune, on retombe sur le premier event peu importe le kind.
+  const heroIdx = events.findIndex(e => e.kind === 'destination_added')
+  const hero = heroIdx >= 0 ? events[heroIdx] : events[0]
+  const rest = events.filter(e => e.id !== hero.id).slice(0, 3)
+
+  // Extrait les infos communes pour un event (clic, payload, etc.)
+  const buildHandler = (ev: typeof events[number]) => {
+    const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
+      || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
+      || ''
+    const lat = typeof ev.payload?.lat === 'number' ? ev.payload.lat : undefined
+    const lng = typeof ev.payload?.lng === 'number' ? ev.payload.lng : undefined
+    const actorInfo = ev.actorHandle
+      ? { userId: ev.actor, handle: ev.actorHandle, displayName: ev.actorDisplayName ?? ev.actorHandle }
+      : undefined
+    const canFly = lat !== undefined && lng !== undefined && name && onFlyTo
+    return canFly
+      ? () => onFlyTo!(lat as number, lng as number, name, actorInfo)
+      : () => onSeeAll()
+  }
 
   return (
     <section className="sidebar-activity" aria-label="Activité récente">
@@ -277,53 +272,116 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
         </h4>
         <button className="sidebar-activity-link" onClick={onSeeAll}>Tout voir</button>
       </header>
-      <ul>
-        {top.map(ev => {
-          const actor = ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'
-          const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
-            || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
-            || ''
-          const image = typeof ev.payload?.image === 'string' ? ev.payload.image : undefined
-          const lat = typeof ev.payload?.lat === 'number' ? ev.payload.lat : undefined
-          const lng = typeof ev.payload?.lng === 'number' ? ev.payload.lng : undefined
-          const actorInfo = ev.actorHandle
-            ? { userId: ev.actor, handle: ev.actorHandle, displayName: ev.actorDisplayName ?? ev.actorHandle }
-            : undefined
-          const isPulse = pulseId === ev.id
-          const canFly = lat !== undefined && lng !== undefined && name && onFlyTo
-          const handleClick = canFly
-            ? () => onFlyTo!(lat as number, lng as number, name, actorInfo)
-            : () => onSeeAll()
-          return (
-            <li key={ev.id} className={isPulse ? 'is-new' : ''}>
-              <button
-                className="sidebar-activity-card"
-                onClick={handleClick}
-                title={name ? `${name} · ${actor}` : actor}
-              >
-                <span
-                  className="sidebar-activity-card-img"
-                  style={image
-                    ? { backgroundImage: `url(${image})` }
-                    : {
-                        background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? '#c7d2fe'}, ${ev.actorAvatarBg ?? '#a5b4fc'})`,
-                        color: ev.actorAvatarFg ?? '#fff',
-                      }}
-                  aria-hidden="true"
-                >
-                  {!image && (name.slice(0, 1).toUpperCase() || actor.slice(0, 1).toUpperCase())}
-                </span>
-                <span className="sidebar-activity-card-body">
-                  <span className="sidebar-activity-card-dest">{name || renderShortLabel(ev.kind, name)}</span>
-                  <span className="sidebar-activity-card-actor">{actor} · {shortTime(ev.createdAt)}</span>
-                </span>
-              </button>
-            </li>
-          )
-        })}
+      <p className="sidebar-activity-sub">Dernières destinations ajoutées</p>
+
+      {hero && (
+        <HeroCard
+          event={hero}
+          onClick={buildHandler(hero)}
+          isPulse={pulseId === hero.id}
+        />
+      )}
+
+      <ul className="sidebar-activity-rows">
+        {rest.map(ev => (
+          <li key={ev.id} className={pulseId === ev.id ? 'is-new' : ''}>
+            <RowCard event={ev} onClick={buildHandler(ev)} />
+          </li>
+        ))}
       </ul>
     </section>
   )
+}
+
+// ─── Hero (1ère carte, grand format avec image plein largeur) ──────────────────
+function HeroCard({ event: ev, onClick, isPulse }: {
+  event: ReturnType<typeof useActivityFeed>['events'][number]
+  onClick: () => void
+  isPulse: boolean
+}) {
+  const actor = ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'
+  const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
+    || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
+    || ''
+  const country = extractCountry(name)
+  const destShort = extractDestShort(name)
+  const image = typeof ev.payload?.image === 'string' ? ev.payload.image : undefined
+  const tier = typeof ev.payload?.tier === 'string' ? (ev.payload.tier as string) : undefined
+
+  return (
+    <button
+      className={`sidebar-hero${isPulse ? ' is-new' : ''}`}
+      onClick={onClick}
+      title={name || actor}
+      style={image ? { backgroundImage: `url(${image})` } : {
+        background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? '#c7d2fe'}, ${ev.actorAvatarBg ?? '#a5b4fc'})`,
+      }}
+    >
+      <span className="sidebar-hero-shade" aria-hidden="true" />
+      {tier && <span className={`sidebar-hero-tier tier-${tier.toLowerCase()}`}>{tier}</span>}
+      <span className="sidebar-hero-body">
+        <strong className="sidebar-hero-dest">{destShort || name}</strong>
+        {country && <span className="sidebar-hero-country">{country}</span>}
+      </span>
+      <span className="sidebar-hero-footer">
+        <span className="sidebar-hero-actor">
+          <span
+            className="sidebar-hero-avatar"
+            style={{ background: ev.actorAvatarBg ?? '#c7d2fe', color: ev.actorAvatarFg ?? '#1e3a8a' }}
+            aria-hidden="true"
+          >
+            {actor.slice(0, 1).toUpperCase()}
+          </span>
+          <span>{actor}</span>
+        </span>
+        <span className="sidebar-hero-time">{relTime(ev.createdAt)}</span>
+      </span>
+    </button>
+  )
+}
+
+// ─── Row (cartes secondaires, format épuré : thumb + dest/pays + tier) ────────
+// L'acteur et le temps n'apparaissent que sur la hero. Les rows restent
+// minimalistes pour éviter la surcharge visuelle.
+function RowCard({ event: ev, onClick }: {
+  event: ReturnType<typeof useActivityFeed>['events'][number]
+  onClick: () => void
+}) {
+  const actor = ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'
+  const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
+    || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
+    || ''
+  const country = extractCountry(name)
+  const destShort = extractDestShort(name)
+  const image = typeof ev.payload?.image === 'string' ? ev.payload.image : undefined
+  const tier = typeof ev.payload?.tier === 'string' ? (ev.payload.tier as string) : undefined
+
+  return (
+    <button className="sidebar-row" onClick={onClick} title={`${name || actor} · ${actor}`}>
+      <span
+        className="sidebar-row-thumb"
+        style={image
+          ? { backgroundImage: `url(${image})` }
+          : { background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? '#c7d2fe'}, ${ev.actorAvatarBg ?? '#a5b4fc'})` }}
+        aria-hidden="true"
+      />
+      <span className="sidebar-row-body">
+        <strong>{destShort || name || renderShortLabel(ev.kind, name)}</strong>
+        {country && <span className="sidebar-row-country">{country}</span>}
+      </span>
+      {tier && <span className={`sidebar-row-tier tier-${tier.toLowerCase()}`}>{tier}</span>}
+    </button>
+  )
+}
+
+// "Tokyo, Japon" → { dest: "Tokyo", country: "Japon" }
+function extractDestShort(fullName: string): string {
+  const i = fullName.indexOf(',')
+  return i > 0 ? fullName.slice(0, i).trim() : fullName
+}
+function extractCountry(fullName: string): string {
+  const i = fullName.indexOf(',')
+  return i > 0 ? fullName.slice(i + 1).trim() : ''
 }
 
 function renderShortLabel(kind: string, name: string): string {
@@ -348,4 +406,16 @@ function shortTime(iso: string): string {
   const hr = Math.floor(min / 60)
   if (hr < 24) return `${hr}h`
   return `${Math.floor(hr / 24)}j`
+}
+
+/** Variante "il y a 3 min" / "à l'instant" (sans double "il y a"). */
+function relTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'à l’instant'
+  if (min < 60) return `il y a ${min} min`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `il y a ${hr} h`
+  const day = Math.floor(hr / 24)
+  return `il y a ${day} j`
 }

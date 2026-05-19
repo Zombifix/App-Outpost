@@ -1,25 +1,21 @@
-import { useState } from 'react'
 import { useFriends } from '../../hooks/useFriends'
 import type { Friendship } from '../../types'
 
 interface FriendsManagePanelProps {
   onClose: () => void
   onOpenAddFriend: () => void
-  onOpenProfile: (userId: string) => void
   onViewFriendCarnet: (friend: Friendship) => void
+  onCompareFriend: (friend: Friendship) => void
 }
 
-type Tab = 'requests' | 'friends'
-
 /**
- * Mini-pop-up dense de gestion des amis. Pas de gros boutons, pas de gros
- * titres : tout est inline, icon-only pour les actions, divisé en deux onglets
- * (Demandes / Amis). Le fil d'activité vit dans la sidebar de la map.
+ * Mini-pop-up de gestion des amis : une vue unique scrollable qui groupe
+ * Demandes reçues → Envoyées → Mes amis. Pas d'onglets — tout est visible
+ * d'un coup d'œil. Actions icon-only à droite de chaque ligne.
  */
-export default function FriendsManagePanel({ onClose, onOpenAddFriend, onOpenProfile, onViewFriendCarnet }: FriendsManagePanelProps) {
+export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFriendCarnet, onCompareFriend }: FriendsManagePanelProps) {
   const { accepted, incoming, outgoing, loading, acceptRequest, removeFriendship, error } = useFriends()
-  const requestsCount = incoming.length + outgoing.length
-  const [tab, setTab] = useState<Tab>(incoming.length > 0 ? 'requests' : 'friends')
+  const isEmpty = accepted.length === 0 && incoming.length === 0 && outgoing.length === 0
 
   return (
     <div className="manage-overlay" role="dialog" aria-label="Gestion des amis" onClick={onClose}>
@@ -48,103 +44,87 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onOpenPro
           </button>
         </header>
 
-        <nav className="manage-tabs" role="tablist" aria-label="Sections amis">
-          <button
-            role="tab"
-            aria-selected={tab === 'requests'}
-            className={`manage-tab${tab === 'requests' ? ' is-active' : ''}`}
-            onClick={() => setTab('requests')}
-          >
-            Demandes
-            {requestsCount > 0 && <span className="manage-tab-badge">{requestsCount}</span>}
-          </button>
-          <button
-            role="tab"
-            aria-selected={tab === 'friends'}
-            className={`manage-tab${tab === 'friends' ? ' is-active' : ''}`}
-            onClick={() => setTab('friends')}
-          >
-            Mes amis
-          </button>
-        </nav>
-
         {error && <p className="friends-feedback-err" style={{ margin: 0 }}>{error}</p>}
         {loading && <p className="friends-muted">Chargement…</p>}
 
-        {tab === 'requests' && (
-          <div className="manage-body">
-            {requestsCount === 0 && !loading && (
-              <EmptyState label="Aucune demande en attente." />
-            )}
-            {incoming.length > 0 && (
-              <RowGroup label="Reçues">
-                {incoming.map(f => (
-                  <ManageRow
-                    key={f.otherUser}
-                    friendship={f}
-                    onOpen={() => { onClose(); onOpenProfile(f.otherUser) }}
-                    actions={
-                      <>
-                        <IconButton tone="accept" title="Accepter" onClick={() => acceptRequest(f.otherUser)}>
-                          <CheckIcon />
-                        </IconButton>
-                        <IconButton tone="reject" title="Refuser" onClick={() => removeFriendship(f.otherUser)}>
-                          <CloseIcon />
-                        </IconButton>
-                      </>
-                    }
-                  />
-                ))}
-              </RowGroup>
-            )}
-            {outgoing.length > 0 && (
-              <RowGroup label="Envoyées">
-                {outgoing.map(f => (
-                  <ManageRow
-                    key={f.otherUser}
-                    friendship={f}
-                    statusLabel="En attente"
-                    onOpen={() => { onClose(); onOpenProfile(f.otherUser) }}
-                    actions={
-                      <IconButton tone="neutral" title="Annuler" onClick={() => removeFriendship(f.otherUser)}>
+        <div className="manage-body">
+          {isEmpty && !loading && (
+            <EmptyState label="Personne pour l'instant. Ajoute quelqu'un par pseudo, email ou lien." />
+          )}
+
+          {incoming.length > 0 && (
+            <RowGroup label={`Reçues · ${incoming.length}`}>
+              {incoming.map(f => (
+                <ManageRow
+                  key={f.otherUser}
+                  friendship={f}
+                  actions={
+                    <>
+                      <IconButton tone="accept" title="Accepter" onClick={() => acceptRequest(f.otherUser)}>
+                        <CheckIcon />
+                      </IconButton>
+                      <IconButton tone="reject" title="Refuser" onClick={() => removeFriendship(f.otherUser)}>
                         <CloseIcon />
                       </IconButton>
-                    }
-                  />
-                ))}
-              </RowGroup>
-            )}
-          </div>
-        )}
+                    </>
+                  }
+                />
+              ))}
+            </RowGroup>
+          )}
 
-        {tab === 'friends' && (
-          <div className="manage-body">
-            {accepted.length === 0 && !loading && (
-              <EmptyState label="Personne pour l'instant. Ajoute quelqu'un par pseudo, email ou lien." />
-            )}
-            {accepted.map(f => (
-              <ManageRow
-                key={f.otherUser}
-                friendship={f}
-                onOpen={() => onViewFriendCarnet(f)}
-                hint="Voir sa carte"
-                actions={
-                  <IconButton
-                    tone="neutral"
-                    title="Retirer"
-                    onClick={() => {
-                      if (window.confirm(`Retirer ${f.displayName} de tes amis ?`)) {
-                        void removeFriendship(f.otherUser)
-                      }
-                    }}
-                  >
-                    <CloseIcon />
-                  </IconButton>
-                }
-              />
-            ))}
-          </div>
-        )}
+          {outgoing.length > 0 && (
+            <RowGroup label={`Envoyées · ${outgoing.length}`}>
+              {outgoing.map(f => (
+                <ManageRow
+                  key={f.otherUser}
+                  friendship={f}
+                  statusLabel="En attente"
+                  actions={
+                    <IconButton tone="neutral" title="Annuler" onClick={() => removeFriendship(f.otherUser)}>
+                      <CloseIcon />
+                    </IconButton>
+                  }
+                />
+              ))}
+            </RowGroup>
+          )}
+
+          {accepted.length > 0 && (
+            <RowGroup label={`Mes amis · ${accepted.length}`}>
+              {accepted.map(f => (
+                <ManageRow
+                  key={f.otherUser}
+                  friendship={f}
+                  onOpen={() => onViewFriendCarnet(f)}
+                  hint="Voir sa carte"
+                  actions={
+                    <>
+                      <IconButton
+                        tone="neutral"
+                        title="Comparer nos cartes"
+                        onClick={() => onCompareFriend(f)}
+                      >
+                        <CompareIcon />
+                      </IconButton>
+                      <IconButton
+                        tone="neutral"
+                        title="Retirer"
+                        onClick={() => {
+                          if (window.confirm(`Retirer ${f.displayName} de tes amis ?`)) {
+                            void removeFriendship(f.otherUser)
+                          }
+                        }}
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </>
+                  }
+                />
+              ))}
+            </RowGroup>
+          )}
+        </div>
       </aside>
     </div>
   )
@@ -165,7 +145,7 @@ function RowGroup({ label, children }: { label: string; children: React.ReactNod
 
 interface ManageRowProps {
   friendship: Friendship
-  onOpen: () => void
+  onOpen?: () => void
   statusLabel?: string
   hint?: string
   actions: React.ReactNode
@@ -174,7 +154,13 @@ interface ManageRowProps {
 function ManageRow({ friendship: f, onOpen, statusLabel, hint, actions }: ManageRowProps) {
   return (
     <li className="manage-row">
-      <button className="manage-row-identity" onClick={onOpen} title={hint ?? `Profil de ${f.displayName}`}>
+      <button
+        type="button"
+        className="manage-row-identity"
+        onClick={onOpen}
+        disabled={!onOpen}
+        title={onOpen ? (hint ?? `Voir le carnet de ${f.displayName}`) : undefined}
+      >
         <span className="manage-avatar" style={{ background: f.avatarBg, color: f.avatarFg }}>
           {f.displayName.slice(0, 1).toUpperCase()}
         </span>
@@ -231,6 +217,18 @@ function CloseIcon() {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 6 6 18" />
       <path d="m6 6 12 12" />
+    </svg>
+  )
+}
+
+function CompareIcon() {
+  // Deux colonnes superposées symbolisant "comparer"
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 4v16" />
+      <path d="m3 8 4-4 4 4" />
+      <path d="M17 20V4" />
+      <path d="m13 16 4 4 4-4" />
     </svg>
   )
 }

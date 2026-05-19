@@ -5,6 +5,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
 import { findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
+import { useActivityFeed } from '../hooks/useActivityFeed'
 
 interface DestinationSheetProps {
   destination: Destination
@@ -233,6 +234,28 @@ function DestinationCardContent({
     return Array.from(map.entries())
   }, [tripStopsHere, allDestinations])
 
+  // Amis qui ont aussi visité cette destination (events destination_added).
+  // Lit le feed déjà chargé (60 events) — pas de requête supplémentaire.
+  const { events: activityEvents } = useActivityFeed(60)
+  const friendVisitors = useMemo(() => {
+    const targetName = destination.name.toLowerCase().trim()
+    const seen = new Map<string, { displayName: string; handle?: string; bg?: string; fg?: string }>()
+    for (const ev of activityEvents) {
+      if (ev.kind !== 'destination_added') continue
+      const evName = (typeof ev.payload?.name === 'string' ? ev.payload.name : '')
+        || (typeof ev.payload?.destination_name === 'string' ? ev.payload.destination_name : '')
+      if (!evName || evName.toLowerCase().trim() !== targetName) continue
+      if (seen.has(ev.actor)) continue
+      seen.set(ev.actor, {
+        displayName: ev.actorDisplayName ?? ev.actorHandle ?? 'Un ami',
+        handle: ev.actorHandle,
+        bg: ev.actorAvatarBg,
+        fg: ev.actorAvatarFg,
+      })
+    }
+    return Array.from(seen.values())
+  }, [activityEvents, destination.name])
+
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
 
@@ -301,6 +324,30 @@ function DestinationCardContent({
           <h2>{destination.name}, {destination.country}</h2>
         </div>
       </div>
+      {friendVisitors.length > 0 && (
+        <div className="friend-visitors" aria-label="Amis qui y sont allés">
+          <div className="friend-visitors-avatars">
+            {friendVisitors.slice(0, 3).map((v, i) => (
+              <span
+                key={i}
+                className="friend-visitors-avatar"
+                style={{ background: v.bg ?? '#c7d2fe', color: v.fg ?? '#1e3a8a' }}
+                title={v.displayName}
+              >
+                {v.displayName.slice(0, 1).toUpperCase()}
+              </span>
+            ))}
+          </div>
+          <span className="friend-visitors-text">
+            {friendVisitors.length === 1
+              ? <><strong>{friendVisitors[0].displayName}</strong> y est allé</>
+              : friendVisitors.length <= 3
+                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} et <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> y sont allés</>
+                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont allés</>
+            }
+          </span>
+        </div>
+      )}
       {context.hasContext && (
         <div className="destination-context" aria-label="Contexte du voyage">
           {context.meta.length > 0 && (

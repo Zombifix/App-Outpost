@@ -59,10 +59,11 @@
   --tier-bottom: 20px;
   --map-b-open: calc(var(--tier-h) + var(--tier-bottom) + var(--gap));
   --map-b-closed: calc(58px + var(--tier-bottom) + 10px);
-  --topbar-t: 20px;
-  --topbar-h: 50px;
+  --topbar-t: 18px;
+  --topbar-h: 58px;
   --title-t: calc(var(--topbar-t) + var(--topbar-h) + 14px);
-  --map-t: calc(var(--title-t) + 56px);
+  /* Le titre vit désormais dans la topbar (cf. .topbar-title) — on peut coller la map juste sous. */
+  --map-t: calc(var(--topbar-t) + var(--topbar-h) + 14px);
 }
 
 *, *::before, *::after {
@@ -239,77 +240,201 @@ svg {
 
 .sidebar-activity-link:hover { text-decoration: underline; }
 
-.sidebar-activity ul {
+/* Sous-titre sous le header "ACTIVITÉ RÉCENTE" */
+.sidebar-activity-sub {
+  margin: -2px 0 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ─── Hero card (1ère activité, grand format style mobile inspo) ───────────── */
+.sidebar-hero {
+  position: relative;
+  width: 100%;
+  min-height: 150px;
+  padding: 12px 12px 10px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  color: #fff;
+  background-size: cover;
+  background-position: center;
+  background-color: #1f2937;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18), inset 0 0 0 0.5px rgba(255,255,255,0.10);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.sidebar-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.28);
+}
+.sidebar-hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+}
+.sidebar-hero-tier {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.85);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.sidebar-hero-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 1;
+  margin-top: auto;
+}
+.sidebar-hero-dest {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+}
+.sidebar-hero-country {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.92;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+.sidebar-hero-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 10px;
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sidebar-hero-actor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 0;
+}
+.sidebar-hero-actor > span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-hero-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1.5px solid rgba(255,255,255,0.9);
+  flex-shrink: 0;
+}
+.sidebar-hero-time {
+  font-size: 10px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+/* ─── Rows secondaires ────────────────────────────────────────────────────── */
+.sidebar-activity-rows {
   list-style: none;
-  margin: 0;
+  margin: 6px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
-
-.sidebar-activity-row {
+/* Row sidebar : minimaliste pour ne pas surcharger.
+   Thumb + nom (sm, semi-bold) + pays (xs, muted) + tier pill à droite.
+   L'acteur et le temps n'apparaissent que sur la hero, pour réduire
+   le bruit visuel. Pas de shadow agressive — juste un hairline. */
+.sidebar-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 5px 8px 5px 5px;
   background: transparent;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   text-align: left;
-  transition: background 120ms ease;
+  transition: background 140ms ease;
 }
-
-.sidebar-activity-row:hover {
-  background: rgba(27, 95, 232, 0.06);
+.sidebar-row:hover {
+  background: rgba(27, 95, 232, 0.05);
 }
-
-.sidebar-activity-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  flex-shrink: 0;
+.sidebar-row-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
   background-size: cover;
   background-position: center;
   background-color: #e5e7eb;
-  box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.08);
+  flex-shrink: 0;
 }
-
-.sidebar-activity-text {
+.sidebar-row-body {
   display: flex;
   flex-direction: column;
+  gap: 1px;
   flex: 1;
   min-width: 0;
 }
-
-.sidebar-activity-text strong {
+.sidebar-row-body strong {
   font-size: 12px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #17213a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
 }
-
-.sidebar-activity-snippet {
-  font-size: 11px;
-  color: #6b7280;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-activity-time {
+.sidebar-row-country {
   font-size: 10px;
   color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-row-tier {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
   flex-shrink: 0;
+}
+
+.sidebar-activity-rows li.is-new .sidebar-row,
+.sidebar-hero.is-new {
+  animation: sidebar-row-slide 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Pastille pulse "Live" à côté du titre du widget Activité récente */
@@ -364,6 +489,415 @@ svg {
 }
 
 .page-title-back:hover { background: rgba(27, 95, 232, 0.16); }
+
+/* Empty state quand on visite le carnet d'un ami sans destinations */
+.empty-friend-carnet {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 50;
+}
+.empty-friend-carnet-card {
+  pointer-events: auto;
+  max-width: 360px;
+  padding: 28px 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(23, 33, 58, 0.12), 0 0 0 0.5px rgba(0,0,0,0.06);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.empty-friend-carnet-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #17213a;
+}
+.empty-friend-carnet-card p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+.empty-friend-carnet-card button { margin-top: 4px; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compare ta map — modal + picker dropdown
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.compare-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 120;
+  animation: compare-fade 140ms ease;
+}
+@keyframes compare-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.compare-modal {
+  width: 100%;
+  max-width: 920px;
+  max-height: calc(100vh - 48px);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(23, 33, 58, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Variante "map" — la modale prend plus de hauteur pour la carte */
+.compare-modal--map {
+  max-width: 1100px;
+  height: calc(100vh - 64px);
+}
+
+/* Bandeau stats sous le header */
+.compare-stats {
+  display: flex;
+  gap: 18px;
+  padding: 10px 24px 14px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.06);
+  font-size: 13px;
+  color: #4b5563;
+  flex-wrap: wrap;
+}
+.compare-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.compare-stat::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.compare-stat strong {
+  font-weight: 600;
+  color: #17213a;
+}
+.compare-stat--shared::before { background: #f59e0b; }
+.compare-stat--mine::before   { background: #1B5FE8; }
+.compare-stat--theirs::before { background: #ec4899; }
+
+/* Container carte + légende flottante */
+.compare-map-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 480px;
+  overflow: hidden;
+}
+.compare-map-wrap > .map-area,
+.compare-map-wrap > main,
+.compare-map-wrap canvas,
+.compare-map-wrap > div:not(.compare-legend):not(.compare-map-loading) {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.compare-map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.compare-legend {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 10;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(15,23,42,0.18), 0 0 0 0.5px rgba(0,0,0,0.06);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #17213a;
+}
+.compare-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+.compare-legend-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+/* Pin "moi" = gradient tier S (rouge corail) pour bien le voir */
+.compare-legend-dot--mine {
+  background: linear-gradient(135deg, #f25f73, #fb8b45);
+}
+/* Pin ami = blanc avec stroke gris + initiales, comme dans WorldMap */
+.compare-legend-dot--theirs {
+  background: #fff;
+  color: #7C8DB5;
+  border-color: #7C8DB5;
+  box-shadow: inset 0 0 0 0.5px #7C8DB5, 0 1px 3px rgba(0,0,0,0.15);
+}
+/* Pin partagé = orange avec étoile */
+.compare-legend-dot--shared {
+  background: #f59e0b;
+  position: relative;
+}
+.compare-legend-dot--shared::after {
+  content: '★';
+  font-size: 10px;
+}
+.compare-stat--mine::before   { background: linear-gradient(135deg, #f25f73, #fb8b45); }
+.compare-stat--theirs::before { background: #fff; box-shadow: inset 0 0 0 1.5px #7C8DB5; }
+
+/* ─── Barre "Compare inline" — vit à la place de la légende des tiers ───────
+   Quand un ami est sélectionné pour la comparaison, on cache la légende
+   (S/A/B/C/D) via .compare-active .legend, et on positionne cette barre
+   exactement au même endroit pour ne pas voler de place ailleurs.
+   Note : la barre est un enfant de .travel-app (pas .map-area), donc on
+   recale left avec --content-l (sidebar + gap) pour qu'elle s'aligne sur
+   la map et pas sur le bord gauche de la page. */
+.compare-inline-bar {
+  position: absolute;
+  left: calc(var(--content-l) + 24px);
+  bottom: var(--map-b-open);
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 46px;
+  padding: 0 6px 0 18px;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(18px);
+  border-radius: 999px;
+  box-shadow: 0 14px 30px rgba(95, 119, 148, 0.16), 0 0 0 0.5px rgba(0,0,0,0.05);
+  animation: compare-inline-slide 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes compare-inline-slide {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.compare-inline-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  color: #526078;
+  letter-spacing: var(--tracking-wide);
+}
+.compare-inline-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.compare-inline-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #1B5FE8, #4f7eef);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 120ms ease, transform 120ms ease;
+  box-shadow: 0 4px 14px rgba(27, 95, 232, 0.28);
+}
+.compare-inline-close:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.compare-inline-close svg { width: 13px; height: 13px; }
+
+/* Quand un compare est actif, on cache la légende tier (même position) */
+.compare-active .legend { display: none; }
+
+.compare-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+}
+.compare-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #17213a;
+}
+.compare-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+.compare-close {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.compare-close:hover { background: rgba(0,0,0,0.05); color: #17213a; }
+
+.compare-body {
+  padding: 16px 24px 24px;
+  overflow-y: auto;
+}
+
+/* Picker dropdown utilisé dans TierListPanel + TierListPage */
+.compare-picker {
+  position: relative;
+  display: inline-flex;
+}
+.compare-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(27, 95, 232, 0.08);
+  color: #1B5FE8;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.compare-picker-trigger:hover { background: rgba(27, 95, 232, 0.16); }
+.compare-picker-chevron {
+  font-size: 9px;
+  transition: transform 120ms ease;
+}
+.compare-picker-chevron.is-open { transform: rotate(-180deg); }
+
+.compare-picker--compact .compare-picker-trigger {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.compare-picker-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(23, 33, 58, 0.16), 0 0 0 0.5px rgba(0,0,0,0.06);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  z-index: 100;
+}
+.compare-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.compare-picker-item:hover { background: rgba(27, 95, 232, 0.06); }
+.compare-picker-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.compare-picker-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.compare-picker-meta strong {
+  font-size: 12px;
+  color: #17213a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compare-picker-meta small {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+/* Badge "X amis y sont allés" sur DestinationSheet */
+.friend-visitors {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+  padding: 8px 12px;
+  background: rgba(27, 95, 232, 0.06);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+}
+.friend-visitors-avatars {
+  display: flex;
+  flex-shrink: 0;
+}
+.friend-visitors-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 2px solid #fff;
+  margin-left: -6px;
+}
+.friend-visitors-avatar:first-child { margin-left: 0; }
+.friend-visitors-text {
+  font-size: 12px;
+  color: #17213a;
+  line-height: 1.3;
+}
+.friend-visitors-text strong { font-weight: 600; }
 
 /* Badge sur le bouton Amis de la top bar (compteur demandes en attente) */
 .top-action-badge {
@@ -1022,13 +1556,50 @@ svg {
   top: var(--topbar-t);
   left: var(--content-l);
   right: var(--card-r);
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   z-index: 90;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   pointer-events: auto;
+}
+
+/* Bloc titre fusionné dans la topbar (remplace le bandeau page-title séparé) */
+.topbar-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-left: 4px;
+  pointer-events: auto;
+}
+.topbar-title .page-title-back {
+  margin-bottom: 2px;
+}
+.topbar-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.topbar-title h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
+}
+.topbar-title-sub {
+  font-size: var(--text-xs);
+  color: var(--muted);
 }
 
 .search-box {
@@ -1658,7 +2229,7 @@ svg {
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   white-space: nowrap;
-  z-index: 2;
+  z-index: 8;
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -2249,12 +2820,13 @@ svg {
   height: var(--tier-h);
   padding: 18px 22px 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px);
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
   display: flex;
   flex-direction: column;
+  z-index: 15;
 }
 
 .tier-board.is-managing {

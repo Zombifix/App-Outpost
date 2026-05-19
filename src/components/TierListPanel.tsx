@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react'
-import type { Destination, Tier } from '../types'
+import type { Destination, Friendship, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
+import CompareWithFriendButton from './friends/CompareWithFriendButton'
 
 interface TierListPanelProps {
   destinations: Destination[]
@@ -9,6 +10,7 @@ interface TierListPanelProps {
   coupDeCoeurCount: number
   onCollapseToggle: () => void
   onFlyTo: (name: string) => void
+  onCompareFriend?: (friend: Friendship) => void
 }
 
 const tierLabels: Record<Tier, string> = {
@@ -25,6 +27,7 @@ export default function TierListPanel({
   coupDeCoeurCount,
   onCollapseToggle,
   onFlyTo,
+  onCompareFriend,
 }: TierListPanelProps) {
   const railRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 })
@@ -115,6 +118,9 @@ export default function TierListPanel({
           <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
           <span className="tier-favorite-counter">{coupDeCoeurCount}/2 coups de coeur</span>
         </div>
+        {onCompareFriend && (
+          <CompareWithFriendButton onPick={onCompareFriend} compact />
+        )}
       </div>
 
       <div className="tier-rail">

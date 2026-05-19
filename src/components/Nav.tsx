@@ -13,6 +13,7 @@ interface NavProps {
   filters: DestinationFilters
   shareCopied: boolean
   publicId: string
+  accountOpen: boolean
   pendingFriendCount: number
   onViewChange: (view: View) => void
   onAddClick: () => void
@@ -33,6 +34,7 @@ export default function Nav({
   filters,
   shareCopied,
   publicId,
+  accountOpen,
   pendingFriendCount,
   onViewChange,
   onAddClick,
@@ -174,7 +176,12 @@ export default function Nav({
             <Icon name="share" />
             {shareCopied ? 'Lien copie' : 'Partager'}
           </button>
-          <button className="user-badge" onClick={onAccountClick} aria-label="Mon compte">
+          <button
+            className={`user-badge${accountOpen ? ' is-active' : ''}`}
+            onClick={onAccountClick}
+            aria-label={accountOpen ? 'Fermer mon compte' : 'Mon compte'}
+            aria-expanded={accountOpen}
+          >
             {publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />}
           </button>
         </div>

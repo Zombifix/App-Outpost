@@ -555,6 +555,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         filters={filters}
         shareCopied={shareCopied}
         publicId={publicId}
+        accountOpen={accountOpen}
         pendingFriendCount={pendingFriendCount}
         onViewChange={setActiveView}
         onAddClick={() => setAddingDestination(true)}
@@ -562,7 +563,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         onSearch={selectByName}
         destinations={destinations}
         onShare={shareTierList}
-        onAccountClick={() => setAccountOpen(true)}
+        onAccountClick={() => setAccountOpen(value => !value)}
         onOpenFriends={() => setFriendsManageOpen(true)}
         onActivityFlyTo={(lat, lng, name, actor) => {
           if (actor) setViewingFriend(actor)
@@ -727,14 +728,18 @@ interface AccountPanelProps {
   onClose: () => void
 }
 
+type AccountMode = 'login' | 'public'
+
 function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps) {
   const { user, signInWithEmail, signOut } = useAuth()
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
   const [email, setEmail] = useState('')
+  const [mode, setMode] = useState<AccountMode>(user ? 'public' : 'login')
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [savedTick, setSavedTick] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   // Synchronise le draftId avec le handle Supabase une fois qu'il est chargé
   useEffect(() => {
@@ -747,6 +752,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
   const saveLocal = () => {
     const normalized = draftId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     onPublicIdChange(normalized)
+    setDraftId(normalized)
     setSavedTick(true)
     window.setTimeout(() => setSavedTick(false), 1800)
   }
@@ -767,76 +773,130 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
     ? `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(draftId.trim())}`
     : ''
 
+  const copyShareLink = async () => {
+    if (!shareLink) return
+    try {
+      await navigator.clipboard.writeText(shareLink)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 1800)
+    } catch {
+      window.prompt('Lien de partage', shareLink)
+    }
+  }
+
   return (
     <div className="account-overlay" role="dialog" aria-label="Compte" onClick={onClose}>
       <aside className="account-panel" onClick={event => event.stopPropagation()}>
-        <button className="floating-close" aria-label="Fermer le compte" onClick={onClose}>
-          <Icon name="x" />
-        </button>
-        <div className="account-avatar">{draftId ? draftId.slice(0, 1).toUpperCase() : '·'}</div>
-        <h2>Mon compte</h2>
+        <div className="account-panel-head">
+          <div className="account-identity">
+            <div className="account-avatar">{draftId ? draftId.slice(0, 1).toUpperCase() : '·'}</div>
+            <div>
+              <h2>Mon compte</h2>
+              <p>{user?.email ?? (draftId ? `@${draftId}` : 'Profil local')}</p>
+            </div>
+          </div>
+          <button className="account-close" aria-label="Fermer le compte" onClick={onClose}>
+            <Icon name="x" />
+          </button>
+        </div>
 
-        {user ? (
-          <>
-            <p className="account-hint">Connecté en tant que <strong>{user.email}</strong></p>
-            <button
-              className="add-submit"
-              onClick={async () => { await signOut(); onClose() }}
-              style={{ background: 'transparent', color: '#b91c1c', border: '0.5px solid rgba(220,38,38,0.3)' }}
-            >
-              Me déconnecter
-            </button>
-          </>
-        ) : (
-          <>
+        <div className="account-tabs" role="tablist" aria-label="Paramètres du compte">
+          <button
+            role="tab"
+            aria-selected={mode === 'login'}
+            className={mode === 'login' ? 'is-active' : ''}
+            onClick={() => { setMode('login'); setFeedback(null) }}
+          >
+            Connexion
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'public'}
+            className={mode === 'public' ? 'is-active' : ''}
+            onClick={() => { setMode('public'); setFeedback(null) }}
+          >
+            Lien public
+          </button>
+        </div>
+
+        {mode === 'login' && (
+          <div className="account-section">
+            {user ? (
+              <>
+                <p className="account-hint">Connecté en tant que <strong>{user.email}</strong>.</p>
+                <button
+                  className="account-secondary account-danger"
+                  onClick={async () => { await signOut(); onClose() }}
+                >
+                  Me déconnecter
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="account-hint">
+                  Synchronise tes destinations et active les amis avec un lien de connexion par email.
+                </p>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={event => setEmail(event.target.value)}
+                    placeholder="toi@email.com"
+                    autoComplete="email"
+                    autoFocus
+                  />
+                </label>
+                <button className="add-submit account-primary" onClick={sendMagicLink} disabled={busy}>
+                  {busy ? 'Envoi...' : 'Recevoir le lien'}
+                </button>
+                {feedback && (
+                  <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
+                    {feedback.msg}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {mode === 'public' && (
+          <div className="account-section">
             <p className="account-hint">
-              Connecte-toi par email pour synchroniser tes destinations dans le cloud
-              et activer le système d'amis.
+              Ton pseudo sert au lien de partage et permet aux amis de retrouver ton carnet.
             </p>
             <label>
-              Email
+              Pseudo public
               <input
-                type="email"
-                value={email}
-                onChange={event => setEmail(event.target.value)}
-                placeholder="toi@email.com"
-                autoComplete="email"
+                value={draftId}
+                onChange={event => setDraftId(event.target.value)}
+                placeholder="ton-pseudo"
               />
             </label>
-            <button className="add-submit" onClick={sendMagicLink} disabled={busy}>
-              {busy ? 'Envoi…' : 'Recevoir un lien magique'}
-            </button>
-            {feedback && (
-              <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
-                {feedback.msg}
-              </p>
+            {shareLink && (
+              <label>
+                Lien de partage
+                <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
+              </label>
             )}
-          </>
+            <div className="account-actions">
+              <button
+                className="add-submit account-primary"
+                onClick={saveLocal}
+                disabled={!draftId.trim()}
+              >
+                {savedTick ? 'Enregistré' : 'Enregistrer'}
+              </button>
+              <button
+                className="account-secondary"
+                onClick={copyShareLink}
+                disabled={!shareLink}
+              >
+                {linkCopied ? 'Copié' : 'Copier le lien'}
+              </button>
+            </div>
+          </div>
         )}
-
-        <hr style={{ border: 'none', borderTop: '0.5px solid rgba(0,0,0,0.08)', margin: '20px 0' }} />
-
-        <label>
-          Identifiant public (lien de partage)
-          <input
-            value={draftId}
-            onChange={event => setDraftId(event.target.value)}
-            placeholder="ton-pseudo"
-          />
-        </label>
-        {shareLink && (
-          <label>
-            Ton lien de partage
-            <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
-          </label>
-        )}
-        <button
-          className="add-submit"
-          onClick={saveLocal}
-          style={{ marginTop: 8, background: savedTick ? '#3B6D11' : undefined }}
-        >
-          {savedTick ? 'Enregistré ✓' : "Enregistrer l'identifiant"}
-        </button>
       </aside>
     </div>
   )

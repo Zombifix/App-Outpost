@@ -421,6 +421,10 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         onShare={shareTierList}
         onAccountClick={() => setAccountOpen(true)}
         onOpenFriends={() => setFriendsManageOpen(true)}
+        onActivityFlyTo={(lat, lng, name) => {
+          setActiveView('map')
+          setFlyTarget({ lat, lng, name })
+        }}
         viewingFriend={viewingFriend}
         onBackToMyCarnet={() => { setViewingFriend(null); setSelectedName(null) }}
       />

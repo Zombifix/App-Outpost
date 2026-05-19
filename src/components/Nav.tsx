@@ -21,6 +21,7 @@ interface NavProps {
   onShare: () => void
   onAccountClick: () => void
   onOpenFriends: () => void
+  onActivityFlyTo?: (lat: number, lng: number, name: string) => void
   viewingFriend?: { userId: string; handle: string; displayName: string } | null
   onBackToMyCarnet?: () => void
 }
@@ -40,6 +41,7 @@ export default function Nav({
   onShare,
   onAccountClick,
   onOpenFriends,
+  onActivityFlyTo,
   viewingFriend,
   onBackToMyCarnet,
 }: NavProps) {
@@ -97,7 +99,7 @@ export default function Nav({
           </button>
         </nav>
 
-        <SidebarActivity onSeeAll={onOpenFriends} />
+        <SidebarActivity onSeeAll={onOpenFriends} onFlyTo={onActivityFlyTo} />
 
       </aside>
 
@@ -240,7 +242,7 @@ function Icon({ name }: { name: string }) {
   return <svg {...common}>{paths[name] ?? paths.map}</svg>
 }
 
-function SidebarActivity({ onSeeAll }: { onSeeAll: () => void }) {
+function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?: (lat: number, lng: number, name: string) => void }) {
   const { events } = useActivityFeed(10)
 
   // Mémorise les IDs déjà vus pour ne marquer "is-new" que les arrivées live.
@@ -264,7 +266,7 @@ function SidebarActivity({ onSeeAll }: { onSeeAll: () => void }) {
   }, [events])
 
   if (events.length === 0) return null
-  const top = events.slice(0, 5)
+  const top = events.slice(0, 6)
 
   return (
     <section className="sidebar-activity" aria-label="Activité récente">
@@ -282,24 +284,36 @@ function SidebarActivity({ onSeeAll }: { onSeeAll: () => void }) {
             || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
             || ''
           const image = typeof ev.payload?.image === 'string' ? ev.payload.image : undefined
+          const lat = typeof ev.payload?.lat === 'number' ? ev.payload.lat : undefined
+          const lng = typeof ev.payload?.lng === 'number' ? ev.payload.lng : undefined
           const isPulse = pulseId === ev.id
+          const canFly = lat !== undefined && lng !== undefined && name && onFlyTo
+          const handleClick = canFly
+            ? () => onFlyTo!(lat as number, lng as number, name)
+            : () => onSeeAll()
           return (
             <li key={ev.id} className={isPulse ? 'is-new' : ''}>
-              <button className="sidebar-activity-row" onClick={onSeeAll}>
+              <button
+                className="sidebar-activity-card"
+                onClick={handleClick}
+                title={name ? `${name} · ${actor}` : actor}
+              >
                 <span
-                  className="sidebar-activity-thumb"
+                  className="sidebar-activity-card-img"
                   style={image
                     ? { backgroundImage: `url(${image})` }
-                    : { background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
+                    : {
+                        background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? '#c7d2fe'}, ${ev.actorAvatarBg ?? '#a5b4fc'})`,
+                        color: ev.actorAvatarFg ?? '#fff',
+                      }}
                   aria-hidden="true"
                 >
-                  {!image && actor.slice(0, 1).toUpperCase()}
+                  {!image && (name.slice(0, 1).toUpperCase() || actor.slice(0, 1).toUpperCase())}
                 </span>
-                <span className="sidebar-activity-text">
-                  <strong>{actor}</strong>
-                  <span className="sidebar-activity-snippet">{renderShortLabel(ev.kind, name)}</span>
+                <span className="sidebar-activity-card-body">
+                  <span className="sidebar-activity-card-dest">{name || renderShortLabel(ev.kind, name)}</span>
+                  <span className="sidebar-activity-card-actor">{actor} · {shortTime(ev.createdAt)}</span>
                 </span>
-                <span className="sidebar-activity-time">{shortTime(ev.createdAt)}</span>
               </button>
             </li>
           )

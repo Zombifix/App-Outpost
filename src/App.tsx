@@ -483,6 +483,17 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           sharedNames={compareFriend ? compareSharedNames : undefined}
         />
       )}
+      {activeView === 'map' && tierListCollapsed && (
+        <button
+          type="button"
+          className="mobile-tier-toggle"
+          aria-expanded={!tierListCollapsed}
+          onClick={() => setTierListCollapsed(value => !value)}
+        >
+          <Icon name="sliders" />
+          <span>{tierListCollapsed ? 'Tier list' : 'Masquer'}</span>
+        </button>
+      )}
       {/* Barre flottante compare quand on superpose les pins d'un ami */}
       {compareFriend && activeView === 'map' && !viewingFriend && (
         <div className="compare-inline-bar" role="status">
@@ -610,6 +621,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
           onFlyTo={selectByName}
           onCompareFriend={viewingFriend ? undefined : setCompareFriend}
+          onMobileToggle={() => setTierListCollapsed(value => !value)}
         />
       )}
       {addingDestination && (

@@ -3812,6 +3812,7 @@ svg {
 
 /* Mobile bottom nav — hidden on desktop */
 .bottom-nav { display: none; }
+.mobile-tier-toggle { display: none; }
 
 /* === Tablet / mobile (max 760px) === */
 @media (max-width: 760px) {
@@ -3828,9 +3829,10 @@ svg {
   body { overflow: auto; }
 
   .travel-app {
-    min-height: calc(64px + 60vh + 12px + 250px + 92px);
+    min-height: 100dvh;
     height: auto;
     overflow: visible;
+    padding-bottom: 0;
     background: linear-gradient(180deg, #f8fbff 0%, #edf7ff 48%, #f7fbff 100%);
   }
 
@@ -3842,14 +3844,16 @@ svg {
 
   .mobile-brand {
     display: flex;
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
     height: 40px;
+    margin: 12px 12px 8px;
     align-items: center;
     justify-content: center;
-    z-index: 5;
+    z-index: 24;
+    pointer-events: none;
     background: linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(248, 251, 255, 0));
   }
   .mobile-brand-logo {
@@ -3863,19 +3867,24 @@ svg {
   /* Map = hero. Take the bulk of the viewport. */
   .map-area {
     position: relative;
-    left: 14px;
-    right: 14px;
-    top: 64px;
-    width: calc(100% - 28px);
-    height: 60vh;
+    left: auto;
+    right: auto;
+    top: auto;
+    width: auto;
+    height: min(68dvh, 820px);
     min-height: 380px;
     bottom: auto;
     border-radius: 26px;
     overflow: hidden;
     border: 1px solid rgba(198, 217, 236, 0.8);
     box-shadow: 0 18px 40px rgba(44, 79, 112, 0.16);
-    margin-bottom: 76px;
+    margin: 0 14px 12px;
     transition: none;
+  }
+
+  .travel-app.tier-collapsed .map-area {
+    height: calc(100dvh - 154px - env(safe-area-inset-bottom, 0px));
+    min-height: 520px;
   }
 
   .map-area::after {
@@ -3984,18 +3993,45 @@ svg {
   .legend { display: none; }
 
   .map-controls {
-    bottom: 14px;
+    bottom: 8px;
     left: 14px;
   }
-  /* Pinch + double-tap suffisent — on garde uniquement le dezoom */
+  /* Pinch + double-tap suffisent — on garde uniquement le recadrage global */
   .map-controls button[aria-label="Zoomer"],
-  .map-controls button[aria-label="Recadrer la carte"],
+  .map-controls button[aria-label="Dezoomer"],
   .map-controls .map-controls-divider {
     display: none;
   }
 
+  .mobile-tier-toggle {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 29;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: #1B5FE8;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(199, 215, 238, 0.92);
+    box-shadow: 0 12px 28px rgba(33, 54, 85, 0.16);
+    backdrop-filter: blur(14px);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+  }
+
+  .mobile-tier-toggle svg {
+    width: 17px;
+    height: 17px;
+  }
+
   /* Tier list mobile — alléger le header et les contrôles */
-  .tier-board-head button { display: none; } /* "Gerer ma tier list" */
+  .tier-board-head button:not(.tier-board-mobile-toggle) { display: none; } /* "Gerer ma tier list" */
   .tier-favorite-counter { display: none; }
   .tier-board-title h2 span { display: none; } /* "(13 destinations)" */
   .tier-board-title h2 { font-size: var(--text-base); margin: 0; }
@@ -4028,8 +4064,8 @@ svg {
     top: auto;
     bottom: auto;
     height: auto;
-    padding: 14px 12px 12px;
-    margin: 10px 14px 82px; /* breathing room above bottom nav */
+    padding: 18px 14px 14px;
+    margin: 8px 14px calc(18px + env(safe-area-inset-bottom, 0px)); /* breathing room above bottom nav */
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.94);
     border: 1px solid rgba(216, 228, 242, 0.88);
@@ -4038,13 +4074,38 @@ svg {
     transition: none;
   }
 
+  .tier-board.is-collapsed {
+    display: none;
+  }
+
   .tier-board-head {
-    margin-bottom: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .tier-board-mobile-toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 999px;
+    color: #1B5FE8;
+    background: rgba(27, 95, 232, 0.08);
+    border: 1px solid rgba(27, 95, 232, 0.12);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+  }
+
+  .tier-board-mobile-toggle svg {
+    width: 15px;
+    height: 15px;
   }
 
   .tier-columns {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     height: auto;
     overflow-x: auto;
     overflow-y: hidden;
@@ -4056,17 +4117,17 @@ svg {
   }
 
   .tier-column {
-    flex: 0 0 min(82vw, 340px);
-    min-width: min(82vw, 340px);
-    max-width: min(82vw, 340px);
-    border-radius: 20px;
-    padding: 12px;
+    flex: 0 0 min(80vw, 318px);
+    min-width: min(80vw, 318px);
+    max-width: min(80vw, 318px);
+    border-radius: 18px;
+    padding: 14px;
     box-shadow: 0 10px 24px rgba(67, 90, 120, 0.1);
   }
 
   .destination-strip {
-    gap: 9px;
-    padding: 0 48px 8px 0;
+    gap: 8px;
+    padding: 0 42px 8px 0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
@@ -4078,14 +4139,14 @@ svg {
   }
 
   .mini-destination {
-    width: 116px;
-    height: 142px;
-    border-radius: 16px;
+    width: 104px;
+    height: 128px;
+    border-radius: 15px;
     box-shadow: 0 12px 24px rgba(35, 55, 82, 0.18);
   }
 
   .mini-destination-main {
-    padding: 0 10px 12px;
+    padding: 0 9px 11px;
   }
 
   .bottom-nav {

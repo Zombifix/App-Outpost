@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react'
 import type { Destination, Friendship, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
+import { Icon } from './Icon'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
 
 interface TierListPanelProps {
@@ -11,6 +12,7 @@ interface TierListPanelProps {
   onCollapseToggle: () => void
   onFlyTo: (name: string) => void
   onCompareFriend?: (friend: Friendship) => void
+  onMobileToggle?: () => void
 }
 
 const tierLabels: Record<Tier, string> = {
@@ -28,6 +30,7 @@ export default function TierListPanel({
   onCollapseToggle,
   onFlyTo,
   onCompareFriend,
+  onMobileToggle,
 }: TierListPanelProps) {
   const railRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 })
@@ -120,6 +123,17 @@ export default function TierListPanel({
         </div>
         {onCompareFriend && (
           <CompareWithFriendButton onPick={onCompareFriend} compact />
+        )}
+        {onMobileToggle && (
+          <button
+            type="button"
+            className="tier-board-mobile-toggle"
+            onClick={onMobileToggle}
+            aria-label="Masquer la tier list"
+          >
+            <Icon name="sliders" />
+            Masquer
+          </button>
         )}
       </div>
 

@@ -694,7 +694,31 @@ export default function WorldMap({
   }
 
   const resetZoom = () => {
-    mapRef.current?.flyTo({ center: INIT_CENTER, zoom: INIT_ZOOM, duration: 400 })
+    const map = mapRef.current
+    if (!map) return
+
+    const visiblePoints = [
+      ...destinations,
+      ...(friendDestinations ?? []),
+      ...destinations.flatMap(destination => destination.stops ?? []),
+      ...(friendDestinations ?? []).flatMap(destination => destination.stops ?? []),
+    ].filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+
+    if (visiblePoints.length > 1) {
+      const bounds = new maplibregl.LngLatBounds()
+      for (const point of visiblePoints) {
+        bounds.extend([point.lng, point.lat])
+      }
+      map.fitBounds(bounds, { padding: 58, maxZoom: 4.2, duration: 520 })
+      return
+    }
+
+    if (visiblePoints.length === 1) {
+      map.flyTo({ center: [visiblePoints[0].lng, visiblePoints[0].lat], zoom: 4, duration: 520 })
+      return
+    }
+
+    map.flyTo({ center: INIT_CENTER, zoom: INIT_ZOOM, duration: 400 })
   }
 
   const zoomToZone = (d: Destination) => {

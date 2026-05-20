@@ -151,7 +151,20 @@ function MobileSheet(props: DestinationSheetProps) {
       setSnap(s => (s === 'peek' ? 'full' : 'peek'))
       return
     }
-    if (finalTop > vh * CLOSE_RATIO || velocity > 1.2) {
+
+    // Depuis peek : fermeture plus facile (seuil bas + vélocité modérée)
+    if (snap === 'peek') {
+      if (finalTop > vh * 0.68 || velocity > 0.5) {
+        props.onClose()
+        return
+      }
+      if (velocity < -0.6) { setSnap('full'); return }
+      // Ni fermeture ni ouverture → reste peek
+      return
+    }
+
+    // Depuis full : comportement standard
+    if (finalTop > vh * CLOSE_RATIO || velocity > 1.0) {
       props.onClose()
       return
     }

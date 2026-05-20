@@ -136,6 +136,25 @@ export default function TierListPanel({
         aria-label={collapsed ? 'Déplier' : 'Replier'}
       >
         <span className="tier-board-handle-bar" />
+        {collapsed && (
+          <span className="tier-board-collapsed-hint" aria-hidden="true">
+            <span className="tier-board-collapsed-dots">
+              {tiersWithItems.slice(0, 4).map(tier => (
+                <span
+                  key={tier}
+                  className="tier-board-collapsed-dot"
+                  style={{ background: TIER_COLORS[tier].pin } as CSSProperties}
+                />
+              ))}
+            </span>
+            <span className="tier-board-collapsed-label">
+              Ma tier list
+            </span>
+            <span className="tier-board-collapsed-count">
+              {destinations.filter(d => d.tier && d.kind !== 'stop').length}
+            </span>
+          </span>
+        )}
       </button>
 
       <div className="tier-board-head">

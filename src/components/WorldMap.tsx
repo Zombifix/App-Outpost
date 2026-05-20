@@ -557,11 +557,14 @@ function syncZoneRouteLayers(
   clearZoneRouteLayers(map)
   const shared = sharedNames ?? new Set<string>()
   for (const d of destinations) {
-    if (d.kind === 'zone') { addZoneLayer(map, d, 'me'); addRouteLayer(map, d) }
+    if (d.kind === 'zone') {
+      if (!d.stops?.length) addZoneLayer(map, d, 'me')
+      addRouteLayer(map, d)
+    }
   }
   if (friendDestinations) {
     for (const d of friendDestinations) {
-      if (d.kind === 'zone' && !shared.has(destinationNameKey(d))) addZoneLayer(map, d, 'friend')
+      if (d.kind === 'zone' && !d.stops?.length && !shared.has(destinationNameKey(d))) addZoneLayer(map, d, 'friend')
     }
   }
 }
@@ -1059,10 +1062,29 @@ const Pin = memo(function Pin({
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
     .toFixed(1).replace('.', ',')
 
-  // ── Zone : pas de gros pin sur la carte. La route + les stops racontent le voyage.
-  // Le clic sur un stop ou sur la ligne ouvre déjà la zone parent dans le sheet.
+  // ── Zone (road trip / région) — pill label au centroïde
   if (destination.kind === 'zone') {
-    return null
+    return (
+      <g
+        className={`pin-root pin-owner-${owner}`}
+        data-lng={destination.lng}
+        data-lat={destination.lat}
+        transform={`translate(${cx},${cy}) scale(${pinScale})`}
+      >
+        <foreignObject x="-10" y="-22" width="220" height="44">
+          <div>
+            <button
+              className={`map-pin-zone-label${owner === 'friend' ? ' map-pin-zone-label--friend' : ''}`}
+              style={{ '--pin-color': color } as CSSProperties}
+              onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
+            >
+              <span>{destination.tier}</span>
+              <strong>{destination.name}</strong>
+            </button>
+          </div>
+        </foreignObject>
+      </g>
+    )
   }
 
   // ── Full destination pin ───────────────────────────────────────────────────

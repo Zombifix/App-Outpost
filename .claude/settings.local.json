@@ -37,7 +37,10 @@
       "Bash(gh auth *)",
       "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost diff)",
       "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost add src/components/WorldMap.tsx)",
-      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost commit -m ' *)"
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost commit -m ' *)",
+      "Bash(command -v node)",
+      "Read(//opt/**)",
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost add src/components/TierListPanel.tsx src/index.css)"
     ]
   }
 }

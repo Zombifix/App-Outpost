@@ -47,7 +47,12 @@
       "Bash(security find-internet-password *)",
       "Bash(security find-generic-password *)",
       "Bash(find /private -maxdepth 6 -name \"node\" 2>/dev/null | head -3; find /opt -maxdepth 6 -name \"node\" 2>/dev/null | head -3; find /usr -maxdepth 6 -name \"node\" 2>/dev/null | head -3)",
-      "Bash(git credential-osxkeychain *)"
+      "Bash(git credential-osxkeychain *)",
+      "Bash(command -v bun)",
+      "Bash(command -v pnpm)",
+      "Bash(command -v yarn)",
+      "Bash(mdfind -name \"npm\")",
+      "Bash(grep \"/bin/npm$\")"
     ]
   }
 }

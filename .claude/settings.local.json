@@ -15,7 +15,17 @@
       "Bash(git rm *)",
       "Bash(git rebase *)",
       "Bash(git ls-remote *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(gh repo *)",
+      "Bash(gh run *)",
+      "Bash(gh api *)",
+      "Bash(awk 'NR>=3861{depth+=gsub\\(/{/,\"{\"\\)-gsub\\(/}/,\"}\"\\); if\\(depth==0\\){print NR; exit}}' src/index.css)",
+      "Bash(npx vite *)",
+      "Bash(railway status *)",
+      "Bash(which npm *)",
+      "Read(//Users/theopornin/**)",
+      "Read(//usr/local/**)",
+      "Read(//opt/homebrew/**)"
     ]
   }
 }

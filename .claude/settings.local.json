@@ -25,7 +25,19 @@
       "Bash(which npm *)",
       "Read(//Users/theopornin/**)",
       "Read(//usr/local/**)",
-      "Read(//opt/homebrew/**)"
+      "Read(//opt/homebrew/**)",
+      "Bash(/usr/local/bin/npm run *)",
+      "Bash(which node *)",
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost status)",
+      "Bash(find /opt /usr/local /usr ~/.volta ~/.fnm -name \"npm\" -type f 2>/dev/null | head -5)",
+      "Bash(ssh -T git@github.com)",
+      "Bash(ssh-keyscan github.com)",
+      "Bash(find /Users/theopornin -name \"node\" -type f 2>/dev/null | head -10; find /Applications -name \"node\" -type f 2>/dev/null | head -5)",
+      "Bash(mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null && ssh -T git@github.com 2>&1 | head -2)",
+      "Bash(gh auth *)",
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost diff)",
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost add src/components/WorldMap.tsx)",
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost commit -m ' *)"
     ]
   }
 }

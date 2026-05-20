@@ -40,7 +40,14 @@
       "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost commit -m ' *)",
       "Bash(command -v node)",
       "Read(//opt/**)",
-      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost add src/components/TierListPanel.tsx src/index.css)"
+      "Bash(git -C /Users/theopornin/Documents/GitHub/App-Outpost add src/components/TierListPanel.tsx src/index.css)",
+      "Read(//usr/bin/**)",
+      "Read(//Applications/**)",
+      "Read(//private/**)",
+      "Bash(security find-internet-password *)",
+      "Bash(security find-generic-password *)",
+      "Bash(find /private -maxdepth 6 -name \"node\" 2>/dev/null | head -3; find /opt -maxdepth 6 -name \"node\" 2>/dev/null | head -3; find /usr -maxdepth 6 -name \"node\" 2>/dev/null | head -3)",
+      "Bash(git credential-osxkeychain *)"
     ]
   }
 }

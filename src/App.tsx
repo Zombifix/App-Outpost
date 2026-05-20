@@ -265,7 +265,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   }, [compareFriend, compareFriendDests, myDestinations])
 
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
-  const [selectedName, setSelectedName] = useState<string | null>('Kyoto')
+  const [selectedName, setSelectedName] = useState<string | null>(null)
   const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
   const [filters, setFilters] = useState<DestinationFilters>(DEFAULT_FILTERS)
   const [sortByScore, setSortByScore] = useState(false)

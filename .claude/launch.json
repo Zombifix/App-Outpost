@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "wander",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "/usr/local/bin/npm",
       "runtimeArgs": ["run", "dev"],
       "port": 4747,
       "autoPort": true

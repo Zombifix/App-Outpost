@@ -1062,8 +1062,40 @@ const Pin = memo(function Pin({
   const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
     .toFixed(1).replace('.', ',')
 
-  // ── Zone (road trip / région) — pill label au centroïde
+  // ── Zone (road trip / région)
   if (destination.kind === 'zone') {
+    const validStops = destination.stops?.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng)) ?? []
+    const stageCount = validStops.filter(s => s.type !== 'passage').length
+
+    // Road trip avec arrêts → card rectangle (tier + nom + nb arrêts)
+    if (stageCount > 0) {
+      return (
+        <g
+          className={`pin-root pin-owner-${owner}`}
+          data-lng={destination.lng}
+          data-lat={destination.lat}
+          transform={`translate(${cx},${cy}) scale(${pinScale})`}
+        >
+          <foreignObject x="-10" y="-28" width="220" height="58">
+            <div>
+              <button
+                className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}`}
+                style={{ '--pin-color': color } as CSSProperties}
+                onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
+              >
+                <span className="map-pin-trip-card-tier">{destination.tier}</span>
+                <span className="map-pin-trip-card-info">
+                  <strong>{destination.name}</strong>
+                  <em>{stageCount} arrêt{stageCount > 1 ? 's' : ''}</em>
+                </span>
+              </button>
+            </div>
+          </foreignObject>
+        </g>
+      )
+    }
+
+    // Zone simple sans route → pill compacte
     return (
       <g
         className={`pin-root pin-owner-${owner}`}

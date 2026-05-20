@@ -4214,18 +4214,6 @@ svg {
     align-items: center;
     gap: 6px;
   }
-  .tier-board-collapsed-dots {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-  .tier-board-collapsed-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    opacity: 0.75;
-  }
   .tier-board-collapsed-label {
     font-size: 11.5px;
     font-weight: 600;
@@ -4498,10 +4486,10 @@ svg {
     right: auto !important;
     z-index: 35;
   }
-  /* Quand sheet replié, le bouton descend plus bas */
+  /* Quand sheet replié, le bouton remonte au-dessus du panel replié */
   .tier-board.is-collapsed ~ .map-area .map-controls,
   .travel-app:has(.tier-board.is-collapsed) .map-controls {
-    bottom: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(142px + env(safe-area-inset-bottom, 0px)) !important;
   }
   .map-controls button {
     background: rgba(255, 255, 255, 0.92);

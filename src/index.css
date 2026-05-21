@@ -131,7 +131,6 @@ svg {
   background: none;
 }
 
-.sidebar,
 .topbar,
 .page-title,
 .map-area,
@@ -142,15 +141,27 @@ svg {
 }
 
 .sidebar {
-  inset: 0 auto 0 0;
+  position: absolute;
+  z-index: 20;
+}
+
+.sidebar {
+  top: 16px;
+  left: 16px;
+  bottom: 16px;
   width: var(--sidebar-w);
-  padding: 32px 24px 28px;
+  padding: 32px 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.72));
-  border-right: 1px solid rgba(210, 223, 238, 0.68);
-  box-shadow: 18px 0 48px rgba(118, 140, 165, 0.1);
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 20px;
+  border: 1px solid rgba(220, 230, 242, 0.7);
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.10),
+    0 1px 4px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .brand {
@@ -1755,7 +1766,7 @@ svg {
 }
 
 .map-area {
-  left: var(--sidebar-w);
+  left: 0;
   right: 0;
   top: 0;
   bottom: 0;
@@ -2202,7 +2213,7 @@ svg {
 
 .map-controls {
   position: absolute;
-  left: 12px;
+  left: calc(var(--sidebar-w) + 16px);
   bottom: var(--map-b-open);
   width: 44px;
   padding: 6px 0;
@@ -2245,7 +2256,7 @@ svg {
 
 .legend {
   position: absolute;
-  left: 72px;
+  left: calc(var(--sidebar-w) + 72px);
   bottom: var(--map-b-open);
   height: 46px;
   padding: 0 22px;

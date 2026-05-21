@@ -119,6 +119,10 @@ svg {
   z-index: 1;
 }
 
+.travel-app:not(.view-map) .map-area {
+  display: none;
+}
+
 .travel-app.view-tier-list {
   background: #f7fbff;
 }
@@ -1833,7 +1837,7 @@ svg {
 .pin-foreign-object {
   overflow: visible;
   background: transparent;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .pin-root,
@@ -1851,7 +1855,7 @@ svg {
   justify-content: center;
   overflow: visible;
   background: transparent;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .pin-foreign-object--route {

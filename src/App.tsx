@@ -479,18 +479,17 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         onAddClick={() => setAddingDestination(true)}
         onOpenFriends={() => setFriendsManageOpen(true)}
       />
-      {activeView === 'map' && (
-        <WorldMap
-          destinations={visibleDestinations}
-          flyTarget={flyTarget}
-          selectedName={selected?.name}
-          onSelect={selectByName}
-          onFlyTargetConsumed={() => setFlyTarget(null)}
-          friendDestinations={compareFriend ? compareFriendDests : undefined}
-          friendInitials={compareFriend ? compareFriend.displayName.slice(0, 1).toUpperCase() : undefined}
-          sharedNames={compareFriend ? compareSharedNames : undefined}
-        />
-      )}
+      <WorldMap
+        destinations={visibleDestinations}
+        flyTarget={flyTarget}
+        selectedName={selected?.name}
+        onSelect={selectByName}
+        onFlyTargetConsumed={() => setFlyTarget(null)}
+        friendDestinations={compareFriend ? compareFriendDests : undefined}
+        friendInitials={compareFriend ? compareFriend.displayName.slice(0, 1).toUpperCase() : undefined}
+        sharedNames={compareFriend ? compareSharedNames : undefined}
+        hidden={activeView !== 'map'}
+      />
       {/* Barre flottante compare quand on superpose les pins d'un ami */}
       {compareFriend && activeView === 'map' && !viewingFriend && (
         <div className="compare-inline-bar" role="status">

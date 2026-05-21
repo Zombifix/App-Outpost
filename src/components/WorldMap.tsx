@@ -34,6 +34,7 @@ interface WorldMapProps {
   friendDestinations?: Destination[]
   friendInitials?: string
   sharedNames?: Set<string>
+  hidden?: boolean
 }
 
 const ATLAS_PREMIUM_PALETTE = {
@@ -572,7 +573,7 @@ function syncZoneRouteLayers(
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WorldMap({
   destinations, flyTarget, selectedName, onSelect, onFlyTargetConsumed,
-  friendDestinations, friendInitials, sharedNames,
+  friendDestinations, friendInitials, sharedNames, hidden,
 }: WorldMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<maplibregl.Map | null>(null)
@@ -613,6 +614,13 @@ export default function WorldMap({
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null; setMapReady(false) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Resize MapLibre quand la map redevient visible ─────────────────────────
+  useEffect(() => {
+    if (hidden || !mapReady || !mapRef.current) return
+    mapRef.current.resize()
+    updatePins(mapRef.current)
+  }, [hidden, mapReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sync zones / routes quand destinations change ───────────────────────────
   useEffect(() => {

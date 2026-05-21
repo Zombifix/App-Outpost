@@ -30,6 +30,7 @@ interface WorldMapProps {
   flyTarget: FlyTarget | null
   selectedName?: string
   onSelect: (name: string) => void
+  onDeselect?: () => void
   onFlyTargetConsumed: () => void
   friendDestinations?: Destination[]
   friendInitials?: string
@@ -526,7 +527,7 @@ function syncZoneRouteLayers(
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WorldMap({
-  destinations, flyTarget, selectedName, onSelect, onFlyTargetConsumed,
+  destinations, flyTarget, selectedName, onSelect, onDeselect, onFlyTargetConsumed,
   friendDestinations, friendInitials, sharedNames, hidden,
 }: WorldMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -576,6 +577,18 @@ export default function WorldMap({
     mapRef.current.resize()
     updatePins(mapRef.current)
   }, [hidden, mapReady]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Clic sur le fond de carte → désélectionne ──────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const handler = () => {
+      setExpandedRouteKey(null)
+      onDeselect?.()
+    }
+    map.on('click', handler)
+    return () => { map.off('click', handler) }
+  }, [mapReady, onDeselect])
 
   // ── Sync zones / routes quand destinations change ───────────────────────────
   useEffect(() => {
@@ -1071,11 +1084,6 @@ const Pin = memo(function Pin({
       </svg>
     )
 
-    const ExpandIcon = () => (
-      <svg className="map-pin-pill-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M14 3h7v7l-2.6-2.6-5.2 5.2-1.4-1.4 5.2-5.2L14 3zM3 21v-7l2.6 2.6 5.2-5.2 1.4 1.4-5.2 5.2L10 21H3z"/>
-      </svg>
-    )
 
     // Road trip avec arrêts → pill unifiée avec photo + texte
     if (stageCount > 0) {
@@ -1101,7 +1109,9 @@ const Pin = memo(function Pin({
                 }}
               >
                 <span className="map-pin-trip-thumb">
-                  <span className="map-pin-trip-badge"><ExpandIcon /></span>
+                  {destination.tier && (
+                    <span className="map-pin-trip-badge">{destination.tier}</span>
+                  )}
                 </span>
                 <span className="map-pin-pill-name">{destination.name}</span>
                 <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>

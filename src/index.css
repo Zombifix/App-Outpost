@@ -6015,26 +6015,28 @@ svg {
   left: -15px;
 }
 
-/* Expand icon badge en bas de la photo */
+/* Tier badge (S/A/B/C/D) en bas de la photo du roadtrip */
 .map-pin-trip-badge {
   position: absolute;
-  bottom: -4px;
+  bottom: -5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 19px;
-  height: 19px;
-  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border-radius: 99px;
   background: var(--pin-color);
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-}
-.map-pin-trip-badge .map-pin-pill-star {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-sans);
   color: white;
-  width: 10px;
-  height: 10px;
+  line-height: 1;
+  letter-spacing: -0.3px;
 }
 
 .map-pin-pill-star {

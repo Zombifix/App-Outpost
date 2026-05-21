@@ -484,6 +484,7 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
         flyTarget={flyTarget}
         selectedName={selected?.name}
         onSelect={selectByName}
+        onDeselect={() => setSelectedName(null)}
         onFlyTargetConsumed={() => setFlyTarget(null)}
         friendDestinations={compareFriend ? compareFriendDests : undefined}
         friendInitials={compareFriend ? compareFriend.displayName.slice(0, 1).toUpperCase() : undefined}

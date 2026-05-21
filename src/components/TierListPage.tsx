@@ -137,19 +137,19 @@ const DEMO_FRIEND_DESTINATIONS: Record<string, Destination[]> = {
 }
 
 const TIER_DESCRIPTIONS: Record<Tier, string> = {
-  S: 'Des experiences inoubliables, qui restent dans la memoire.',
-  A: 'Des voyages marquants a plusieurs niveaux.',
-  B: 'De tres belles experiences avec quelques reserves.',
-  C: 'De bonnes experiences, sans plus.',
-  D: 'Potentiel a explorer ou interet limite.',
+  S: 'Des expériences rares, marquantes, qui restent en mémoire.',
+  A: 'De très belles expériences, que j\'ai vraiment adorées.',
+  B: 'Des expériences agréables, sans être particulièrement marquantes.',
+  C: 'Des expériences mitigées, pas mauvaises, mais pas mémorables.',
+  D: 'Des expériences décevantes, que je ne referais pas.',
 }
 
 const TIER_LABEL: Record<Tier, string> = {
   S: 'Exceptionnel',
-  A: 'Genial',
-  B: 'Tres bien',
-  C: 'Correct',
-  D: 'Decouvrant',
+  A: 'Génial',
+  B: 'Correct',
+  C: 'Bof',
+  D: 'À éviter',
 }
 
 function filterDestinations(list: Destination[], filter: TierListFilter, compareList: Destination[] = []): Destination[] {
@@ -508,7 +508,7 @@ export default function TierListPage({
     () => new Set(destinations.map(destination => COUNTRY_TO_CONTINENT[destination.country]).filter(Boolean)).size,
     [destinations]
   )
-  const topTier = destinations.find(destination => destination.tier === 'S')
+  const topTiers = destinations.filter(destination => destination.tier === 'S')
 
   function toggleCollapse(tier: Tier) {
     setCollapsed(prev => ({ ...prev, [tier]: !prev[tier] }))
@@ -517,11 +517,6 @@ export default function TierListPage({
   return (
     <main className="tier-list-page" aria-label="Tier list">
       <header className="tier-list-head">
-        <div className="tier-list-title">
-          <h2>Tier list</h2>
-          <p>{myFiltered.length} destinations classees par ressenti global</p>
-        </div>
-
         <div className="tier-list-stats">
           <div className="tier-stat">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -545,10 +540,10 @@ export default function TierListPage({
             <strong>{continentsCount}</strong>
             <span>continents</span>
           </div>
-          {topTier && (
+          {topTiers.length > 0 && (
             <div className="tier-stat tier-stat--top">
               <span style={{ color: TIER_COLORS.S.pin }}>★</span>
-              <span>Top : <strong>{topTier.name}</strong></span>
+              <span>Top : <strong>{topTiers.map(d => d.name).join(', ')}</strong></span>
             </div>
           )}
         </div>

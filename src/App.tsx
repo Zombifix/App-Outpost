@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from './types'
-import { useDestinationsStore } from './hooks/useDestinationsStore'
+import { useMyDestinations } from './hooks/useMyDestinations'
 import WorldMap from './components/WorldMap'
 import DestinationSheet from './components/DestinationSheet'
 import BottomNav from './components/BottomNav'
@@ -165,7 +165,7 @@ export default function App() {
 function AppInner() {
   const { user } = useAuth()
   const { incoming, refresh: refreshFriends } = useFriends()
-  const { needsSetup, upsert: upsertProfile, checkHandleAvailable } = useMyProfile()
+  const { profile, needsSetup, upsert: upsertProfile, checkHandleAvailable } = useMyProfile()
   const pendingFriendCount = incoming.length
   const [friendToast, setFriendToast] = useState<string | null>(null)
 
@@ -197,7 +197,7 @@ function AppInner() {
 
   return (
     <>
-      <AppCore pendingFriendCount={pendingFriendCount} />
+      <AppCore pendingFriendCount={pendingFriendCount} profileHandle={profile?.handle ?? null} />
       {needsSetup && (
         <ProfileSetupModal upsert={upsertProfile} checkHandleAvailable={checkHandleAvailable} />
       )}
@@ -208,12 +208,12 @@ function AppInner() {
   )
 }
 
-function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
+function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: number; profileHandle: string | null }) {
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
   const [compareFriend, setCompareFriend] = useState<import('./types').Friendship | null>(null)
-  const [myDestinations, setDestinations] = useDestinationsStore(normalizeDestinations)
+  const [myDestinations, setDestinations] = useMyDestinations(normalizeDestinations)
   // Quand on visite le carnet d'un ami : en mode fake on lit depuis _fakeFriends, sinon
   // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
   // friendUserId est null, donc on peut l'appeler systématiquement.
@@ -286,6 +286,15 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
       /* ignore */
     }
   }, [publicId])
+
+  // Auto-sync : si on est connecté et qu'on a un handle Supabase mais pas de
+  // publicId local (cas typique après signOut+signIn, où le cache localStorage
+  // a été purgé pour éviter la fuite entre comptes), on restaure publicId
+  // depuis le profile. Sans ça, les boutons "Partager" produisent un slug
+  // 'invite' générique au lieu du vrai pseudo de l'utilisateur.
+  useEffect(() => {
+    if (profileHandle && !publicId) setPublicId(profileHandle)
+  }, [profileHandle, publicId])
 
   // Lien partagé `?u=handle` → on charge directement le carnet de cet ami.
   // En mode fake, lookup local ; en prod, RPC find_user_by_handle + public_profiles.
@@ -442,13 +451,21 @@ function AppCore({ pendingFriendCount }: { pendingFriendCount: number }) {
   const shareTierList = async () => {
     const slug = publicId.trim() || 'invite'
     const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(slug)}`
+    // Feedback visuel IMMÉDIAT : on bascule le label "Partager" → "Lien copie"
+    // avant l'appel au clipboard. Si jamais l'API bloque indéfiniment (popup
+    // permission non résolue, contexte non sécurisé, etc.) l'utilisateur a
+    // quand même un retour, et le presse-papier sera tenté en tâche de fond.
+    setShareCopied(true)
+    window.setTimeout(() => setShareCopied(false), 1800)
     try {
-      await navigator.clipboard.writeText(url)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+      } else {
+        window.prompt('Lien de partage', url)
+      }
     } catch {
       window.prompt('Lien de partage', url)
     }
-    setShareCopied(true)
-    window.setTimeout(() => setShareCopied(false), 1800)
   }
 
   const appClass = [
@@ -779,16 +796,21 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
     setFeedback(res.error ? { kind: 'err', msg: res.error } : { kind: 'ok', msg: 'Lien envoyé. Ouvre ton email pour te connecter.' })
   }
 
-  const shareLink = draftId.trim()
-    ? `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(draftId.trim())}`
-    : ''
+  // Fallback slug 'invite' cohérent avec le bouton "Partager" du header.
+  // Comme ça l'utilisateur a toujours un lien à copier, même s'il n'a pas
+  // encore défini son pseudo (l'app le lui demandera via ProfileSetupModal).
+  const shareLink = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(draftId.trim() || 'invite')}`
 
   const copyShareLink = async () => {
-    if (!shareLink) return
+    // Feedback immédiat (cf. shareTierList ci-dessus pour la même raison).
+    setLinkCopied(true)
+    window.setTimeout(() => setLinkCopied(false), 1800)
     try {
-      await navigator.clipboard.writeText(shareLink)
-      setLinkCopied(true)
-      window.setTimeout(() => setLinkCopied(false), 1800)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareLink)
+      } else {
+        window.prompt('Lien de partage', shareLink)
+      }
     } catch {
       window.prompt('Lien de partage', shareLink)
     }

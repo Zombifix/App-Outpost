@@ -1,52 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Destination, Intent, Tier } from '../types'
-
-interface DbDestinationRow {
-  id: string
-  user_id: string
-  name: string
-  country: string
-  lat: number
-  lng: number
-  tier: string | null
-  kind: string | null
-  intent: string | null
-  food: number
-  night: number
-  culture: number
-  nature: number
-  value: number
-  score: number | null
-  coup_de_coeur: boolean | null
-  summary: string | null
-  image: string | null
-  trip_name: string | null
-}
-
-function rowToDestination(row: DbDestinationRow): Destination {
-  return {
-    name: row.name,
-    country: row.country,
-    lat: row.lat,
-    lng: row.lng,
-    tier: (row.tier ?? undefined) as Tier | undefined,
-    kind: (row.kind ?? 'place') as Destination['kind'],
-    intent: (row.intent ?? 'tourisme') as Intent,
-    food: row.food,
-    night: row.night,
-    culture: row.culture,
-    nature: row.nature,
-    value: row.value,
-    score: row.score ?? undefined,
-    coupDeCoeur: row.coup_de_coeur ?? undefined,
-    summary: row.summary ?? undefined,
-    image: row.image ?? undefined,
-    tripName: row.trip_name ?? undefined,
-  }
-}
+import type { Destination } from '../types'
+import {
+  DESTINATION_SELECT_COLUMNS,
+  rowToDestination,
+  type DbDestinationRow,
+} from '../lib/destinationMapper'
 
 const FRIEND_DESTINATIONS_CACHE_TTL_MS = 60_000
+const MAX_FRIEND_DESTINATIONS = 200
 const friendDestinationsCache = new Map<string, { data: Destination[]; fetchedAt: number }>()
 const friendDestinationsInFlight = new Map<string, Promise<Destination[]>>()
 
@@ -66,11 +28,16 @@ async function loadFriendDestinations(friendUserId: string, force = false): Prom
 
   if (!supabase) return []
 
-  const request = supabase
-    .from('destinations')
-    .select('id, user_id, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, score, coup_de_coeur, summary, image, trip_name')
-    .eq('user_id', friendUserId)
-    .limit(200)
+  // Promise.resolve(...) garantit qu'on obtient un Promise complet (et non un
+  // PromiseLike retourné par le query builder Supabase), ce qui permet d'utiliser
+  // `.finally` pour le cleanup du registre in-flight.
+  const request = Promise.resolve(
+    supabase
+      .from('destinations')
+      .select(DESTINATION_SELECT_COLUMNS)
+      .eq('user_id', friendUserId)
+      .limit(MAX_FRIEND_DESTINATIONS)
+  )
     .then(({ data, error: err }) => {
       if (err) throw err
       const destinations = (data as DbDestinationRow[]).map(rowToDestination)

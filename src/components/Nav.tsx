@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
 import type { Destination } from '../types'
 import { BrandLogo } from './BrandLogo'
@@ -100,7 +100,7 @@ export default function Nav({
               type="button"
               className="page-title-back"
               onClick={onBackToMyCarnet}
-              aria-label="Retour à mon carnet"
+              aria-label="Retour Ã  mon carnet"
             >
               <Icon name="arrow-left" />
               <span>Mon carnet</span>
@@ -108,12 +108,12 @@ export default function Nav({
           )}
           <div className="topbar-title-text">
             <h1>
-              {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · carnet de voyage` : 'Mon carnet de voyages')}
-              {activeView === 'explore' && 'Explorer · Suggestions IA'}
+              {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} Â· carnet de voyage` : 'Mon carnet de voyages')}
+              {activeView === 'explore' && 'Explorer Â· Suggestions IA'}
               {activeView === 'tier-list' && 'Tier list'}
             </h1>
             {activeView === 'map' && (
-              <span className="topbar-title-sub">{totalDestinations} destination{totalDestinations > 1 ? 's' : ''} notée{totalDestinations > 1 ? 's' : ''}</span>
+              <span className="topbar-title-sub">{totalDestinations} destination{totalDestinations > 1 ? 's' : ''} notÃ©e{totalDestinations > 1 ? 's' : ''}</span>
             )}
           </div>
         </div>
@@ -145,17 +145,17 @@ export default function Nav({
                     Top tiers
                   </button>
                   <button type="button" className={filters.under300 ? 'is-active' : ''} onPointerDown={() => updateFilters({ under300: !filters.under300 })}>
-                    &lt; 300 €
+                    &lt; 300 â‚¬
                   </button>
                   <button type="button" className={filters.recentOnly ? 'is-active' : ''} onPointerDown={() => updateFilters({ recentOnly: !filters.recentOnly })}>
-                    Récent
+                    RÃ©cent
                   </button>
                   <button type="button" className={filters.ambiance ? 'is-active' : ''} onPointerDown={() => updateFilters({ ambiance: !filters.ambiance })}>
                     Ambiance
                   </button>
                 </div>
                 <div className="filter-duration">
-                  <span>Durée</span>
+                  <span>DurÃ©e</span>
                   <div>
                     <button type="button" className={filters.duration === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'all' })}>Tout</button>
                     <button type="button" className={filters.duration === 'short' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'short' })}>Court</button>
@@ -230,7 +230,7 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
   const { events } = useActivityFeed(10)
   const activityRef = useRef<HTMLElement | null>(null)
 
-  // Mémorise les IDs déjà vus pour ne marquer "is-new" que les arrivées live.
+  // MÃ©morise les IDs dÃ©jÃ  vus pour ne marquer "is-new" que les arrivÃ©es live.
   const seenRef = useRef<Set<string>>(new Set())
   const initializedRef = useRef(false)
   const [pulseId, setPulseId] = useState<string | null>(null)
@@ -279,7 +279,7 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
   }, [])
 
   if (events.length === 0) return null
-  // Pour le hero, on préfère une destination_added récente (riche en visuel : image + tier).
+  // Pour le hero, on prÃ©fÃ¨re une destination_added rÃ©cente (riche en visuel : image + tier).
   // Si aucune, on retombe sur le premier event peu importe le kind.
   const heroIdx = events.findIndex(e => e.kind === 'destination_added')
   const hero = heroIdx >= 0 ? events[heroIdx] : events[0]
@@ -306,14 +306,13 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
       ref={activityRef}
       className="sidebar-activity"
       data-row-count={rest.length}
-      aria-label="Activité récente"
+      aria-label="ActivitÃ© rÃ©cente"
     >
       <header className="sidebar-activity-head">
         <h4>
           <span className="sidebar-activity-live" aria-hidden="true" />
           Activité récente
         </h4>
-        <button className="sidebar-activity-link" onClick={onSeeAll}>Tout voir</button>
       </header>
       <p className="sidebar-activity-sub">Dernières destinations ajoutées</p>
 
@@ -336,7 +335,7 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
   )
 }
 
-// ─── Hero (1ère carte, grand format avec image plein largeur) ──────────────────
+// â”€â”€â”€ Hero (1Ã¨re carte, grand format avec image plein largeur) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function HeroCard({ event: ev, onClick, isPulse }: {
   event: ReturnType<typeof useActivityFeed>['events'][number]
   onClick: () => void
@@ -383,9 +382,9 @@ function HeroCard({ event: ev, onClick, isPulse }: {
   )
 }
 
-// ─── Row (cartes secondaires, format épuré : thumb + dest/pays + tier) ────────
+// â”€â”€â”€ Row (cartes secondaires, format Ã©purÃ© : thumb + dest/pays + tier) â”€â”€â”€â”€â”€â”€â”€â”€
 // L'acteur et le temps n'apparaissent que sur la hero. Les rows restent
-// minimalistes pour éviter la surcharge visuelle.
+// minimalistes pour Ã©viter la surcharge visuelle.
 function RowCard({ event: ev, onClick }: {
   event: ReturnType<typeof useActivityFeed>['events'][number]
   onClick: () => void
@@ -400,7 +399,7 @@ function RowCard({ event: ev, onClick }: {
   const tier = typeof ev.payload?.tier === 'string' ? (ev.payload.tier as string) : undefined
 
   return (
-    <button className="sidebar-row" onClick={onClick} title={`${name || actor} · ${actor}`}>
+    <button className="sidebar-row" onClick={onClick} title={`${name || actor} Â· ${actor}`}>
       <span
         className="sidebar-row-thumb"
         style={image
@@ -417,7 +416,7 @@ function RowCard({ event: ev, onClick }: {
   )
 }
 
-// ─── Carte stats "Mon carnet" ──────────────────────────────────────────────────
+// â”€â”€â”€ Carte stats "Mon carnet" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CarnetStats({
   destinations,
   onViewChange,
@@ -480,7 +479,7 @@ function CarnetStats({
           </span>
           <div>
             <span className="carnet-stats-chip-num">{countries}</span>
-            <span className="carnet-stats-chip-label">pays visités</span>
+            <span className="carnet-stats-chip-label">pays visitÃ©s</span>
           </div>
         </div>
         <div className="carnet-stats-chip">
@@ -494,7 +493,7 @@ function CarnetStats({
             <span className="carnet-stats-chip-num">{coeurs}</span>
             <span className="carnet-stats-chip-label">
               <span>coups de</span>
-              <span>cœur</span>
+              <span>cÅ“ur</span>
             </span>
           </div>
         </div>
@@ -503,7 +502,7 @@ function CarnetStats({
   )
 }
 
-// "Tokyo, Japon" → { dest: "Tokyo", country: "Japon" }
+// "Tokyo, Japon" â†’ { dest: "Tokyo", country: "Japon" }
 function extractDestShort(fullName: string): string {
   const i = fullName.indexOf(',')
   return i > 0 ? fullName.slice(0, i).trim() : fullName
@@ -516,12 +515,12 @@ function extractCountry(fullName: string): string {
 function renderShortLabel(kind: string, name: string): string {
   switch (kind) {
     case 'destination_added': return name ? `+ ${name}` : 'nouvelle destination'
-    case 'tier_changed': return name ? `déplace ${name}` : 'déplacement de tier'
-    case 'coup_de_coeur_set': return name ? `❤ ${name}` : 'coup de cœur'
+    case 'tier_changed': return name ? `dÃ©place ${name}` : 'dÃ©placement de tier'
+    case 'coup_de_coeur_set': return name ? `â¤ ${name}` : 'coup de cÅ“ur'
     case 'roadtrip_created': return name ? `roadtrip ${name}` : 'nouveau roadtrip'
-    case 'roadtrip_stop_added': return name ? `étape ${name}` : 'nouvelle étape'
+    case 'roadtrip_stop_added': return name ? `Ã©tape ${name}` : 'nouvelle Ã©tape'
     case 'friendship_accepted': return 'nouvel ami'
-    case 'mutual_destination': return name ? `partage ${name}` : 'destination partagée'
+    case 'mutual_destination': return name ? `partage ${name}` : 'destination partagÃ©e'
     case 'milestone': return name ? `cap : ${name}` : 'a atteint un cap'
     default: return kind
   }
@@ -530,18 +529,18 @@ function renderShortLabel(kind: string, name: string): string {
 function shortTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
-  if (min < 1) return 'à l’instant'
+  if (min < 1) return 'Ã  lâ€™instant'
   if (min < 60) return `${min}m`
   const hr = Math.floor(min / 60)
   if (hr < 24) return `${hr}h`
   return `${Math.floor(hr / 24)}j`
 }
 
-/** Variante "il y a 3 min" / "à l'instant" (sans double "il y a"). */
+/** Variante "il y a 3 min" / "Ã  l'instant" (sans double "il y a"). */
 function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
-  if (min < 1) return 'à l’instant'
+  if (min < 1) return 'Ã  lâ€™instant'
   if (min < 60) return `il y a ${min} min`
   const hr = Math.floor(min / 60)
   if (hr < 24) return `il y a ${hr} h`

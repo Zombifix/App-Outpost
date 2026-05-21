@@ -422,9 +422,9 @@ function getQuickStopSuggestions(state: WizardState, stops: RoadTripStop[]): str
 const TIER_LABELS: Record<Tier, string> = {
   S: 'Exceptionnel',
   A: 'Génial',
-  B: 'Très bien',
-  C: 'Correct',
-  D: 'Décevant',
+  B: 'Correct',
+  C: 'Bof',
+  D: 'À éviter',
 }
 
 const TIER_EXPLANATIONS: Record<Tier, string> = {

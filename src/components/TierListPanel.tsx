@@ -17,10 +17,10 @@ interface TierListPanelProps {
 
 const tierLabels: Record<Tier, string> = {
   S: 'Exceptionnel',
-  A: 'Genial',
-  B: 'Tres bien',
-  C: 'Correct',
-  D: 'Decouvrant',
+  A: 'Génial',
+  B: 'Correct',
+  C: 'Bof',
+  D: 'À éviter',
 }
 
 type SortMode = 'score' | 'recent'

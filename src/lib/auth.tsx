@@ -50,6 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
+    // Nettoyage explicite : éviter qu'un autre user qui se connecte sur ce
+    // navigateur voie les destinations / pseudo du précédent. La sync
+    // bidirectionnelle (useMyDestinations) garantit que rien n'est perdu :
+    // les destinations sont en sécurité côté Supabase.
+    try {
+      localStorage.removeItem('outpost-destinations-v2')
+      localStorage.removeItem('triptier-destinations-v2')
+      localStorage.removeItem('outpost-public-id')
+    } catch {
+      /* ignore */
+    }
   }
 
   return (

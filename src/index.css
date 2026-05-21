@@ -345,7 +345,7 @@ svg {
 }
 
 .carnet-stats-hero-num {
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 800;
   color: #155ce8;
   line-height: 1;
@@ -1839,7 +1839,7 @@ svg {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding-left: 4px;
+  padding-left: 24px;
   pointer-events: auto;
 }
 .topbar-title .page-title-back {
@@ -1967,6 +1967,22 @@ svg {
   padding: 0;
   border: 5px solid rgba(255, 255, 255, 0.48);
   box-shadow: 0 12px 24px rgba(240, 91, 110, 0.26);
+}
+
+.top-actions .user-badge {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1B5FE8;
+  border: 1.5px solid rgba(27, 95, 232, 0.2);
+  box-shadow: 0 2px 8px rgba(27, 95, 232, 0.10);
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  gap: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
 }
 
 .user-badge.is-active {
@@ -2448,7 +2464,7 @@ svg {
 
 .map-controls {
   position: absolute;
-  left: calc(var(--sidebar-w) + 16px);
+  left: calc(var(--content-l) + 16px);
   bottom: calc(var(--map-b-open) + 8px);
   width: 44px;
   padding: 6px 0;
@@ -2491,8 +2507,8 @@ svg {
 
 .legend {
   position: absolute;
-  left: calc(var(--sidebar-w) + 72px);
-  bottom: calc(var(--map-b-open) + 19px);
+  left: calc(var(--content-l) + 72px);
+  bottom: calc(var(--map-b-open) + 8px);
   height: 46px;
   padding: 0 22px;
   border-radius: 999px;
@@ -4333,7 +4349,7 @@ svg {
 }
 
 .travel-app.tier-collapsed .legend {
-  bottom: calc(var(--map-b-closed) + 19px);
+  bottom: calc(var(--map-b-closed) + 8px);
 }
 
 /* === No destination card shown — map already at right: 0, nothing to override === */
@@ -6161,7 +6177,7 @@ svg {
   gap: 18px;
   align-items: center;
   flex: 1;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .tier-stat {
@@ -8147,8 +8163,8 @@ svg {
 
 /* ===== Tier List Page refinement ===== */
 .tier-list-page {
-  gap: 14px;
-  padding: 14px 14px 18px 0;
+  gap: 10px;
+  padding: 20px 24px 32px 24px;
   scrollbar-width: thin;
 }
 
@@ -8168,11 +8184,11 @@ svg {
 .tier-list-head {
   position: relative;
   z-index: 30;
-  display: grid;
-  grid-template-columns: minmax(240px, 0.85fr) minmax(470px, 1fr) auto;
-  align-items: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   gap: 14px;
-  padding: 14px 16px;
+  padding: 16px 20px;
   border: 1px solid rgba(214, 226, 242, 0.72);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.82);
@@ -8204,12 +8220,13 @@ svg {
 
 .tier-list-stats {
   display: flex;
+  flex: none;
   flex-wrap: nowrap;
-  gap: 8px 12px;
-  justify-content: flex-end;
+  gap: 8px 14px;
+  justify-content: flex-start;
   align-content: center;
   align-items: center;
-  min-height: 46px;
+  min-height: 40px;
 }
 
 .tier-stat {
@@ -8247,6 +8264,7 @@ svg {
 
 .tier-list-actions {
   align-self: center;
+  margin-left: auto;
 }
 
 .tier-list-compare-btn {
@@ -8259,9 +8277,9 @@ svg {
 
 .tier-list-filters {
   gap: 6px;
-  padding: 0;
+  padding: 10px 0;
   overflow-x: auto;
-  border-bottom: 1px solid rgba(214, 226, 242, 0.7);
+  border-bottom: none;
   box-shadow: none;
 }
 
@@ -8378,8 +8396,8 @@ svg {
 }
 
 .tier-list-rows {
-  gap: 10px;
-  padding-bottom: 20px;
+  gap: 14px;
+  padding-bottom: 28px;
 }
 
 .tier-list-row {
@@ -8415,8 +8433,8 @@ svg {
 .tier-list-row > header {
   position: relative;
   z-index: 1;
-  gap: 14px;
-  padding: 15px 18px 15px 22px;
+  gap: 16px;
+  padding: 18px 22px;
 }
 
 .tier-list-row > header:hover {
@@ -8454,7 +8472,7 @@ svg {
 .tier-row-body {
   position: relative;
   z-index: 1;
-  padding: 0 18px 14px 22px;
+  padding: 4px 22px 20px 22px;
 }
 
 .tier-row-body.compare {
@@ -8462,8 +8480,8 @@ svg {
 }
 
 .tier-list-row-strip {
-  gap: 12px;
-  padding: 12px 2px 8px;
+  gap: 14px;
+  padding: 6px 2px 6px;
 }
 
 .dest-card {
@@ -8790,7 +8808,8 @@ svg {
     right: auto;
     bottom: auto;
     min-height: calc(100vh - 64px);
-    padding: 12px 14px 86px;
+    padding: 16px 16px 96px;
+    gap: 16px;
     overflow: visible;
   }
 
@@ -8799,8 +8818,9 @@ svg {
   }
 
   .tier-list-head {
-    border-radius: 24px;
-    padding: 14px;
+    border-radius: 20px;
+    padding: 16px 18px;
+    gap: 12px;
   }
 
   .tier-list-title h2 {
@@ -8865,7 +8885,7 @@ svg {
 
   .tier-list-row > header {
     align-items: flex-start;
-    padding: 14px 14px 14px 18px;
+    padding: 16px 16px 16px 20px;
   }
 
   .tier-row-description {

@@ -237,62 +237,92 @@ svg {
 /* ─── Carte stats Mon carnet ────────────────────────────────────────────────── */
 .carnet-stats {
   display: flex;
-  align-items: stretch;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 0;
-  padding: 16px 18px;
-  border-radius: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
   flex-shrink: 0;
   background: #fff;
-  border: 1px solid rgba(210, 222, 242, 0.9);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(210, 222, 242, 0.85);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.07);
   cursor: pointer;
-  transition: box-shadow 150ms ease, transform 150ms ease;
+  transition: box-shadow 160ms ease, transform 160ms ease;
   margin-top: 4px;
 }
 
 .carnet-stats:hover {
-  box-shadow: 0 4px 18px rgba(27, 95, 232, 0.12);
+  box-shadow: 0 6px 20px rgba(27, 95, 232, 0.13);
   transform: translateY(-1px);
+}
+
+.carnet-stats-row {
+  display: flex;
+  gap: 0;
 }
 
 .carnet-stats-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex: 1;
   padding: 2px 0;
 }
 
-.carnet-stats-divider {
-  width: 1px;
-  align-self: stretch;
-  background: rgba(210, 222, 242, 0.9);
-  flex-shrink: 0;
-  margin: 2px 0;
+.carnet-stats-item:first-child {
+  border-right: 1px solid rgba(210, 222, 242, 0.85);
+  padding-right: 16px;
+  margin-right: 16px;
+}
+
+.carnet-stats-divider-h {
+  height: 1px;
+  background: rgba(210, 222, 242, 0.85);
+  margin: 14px 0;
 }
 
 .carnet-stats-value {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
   color: #1a3fc4;
   line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.carnet-stats-coeur {
-  color: #e0456a;
+  letter-spacing: -0.03em;
 }
 
 .carnet-stats-label {
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   color: #9aaac8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.carnet-stats-coeur-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.carnet-stats-heart {
+  font-size: 22px;
+  color: #f43f6e;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.carnet-stats-coeur-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: #f43f6e;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  display: block;
+}
+
+.carnet-stats-coeur-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9aaac8;
+  display: block;
+  margin-top: 4px;
 }
 
 /* Activité récente dans la sidebar (remplace l'ancien bandeau fixe en bas de map) */

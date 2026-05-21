@@ -396,19 +396,23 @@ function CarnetStats({
   const coeurs = destinations.filter(d => d.coupDeCoeur).length
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
-      <div className="carnet-stats-item">
-        <span className="carnet-stats-value">{destinations.length}</span>
-        <span className="carnet-stats-label">destination{destinations.length > 1 ? 's' : ''}</span>
+      <div className="carnet-stats-row">
+        <div className="carnet-stats-item">
+          <span className="carnet-stats-value">{destinations.length}</span>
+          <span className="carnet-stats-label">Destinations</span>
+        </div>
+        <div className="carnet-stats-item">
+          <span className="carnet-stats-value">{countries}</span>
+          <span className="carnet-stats-label">Pays visités</span>
+        </div>
       </div>
-      <div className="carnet-stats-divider" />
-      <div className="carnet-stats-item">
-        <span className="carnet-stats-value">{countries}</span>
-        <span className="carnet-stats-label">pays</span>
-      </div>
-      <div className="carnet-stats-divider" />
-      <div className="carnet-stats-item">
-        <span className="carnet-stats-value carnet-stats-coeur">{coeurs} <span aria-hidden="true">♥</span></span>
-        <span className="carnet-stats-label">❤ cœur</span>
+      <div className="carnet-stats-divider-h" />
+      <div className="carnet-stats-coeur-row">
+        <span className="carnet-stats-heart">♥</span>
+        <div>
+          <span className="carnet-stats-value carnet-stats-coeur-val">{coeurs}</span>
+          <span className="carnet-stats-coeur-label">coup{coeurs !== 1 ? 's' : ''} de cœur</span>
+        </div>
       </div>
     </div>
   )

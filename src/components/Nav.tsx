@@ -396,9 +396,15 @@ function CarnetStats({
   const coeurs = destinations.filter(d => d.coupDeCoeur).length
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
-      {/* Watermark map icon */}
+      {/* Watermark globe + pin */}
       <svg className="carnet-stats-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden="true">
-        <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15"/><path d="M15 6v15"/>
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 3c-2.5 3-4 5.5-4 9s1.5 6 4 9"/>
+        <path d="M12 3c2.5 3 4 5.5 4 9s-1.5 6-4 9"/>
+        <path d="M3 12h18"/>
+        <path d="M3.6 8h16.8M3.6 16h16.8"/>
+        <circle cx="12" cy="10" r="2" fill="currentColor" stroke="none"/>
+        <path d="M12 10v4" strokeWidth="1.2"/>
       </svg>
 
       {/* Hero */}

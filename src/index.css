@@ -260,11 +260,11 @@ svg {
 /* Watermark */
 .carnet-stats-watermark {
   position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 64px;
-  height: 64px;
-  color: rgba(99, 132, 240, 0.12);
+  top: 6px;
+  right: 8px;
+  width: 72px;
+  height: 72px;
+  color: rgba(99, 132, 240, 0.14);
   pointer-events: none;
 }
 

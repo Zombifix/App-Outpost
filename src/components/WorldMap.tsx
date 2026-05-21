@@ -11,13 +11,10 @@ const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
 const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
 const INIT_CENTER: [number, number] = [10, 10]
 const INIT_ZOOM = 1.5
-const MIN_PIN_SCALE = 0.86
-
 type Proj = (ll: [number, number]) => [number, number] | null
 
-function pinScaleFromZoomK(zoomK: number) {
-  if (!Number.isFinite(zoomK) || zoomK <= 0) return 1
-  return Math.max(MIN_PIN_SCALE, Math.min(1, 1 / Math.sqrt(zoomK)))
+function pinScaleFromZoomK(_zoomK: number) {
+  return 1
 }
 
 function getTierColor(tier?: Tier) {
@@ -855,7 +852,7 @@ export default function WorldMap({
       </div>
 
       <div className="legend">
-        {[['S','Exceptionnel'],['A','Genial'],['B','Tres bien'],['C','Correct'],['D','Decouvrant']].map(([tier, label]) => (
+        {[['S','Exceptionnel'],['A','Génial'],['B','Correct'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
           <span key={tier}>
             <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>
             {label}

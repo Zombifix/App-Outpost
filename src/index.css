@@ -6009,6 +6009,17 @@ svg {
   transition: left 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Anneau pointillé = indicateur visuel "roadtrip / route" */
+.map-pin-trip-thumb::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--pin-color);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .map-pin-trip-card:hover .map-pin-trip-thumb,
 .map-pin-trip-card--revealed .map-pin-trip-thumb,
 .pin-selected .map-pin-trip-card .map-pin-trip-thumb {

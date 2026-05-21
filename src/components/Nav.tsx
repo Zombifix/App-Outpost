@@ -397,14 +397,15 @@ function CarnetStats({
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
       {/* Watermark globe + pin */}
-      <svg className="carnet-stats-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden="true">
-        <circle cx="12" cy="12" r="9"/>
-        <path d="M12 3c-2.5 3-4 5.5-4 9s1.5 6 4 9"/>
-        <path d="M12 3c2.5 3 4 5.5 4 9s-1.5 6-4 9"/>
-        <path d="M3 12h18"/>
-        <path d="M3.6 8h16.8M3.6 16h16.8"/>
-        <circle cx="12" cy="10" r="2" fill="currentColor" stroke="none"/>
-        <path d="M12 10v4" strokeWidth="1.2"/>
+      <svg className="carnet-stats-watermark" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+        {/* Globe */}
+        <circle cx="28" cy="32" r="20" stroke="currentColor" strokeWidth="1.5"/>
+        <ellipse cx="28" cy="32" rx="8.5" ry="20" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M8 32h40" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M10 23h36M10 41h36" stroke="currentColor" strokeWidth="1"/>
+        {/* Pin */}
+        <path d="M28 4c-4 0-7 3.1-7 7 0 5 7 13 7 13s7-8 7-13c0-3.9-3-7-7-7Z" fill="currentColor" opacity="0.9"/>
+        <circle cx="28" cy="11" r="2.5" fill="white"/>
       </svg>
 
       {/* Hero */}

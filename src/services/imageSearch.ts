@@ -245,6 +245,7 @@ function buildQueries(input: ResolveDestinationImageInput): string[] {
         `${nameCountry} landscape scenic`,
         `${nameCountry} travel landscape`,
         `${name} nature landscape`,
+        `${nameCountry} road trip`,
       ]
     : [
         `${nameCountry} travel landmark`,
@@ -252,13 +253,11 @@ function buildQueries(input: ResolveDestinationImageInput): string[] {
         `${nameCountry} architecture landscape`,
       ]
 
-  const validStops = input.stops?.filter(stop => stop.name.trim()).slice(0, 3) ?? []
-  if (isZone && validStops.length >= 1) {
-    const stopQueries = validStops.flatMap(stop => [
-      `${stop.name} landscape scenic`,
-      `${stop.name} ${country} travel`,
-    ])
-    queries.splice(1, 0, ...stopQueries)
+  const validStops = input.stops?.filter(stop => stop.name.trim()).slice(0, 2) ?? []
+  if (isZone && validStops.length >= 2) {
+    queries.splice(1, 0, `${validStops.map(stop => stop.name).join(' ')} road trip`)
+  } else if (isZone && validStops.length === 1) {
+    queries.splice(1, 0, `${validStops[0].name} ${country} road trip`)
   }
 
   return Array.from(new Set(queries.map(query => query.replace(/\s+/g, ' ').trim())))
@@ -308,34 +307,25 @@ async function searchPexels(query: string): Promise<DestinationImageResult | nul
   }
 }
 
-const BLOCKED_IMAGE_PATTERNS = [
-  'flag', 'coat_of_arms', 'seal', 'map', 'location',
-  'states', 'regions', 'provinces', 'districts', 'subdivisions',
-  'administrative', 'political', 'locator', 'outline', 'blank',
-]
-
-function imageNameIsBlocked(imageName: string): boolean {
-  const lower = imageName.toLowerCase()
-  return BLOCKED_IMAGE_PATTERNS.some(word => lower.includes(word))
-}
-
 function pageImageIsUsable(page: WikipediaPage): boolean {
   const width = page.thumbnail?.width ?? 0
   const height = page.thumbnail?.height ?? 1
-  const imageName = `${page.pageimage ?? ''} ${page.thumbnail?.source ?? ''}`
+  const imageName = `${page.pageimage ?? ''} ${page.thumbnail?.source ?? ''}`.toLowerCase()
+  const blockedImage = ['flag', 'coat_of_arms', 'seal', 'map', 'location'].some(word => imageName.includes(word))
   return Boolean(page.thumbnail?.source)
     && width >= height * 0.62
-    && !imageNameIsBlocked(imageName)
+    && !blockedImage
 }
 
 function summaryImageIsUsable(summary: WikipediaSummary): boolean {
   const image = summary.originalimage ?? summary.thumbnail
   const width = image?.width ?? 0
   const height = image?.height ?? 1
-  const imageName = image?.source ?? ''
+  const imageName = image?.source?.toLowerCase() ?? ''
+  const blockedImage = ['flag', 'coat_of_arms', 'seal', 'map', 'location'].some(word => imageName.includes(word))
   return Boolean(image?.source)
     && width >= height * 0.62
-    && !imageNameIsBlocked(imageName)
+    && !blockedImage
 }
 
 async function searchWikipediaSummaryImage(name: string): Promise<DestinationImageResult | null> {
@@ -427,19 +417,12 @@ async function searchWikipediaSearchImage(query: string, input: ResolveDestinati
 }
 
 async function searchWikipediaImage(input: ResolveDestinationImageInput): Promise<DestinationImageResult | null> {
-  const isZone = input.kind === 'zone'
-  const validStops = input.stops?.filter(stop => stop.name.trim()) ?? []
+  const names = [
+    searchName(input.name),
+    [searchName(input.name), searchName(input.country)].filter(Boolean).join(' '),
+  ].filter(Boolean)
 
-  // For road trips, prioritise stop cities (e.g. "Cologne") over the zone name
-  // (e.g. "Allemagne") which usually resolves to a political map on Wikipedia.
-  const names = isZone && validStops.length > 0
-    ? Array.from(new Set(validStops.slice(0, 3).map(stop => searchName(stop.name))))
-    : Array.from(new Set([
-        searchName(input.name),
-        [searchName(input.name), searchName(input.country)].filter(Boolean).join(' '),
-      ].filter(Boolean)))
-
-  for (const name of names) {
+  for (const name of Array.from(new Set(names))) {
     try {
       const wikivoyage = await searchWikivoyageExactImage(name)
       if (wikivoyage) return wikivoyage

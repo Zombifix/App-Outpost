@@ -1112,6 +1112,11 @@ const Pin = memo(function Pin({
                   {destination.tier && (
                     <span className="map-pin-trip-badge">{destination.tier}</span>
                   )}
+                  <span className="map-pin-trip-icon" aria-hidden="true">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 16V8l4-4h6l4 4v8"/>
+                    </svg>
+                  </span>
                 </span>
                 <span className="map-pin-pill-name">{destination.name}</span>
                 <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>

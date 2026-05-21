@@ -6009,15 +6009,22 @@ svg {
   transition: left 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Anneau pointillé = indicateur visuel "roadtrip / route" */
-.map-pin-trip-thumb::before {
-  content: '';
+/* Petit badge icône roadtrip en haut à droite du thumb */
+.map-pin-trip-icon {
   position: absolute;
-  inset: -5px;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 1.5px dashed var(--pin-color);
-  opacity: 0.55;
+  background: var(--pin-color);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
+  color: white;
 }
 
 .map-pin-trip-card:hover .map-pin-trip-thumb,

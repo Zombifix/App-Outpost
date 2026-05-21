@@ -31,8 +31,8 @@ const sortLabels: Record<SortMode, string> = {
 }
 
 const mobileSortLabels: Record<SortMode, string> = {
-  score: 'Notes',
-  recent: 'Recents',
+  score: 'Par note',
+  recent: 'Par date',
 }
 
 function destinationScore(destination: Destination) {
@@ -203,30 +203,26 @@ export default function TierListPanel({
           <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
         </div>
         <div className="tier-board-actions">
-          {sortControl()}
           {onCompareFriend && (
             <CompareWithFriendButton onPick={onCompareFriend} compact />
           )}
           <button
-            className="next-control-inline"
+            className="next-control-inline next-control-inline--fold"
             aria-label={collapsed ? 'Déplier la tier list' : 'Replier la tier list'}
             onClick={onCollapseToggle}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={collapsed ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
             </svg>
-            <span>{collapsed ? 'Afficher' : 'Masquer'}</span>
+            <span>{collapsed ? 'Déplier' : 'Replier'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── Mobile view: heading + tier pills + cards ── */}
-      <div className="tier-mobile-section">
-        <div className="tier-mobile-topline">
-          <h2 className="tier-mobile-title">Ma tier list</h2>
-        </div>
-        <div className="tier-mobile-tabs">
+      <div className="tier-desktop-tabs" aria-label="Filtrer par tier">
+        <div className="tier-desktop-tabs-list">
           <button
+            type="button"
             className={`tier-pill tier-pill-all${mobileTier === 'all' ? ' is-active' : ''}`}
             onClick={() => setMobileTier('all')}
           >
@@ -237,14 +233,46 @@ export default function TierListPanel({
             return (
               <button
                 key={tier}
+                type="button"
                 className={`tier-pill tier-pill-${tier.toLowerCase()}${mobileTier === tier ? ' is-active' : ''}`}
                 onClick={() => setMobileTier(tier)}
-                style={{ '--tier-color': colors.label, '--tier-bg': colors.column, '--tier-pin': colors.pin } as CSSProperties}
+                style={{ '--tier-color': colors.label, '--tier-bg': `${colors.pin}1F`, '--tier-pin': colors.pin } as CSSProperties}
               >
                 {tier}
               </button>
             )
           })}
+        </div>
+        {sortControl('tier-sort-toggle-desktop')}
+      </div>
+
+      {/* ── Mobile view: heading + tier pills + cards ── */}
+      <div className="tier-mobile-section">
+        <div className="tier-mobile-topline">
+          <h2 className="tier-mobile-title">Ma tier list</h2>
+        </div>
+        <div className="tier-mobile-filter-row">
+          <div className="tier-mobile-tabs">
+            <button
+              className={`tier-pill tier-pill-all${mobileTier === 'all' ? ' is-active' : ''}`}
+              onClick={() => setMobileTier('all')}
+            >
+              Tous
+            </button>
+            {tiersWithItems.map(tier => {
+              const colors = TIER_COLORS[tier]
+              return (
+                <button
+                  key={tier}
+                  className={`tier-pill tier-pill-${tier.toLowerCase()}${mobileTier === tier ? ' is-active' : ''}`}
+                  onClick={() => setMobileTier(tier)}
+                  style={{ '--tier-color': colors.label, '--tier-bg': `${colors.pin}1F`, '--tier-pin': colors.pin } as CSSProperties}
+                >
+                  {tier}
+                </button>
+              )
+            })}
+          </div>
           {sortControl('tier-sort-toggle-mobile', true)}
         </div>
         <div className="tier-mobile-strip">
@@ -307,6 +335,7 @@ export default function TierListPanel({
           {TIER_ORDER.map(tier => {
             const items = destinations
               .filter(destination => destination.tier === tier && destination.kind !== 'stop')
+              .filter(() => mobileTier === 'all' || mobileTier === tier)
               .sort((a, b) => compareDestinations(a, b, sortMode))
             const colors = TIER_COLORS[tier]
 
@@ -342,7 +371,6 @@ export default function TierListPanel({
                         {isCoupDeCoeur && (
                           <span className="mini-favorite-button is-active" aria-label="Coup de coeur" title="Coup de coeur">
                             <HeartIcon filled />
-                            <span>Coup de coeur</span>
                           </span>
                         )}
                       </article>

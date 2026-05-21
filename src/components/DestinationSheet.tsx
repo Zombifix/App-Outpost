@@ -349,16 +349,17 @@ function DestinationCardContent({
               {INTENT_LABELS[destination.intent]}
             </span>
           )}
-          <button
-            className={`coup-de-coeur-button destination-hero-favorite${coupDeCoeur ? ' is-active' : ''}`}
-            aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Ajouter en coup de coeur - ${coupDeCoeurCount}/2 utilises`}
-            title={coupDeCoeur ? 'Coup de coeur - retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur - ${coupDeCoeurCount}/2 utilises`}
-            disabled={coupDeCoeurDisabled}
-            onClick={onCoupDeCoeur}
-          >
-            <span aria-hidden="true">❤️</span>
-            Coup de coeur
-          </button>
+          {coupDeCoeur && (
+            <button
+              className="coup-de-coeur-button destination-hero-favorite is-active"
+              aria-label="Retirer le coup de coeur"
+              title="Coup de coeur - retirer"
+              onClick={onCoupDeCoeur}
+            >
+              <span aria-hidden="true">❤️</span>
+              Coup de coeur
+            </button>
+          )}
         </div>
       </div>
       <div className="destination-title-row">
@@ -510,16 +511,17 @@ function RoadTripCardContent({
           <span className="intent-pill destination-hero-pill">
             {stageCount || validStops.length} etape{(stageCount || validStops.length) > 1 ? 's' : ''}
           </span>
-          <button
-            className={`coup-de-coeur-button destination-hero-favorite${coupDeCoeur ? ' is-active' : ''}`}
-            aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Ajouter en coup de coeur - ${coupDeCoeurCount}/2 utilises`}
-            title={coupDeCoeur ? 'Coup de coeur - retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur - ${coupDeCoeurCount}/2 utilises`}
-            disabled={coupDeCoeurDisabled}
-            onClick={onCoupDeCoeur}
-          >
-            <span aria-hidden="true">♥</span>
-            Coup de coeur
-          </button>
+          {coupDeCoeur && (
+            <button
+              className="coup-de-coeur-button destination-hero-favorite is-active"
+              aria-label="Retirer le coup de coeur"
+              title="Coup de coeur - retirer"
+              onClick={onCoupDeCoeur}
+            >
+              <span aria-hidden="true">♥</span>
+              Coup de coeur
+            </button>
+          )}
         </div>
       </div>
 

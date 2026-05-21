@@ -4,15 +4,9 @@ import { useFriends } from '../../hooks/useFriends'
 
 interface CompareWithFriendButtonProps {
   onPick: (friend: Friendship) => void
-  /** Compact = bouton plus discret, sans le mot "ami". Pour la tier list rail. */
   compact?: boolean
 }
 
-/**
- * Bouton ghost + dropdown picker pour comparer ta map avec un ami.
- * S'affiche masqué si pas d'amis acceptés.
- * Réutilisable depuis TierListPanel et TierListPage.
- */
 export default function CompareWithFriendButton({ onPick, compact }: CompareWithFriendButtonProps) {
   const { accepted } = useFriends()
   const [open, setOpen] = useState(false)
@@ -43,28 +37,34 @@ export default function CompareWithFriendButton({ onPick, compact }: CompareWith
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 4v16" /><path d="m3 8 4-4 4 4" />
-          <path d="M17 20V4" /><path d="m13 16 4 4 4-4" />
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M7 4v16" />
+          <path d="m3 8 4-4 4 4" />
+          <path d="M17 20V4" />
+          <path d="m13 16 4 4 4-4" />
         </svg>
         <span>{compact ? 'Comparer' : 'Comparer avec un ami'}</span>
-        <span className={`compare-picker-chevron${open ? ' is-open' : ''}`} aria-hidden="true">▾</span>
+        <span className={`compare-picker-chevron${open ? ' is-open' : ''}`} aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
       </button>
       {open && (
         <ul className="compare-picker-menu" role="listbox">
-          {accepted.map(f => (
-            <li key={f.otherUser}>
+          {accepted.map(friend => (
+            <li key={friend.otherUser}>
               <button
                 type="button"
                 className="compare-picker-item"
-                onClick={() => { setOpen(false); onPick(f) }}
+                onClick={() => { setOpen(false); onPick(friend) }}
               >
-                <span className="compare-picker-avatar" style={{ background: f.avatarBg, color: f.avatarFg }}>
-                  {f.displayName.slice(0, 1).toUpperCase()}
+                <span className="compare-picker-avatar" style={{ background: friend.avatarBg, color: friend.avatarFg }}>
+                  {friend.displayName.slice(0, 1).toUpperCase()}
                 </span>
                 <span className="compare-picker-meta">
-                  <strong>{f.displayName}</strong>
-                  <small>@{f.handle}</small>
+                  <strong>{friend.displayName}</strong>
+                  <small>@{friend.handle}</small>
                 </span>
               </button>
             </li>

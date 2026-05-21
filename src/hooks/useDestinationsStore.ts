@@ -7,6 +7,7 @@ const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 export const AUTO_IMAGE_VERSION = 5
+const DEFAULT_COUP_DE_COEUR_NAMES = new Set(['Kyoto'])
 
 function hasWeakAutoImage(destination: Destination) {
   return (destination.imageProvider === 'wikipedia' && destination.imageSearchVersion !== AUTO_IMAGE_VERSION)
@@ -22,12 +23,20 @@ function loadDestinations(normalize: DestinationNormalizer): Destination[] {
     const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (saved) {
       const normalized = normalize(JSON.parse(saved))
-      if (normalized) return normalized
+      if (normalized) return applySeedMigrations(normalized)
     }
   } catch {
     /* ignore */
   }
-  return DESTINATIONS
+  return applySeedMigrations(DESTINATIONS)
+}
+
+function applySeedMigrations(destinations: Destination[]) {
+  return destinations.map(destination => (
+    DEFAULT_COUP_DE_COEUR_NAMES.has(destination.name) && destination.coupDeCoeur === undefined
+      ? { ...destination, coupDeCoeur: true }
+      : destination
+  ))
 }
 
 /**

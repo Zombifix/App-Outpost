@@ -228,11 +228,13 @@ function Icon({ name }: { name: string }) {
 
 function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?: (lat: number, lng: number, name: string, actor?: { userId: string; handle: string; displayName: string }) => void }) {
   const { events } = useActivityFeed(10)
+  const activityRef = useRef<HTMLElement | null>(null)
 
   // Mémorise les IDs déjà vus pour ne marquer "is-new" que les arrivées live.
   const seenRef = useRef<Set<string>>(new Set())
   const initializedRef = useRef(false)
   const [pulseId, setPulseId] = useState<string | null>(null)
+  const [rowLimit, setRowLimit] = useState(3)
 
   useEffect(() => {
     if (!initializedRef.current) {
@@ -249,12 +251,39 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
     }
   }, [events])
 
+  useEffect(() => {
+    const element = activityRef.current
+    if (!element) return
+    const container = element.parentElement
+    if (!container) return
+
+    const updateRowLimit = () => {
+      const elementRect = element.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const availableHeight = containerRect.bottom - elementRect.top
+      const nextLimit = availableHeight < 235 ? 0 : availableHeight < 290 ? 1 : availableHeight < 345 ? 2 : 3
+      setRowLimit(current => current === nextLimit ? current : nextLimit)
+    }
+
+    updateRowLimit()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateRowLimit)
+      return () => window.removeEventListener('resize', updateRowLimit)
+    }
+
+    const observer = new ResizeObserver(updateRowLimit)
+    observer.observe(container)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
   if (events.length === 0) return null
   // Pour le hero, on préfère une destination_added récente (riche en visuel : image + tier).
   // Si aucune, on retombe sur le premier event peu importe le kind.
   const heroIdx = events.findIndex(e => e.kind === 'destination_added')
   const hero = heroIdx >= 0 ? events[heroIdx] : events[0]
-  const rest = events.filter(e => e.id !== hero.id).slice(0, 3)
+  const rest = events.filter(e => e.id !== hero.id).slice(0, rowLimit)
 
   // Extrait les infos communes pour un event (clic, payload, etc.)
   const buildHandler = (ev: typeof events[number]) => {
@@ -273,7 +302,12 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
   }
 
   return (
-    <section className="sidebar-activity" aria-label="Activité récente">
+    <section
+      ref={activityRef}
+      className="sidebar-activity"
+      data-row-count={rest.length}
+      aria-label="Activité récente"
+    >
       <header className="sidebar-activity-head">
         <h4>
           <span className="sidebar-activity-live" aria-hidden="true" />
@@ -396,16 +430,37 @@ function CarnetStats({
   const coeurs = destinations.filter(d => d.coupDeCoeur).length
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
-      {/* Watermark globe + pin */}
-      <svg className="carnet-stats-watermark" viewBox="0 0 56 56" fill="none" aria-hidden="true">
-        {/* Globe */}
-        <circle cx="28" cy="32" r="20" stroke="currentColor" strokeWidth="1.5"/>
-        <ellipse cx="28" cy="32" rx="8.5" ry="20" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M8 32h40" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M10 23h36M10 41h36" stroke="currentColor" strokeWidth="1"/>
-        {/* Pin */}
-        <path d="M28 4c-4 0-7 3.1-7 7 0 5 7 13 7 13s7-8 7-13c0-3.9-3-7-7-7Z" fill="currentColor" opacity="0.9"/>
-        <circle cx="28" cy="11" r="2.5" fill="white"/>
+      <svg className="carnet-stats-watermark" viewBox="0 0 190 170" fill="none" aria-hidden="true">
+        <defs>
+          <radialGradient id="carnetGlobeGlow" cx="44%" cy="42%" r="68%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
+            <stop offset="58%" stopColor="#f3f8ff" stopOpacity="0.56" />
+            <stop offset="100%" stopColor="#dbeafe" stopOpacity="0.2" />
+          </radialGradient>
+          <linearGradient id="carnetPinBlue" x1="60" y1="74" x2="77" y2="106" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#a9bfff" />
+            <stop offset="1" stopColor="#6f94f6" />
+          </linearGradient>
+          <clipPath id="carnetGlobeClip">
+            <circle cx="78" cy="78" r="76" />
+          </clipPath>
+        </defs>
+        <circle cx="78" cy="78" r="76" fill="url(#carnetGlobeGlow)" />
+        <g clipPath="url(#carnetGlobeClip)">
+          <path className="carnet-globe-grid" d="M-2 78h160M5 51c36 10 108 10 146 0M7 104c38-9 102-9 142 0" />
+          <path className="carnet-globe-grid carnet-globe-grid-soft" d="M78 2c-17 27-26 52-26 76s9 49 26 76M78 2c17 27 26 52 26 76s-9 49-26 76M28 16c20 31 31 52 32 65 1 16-9 36-32 59M127 17c-19 30-30 51-31 64-1 16 9 36 31 58" />
+          <path className="carnet-globe-greatline" d="M24 19c31 33 71 59 121 78M135 12c-23 35-61 68-113 99" />
+          <path className="carnet-globe-route" d="M92 82c12-10 27-12 39-5 10 6 14 18 9 29-5 12-18 19-31 15-15-4-23-16-18-30" />
+          <circle className="carnet-globe-dot" cx="94" cy="82" r="1.7" />
+          <circle className="carnet-globe-dot" cx="125" cy="78" r="1.7" />
+          <circle className="carnet-globe-dot" cx="140" cy="103" r="1.7" />
+        </g>
+        <circle className="carnet-globe-rim" cx="78" cy="78" r="76" />
+        <g className="carnet-globe-pin">
+          <path d="M69 70c-6.6 0-11.8 5.1-11.8 11.5 0 8.3 11.8 21.1 11.8 21.1s11.8-12.8 11.8-21.1C80.8 75.1 75.6 70 69 70Z" fill="url(#carnetPinBlue)" />
+          <circle cx="69" cy="81.4" r="4.2" fill="white" />
+          <circle cx="69" cy="81.4" r="1.9" fill="#86a5f7" />
+        </g>
       </svg>
 
       {/* Hero */}
@@ -437,7 +492,10 @@ function CarnetStats({
           </span>
           <div>
             <span className="carnet-stats-chip-num">{coeurs}</span>
-            <span className="carnet-stats-chip-label">coups de cœur</span>
+            <span className="carnet-stats-chip-label">
+              <span>coups de</span>
+              <span>cœur</span>
+            </span>
           </div>
         </div>
       </div>

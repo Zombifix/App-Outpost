@@ -1071,9 +1071,9 @@ const Pin = memo(function Pin({
       </svg>
     )
 
-    const ExpandIcon = () => (
-      <svg className="map-pin-pill-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M14 3h7v7l-2.6-2.6-5.2 5.2-1.4-1.4 5.2-5.2L14 3zM3 21v-7l2.6 2.6 5.2-5.2 1.4 1.4-5.2 5.2L10 21H3z"/>
+    const TripCarIcon = () => (
+      <svg className="map-pin-trip-car-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
       </svg>
     )
 
@@ -1101,7 +1101,10 @@ const Pin = memo(function Pin({
                 }}
               >
                 <span className="map-pin-trip-thumb">
-                  <span className="map-pin-trip-badge"><ExpandIcon /></span>
+                  {!destination.image && <TripCarIcon />}
+                  {destination.tier && (
+                    <span className="map-pin-trip-tier">{destination.tier}</span>
+                  )}
                 </span>
                 <span className="map-pin-pill-name">{destination.name}</span>
                 <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>

@@ -2448,7 +2448,7 @@ svg {
 
 .map-controls {
   position: absolute;
-  left: calc(var(--sidebar-w) + 16px);
+  left: calc(var(--sidebar-w) + 28px);
   bottom: calc(var(--map-b-open) + 8px);
   width: 44px;
   padding: 6px 0;
@@ -2491,8 +2491,8 @@ svg {
 
 .legend {
   position: absolute;
-  left: calc(var(--sidebar-w) + 72px);
-  bottom: calc(var(--map-b-open) + 19px);
+  left: calc(var(--sidebar-w) + 84px);
+  bottom: calc(var(--map-b-open) + 8px);
   height: 46px;
   padding: 0 22px;
   border-radius: 999px;
@@ -4333,7 +4333,7 @@ svg {
 }
 
 .travel-app.tier-collapsed .legend {
-  bottom: calc(var(--map-b-closed) + 19px);
+  bottom: calc(var(--map-b-closed) + 8px);
 }
 
 /* === No destination card shown — map already at right: 0, nothing to override === */
@@ -6015,26 +6015,40 @@ svg {
   left: -15px;
 }
 
-/* Expand icon badge en bas de la photo */
-.map-pin-trip-badge {
+/* Car icon centered in thumb when no photo */
+.map-pin-trip-car-icon {
   position: absolute;
-  bottom: -4px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -52%);
+  color: white;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+  pointer-events: none;
+}
+
+/* Tier grade badge (S/A/B/C/D) at bottom of thumb */
+.map-pin-trip-tier {
+  position: absolute;
+  bottom: -5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 19px;
-  height: 19px;
-  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 99px;
   background: var(--pin-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-}
-.map-pin-trip-badge .map-pin-pill-star {
+  border: 2.5px solid white;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.22);
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-sans);
   color: white;
-  width: 10px;
-  height: 10px;
+  letter-spacing: -0.5px;
+  line-height: 1;
 }
 
 .map-pin-pill-star {

@@ -144,11 +144,11 @@ svg {
 .sidebar {
   inset: 0 auto 0 0;
   width: var(--sidebar-w);
-  padding: 30px 22px 24px;
+  padding: 44px 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.62));
+  gap: 10px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.72));
   border-right: 1px solid rgba(210, 223, 238, 0.68);
   box-shadow: 18px 0 48px rgba(118, 140, 165, 0.1);
 }
@@ -157,7 +157,8 @@ svg {
   display: flex;
   align-items: center;
   gap: 13px;
-  height: 44px;
+  height: 52px;
+  margin-bottom: 14px;
   color: #17213a;
   border: 0;
   background: transparent;
@@ -165,26 +166,27 @@ svg {
 }
 
 .brand-logo {
-  height: 34px;
+  height: 38px;
   width: auto;
   display: block;
 }
 
 .create-button {
-  height: 58px;
-  padding: 0 18px;
-  border-radius: 999px;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   color: white;
-  font-size: var(--text-sm);
+  font-size: 14.5px;
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
   background: linear-gradient(135deg, #1B5FE8, #3D80F5);
-  box-shadow: 0 6px 22px rgba(27, 95, 232, 0.36);
+  box-shadow: 0 6px 22px rgba(27, 95, 232, 0.32);
   border: 1px solid rgba(255, 255, 255, 0.18);
+  margin-bottom: 10px;
 }
 
 .create-button .create-icon {
@@ -213,7 +215,7 @@ svg {
 .side-menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* Activité récente dans la sidebar (remplace l'ancien bandeau fixe en bas de map) */
@@ -1226,21 +1228,28 @@ svg {
 }
 
 .side-menu button {
-  min-height: 56px;
-  padding: 0 18px;
-  border-radius: 16px;
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 14px;
   color: #6f7c95;
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  font-size: 14.5px;
   font-weight: var(--weight-semibold);
   text-align: left;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.side-menu button:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.04);
+  color: #3d4f6e;
 }
 
 .side-menu button.active {
   color: #1B5FE8;
-  background: linear-gradient(135deg, rgba(27, 95, 232, 0.13), rgba(235, 244, 255, 0.85));
+  background: linear-gradient(135deg, rgba(27, 95, 232, 0.10), rgba(235, 244, 255, 0.80));
 }
 
 .side-menu-label {

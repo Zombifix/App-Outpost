@@ -56,7 +56,7 @@
   --map-r-card: calc(var(--card-w) + var(--card-r) + var(--gap));
   --map-r-no-card: var(--card-r);
   --tier-h: 260px;
-  --tier-bottom: 20px;
+  --tier-bottom: 16px;
   --map-b-open: calc(var(--tier-h) + var(--tier-bottom) + var(--gap));
   --map-b-closed: calc(58px + var(--tier-bottom) + 10px);
   --topbar-t: 18px;
@@ -227,6 +227,65 @@ svg {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* ─── Carte stats Mon carnet ────────────────────────────────────────────────── */
+.carnet-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
+  border: 1px solid rgba(99, 132, 240, 0.15);
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+  margin-top: 6px;
+}
+
+.carnet-stats:hover {
+  background: linear-gradient(135deg, #e6eeff 0%, #ddeafd 100%);
+  transform: translateY(-1px);
+}
+
+.carnet-stats-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.carnet-stats-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(99, 132, 240, 0.2);
+  flex-shrink: 0;
+}
+
+.carnet-stats-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a3fc4;
+  line-height: 1;
+}
+
+.carnet-stats-coeur {
+  color: #e0456a;
+}
+
+.carnet-stats-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #6b7caa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
 }
 
 /* Activité récente dans la sidebar (remplace l'ancien bandeau fixe en bas de map) */
@@ -3065,15 +3124,19 @@ svg {
 }
 
 .tier-board {
-  left: var(--content-l);
-  right: var(--card-r);
-  bottom: var(--tier-bottom);
+  left: calc(var(--sidebar-w) + 32px);
+  right: 20px;
+  bottom: 16px;
   height: var(--tier-h);
   padding: 18px 22px 14px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(220, 230, 242, 0.7);
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.10),
+    0 1px 4px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
   display: flex;
   flex-direction: column;

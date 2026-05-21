@@ -87,6 +87,8 @@ export default function Nav({
           </button>
         </nav>
 
+        <CarnetStats destinations={destinations} onViewChange={onViewChange} />
+
         <SidebarActivity onSeeAll={onOpenFriends} onFlyTo={onActivityFlyTo} />
 
       </aside>
@@ -378,6 +380,37 @@ function RowCard({ event: ev, onClick }: {
       </span>
       {tier && <span className={`sidebar-row-tier tier-${tier.toLowerCase()}`}>{tier}</span>}
     </button>
+  )
+}
+
+// ─── Carte stats "Mon carnet" ──────────────────────────────────────────────────
+function CarnetStats({
+  destinations,
+  onViewChange,
+}: {
+  destinations: Destination[]
+  onViewChange: (view: 'map' | 'tier-list' | 'explore' | 'friends') => void
+}) {
+  if (destinations.length === 0) return null
+  const countries = new Set(destinations.map(d => d.country)).size
+  const coeurs = destinations.filter(d => d.coupDeCoeur).length
+  return (
+    <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
+      <div className="carnet-stats-item">
+        <span className="carnet-stats-value">{destinations.length}</span>
+        <span className="carnet-stats-label">destination{destinations.length > 1 ? 's' : ''}</span>
+      </div>
+      <div className="carnet-stats-divider" />
+      <div className="carnet-stats-item">
+        <span className="carnet-stats-value">{countries}</span>
+        <span className="carnet-stats-label">pays</span>
+      </div>
+      <div className="carnet-stats-divider" />
+      <div className="carnet-stats-item">
+        <span className="carnet-stats-value carnet-stats-coeur">{coeurs} <span aria-hidden="true">♥</span></span>
+        <span className="carnet-stats-label">coups de cœur</span>
+      </div>
+    </div>
   )
 }
 

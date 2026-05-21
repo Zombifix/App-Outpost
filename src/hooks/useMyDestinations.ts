@@ -338,5 +338,38 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
     }
   }, [])
 
-  return [destinations, setDestinationsState, { hydrated, error }] as const
+  // ---- Reset complet du carnet -------------------------------------------
+  // Vide toutes les destinations de l'utilisateur (Supabase + cache local +
+  // état React). Le profil, le pseudo et les amis ne sont pas touchés.
+  // Utilisé par le bouton "Vider mon carnet" dans le panel Mon compte.
+  const resetAll = useCallback(async (): Promise<{ error?: string }> => {
+    // Annule les sync en cours pour éviter qu'un upsert pending ré-insère
+    // une destination juste après le DELETE.
+    pendingUpsertTimers.current.forEach(t => window.clearTimeout(t))
+    pendingDeleteTimers.current.forEach(t => window.clearTimeout(t))
+    pendingUpsertTimers.current.clear()
+    pendingDeleteTimers.current.clear()
+
+    // Évite que l'effet de diff re-pousse [] vers Supabase (DELETE déjà fait).
+    suppressNextSyncRef.current = true
+    setDestinationsState([])
+    prevByNameRef.current = new Map()
+    clearLocalCache()
+
+    if (userId && supabase) {
+      const { error: err } = await supabase
+        .from('destinations')
+        .delete()
+        .eq('user_id', userId)
+      if (err) {
+        console.error('[useMyDestinations] resetAll failed', err)
+        setError(err.message)
+        return { error: err.message }
+      }
+    }
+    setError(null)
+    return {}
+  }, [userId])
+
+  return [destinations, setDestinationsState, { hydrated, error, resetAll }] as const
 }

@@ -213,7 +213,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
   const [compareFriend, setCompareFriend] = useState<import('./types').Friendship | null>(null)
-  const [myDestinations, setDestinations] = useMyDestinations(normalizeDestinations)
+  const [myDestinations, setDestinations, { resetAll: resetMyDestinations }] = useMyDestinations(normalizeDestinations)
   // Quand on visite le carnet d'un ami : en mode fake on lit depuis _fakeFriends, sinon
   // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
   // friendUserId est null, donc on peut l'appeler systématiquement.
@@ -694,6 +694,8 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
           publicId={publicId}
           onPublicIdChange={setPublicId}
           onClose={() => setAccountOpen(false)}
+          onResetCarnet={resetMyDestinations}
+          carnetCount={myDestinations.length}
         />
       )}
     </div>
@@ -753,11 +755,15 @@ interface AccountPanelProps {
   publicId: string
   onPublicIdChange: (value: string) => void
   onClose: () => void
+  /** Vide toutes les destinations de l'utilisateur (Supabase + cache local). */
+  onResetCarnet: () => Promise<{ error?: string }>
+  /** Nombre actuel de destinations, pour adapter le message de confirmation. */
+  carnetCount: number
 }
 
 type AccountMode = 'login' | 'public'
 
-function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps) {
+function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
   const { user, signInWithEmail, signOut } = useAuth()
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
@@ -767,6 +773,18 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [savedTick, setSavedTick] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false)
+  const [resetBusy, setResetBusy] = useState(false)
+
+  const handleConfirmReset = async () => {
+    setResetBusy(true)
+    const res = await onResetCarnet()
+    setResetBusy(false)
+    setConfirmResetOpen(false)
+    if (res.error) {
+      setFeedback({ kind: 'err', msg: `Échec : ${res.error}` })
+    }
+  }
 
   // Synchronise le draftId avec le handle Supabase une fois qu'il est chargé
   useEffect(() => {
@@ -862,6 +880,14 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
                 >
                   Me déconnecter
                 </button>
+                <button
+                  className="account-secondary account-reset"
+                  onClick={() => setConfirmResetOpen(true)}
+                  disabled={carnetCount === 0}
+                  title={carnetCount === 0 ? 'Ton carnet est déjà vide' : undefined}
+                >
+                  Vider mon carnet{carnetCount > 0 ? ` (${carnetCount})` : ''}
+                </button>
               </>
             ) : (
               <>
@@ -930,6 +956,47 @@ function AccountPanel({ publicId, onPublicIdChange, onClose }: AccountPanelProps
           </div>
         )}
       </aside>
+      {confirmResetOpen && (
+        <div
+          className="duplicate-modal-backdrop"
+          onClick={() => !resetBusy && setConfirmResetOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="duplicate-modal account-reset-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-reset-title"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="duplicate-modal-body">
+              <p className="duplicate-modal-eyebrow">Action irréversible</p>
+              <h2 id="account-reset-title">Vider tout ton carnet ?</h2>
+              <p className="duplicate-modal-text">
+                Tu vas supprimer <strong>{carnetCount} destination{carnetCount > 1 ? 's' : ''}</strong>{' '}
+                de ton carnet, sur Supabase et sur cet appareil. Ton compte, ton pseudo et tes amis
+                ne sont pas touchés. Cette action ne peut pas être annulée.
+              </p>
+              <div className="duplicate-modal-actions">
+                <button
+                  className="duplicate-modal-secondary"
+                  onClick={() => setConfirmResetOpen(false)}
+                  disabled={resetBusy}
+                >
+                  Annuler
+                </button>
+                <button
+                  className="duplicate-modal-primary account-reset-confirm"
+                  onClick={handleConfirmReset}
+                  disabled={resetBusy}
+                >
+                  {resetBusy ? 'Suppression…' : 'Oui, vider le carnet'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

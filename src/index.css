@@ -4252,6 +4252,36 @@ svg {
   border-color: rgba(220, 38, 38, 0.22);
 }
 
+/* Bouton "Vider mon carnet" : action destructive mais réversible (on peut
+   ré-ajouter des destinations). Couleur ambre pour le distinguer du rouge
+   "Me déconnecter" sans paniquer l'utilisateur. */
+.account-reset {
+  margin-top: 8px;
+  color: #8a4b00;
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+.account-reset:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.14);
+}
+.account-reset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Bouton de confirmation rouge dans la modale de reset carnet. */
+.account-reset-confirm {
+  background: #dc2626;
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.32);
+}
+.account-reset-confirm:hover:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(220, 38, 38, 0.42);
+}
+.account-reset-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 @keyframes account-pop {
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }

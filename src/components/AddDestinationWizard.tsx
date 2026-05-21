@@ -238,6 +238,23 @@ function mergePhotonResults(...groups: PhotonResult[][]): PhotonResult[] {
   return merged
 }
 
+// Dédoublonne par (nom + état + pays) normalisé : Photon renvoie souvent
+// la même ville plusieurs fois (city/town/locality) avec des coords légèrement
+// différentes. On garde le premier résultat de chaque groupe (Photon trie par
+// pertinence). Sans état, on tombe sur (nom + pays) pour fusionner les variantes
+// d'un même chef-lieu.
+function dedupePhotonResults(results: PhotonResult[]): PhotonResult[] {
+  const seen = new Set<string>()
+  const out: PhotonResult[] = []
+  for (const r of results) {
+    const key = `${normalizeCountry(r.name)}|${normalizeCountry(r.country)}|${normalizeCountry(r.state ?? '')}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(r)
+  }
+  return out
+}
+
 async function searchPhoton(
   q: string,
   opts: {
@@ -288,14 +305,14 @@ async function searchPhoton(
     // Filtre strict : si la zone est un état/région, on n'accepte QUE des résultats
     // dans cet état (peu importe le résultat — on retourne vide si rien ne match).
     const target = normalizeCountry(opts.state)
-    return all.filter(r => r.state && normalizeCountry(r.state) === target).slice(0, 6)
+    return dedupePhotonResults(all.filter(r => r.state && normalizeCountry(r.state) === target)).slice(0, 6)
   }
   if (opts.country) {
     // Filtre strict aussi pour les pays : on n'accepte que des villes du pays.
     const target = normalizeCountry(opts.country)
-    return all.filter(r => normalizeCountry(r.country) === target).slice(0, 6)
+    return dedupePhotonResults(all.filter(r => normalizeCountry(r.country) === target)).slice(0, 6)
   }
-  return all.slice(0, 6)
+  return dedupePhotonResults(all).slice(0, 6)
 }
 
 const QUESTIONS = [

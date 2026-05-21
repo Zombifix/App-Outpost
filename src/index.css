@@ -3196,7 +3196,7 @@ svg {
 
 .tier-board.is-collapsed {
   transform: translateY(calc(100% - 58px));
-  overflow: visible;
+  overflow: hidden;
 }
 
 .tier-board.is-collapsed .tier-rail {
@@ -3209,8 +3209,27 @@ svg {
   pointer-events: none;
 }
 
-.tier-board.is-collapsed .next-control {
-  top: -20px;
+.next-control-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 226, 242, 0.9);
+  background: rgba(247, 250, 255, 0.9);
+  color: #526078;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 130ms ease, color 130ms ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.next-control-inline:hover {
+  background: rgba(235, 242, 255, 0.95);
+  color: #1B5FE8;
 }
 
 .tier-board-head {

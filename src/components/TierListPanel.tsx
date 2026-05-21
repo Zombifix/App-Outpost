@@ -198,13 +198,22 @@ export default function TierListPanel({
       <div className="tier-board-head">
         <div className="tier-board-title">
           <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
-          <span className="tier-favorite-counter">{coupDeCoeurCount}/2 coups de coeur</span>
         </div>
         <div className="tier-board-actions">
           {sortControl()}
           {onCompareFriend && (
             <CompareWithFriendButton onPick={onCompareFriend} compact />
           )}
+          <button
+            className="next-control-inline"
+            aria-label={collapsed ? 'Déplier la tier list' : 'Replier la tier list'}
+            onClick={onCollapseToggle}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d={collapsed ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
+            </svg>
+            <span>{collapsed ? 'Afficher' : 'Masquer'}</span>
+          </button>
           {onMobileToggle && (
             <button
               type="button"
@@ -366,16 +375,6 @@ export default function TierListPanel({
         </button>
       </div>
 
-      <button
-        className="next-control"
-        aria-label={collapsed ? 'Deplier la tier list' : 'Replier la tier list'}
-        onClick={onCollapseToggle}
-      >
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d={collapsed ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
-        </svg>
-        <span>{collapsed ? 'Afficher' : 'Masquer'}</span>
-      </button>
     </section>
   )
 }

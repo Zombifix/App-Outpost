@@ -6009,22 +6009,23 @@ svg {
   transition: left 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Petit badge icône roadtrip en haut à droite du thumb */
+/* Petit badge emoji roadtrip en haut à droite du thumb */
 .map-pin-trip-icon {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 18px;
-  height: 18px;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: var(--pin-color);
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+  background: white;
+  border: 1.5px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: white;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .map-pin-trip-card:hover .map-pin-trip-thumb,

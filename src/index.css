@@ -2029,68 +2029,50 @@ svg {
 /* ── Roadtrip path — style Apple Maps Directions ─────────────────── */
 .route-path-root { pointer-events: none; }
 
-/* Halo blanc fin sous la ligne — détache la route de la carte sans dominer */
+/* Halo blanc sous les tirets */
 .route-path-glow {
   fill: none;
-  stroke: #fff;
-  stroke-width: 6;
+  stroke: rgba(255,255,255,0.55);
+  stroke-width: 4;
   stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 1;
-  filter: drop-shadow(0 1px 3px rgba(20, 30, 60, 0.22));
+  stroke-dasharray: 7 5;
+  opacity: 0.6;
 }
 
 /* Couche intermédiaire pas utilisée — kept hidden pour back-compat */
 .route-path-halo { display: none; }
 
-/* Ligne principale colorée — fine et nette */
+/* Ligne principale colorée — tiretée */
 .route-path {
   fill: none;
   stroke: var(--pin-color);
-  stroke-width: 2.4;
+  stroke-width: 2;
   stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 1;
+  stroke-dasharray: 7 5;
+  opacity: 0.85;
 }
 
 .route-path-root--friend .route-path { opacity: 0.7; }
 .route-path-root--friend .route-path-glow { stroke-width: 5; opacity: 0.9; }
 
-/* Stage : mini pin photo-style — outer white ring + inner tier color + numéro */
-.route-stop-stage-outer {
-  fill: #fff;
-  filter: drop-shadow(0 3px 8px rgba(20, 30, 60, 0.22));
-  pointer-events: none;
-}
-
-.route-stop-stage-inner {
+/* Stage : petit dot plein coloré */
+.route-stop-dot {
   fill: var(--pin-color);
-  stroke: rgba(20, 30, 60, 0.12);
-  stroke-width: 0.8;
+  stroke: rgba(255,255,255,0.85);
+  stroke-width: 1.5;
   pointer-events: none;
-  transition: r 160ms ease;
 }
 
-.route-stop-root:hover .route-stop-stage-outer {
-  filter: drop-shadow(0 6px 12px rgba(20, 30, 60, 0.32));
+.route-stop-root:hover .route-stop-dot {
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 5px rgba(20,30,60,0.28));
 }
 
-.route-stop-number {
-  fill: #fff;
-  font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 11px;
-  font-weight: 700;
-  pointer-events: none;
-  user-select: none;
-  letter-spacing: 0.02em;
-}
-
-/* Passage : dot fin sur la ligne, style Strava */
+/* Passage : encore plus petit */
 .route-stop-passage {
   fill: var(--pin-color);
-  stroke: #fff;
-  stroke-width: 2;
-  filter: drop-shadow(0 2px 5px rgba(20, 30, 60, 0.32));
+  stroke: rgba(255,255,255,0.7);
+  stroke-width: 1;
   pointer-events: none;
 }
 
@@ -2103,39 +2085,14 @@ svg {
   pointer-events: auto;
 }
 
-.route-stop-dot {
-  fill: var(--pin-color);
-  stroke: #fff;
-  stroke-width: 2;
-  filter: drop-shadow(0 3px 7px rgba(32, 49, 76, 0.28));
-  pointer-events: none;
-}
-
-.route-stop-core {
-  fill: rgba(255, 255, 255, 0.86);
-  pointer-events: none;
-}
-
-.route-stop-root:hover .route-stop-dot {
-  stroke-width: 3;
-  filter: drop-shadow(0 5px 10px rgba(32, 49, 76, 0.34));
-}
-
-.route-stop-dot--passage {
-  fill: #fff;
-  stroke: var(--pin-color);
-  stroke-width: 1.6;
-  filter: drop-shadow(0 1px 2px rgba(32, 49, 76, 0.18));
-}
-
 .route-stop-label {
   font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 12px;
-  font-weight: 600;
-  fill: #1f2937;
+  font-size: 11px;
+  font-weight: 500;
+  fill: rgba(30,40,60,0.75);
   paint-order: stroke fill;
-  stroke: #fff;
-  stroke-width: 3px;
+  stroke: rgba(255,255,255,0.85);
+  stroke-width: 2.5px;
   stroke-linejoin: round;
   pointer-events: none;
   user-select: none;
@@ -5145,99 +5102,105 @@ svg {
   opacity: 0.7;
 }
 
-/* Zone label pin — pill horizontal, même DA que les pins normaux */
+/* Zone label — pill étoile + nom + score */
 .map-pin-zone-label {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 4px 12px 4px 4px;
-  background: rgba(255,255,255,0.95);
+  padding: 7px 16px 7px 10px;
+  background: rgba(255,255,255,0.97);
   border: none;
   border-radius: 99px;
   cursor: pointer;
   font-family: var(--font-sans);
   white-space: nowrap;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.10);
-  transform-origin: center left;
-  opacity: 0.95;
-  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.07);
+  transform-origin: left center;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-.map-pin-zone-label:hover { opacity: 1; transform: scale(1.04); }
-.map-pin-zone-label span {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--pin-color);
-  color: #fff;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  flex-shrink: 0;
-}
-.map-pin-zone-label strong {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--ink);
-}
-.map-pin-zone-label--friend {
-  box-shadow: 0 0 0 2px #7C8DB5, 0 3px 10px rgba(0,0,0,0.12);
+.map-pin-zone-label:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.17), 0 1px 5px rgba(0,0,0,0.08);
 }
 
-/* Road trip card — rectangle avec tier + nom + arrêts */
+/* Trip card — pill avec photo thumb intégrée */
 .map-pin-trip-card {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 6px;
+  gap: 10px;
+  padding: 3px 18px 3px 0;
   background: rgba(255,255,255,0.97);
   border: none;
-  border-radius: 10px;
+  border-radius: 99px;
   cursor: pointer;
   font-family: var(--font-sans);
   white-space: nowrap;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.16), 0 1px 4px rgba(0,0,0,0.09), 0 0 0 1px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.07);
   transform-origin: left center;
-  opacity: 0.96;
-  transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 .map-pin-trip-card:hover {
-  opacity: 1;
-  transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.18), 0 1px 6px rgba(0,0,0,0.09);
+  transform: scale(1.05);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.17), 0 1px 5px rgba(0,0,0,0.08);
 }
-.map-pin-trip-card-tier {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 7px;
-  background: var(--pin-color);
-  color: #fff;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+
+/* Photo thumbnail inside trip pill — anneau coloré */
+.map-pin-trip-thumb {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   flex-shrink: 0;
+  background-image: var(--pin-photo);
+  background-size: cover;
+  background-position: center;
+  background-color: color-mix(in srgb, var(--pin-color) 22%, #dde4ec);
+  border: 2px solid var(--pin-color);
+  overflow: visible;
 }
-.map-pin-trip-card-info {
+
+/* Expand icon badge en bas de la photo */
+.map-pin-trip-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--pin-color);
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  text-align: left;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
-.map-pin-trip-card-info strong {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+.map-pin-trip-badge .map-pin-pill-star {
+  color: white;
+  width: 10px;
+  height: 10px;
+}
+
+.map-pin-pill-star {
+  color: var(--pin-color);
+  flex-shrink: 0;
+  display: block;
+}
+.map-pin-pill-name {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
-  line-height: 1.25;
+  line-height: 1;
 }
-.map-pin-trip-card-info em {
-  font-size: var(--text-2xs);
-  font-style: normal;
-  color: rgba(23,33,58,0.48);
-  line-height: 1.25;
+.map-pin-pill-sub {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(23,33,58,0.42);
+  line-height: 1;
 }
+.map-pin-zone-label--friend,
 .map-pin-trip-card--friend {
-  box-shadow: 0 0 0 2px #7C8DB5, 0 3px 10px rgba(0,0,0,0.12);
+  box-shadow: 0 0 0 2px #7C8DB5, 0 2px 10px rgba(0,0,0,0.11);
 }
 
 /* ===== Tier List Page ===== */

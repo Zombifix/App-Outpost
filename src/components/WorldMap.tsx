@@ -462,6 +462,7 @@ function clearZoneRouteLayers(map: maplibregl.Map) {
 }
 
 function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend') {
+  if (!map.isStyleLoaded()) return
   const color = getTierColor(d.tier)
   if (!color) return
   const sid = `_z_${owner}_${d.name}`
@@ -480,74 +481,28 @@ function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend
     id: `${sid}_fill`, type: 'fill', source: sid,
     paint: { 'fill-color': color, 'fill-opacity': owner === 'friend' ? 0.35 : 0.13 },
   })
+  // White glow border for organic feel
+  map.addLayer({
+    id: `${sid}_line_glow`, type: 'line', source: sid,
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': owner === 'friend' ? 5 : 4,
+      'line-opacity': owner === 'friend' ? 0.55 : 0.45,
+      'line-blur': 2,
+    },
+  })
+  // Colored border on top
   map.addLayer({
     id: `${sid}_line`, type: 'line', source: sid,
     paint: {
       'line-color': owner === 'friend' ? '#7C8DB5' : color,
-      'line-width': owner === 'friend' ? 2 : 1.3,
-      'line-opacity': owner === 'friend' ? 0.85 : 0.5,
-      'line-dasharray': owner === 'friend' ? [5, 4] : [6, 3],
+      'line-width': owner === 'friend' ? 1.8 : 1.4,
+      'line-opacity': owner === 'friend' ? 0.75 : 0.55,
     },
   })
 }
 
-function addRouteLayer(map: maplibregl.Map, d: Destination) {
-  const color = getTierColor(d.tier)
-  if (!d.stops?.length || !color) return
-  const sid = `_r_${d.name}`
-  const coords = d.stops
-    .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
-    .map(s => [s.lng, s.lat] as [number, number])
-  if (coords.length < 2 || map.getSource(sid)) return
-
-  map.addSource(sid, {
-    type: 'geojson',
-    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
-  })
-  map.addLayer({
-    id: `${sid}_line`, type: 'line', source: sid,
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': color, 'line-width': 2.4, 'line-opacity': 0.9 },
-  })
-  const validStops = d.stops.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng))
-  const stageStops   = validStops.filter(s => (s.type ?? 'stage') === 'stage')
-  const passageStops = validStops.filter(s => s.type === 'passage')
-
-  const toFeatures = (stops: typeof validStops) => stops.map(s => ({
-    type: 'Feature' as const,
-    geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
-    properties: { name: s.name, type: s.type ?? 'stage' },
-  }))
-
-  map.addSource(`${sid}_pts_stage`, {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: toFeatures(stageStops) },
-  })
-  map.addLayer({
-    id: `${sid}_dots_stage`, type: 'circle', source: `${sid}_pts_stage`,
-    paint: {
-      'circle-radius': 3.2, 'circle-color': color,
-      'circle-stroke-width': 1, 'circle-stroke-color': 'white',
-      'circle-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 0.9] as maplibregl.ExpressionSpecification,
-      'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0, 6, 1] as maplibregl.ExpressionSpecification,
-    },
-  })
-  if (passageStops.length) {
-    map.addSource(`${sid}_pts_passage`, {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: toFeatures(passageStops) },
-    })
-    map.addLayer({
-      id: `${sid}_dots_passage`, type: 'circle', source: `${sid}_pts_passage`,
-      paint: {
-        'circle-radius': 2.2, 'circle-color': '#ffffff',
-        'circle-stroke-width': 1.2, 'circle-stroke-color': color,
-        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0, 7, 0.9] as maplibregl.ExpressionSpecification,
-        'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 5, 0, 7, 0.85] as maplibregl.ExpressionSpecification,
-      },
-    })
-  }
-}
+// Route line + stops are rendered by SVG overlay (RoutePath + RouteStop) — no MapLibre layer needed.
 
 function syncZoneRouteLayers(
   map: maplibregl.Map,
@@ -559,13 +514,12 @@ function syncZoneRouteLayers(
   const shared = sharedNames ?? new Set<string>()
   for (const d of destinations) {
     if (d.kind === 'zone') {
-      if (!d.stops?.length) addZoneLayer(map, d, 'me')
-      addRouteLayer(map, d)
+      addZoneLayer(map, d, 'me')
     }
   }
   if (friendDestinations) {
     for (const d of friendDestinations) {
-      if (d.kind === 'zone' && !d.stops?.length && !shared.has(destinationNameKey(d))) addZoneLayer(map, d, 'friend')
+      if (d.kind === 'zone' && !shared.has(destinationNameKey(d))) addZoneLayer(map, d, 'friend')
     }
   }
 }
@@ -625,7 +579,11 @@ export default function WorldMap({
   // ── Sync zones / routes quand destinations change ───────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
-    syncZoneRouteLayers(mapRef.current, destinations, friendDestinations, sharedNames)
+    try {
+      syncZoneRouteLayers(mapRef.current, destinations, friendDestinations, sharedNames)
+    } catch {
+      // style not yet ready — will re-run when mapReady changes
+    }
   }, [mapReady, destinations, friendDestinations, sharedNames])
 
   // ── Repositionner les pins au chargement et aux changements ─────────────────
@@ -797,11 +755,7 @@ export default function WorldMap({
             const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
               const color = getTierColor(d.tier)
               if (!d.stops?.length || !color) return [] as JSX.Element[]
-              // Numérotation : seules les stages comptent (les passages restent en dot blanc)
-              let stageCounter = 0
               const stopEls = d.stops.map((stop, index) => {
-                const isPassage = stop.type === 'passage'
-                const stageNumber = isPassage ? undefined : ++stageCounter
                 // Stop fusionné avec une destination solo → masqué au profit du pin photo
                 if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
                 return (
@@ -812,9 +766,7 @@ export default function WorldMap({
                     projection={projFnRef.current}
                     color={color}
                     owner={owner}
-                    zoomK={zoomK}
                     onSelect={onSelect}
-                    stageNumber={stageNumber}
                   />
                 )
               })
@@ -908,13 +860,11 @@ interface RouteStopProps {
   projection: Proj
   color: string
   owner: 'me' | 'friend'
-  zoomK: number
   onSelect: (name: string) => void
-  stageNumber?: number
 }
 
 const RouteStop = memo(function RouteStop({
-  stop, parentName, projection, color, owner, zoomK, onSelect, stageNumber,
+  stop, parentName, projection, color, owner, onSelect,
 }: RouteStopProps) {
   if (!stop.name.trim() || !Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return null
   const projected = projection([stop.lng, stop.lat])
@@ -934,17 +884,11 @@ const RouteStop = memo(function RouteStop({
       <title>{stop.name}{isPassage ? ' (passage)' : ''}</title>
       <circle className="route-stop-hit" r={16} />
       {isPassage ? (
-        // Passage : petit dot fin posé sur la ligne
-        <circle className="route-stop-passage" r={3.5} />
+        <circle className="route-stop-passage" r={2.5} />
       ) : (
-        // Stage : mini pin photo-style (couleur tier + numéro) — discret
         <>
-          <circle className="route-stop-stage-outer" r={12} />
-          <circle className="route-stop-stage-inner" r={9.5} />
-          {stageNumber !== undefined && (
-            <text className="route-stop-number" x={0} y={3.4} textAnchor="middle">{stageNumber}</text>
-          )}
-          {zoomK >= 5 && <text className="route-stop-label" x={16} y={4}>{stop.name}</text>}
+          <circle className="route-stop-dot" r={4} />
+          <text className="route-stop-label" x={8} y={4}>{stop.name}</text>
         </>
       )}
     </g>
@@ -995,26 +939,50 @@ function greatCircleSamples(a: [number, number], b: [number, number], segments =
  */
 function buildRoutePath(stops: { lng: number; lat: number }[], project: (ll: [number, number]) => [number, number] | null): string {
   if (stops.length < 2) return ''
-  // Adaptive segments: more for longer geodesic distance
   const allScreen: [number, number][] = []
   for (let i = 0; i < stops.length - 1; i++) {
     const a: [number, number] = [stops[i].lng, stops[i].lat]
     const b: [number, number] = [stops[i + 1].lng, stops[i + 1].lat]
     const dLng = Math.abs(b[0] - a[0]); const dLat = Math.abs(b[1] - a[1])
     const rough = Math.hypot(dLng, dLat)
-    const segs = Math.max(4, Math.min(48, Math.round(rough * 1.2)))
+    const segs = Math.max(8, Math.min(64, Math.round(rough * 1.5)))
     const samples = greatCircleSamples(a, b, segs)
-    for (let k = i === 0 ? 0 : 1; k < samples.length; k++) {
-      const p = project(samples[k])
-      if (p) allScreen.push(p)
+
+    // Project this segment's samples
+    const projected: [number, number][] = []
+    for (const s of samples) {
+      const p = project(s)
+      if (p) projected.push(p)
+    }
+    if (projected.length < 2) continue
+
+    // Gentle perpendicular arc that bows northward (negative SVG-y) for organic feel
+    const pA = projected[0], pB = projected[projected.length - 1]
+    const cdx = pB[0] - pA[0], cdy = pB[1] - pA[1]
+    const clen = Math.hypot(cdx, cdy) || 1
+    let nx = -cdy / clen, ny = cdx / clen
+    if (ny > 0) { nx = -nx; ny = -ny } // ensure bow goes up (north)
+    const arcH = Math.min(clen * 0.1, 55)
+
+    for (let k = (i === 0 ? 0 : 1); k < projected.length; k++) {
+      const t = k / (projected.length - 1)
+      const bow = Math.sin(t * Math.PI) * arcH
+      allScreen.push([projected[k][0] + nx * bow, projected[k][1] + ny * bow])
     }
   }
   if (allScreen.length < 2) return ''
-  // Smooth Catmull-Rom-style through the projected points
-  const parts: string[] = [`M ${allScreen[0][0].toFixed(2)} ${allScreen[0][1].toFixed(2)}`]
+  // Catmull-Rom → cubic bezier
+  const parts: string[] = [`M ${allScreen[0][0].toFixed(1)} ${allScreen[0][1].toFixed(1)}`]
   for (let i = 1; i < allScreen.length; i++) {
-    const [x, y] = allScreen[i]
-    parts.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`)
+    const p0 = allScreen[Math.max(0, i - 2)]
+    const p1 = allScreen[i - 1]
+    const p2 = allScreen[i]
+    const p3 = allScreen[Math.min(allScreen.length - 1, i + 1)]
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6
+    parts.push(`C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`)
   }
   return parts.join(' ')
 }
@@ -1075,27 +1043,39 @@ const Pin = memo(function Pin({
     const validStops = destination.stops?.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng)) ?? []
     const stageCount = validStops.filter(s => s.type !== 'passage').length
 
-    // Road trip avec arrêts → card rectangle (tier + nom + nb arrêts)
+    const ZoneStar = () => (
+      <svg className="map-pin-pill-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+    )
+
+    const ExpandIcon = () => (
+      <svg className="map-pin-pill-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M14 3h7v7l-2.6-2.6-5.2 5.2-1.4-1.4 5.2-5.2L14 3zM3 21v-7l2.6 2.6 5.2-5.2 1.4 1.4-5.2 5.2L10 21H3z"/>
+      </svg>
+    )
+
+    // Road trip avec arrêts → pill unifiée avec photo + texte
     if (stageCount > 0) {
       return (
         <g
-          className={`pin-root pin-owner-${owner}`}
+          className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
           data-lng={destination.lng}
           data-lat={destination.lat}
           transform={`translate(${cx},${cy}) scale(${pinScale})`}
         >
-          <foreignObject x="-10" y="-28" width="220" height="58">
-            <div>
+          <foreignObject x="-10" y="-30" width="300" height="64" overflow="visible">
+            <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
               <button
                 className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}`}
-                style={{ '--pin-color': color } as CSSProperties}
-                onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
+                style={{ '--pin-color': color, '--pin-photo': destination.image ? `url("${destination.image}")` : 'none' } as CSSProperties}
+                onClick={() => onZoomToZone?.(destination)}
               >
-                <span className="map-pin-trip-card-tier">{destination.tier}</span>
-                <span className="map-pin-trip-card-info">
-                  <strong>{destination.name}</strong>
-                  <em>{stageCount} arrêt{stageCount > 1 ? 's' : ''}</em>
+                <span className="map-pin-trip-thumb">
+                  <span className="map-pin-trip-badge"><ExpandIcon /></span>
                 </span>
+                <span className="map-pin-pill-name">{destination.name}</span>
+                <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>
               </button>
             </div>
           </foreignObject>
@@ -1103,7 +1083,7 @@ const Pin = memo(function Pin({
       )
     }
 
-    // Zone simple sans route → pill compacte
+    // Zone simple sans route → pill étoile + nom + score
     return (
       <g
         className={`pin-root pin-owner-${owner}`}
@@ -1111,15 +1091,18 @@ const Pin = memo(function Pin({
         data-lat={destination.lat}
         transform={`translate(${cx},${cy}) scale(${pinScale})`}
       >
-        <foreignObject x="-10" y="-22" width="220" height="44">
-          <div>
+        <foreignObject x="-10" y="-24" width="300" height="50" overflow="visible">
+          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
             <button
               className={`map-pin-zone-label${owner === 'friend' ? ' map-pin-zone-label--friend' : ''}`}
               style={{ '--pin-color': color } as CSSProperties}
               onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
             >
-              <span>{destination.tier}</span>
-              <strong>{destination.name}</strong>
+              <ZoneStar />
+              <span className="map-pin-pill-name">{destination.name}</span>
+              {destination.score != null && (
+                <span className="map-pin-pill-sub">· {destination.score.toFixed(1)}</span>
+              )}
             </button>
           </div>
         </foreignObject>

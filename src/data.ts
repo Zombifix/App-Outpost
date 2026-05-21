@@ -45,6 +45,21 @@ export const DESTINATIONS: Destination[] = [
     food: 5, night: 5, culture: 4, nature: 3, value: 4, intent: 'sorties',
   },
   {
+    name: 'Italie', country: 'Italie', lat: 42.7, lng: 12.4, tier: 'A',
+    kind: 'zone',
+    image: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=900&q=85',
+    score: 4.1, notes: 4,
+    tripYear: 2025, tripDays: 12, companions: 'amis', personalBudget: 980, standout: 'Paysages',
+    extent: [6.4, 36.4, 18.7, 46.7],
+    stops: [
+      { name: 'Turin', lat: 45.07, lng: 7.69, type: 'stage' },
+      { name: 'Venise', lat: 45.44, lng: 12.33, type: 'stage' },
+      { name: 'Trogir', lat: 43.52, lng: 16.25, type: 'stage' },
+      { name: 'Taormine', lat: 37.85, lng: 15.29, type: 'stage' },
+    ],
+    food: 5, night: 3, culture: 5, nature: 4, value: 3, intent: 'tourisme',
+  },
+  {
     name: 'Bangkok', country: 'Thailande', lat: 13.75, lng: 100.5, tier: 'B',
     image: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=900&q=85',
     score: 3.7, notes: 16,

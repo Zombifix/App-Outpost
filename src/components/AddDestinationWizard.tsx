@@ -20,7 +20,7 @@ export interface SaveOptions {
 }
 
 type DestKind = 'place' | 'zone' | 'stop' | 'stage'
-type WizardStep = 'search' | 'type' | 'questions' | 'result'
+type WizardStep = 'search' | 'type' | 'questions' | 'stops' | 'result'
 
 interface PhotonResult {
   name: string
@@ -149,14 +149,11 @@ function StopAutocomplete({
   }, [query, stop.name, stop.lat, country, state, centerLat, centerLng])
 
   const pick = (r: PhotonResult) => {
-    onChange({ name: r.name, lat: r.lat, lng: r.lng, type: stop.type })
+    onChange({ name: r.name, lat: r.lat, lng: r.lng, type: 'stage' })
     setQuery(r.name)
     setResults([])
     setOpen(false)
   }
-
-  const isPassage = stop.type === 'passage'
-  const toggleType = () => onChange({ ...stop, type: isPassage ? 'stage' : 'passage' })
 
   const rowClass = [
     'wizard-stop-row',
@@ -187,20 +184,13 @@ function StopAutocomplete({
           onChange={e => {
             setQuery(e.target.value)
             setOpen(true)
-            onChange({ name: e.target.value, lat: NaN, lng: NaN, type: stop.type })
+            onChange({ name: e.target.value, lat: NaN, lng: NaN, type: 'stage' })
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => {
             blurTimerRef.current = setTimeout(() => setOpen(false), 160)
           }}
         />
-        <button
-          className={`wizard-stop-type${isPassage ? ' is-passage' : ''}`}
-          type="button"
-          aria-label={isPassage ? 'Marquer comme étape' : 'Marquer comme passage'}
-          title={isPassage ? 'Ville de passage (cliquer pour marquer étape)' : 'Étape (cliquer pour marquer passage)'}
-          onClick={toggleType}
-        >{isPassage ? 'passage' : 'étape'}</button>
         <button
           className="wizard-stop-remove"
           aria-label="Supprimer"
@@ -234,6 +224,20 @@ function normalizeCountry(s: string): string {
     .trim()
 }
 
+function mergePhotonResults(...groups: PhotonResult[][]): PhotonResult[] {
+  const seen = new Set<string>()
+  const merged: PhotonResult[] = []
+  for (const group of groups) {
+    for (const item of group) {
+      const key = `${normalizeCountry(item.name)}|${item.lat.toFixed(4)}|${item.lng.toFixed(4)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(item)
+    }
+  }
+  return merged
+}
+
 async function searchPhoton(
   q: string,
   opts: {
@@ -244,25 +248,35 @@ async function searchPhoton(
     kindFilter?: 'place' | 'zone'
   } = {},
 ): Promise<PhotonResult[]> {
-  const params = [`q=${encodeURIComponent(q)}`, 'limit=15', 'lang=fr']
-  if (Number.isFinite(opts.lat) && Number.isFinite(opts.lng)) {
-    params.push(`lat=${opts.lat}`, `lon=${opts.lng}`, 'location_bias_scale=0.3')
-  }
-  const res = await fetch(`https://photon.komoot.io/api/?${params.join('&')}`)
-  const data = await res.json()
-  let all: PhotonResult[] = (data.features ?? []).map((f: Record<string, unknown>) => {
-    const props = f.properties as Record<string, unknown>
-    const geom = f.geometry as { coordinates: [number, number] }
-    return {
-      name: (props.name as string) ?? '',
-      country: (props.country as string) ?? '',
-      state: (props.state as string) ?? undefined,
-      osmValue: (props.osm_value as string) ?? undefined,
-      lat: geom.coordinates[1],
-      lng: geom.coordinates[0],
-      extent: props.extent as [number, number, number, number] | undefined,
+  const fetchResults = async (withBias: boolean): Promise<PhotonResult[]> => {
+    const params = [`q=${encodeURIComponent(q)}`, 'limit=15', 'lang=fr']
+    if (withBias && Number.isFinite(opts.lat) && Number.isFinite(opts.lng)) {
+      params.push(`lat=${opts.lat}`, `lon=${opts.lng}`, 'location_bias_scale=0.3')
     }
-  })
+    const res = await fetch(`https://photon.komoot.io/api/?${params.join('&')}`)
+    const data = await res.json()
+    return (data.features ?? []).map((f: Record<string, unknown>) => {
+      const props = f.properties as Record<string, unknown>
+      const geom = f.geometry as { coordinates: [number, number] }
+      return {
+        name: (props.name as string) ?? '',
+        country: (props.country as string) ?? '',
+        state: (props.state as string) ?? undefined,
+        osmValue: (props.osm_value as string) ?? undefined,
+        lat: geom.coordinates[1],
+        lng: geom.coordinates[0],
+        extent: props.extent as [number, number, number, number] | undefined,
+      }
+    })
+  }
+
+  const shouldBlendNationalAndLocal = opts.kindFilter === 'place'
+    && Boolean(opts.country)
+    && Number.isFinite(opts.lat)
+    && Number.isFinite(opts.lng)
+  let all = shouldBlendNationalAndLocal
+    ? mergePhotonResults(await fetchResults(false), await fetchResults(true))
+    : await fetchResults(Number.isFinite(opts.lat) && Number.isFinite(opts.lng))
 
   if (opts.kindFilter === 'place') {
     all = all.filter(r => r.osmValue && PLACE_OSM_VALUES.has(r.osmValue))
@@ -385,6 +399,26 @@ const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; 
 
 const STANDOUT_OPTIONS = ['Ambiance', 'Bouffe', 'Rencontres', 'Paysages', 'Activites', 'Calme', 'Depaysement']
 
+const QUICK_STOP_SUGGESTIONS: Record<string, string[]> = {
+  allemagne: ['Berlin', 'Hambourg', 'Munich', 'Cologne', 'Francfort'],
+  italie: ['Turin', 'Venise', 'Florence', 'Rome', 'Naples', 'Taormine'],
+  france: ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Nice'],
+  espagne: ['Barcelone', 'Madrid', 'Seville', 'Valence', 'Grenade'],
+  portugal: ['Lisbonne', 'Porto', 'Coimbra', 'Faro'],
+  texas: ['Austin', 'Dallas', 'Houston', 'San Antonio'],
+  etatsunis: ['New York', 'Los Angeles', 'Chicago', 'San Francisco'],
+  etatsunisdamerique: ['New York', 'Los Angeles', 'Chicago', 'San Francisco'],
+}
+
+function getQuickStopSuggestions(state: WizardState, stops: RoadTripStop[]): string[] {
+  const keys = [state.name, state.state, state.country]
+    .filter(Boolean)
+    .map(value => normalizeCountry(value as string).replace(/[^a-z0-9]/g, ''))
+  const options = keys.flatMap(key => QUICK_STOP_SUGGESTIONS[key] ?? [])
+  const used = new Set(stops.map(stop => normalizeCountry(stop.name)))
+  return Array.from(new Set(options)).filter(name => !used.has(normalizeCountry(name))).slice(0, 5)
+}
+
 const TIER_LABELS: Record<Tier, string> = {
   S: 'Exceptionnel',
   A: 'Génial',
@@ -457,6 +491,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [stops, setStops] = useState<RoadTripStop[]>(
     isEditing && initialDestination.stops?.length ? initialDestination.stops : []
   )
+  const [quickStopLoading, setQuickStopLoading] = useState<string | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [resolvingImage, setResolvingImage] = useState(false)
@@ -494,6 +529,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const stopStateFilter = state.osmValue && ZONE_OSM_VALUES.has(state.osmValue) && state.osmValue !== 'country'
     ? (state.state || state.name)
     : undefined
+  const quickStopSuggestions = getQuickStopSuggestions(state, stops)
 
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
@@ -569,7 +605,36 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       const tier = scoreToTier(score)
       setFinalScore(score)
       setFinalTier(tier)
-      setStep('result')
+      setStep(state.kind === 'zone' ? 'stops' : 'result')
+    }
+  }
+
+  const addEmptyStop = () => {
+    if (stops.length >= 7) return
+    setStops(prev => [...prev, { name: '', lat: NaN, lng: NaN, type: 'stage' }])
+  }
+
+  const addQuickStop = async (name: string) => {
+    if (quickStopLoading || stops.length >= 7) return
+    setQuickStopLoading(name)
+    try {
+      const results = await searchPhoton(name, {
+        country: state.country,
+        state: stopStateFilter,
+        lat: stopCenter.lat,
+        lng: stopCenter.lng,
+        kindFilter: 'place',
+      })
+      const exact = results.find(result => normalizeCountry(result.name) === normalizeCountry(name))
+      const pick = exact ?? results[0]
+      if (!pick) return
+      setStops(prev => {
+        const alreadyUsed = prev.some(stop => normalizeCountry(stop.name) === normalizeCountry(pick.name))
+        if (alreadyUsed || prev.length >= 7) return prev
+        return [...prev, { name: pick.name, lat: pick.lat, lng: pick.lng, type: 'stage' }]
+      })
+    } finally {
+      setQuickStopLoading(null)
     }
   }
 
@@ -646,6 +711,91 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   }
 
   const activeQuestions = QUESTIONS
+  const progressSteps: WizardStep[] = state.kind === 'zone'
+    ? ['type', 'search', 'questions', 'stops']
+    : ['type', 'search', 'questions']
+
+  const renderStopsSection = () => (
+    <div className="wizard-stops">
+      <div className="wizard-quick-stops">
+        <p className="wizard-quick-stops-title">Suggestions rapides</p>
+        <div className="wizard-quick-stops-row">
+          {quickStopSuggestions.length > 0 ? quickStopSuggestions.map(name => (
+            <button
+              key={name}
+              type="button"
+              className="wizard-quick-stop-btn"
+              disabled={quickStopLoading !== null || stops.length >= 7}
+              onClick={() => addQuickStop(name)}
+            >
+              {quickStopLoading === name ? 'Ajout...' : `+ ${name}`}
+            </button>
+          )) : (
+            <span className="wizard-quick-stop-empty">Ajoute tes villes dans l'ordre du trajet.</span>
+          )}
+        </div>
+      </div>
+
+      {stops.map((stop, i) => {
+        const stopLinkedDest = stop.name && Number.isFinite(stop.lat) && Number.isFinite(stop.lng) && existingDestinations
+          ? findDestinationAtLocation(stop, existingDestinations)
+          : null
+        return (
+          <div key={i}>
+            <StopAutocomplete
+              index={i}
+              stop={stop}
+              country={state.country}
+              state={stopStateFilter}
+              centerLat={stopCenter.lat}
+              centerLng={stopCenter.lng}
+              isDragging={dragIndex === i}
+              isDragTarget={dragOverIndex === i && dragIndex !== null && dragIndex !== i}
+              onDragStart={() => setDragIndex(i)}
+              onDragOver={e => {
+                if (dragIndex === null) return
+                e.preventDefault()
+                if (dragOverIndex !== i) setDragOverIndex(i)
+              }}
+              onDragLeave={() => {
+                if (dragOverIndex === i) setDragOverIndex(null)
+              }}
+              onDrop={() => {
+                if (dragIndex !== null && dragIndex !== i) reorderStops(dragIndex, i)
+                setDragIndex(null)
+                setDragOverIndex(null)
+              }}
+              onDragEnd={() => {
+                setDragIndex(null)
+                setDragOverIndex(null)
+              }}
+              onChange={next => {
+                const updated = [...stops]
+                updated[i] = next
+                setStops(updated)
+              }}
+              onRemove={() => setStops(stops.filter((_, j) => j !== i))}
+            />
+            {stopLinkedDest && (
+              <p className="wizard-dup-hint">
+                Tu as deja note <strong>{stopLinkedDest.name}</strong> - le stop sera lie automatiquement.
+              </p>
+            )}
+          </div>
+        )
+      })}
+
+      {stops.length < 7 && (
+        <button
+          type="button"
+          className="wizard-add-stop"
+          onClick={addEmptyStop}
+        >
+          + Ajouter une etape
+        </button>
+      )}
+    </div>
+  )
 
   return (
     <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -663,8 +813,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         {/* Progress dots — masqués en mode édition (on saute type/search) */}
         {!isEditing && step !== 'result' && (
           <div className="wizard-progress">
-            {(['type', 'search', 'questions'] as WizardStep[]).map((s, i) => (
-              <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < ['type', 'search', 'questions'].indexOf(step) ? 'done' : '')}`} />
+            {progressSteps.map((s, i) => (
+              <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < progressSteps.indexOf(step) ? 'done' : '')}`} />
             ))}
           </div>
         )}
@@ -762,6 +912,27 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           </div>
         )}
 
+        {step === 'stops' && state.kind === 'zone' && (
+          <div className="wizard-step wizard-stops-step">
+            <div className="wizard-question-counter">
+              Itineraire
+            </div>
+            <h2 className="wizard-title">Quelles etaient les etapes ?</h2>
+            <p className="wizard-sub">
+              Optionnel : ajoute seulement les stops qui racontent le trajet. La note reste globale au road trip.
+            </p>
+            {renderStopsSection()}
+            <div className="wizard-step-actions">
+              <button className="wizard-back" onClick={() => setStep('questions')}>
+                Retour
+              </button>
+              <button className="wizard-next" onClick={() => setStep('result')}>
+                {stops.length > 0 ? 'Continuer' : 'Passer'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {step === 'result' && (
           <div className="wizard-step wizard-result">
             <p className="wizard-place-name">{state.name}</p>
@@ -791,67 +962,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 )
               })}
             </div>
-            {state.kind === 'zone' && (
-              <div className="wizard-stops">
-                <p className="wizard-stops-title">Étapes du road trip <span>(optionnel)</span></p>
-                {stops.map((stop, i) => {
-                  const stopLinkedDest = stop.name && Number.isFinite(stop.lat) && Number.isFinite(stop.lng) && existingDestinations
-                    ? findDestinationAtLocation(stop, existingDestinations)
-                    : null
-                  return (
-                    <div key={i}>
-                      <StopAutocomplete
-                        index={i}
-                        stop={stop}
-                        country={state.country}
-                        state={stopStateFilter}
-                        centerLat={stopCenter.lat}
-                        centerLng={stopCenter.lng}
-                        isDragging={dragIndex === i}
-                        isDragTarget={dragOverIndex === i && dragIndex !== null && dragIndex !== i}
-                        onDragStart={() => setDragIndex(i)}
-                        onDragOver={e => {
-                          if (dragIndex === null) return
-                          e.preventDefault()
-                          if (dragOverIndex !== i) setDragOverIndex(i)
-                        }}
-                        onDragLeave={() => {
-                          if (dragOverIndex === i) setDragOverIndex(null)
-                        }}
-                        onDrop={() => {
-                          if (dragIndex !== null && dragIndex !== i) reorderStops(dragIndex, i)
-                          setDragIndex(null)
-                          setDragOverIndex(null)
-                        }}
-                        onDragEnd={() => {
-                          setDragIndex(null)
-                          setDragOverIndex(null)
-                        }}
-                        onChange={next => {
-                          const updated = [...stops]
-                          updated[i] = next
-                          setStops(updated)
-                        }}
-                        onRemove={() => setStops(stops.filter((_, j) => j !== i))}
-                      />
-                      {stopLinkedDest && (
-                        <p className="wizard-dup-hint">
-                          📍 Tu as déjà noté <strong>{stopLinkedDest.name}</strong> — le stop sera lié automatiquement.
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-                {stops.length < 7 && (
-                  <button
-                    className="wizard-add-stop"
-                    onClick={() => setStops([...stops, { name: '', lat: NaN, lng: NaN }])}
-                  >
-                    + Ajouter une étape
-                  </button>
-                )}
-              </div>
-            )}
             <div className="wizard-context">
               <p className="wizard-context-title">Contexte optionnel</p>
               <div className="wizard-context-grid">

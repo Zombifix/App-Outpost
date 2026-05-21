@@ -24,6 +24,37 @@ const tierLabels: Record<Tier, string> = {
   D: 'Decouvrant',
 }
 
+type SortMode = 'score' | 'recent'
+
+const sortLabels: Record<SortMode, string> = {
+  score: 'Meilleures notes',
+  recent: 'Derniers voyages',
+}
+
+function destinationScore(destination: Destination) {
+  return destination.score ?? (
+    destination.food +
+    destination.night +
+    destination.culture +
+    destination.nature +
+    destination.value
+  ) / 5
+}
+
+function compareDestinations(a: Destination, b: Destination, sortMode: SortMode) {
+  const aScore = destinationScore(a)
+  const bScore = destinationScore(b)
+
+  if (sortMode === 'recent') {
+    const aYear = a.tripYear ?? -Infinity
+    const bYear = b.tripYear ?? -Infinity
+    if (aYear !== bYear) return bYear - aYear
+  }
+
+  if (aScore !== bScore) return bScore - aScore
+  return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+}
+
 export default function TierListPanel({
   destinations,
   collapsed,
@@ -38,6 +69,7 @@ export default function TierListPanel({
     destinations.some(d => d.tier === t && d.kind !== 'stop')
   )
   const [mobileTier, setMobileTier] = useState<Tier | 'all'>('all')
+  const [sortMode, setSortMode] = useState<SortMode>('score')
   const railRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 })
   const suppressClickRef = useRef(false)
@@ -120,11 +152,26 @@ export default function TierListPanel({
     event.stopPropagation()
   }
 
+  const sortControl = (className = '') => (
+    <div className={`tier-sort-toggle${className ? ` ${className}` : ''}`} role="group" aria-label="Trier la tier list">
+      {(['score', 'recent'] as SortMode[]).map(mode => (
+        <button
+          key={mode}
+          type="button"
+          className={sortMode === mode ? 'is-active' : ''}
+          onClick={() => setSortMode(mode)}
+        >
+          {sortLabels[mode]}
+        </button>
+      ))}
+    </div>
+  )
+
   const mobileTierItems = destinations.filter(d => {
     if (d.kind === 'stop') return false
     if (mobileTier === 'all') return Boolean(d.tier)
     return d.tier === mobileTier
-  })
+  }).sort((a, b) => compareDestinations(a, b, sortMode))
 
   return (
     <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}`} aria-label="Ma tier list">
@@ -153,25 +200,31 @@ export default function TierListPanel({
           <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
           <span className="tier-favorite-counter">{coupDeCoeurCount}/2 coups de coeur</span>
         </div>
-        {onCompareFriend && (
-          <CompareWithFriendButton onPick={onCompareFriend} compact />
-        )}
-        {onMobileToggle && (
-          <button
-            type="button"
-            className="tier-board-mobile-toggle"
-            onClick={onMobileToggle}
-            aria-label="Masquer la tier list"
-          >
-            <Icon name="sliders" />
-            Masquer
-          </button>
-        )}
+        <div className="tier-board-actions">
+          {sortControl()}
+          {onCompareFriend && (
+            <CompareWithFriendButton onPick={onCompareFriend} compact />
+          )}
+          {onMobileToggle && (
+            <button
+              type="button"
+              className="tier-board-mobile-toggle"
+              onClick={onMobileToggle}
+              aria-label="Masquer la tier list"
+            >
+              <Icon name="sliders" />
+              Masquer
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Mobile view: heading + tier pills + cards ── */}
       <div className="tier-mobile-section">
-        <h2 className="tier-mobile-title">Ma tier list</h2>
+        <div className="tier-mobile-topline">
+          <h2 className="tier-mobile-title">Ma tier list</h2>
+          {sortControl('tier-sort-toggle-mobile')}
+        </div>
         <div className="tier-mobile-tabs">
           <button
             className={`tier-pill tier-pill-all${mobileTier === 'all' ? ' is-active' : ''}`}
@@ -219,9 +272,11 @@ export default function TierListPanel({
                     {destination.tier}
                   </span>
                 )}
-                <span className={`mini-heart-badge${isCoupDeCoeur ? ' is-active' : ''}`} aria-label={isCoupDeCoeur ? 'Coup de coeur' : 'Non coup de coeur'}>
-                  <HeartIcon filled={isCoupDeCoeur} />
-                </span>
+                {isCoupDeCoeur && (
+                  <span className="mini-heart-badge is-active" aria-label="Coup de coeur">
+                    <HeartIcon filled />
+                  </span>
+                )}
               </article>
             )
           })}
@@ -249,7 +304,9 @@ export default function TierListPanel({
           onClickCapture={handleRailClickCapture}
         >
           {TIER_ORDER.map(tier => {
-            const items = destinations.filter(destination => destination.tier === tier && destination.kind !== 'stop')
+            const items = destinations
+              .filter(destination => destination.tier === tier && destination.kind !== 'stop')
+              .sort((a, b) => compareDestinations(a, b, sortMode))
             const colors = TIER_COLORS[tier]
 
             return (

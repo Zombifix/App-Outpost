@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import type { Destination } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
-import { findRoadtripStopsAtLocation } from '../utils/duplicates'
+import { scoreToTier } from '../utils'
+import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
 
@@ -81,6 +82,27 @@ function getDestinationContext(destination: Destination) {
   }
 
   return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
+}
+
+function getCriteria(destination: Destination) {
+  return [
+    ['Gastronomie', destination.food, 'utensils'],
+    ['Sorties & Vie nocturne', destination.night, 'martini'],
+    ['Culture & Histoire', destination.culture, 'temple'],
+    ['Nature & Paysages', destination.nature, 'mountain'],
+    ['Rapport qualite/prix', destination.value, 'coins'],
+  ] as const
+}
+
+function formatScore(destination: Destination) {
+  return (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
+    .toFixed(1)
+    .replace('.', ',')
+}
+
+function getDisplayTier(destination: Destination) {
+  if (Number.isFinite(destination.score)) return scoreToTier(destination.score as number)
+  return destination.tier
 }
 
 export default function DestinationSheet(props: DestinationSheetProps) {
@@ -220,14 +242,7 @@ function DestinationCardContent({
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const context = getDestinationContext(destination)
-
-  const criteria = [
-    ['Gastronomie', destination.food, 'utensils'],
-    ['Sorties & Vie nocturne', destination.night, 'martini'],
-    ['Culture & Histoire', destination.culture, 'temple'],
-    ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualite/prix', destination.value, 'coins'],
-  ] as const
+  const criteria = getCriteria(destination)
 
   const tripStopsHere = useMemo(() => {
     if (!allDestinations?.length) return []
@@ -308,6 +323,21 @@ function DestinationCardContent({
           </div>
         )}
       </div>
+      {destination.kind === 'zone' ? (
+        <RoadTripCardContent
+          destination={destination}
+          coupDeCoeur={coupDeCoeur}
+          coupDeCoeurDisabled={coupDeCoeurDisabled}
+          coupDeCoeurCount={coupDeCoeurCount}
+          context={context}
+          criteria={criteria}
+          allDestinations={allDestinations}
+          onCoupDeCoeur={onCoupDeCoeur}
+          onFocus={onFocus}
+          onOpenDestination={onOpenTrip}
+        />
+      ) : (
+        <>
       <div
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
@@ -403,7 +433,7 @@ function DestinationCardContent({
             {tripsHereByName.map(([tripName, info]) => {
               const stageLabel = info.stages.length
                 ? `stop #${info.stages.join(', #')}`
-                : 'passage'
+                : 'itineraire'
               return (
                 <li key={tripName}>
                   <span className="trip-dot" style={{ '--trip-color': info.color } as CSSProperties} />
@@ -429,6 +459,160 @@ function DestinationCardContent({
       <button className="map-button" onClick={onFocus}>
         <Icon name="map" />
         Voir sur la carte
+      </button>
+        </>
+      )}
+    </>
+  )
+}
+
+interface RoadTripCardContentProps {
+  destination: Destination
+  coupDeCoeur: boolean
+  coupDeCoeurDisabled: boolean
+  coupDeCoeurCount: number
+  context: ReturnType<typeof getDestinationContext>
+  criteria: ReturnType<typeof getCriteria>
+  allDestinations?: Destination[]
+  onCoupDeCoeur: () => void
+  onFocus: () => void
+  onOpenDestination?: (name: string) => void
+}
+
+function RoadTripCardContent({
+  destination,
+  coupDeCoeur,
+  coupDeCoeurDisabled,
+  coupDeCoeurCount,
+  context,
+  criteria,
+  allDestinations,
+  onCoupDeCoeur,
+  onFocus,
+  onOpenDestination,
+}: RoadTripCardContentProps) {
+  const validStops = destination.stops?.filter(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)) ?? []
+  const stageCount = validStops.length
+  const score = formatScore(destination)
+  const displayTier = getDisplayTier(destination)
+
+  return (
+    <>
+      <div
+        className="destination-hero roadtrip-hero"
+        style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
+      >
+        <div className="destination-hero-pills">
+          <span className="intent-pill destination-hero-pill">
+            <Icon name="map" />
+            Road trip
+          </span>
+          <span className="intent-pill destination-hero-pill">
+            {stageCount || validStops.length} etape{(stageCount || validStops.length) > 1 ? 's' : ''}
+          </span>
+          <button
+            className={`coup-de-coeur-button destination-hero-favorite${coupDeCoeur ? ' is-active' : ''}`}
+            aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Ajouter en coup de coeur - ${coupDeCoeurCount}/2 utilises`}
+            title={coupDeCoeur ? 'Coup de coeur - retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur - ${coupDeCoeurCount}/2 utilises`}
+            disabled={coupDeCoeurDisabled}
+            onClick={onCoupDeCoeur}
+          >
+            <span aria-hidden="true">♥</span>
+            Coup de coeur
+          </button>
+        </div>
+      </div>
+
+      <div className="destination-title-row roadtrip-title-row">
+        {displayTier && <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>}
+        <div>
+          <h2>{destination.name}</h2>
+          <p className="roadtrip-title-sub">Experience globale du voyage</p>
+        </div>
+      </div>
+
+      <section className="roadtrip-score-card" aria-label="Evaluation globale du road trip">
+        <div>
+          <span>Evaluation globale</span>
+          <strong>{score}</strong>
+        </div>
+        <p>Note le road trip comme l'experience que tu as vraiment vecue. Les etapes racontent le trajet; tu peux detailler une ville seulement si elle merite sa propre fiche.</p>
+      </section>
+
+      {context.hasContext && (
+        <div className="destination-context roadtrip-context" aria-label="Contexte du road trip">
+          {context.meta.length > 0 && (
+            <div className="destination-context-meta">
+              {context.meta.map(item => (
+                <span key={`${item.icon}-${item.label}`}>
+                  <Icon name={item.icon} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {context.details.length > 0 && (
+            <div className="destination-context-details">
+              {context.details.map(item => (
+                <div key={`${item.icon}-${item.label}`}>
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <h3>Notes globales</h3>
+      <div className="criteria-list">
+        {criteria.map(([label, value, icon]) => (
+          <div className="criterion" key={label}>
+            <Icon name={icon} />
+            <span>{label}</span>
+            <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
+          </div>
+        ))}
+      </div>
+
+      <section className="roadtrip-itinerary" aria-label="Itineraire du road trip">
+        <div className="roadtrip-section-head">
+          <h3>Itineraire</h3>
+          <span>{validStops.length} stop{validStops.length > 1 ? 's' : ''}</span>
+        </div>
+        {validStops.length > 0 ? (
+          <ol className="roadtrip-timeline">
+            {validStops.map((stop, index) => {
+              const linkedDestination = allDestinations ? findDestinationAtLocation(stop, allDestinations) : null
+              return (
+                <li key={`${stop.name}-${index}`}>
+                  <span className="roadtrip-step-dot">{index + 1}</span>
+                  <div className="roadtrip-step-body">
+                    <div>
+                      <strong>{stop.name}</strong>
+                      <span>Stop du trajet</span>
+                    </div>
+                    {linkedDestination && linkedDestination.name !== destination.name ? (
+                      <button type="button" onClick={() => onOpenDestination?.(linkedDestination.name)}>
+                        Fiche existante
+                      </button>
+                    ) : (
+                      <em>Itineraire</em>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        ) : (
+          <p className="roadtrip-empty">Ajoute des etapes pour raconter le trajet sans devoir noter chaque ville.</p>
+        )}
+      </section>
+
+      <button className="map-button" onClick={onFocus}>
+        <Icon name="map" />
+        Voir le trajet
       </button>
     </>
   )

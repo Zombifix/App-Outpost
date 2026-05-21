@@ -396,22 +396,42 @@ function CarnetStats({
   const coeurs = destinations.filter(d => d.coupDeCoeur).length
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
-      <div className="carnet-stats-row">
-        <div className="carnet-stats-item">
-          <span className="carnet-stats-value">{destinations.length}</span>
-          <span className="carnet-stats-label">Destinations</span>
-        </div>
-        <div className="carnet-stats-item">
-          <span className="carnet-stats-value">{countries}</span>
-          <span className="carnet-stats-label">Pays visités</span>
-        </div>
+      {/* Watermark map icon */}
+      <svg className="carnet-stats-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden="true">
+        <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15"/><path d="M15 6v15"/>
+      </svg>
+
+      {/* Hero */}
+      <div className="carnet-stats-hero">
+        <span className="carnet-stats-hero-num">{destinations.length}</span>
+        <span className="carnet-stats-hero-label">destination{destinations.length > 1 ? 's' : ''}</span>
+        <span className="carnet-stats-hero-sub">vos aventures vous attendent</span>
       </div>
-      <div className="carnet-stats-divider-h" />
-      <div className="carnet-stats-coeur-row">
-        <span className="carnet-stats-heart">♥</span>
-        <div>
-          <span className="carnet-stats-value carnet-stats-coeur-val">{coeurs}</span>
-          <span className="carnet-stats-coeur-label">coup{coeurs !== 1 ? 's' : ''} de cœur</span>
+
+      {/* Bottom row */}
+      <div className="carnet-stats-bottom">
+        <div className="carnet-stats-chip">
+          <span className="carnet-stats-chip-icon carnet-stats-chip-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path d="m15 9-2 5-5 2 2-5Z"/>
+            </svg>
+          </span>
+          <div>
+            <span className="carnet-stats-chip-num">{countries}</span>
+            <span className="carnet-stats-chip-label">pays visités</span>
+          </div>
+        </div>
+        <div className="carnet-stats-chip">
+          <span className="carnet-stats-chip-icon carnet-stats-chip-red">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 21.593c-.525-.444-7.5-6.37-7.5-10.593 0-3.866 3.134-7 7-7 .948 0 1.85.196 2.67.548C15.29 4.572 16.5 4 18 4c3.866 0 6 2.635 6 5.5 0 4.5-7.5 11-12 12.093Z" opacity=".15"/>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </span>
+          <div>
+            <span className="carnet-stats-chip-num">{coeurs}</span>
+            <span className="carnet-stats-chip-label">coups de cœur</span>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Destination } from '../types'
+import { getDestinationImagesForDestinations } from '../services/imageSearch'
 import {
   DESTINATION_SELECT_COLUMNS,
   rowToDestination,
@@ -9,8 +10,33 @@ import {
 
 const FRIEND_DESTINATIONS_CACHE_TTL_MS = 60_000
 const MAX_FRIEND_DESTINATIONS = 200
+const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 const friendDestinationsCache = new Map<string, { data: Destination[]; fetchedAt: number }>()
 const friendDestinationsInFlight = new Map<string, Promise<Destination[]>>()
+
+function needsCatalogImage(destination: Destination) {
+  return !destination.destinationKey || !destination.image || destination.imageProvider === 'fallback'
+}
+
+async function hydrateCatalogImages(destinations: Destination[]): Promise<Destination[]> {
+  const targets = destinations.filter(needsCatalogImage)
+  if (!targets.length) return destinations
+  const results = await getDestinationImagesForDestinations(targets, AUTO_IMAGE_FALLBACK)
+  if (!results.length) return destinations
+  return destinations.map(destination => {
+    const result = results.find(item => item.name === destination.name)
+    if (!result) return destination
+    return {
+      ...destination,
+      destinationKey: result.imageResult.destinationKey,
+      image: result.imageResult.image,
+      imageProvider: result.imageResult.imageProvider,
+      imageAuthor: result.imageResult.imageAuthor,
+      imageSourceUrl: result.imageResult.imageSourceUrl,
+      imageQuery: result.imageResult.imageQuery,
+    }
+  })
+}
 
 function getFreshCachedFriendDestinations(friendUserId: string) {
   const cached = friendDestinationsCache.get(friendUserId)
@@ -41,6 +67,9 @@ async function loadFriendDestinations(friendUserId: string, force = false): Prom
     .then(({ data, error: err }) => {
       if (err) throw err
       const destinations = (data as DbDestinationRow[]).map(rowToDestination)
+      return hydrateCatalogImages(destinations)
+    })
+    .then(destinations => {
       friendDestinationsCache.set(friendUserId, { data: destinations, fetchedAt: Date.now() })
       return destinations
     })

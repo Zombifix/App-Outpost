@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
-import { resolveDestinationImage } from '../services/imageSearch'
+import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
-import { INTENT_WEIGHTS, scoreToTier } from '../utils'
+import { calculateScore, scoreToTier } from '../utils'
 
 interface WizardProps {
   onClose: () => void
@@ -25,8 +25,11 @@ type WizardStep = 'search' | 'type' | 'questions' | 'stops' | 'result'
 interface PhotonResult {
   name: string
   country: string
+  countryCode?: string
   state?: string
   osmValue?: string
+  osmId?: number
+  osmType?: Destination['osmType']
   lat: number
   lng: number
   extent?: [number, number, number, number] // [minLng, minLat, maxLng, maxLat]
@@ -38,8 +41,11 @@ const PLACE_OSM_VALUES = new Set(['city', 'town', 'village', 'hamlet', 'suburb',
 interface WizardState {
   name: string
   country: string
+  countryCode?: string
   state?: string
   osmValue?: string
+  osmId?: number
+  osmType?: Destination['osmType']
   lat: number
   lng: number
   extent?: [number, number, number, number]
@@ -51,6 +57,8 @@ interface WizardState {
   culture: number | null
   nature: number | null
   value: number | null
+  ease: number | null
+  memorability: number | null
   vibeBoost: number | null
   retourBonus: number
   intent: Intent
@@ -58,7 +66,9 @@ interface WizardState {
   tripDays: number | null
   companions: Destination['companions'] | null
   personalBudget: number | null
+  tripTypes: string[]
   standout: string
+  standoutTags: string[]
   coupDeCoeur: boolean
   replaceCoupDeCoeurName: string
 }
@@ -82,25 +92,21 @@ async function fetchNominatimGeojson(name: string, country: string): Promise<Geo
   }
 }
 
-// INTENT_WEIGHTS et scoreToTier importés de ../utils — source unique.
-// Le wizard rajoute sa propre logique (axes optionnels, vibeBoost, retourBonus)
-// au-dessus des poids partagés.
+// calculateScore et scoreToTier importés de ../utils — source unique.
 
 function computeScore(state: WizardState): number {
-  const w = INTENT_WEIGHTS[state.intent]
-  const axes = [
-    ['food', state.food],
-    ['night', state.night],
-    ['culture', state.culture],
-    ['nature', state.nature],
-    ['value', state.value],
-  ] as const
-  const active = axes.filter(([, v]) => v !== null) as [keyof typeof w, number][]
-  const totalWeight = active.reduce((sum, [k]) => sum + w[k], 0)
-  const weighted = totalWeight === 0 ? 3 : active.reduce((sum, [k, v]) => sum + v * w[k], 0) / totalWeight
-  const vibe = state.vibeBoost ?? 3
-  const boosted = weighted + vibe * 0.2 * ((weighted - 1) / 4)
-  return Math.min(5, Math.max(1, boosted + state.retourBonus))
+  return calculateScore({
+    food: state.food,
+    night: state.night,
+    culture: state.culture,
+    nature: state.nature,
+    value: state.value,
+    ease: state.ease,
+    memorability: state.memorability,
+  }, state.intent, {
+    vibeBoost: state.vibeBoost,
+    retourBonus: state.retourBonus,
+  })
 }
 
 interface StopAutocompleteProps {
@@ -278,8 +284,11 @@ async function searchPhoton(
       return {
         name: (props.name as string) ?? '',
         country: (props.country as string) ?? '',
+        countryCode: (props.countrycode as string) ?? undefined,
         state: (props.state as string) ?? undefined,
         osmValue: (props.osm_value as string) ?? undefined,
+        osmId: Number.isFinite(Number(props.osm_id)) ? Number(props.osm_id) : undefined,
+        osmType: typeof props.osm_type === 'string' ? props.osm_type as Destination['osmType'] : undefined,
         lat: geom.coordinates[1],
         lng: geom.coordinates[0],
         extent: props.extent as [number, number, number, number] | undefined,
@@ -318,69 +327,89 @@ async function searchPhoton(
 const QUESTIONS = [
   {
     key: 'food' as const,
-    question: '🍽️ Niveau bouffe, c\'était comment ?',
+    question: '🍽️ Tu as bien mangé pendant ce séjour ?',
     answers: [
-      { label: 'Très bon', value: 5 },
-      { label: 'Bien', value: 4 },
+      { label: 'Très bien', value: 5 },
+      { label: 'Plutôt bien', value: 4 },
       { label: 'Moyen', value: 2 },
-      { label: 'Pas marquant', value: null },
+      { label: 'Pas assez testé / pas marquant', value: null },
     ],
   },
   {
     key: 'night' as const,
-    question: '🌙 Le soir, ça bougeait ?',
+    question: '🌙 Le soir, il y avait de la vie sur place ?',
     answers: [
       { label: 'Oui, beaucoup', value: 5 },
-      { label: 'Un peu', value: 4 },
+      { label: 'Oui, un peu', value: 4 },
       { label: 'Plutôt calme', value: 2 },
-      { label: 'Pas vu', value: null },
+      { label: 'Je n\'ai pas vraiment vu', value: null },
     ],
   },
   {
     key: 'culture' as const,
-    question: '🗺️ À voir / à faire, c\'était comment ?',
+    question: '🗺️ Tu as trouvé facilement des choses à voir ou à faire ?',
     answers: [
-      { label: 'Beaucoup', value: 5 },
-      { label: 'Assez', value: 3 },
-      { label: 'Un peu limité', value: 2 },
-      { label: 'Vite fait le tour', value: 1 },
+      { label: 'Oui, largement', value: 5 },
+      { label: 'Oui, assez pour mon séjour', value: 4 },
+      { label: 'Pas tant que ça', value: 2 },
+      { label: 'J\'ai vite fait le tour', value: 1 },
     ],
   },
   {
     key: 'nature' as const,
-    question: '🏞️ Le décor valait le coup ?',
+    question: '🏙️ La destination était agréable à regarder / parcourir ?',
     answers: [
-      { label: 'Carrément', value: 5 },
-      { label: 'Oui', value: 3 },
+      { label: 'Oui, vraiment', value: 5 },
+      { label: 'Oui, plutôt', value: 4 },
       { label: 'Pas spécialement', value: 2 },
-      { label: 'Pas le sujet', value: 1 },
+      { label: 'Ce n\'était pas son point fort', value: 1 },
     ],
   },
   {
     key: 'value' as const,
-    question: '💸 Niveau budget, c\'était comment ?',
+    question: '💸 Globalement, tu as trouvé que les prix étaient justifiés ?',
     answers: [
-      { label: 'Bon plan', value: 5 },
-      { label: 'Correct', value: 3 },
-      { label: 'Un peu cher', value: 2 },
-      { label: 'Trop cher', value: 1 },
+      { label: 'Oui, ça valait clairement son prix', value: 5 },
+      { label: 'Oui, plutôt', value: 4 },
+      { label: 'Un peu cher pour ce que c\'était', value: 2 },
+      { label: 'Trop cher pour l\'expérience', value: 1 },
+    ],
+  },
+  {
+    key: 'ease' as const,
+    question: '🧩 Sur place, c\'était facile de profiter du séjour ?',
+    answers: [
+      { label: 'Oui, très facile', value: 5 },
+      { label: 'Globalement oui', value: 4 },
+      { label: 'Pas toujours', value: 2 },
+      { label: 'Non, trop de galères', value: 1 },
+    ],
+  },
+  {
+    key: 'memorability' as const,
+    question: '✨ Cette destination t\'a laissé un vrai souvenir ?',
+    answers: [
+      { label: 'Oui, clairement', value: 5 },
+      { label: 'Oui, quelques bons moments', value: 4 },
+      { label: 'Pas vraiment', value: 2 },
+      { label: 'Non, rien de marquant', value: 1 },
     ],
   },
   {
     key: 'vibeBoost' as const,
-    question: '🫶 Tu t\'y es senti bien ?',
+    question: '🫶 Globalement, tu t\'es senti bien là-bas ?',
     answers: [
       { label: 'Oui, direct', value: 5 },
-      { label: 'Globalement oui', value: 4 },
+      { label: 'Oui, globalement', value: 4 },
       { label: 'Mitigé', value: 3 },
       { label: 'Pas accroché', value: 2 },
     ],
   },
   {
     key: 'retourBonus' as const,
-    question: '🔁 Tu y retournerais ?',
+    question: '🔁 Avec le recul, tu y retournerais ?',
     answers: [
-      { label: 'Oui, direct', value: 0.3 },
+      { label: 'Oui, sans hésiter', value: 0.3 },
       { label: 'Oui, mais pas en priorité', value: 0.1 },
       { label: 'Pas sûr', value: 0 },
       { label: 'Non', value: -0.3 },
@@ -388,7 +417,7 @@ const QUESTIONS = [
   },
   {
     key: 'intent' as const,
-    question: '🧭 C\'était plutôt quel genre de voyage ?',
+    question: '🧭 Ce séjour, c\'était surtout quel type d\'expérience ?',
     answers: [
       { label: 'Culture', value: 'tourisme' as Intent },
       { label: 'Food', value: 'gastro' as Intent },
@@ -402,7 +431,7 @@ const QUESTIONS = [
   },
 ]
 
-type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'vibeBoost' | 'retourBonus' | 'intent'
+type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'memorability' | 'vibeBoost' | 'retourBonus' | 'intent'
 
 const TYPE_OPTIONS: { kind: DestKind; icon: string; label: string; desc: string }[] = [
   { kind: 'place', icon: '📍', label: 'Destination', desc: 'Une ville ou un endroit précis' },
@@ -410,14 +439,47 @@ const TYPE_OPTIONS: { kind: DestKind; icon: string; label: string; desc: string 
 ]
 
 const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; label: string }> = [
-  { value: 'solo', label: 'Solo' },
-  { value: 'couple', label: 'Couple' },
-  { value: 'amis', label: 'Amis' },
-  { value: 'famille', label: 'Famille' },
-  { value: 'travail', label: 'Travail' },
+  { value: 'solo', label: '🧍 Solo' },
+  { value: 'couple', label: '💑 Couple' },
+  { value: 'amis', label: '👯 Amis' },
+  { value: 'famille', label: '👨‍👩‍👧 Famille' },
+  { value: 'travail', label: '💻 Travail' },
 ]
 
-const STANDOUT_OPTIONS = ['Ambiance', 'Bouffe', 'Rencontres', 'Paysages', 'Activites', 'Calme', 'Depaysement']
+const TRIP_TYPE_OPTIONS = [
+  '🏛️ Culture',
+  '🍽️ Food',
+  '🌿 Nature',
+  '🏙️ Ville',
+  '🌙 Fête',
+  '🧘 Repos',
+  '💻 Boulot',
+  '🚗 Road trip',
+]
+
+const STANDOUT_OPTIONS = [
+  '✨ Ambiance',
+  '🍽️ Bouffe',
+  '🤝 Rencontres',
+  '🏞️ Paysages',
+  '🎯 Activités',
+  '😌 Calme',
+  '🌍 Dépaysement',
+  '🏛️ Architecture',
+  '🧩 Galères',
+  '💸 Trop cher',
+  '📸 Trop touristique',
+  '😮‍💨 Fatigant',
+]
+
+function stripChipEmoji(label: string) {
+  const firstSpace = label.indexOf(' ')
+  return firstSpace === -1 ? label : label.slice(firstSpace + 1)
+}
+
+function restoreChipLabel(value: string, options: string[]) {
+  return options.find(option => stripChipEmoji(option) === value) ?? value
+}
 
 const QUICK_STOP_SUGGESTIONS: Record<string, string[]> = {
   allemagne: ['Berlin', 'Hambourg', 'Munich', 'Cologne', 'Francfort'],
@@ -470,8 +532,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       ? {
           name: initialDestination.name,
           country: initialDestination.country,
+          countryCode: initialDestination.countryCode,
           state: initialDestination.state,
           osmValue: initialDestination.osmValue,
+          osmId: initialDestination.osmId,
+          osmType: initialDestination.osmType,
           lat: initialDestination.lat,
           lng: initialDestination.lng,
           extent: initialDestination.extent,
@@ -483,6 +548,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           culture: initialDestination.culture,
           nature: initialDestination.nature,
           value: initialDestination.value,
+          ease: initialDestination.ease ?? null,
+          memorability: initialDestination.memorability ?? null,
           vibeBoost: null,
           retourBonus: 0,
           intent: initialDestination.intent,
@@ -490,17 +557,20 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           tripDays: initialDestination.tripDays ?? null,
           companions: initialDestination.companions ?? null,
           personalBudget: initialDestination.personalBudget ?? null,
+          tripTypes: initialDestination.tripTypes ?? [],
           standout: initialDestination.standout ?? '',
+          standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, STANDOUT_OPTIONS)] : []),
           coupDeCoeur: Boolean(initialDestination.coupDeCoeur),
           replaceCoupDeCoeurName: '',
         }
       : {
-          name: '', country: '', state: undefined, osmValue: undefined, lat: 0, lng: 0,
+          name: '', country: '', countryCode: undefined, state: undefined, osmValue: undefined, osmId: undefined, osmType: undefined, lat: 0, lng: 0,
           kind: 'place', tripName: '',
           food: null, night: null, culture: null, nature: null, value: null,
+          ease: null, memorability: null,
           vibeBoost: null, retourBonus: 0,
           intent: 'tourisme',
-          tripYear: null, tripDays: null, companions: null, personalBudget: null, standout: '',
+          tripYear: null, tripDays: null, companions: null, personalBudget: null, tripTypes: [], standout: '', standoutTags: [],
           coupDeCoeur: false, replaceCoupDeCoeurName: '',
         }
   )
@@ -590,11 +660,14 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     setSuggestions([])
     setState(prev => ({
       ...prev,
-      name: r.name,
-      country: r.country,
-      state: r.state,
-      osmValue: r.osmValue,
-      lat: r.lat,
+          name: r.name,
+          country: r.country,
+          countryCode: r.countryCode,
+          state: r.state,
+          osmValue: r.osmValue,
+          osmId: r.osmId,
+          osmType: r.osmType,
+          lat: r.lat,
       lng: r.lng,
       extent: r.extent,
       geojson: undefined,
@@ -669,18 +742,26 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     const validStops = s.kind === 'zone'
       ? stops.filter(st => st.name.trim() && Number.isFinite(st.lat) && Number.isFinite(st.lng))
       : undefined
-    const imageResult = isEditing && initialDestination.image
+    const imageResult = isEditing && initialDestination.image && initialDestination.destinationKey
       ? {
           image: initialDestination.image,
           imageProvider: initialDestination.imageProvider,
           imageAuthor: initialDestination.imageAuthor,
           imageSourceUrl: initialDestination.imageSourceUrl,
           imageQuery: initialDestination.imageQuery,
+          destinationKey: initialDestination.destinationKey,
         }
-      : await resolveDestinationImage({
+      : await getDestinationImage({
           name: s.name,
           country: s.country,
+          state: s.state,
           kind: s.kind,
+          lat,
+          lng,
+          osmValue: s.osmValue,
+          osmId: s.osmId,
+          osmType: s.osmType,
+          countryCode: s.countryCode,
           stops: validStops,
           fallbackImage: DEFAULT_IMAGE,
         })
@@ -688,6 +769,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     const result: Destination = {
       name: s.name,
       country: s.country,
+      destinationKey: imageResult.destinationKey,
       lat, lng,
       tier: finalTier,
       kind: s.kind,
@@ -696,11 +778,16 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       geojson: s.kind === 'zone' ? s.geojson : undefined,
       state: s.state,
       osmValue: s.osmValue,
+      osmId: s.osmId,
+      osmType: s.osmType,
+      countryCode: s.countryCode,
       food: s.food || 3,
       night: s.night || 3,
       culture: s.culture || 3,
       nature: s.nature || 3,
       value: s.value || 3,
+      ease: s.ease ?? undefined,
+      memorability: s.memorability ?? undefined,
       intent: s.intent,
       score: Math.round(finalScore * 10) / 10,
       notes: isEditing ? (initialDestination.notes ?? 1) : 1,
@@ -714,7 +801,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       tripDays: Number.isFinite(s.tripDays) ? s.tripDays ?? undefined : undefined,
       companions: s.companions ?? undefined,
       personalBudget: Number.isFinite(s.personalBudget) ? s.personalBudget ?? undefined : undefined,
-      standout: s.standout.trim() || undefined,
+      tripTypes: s.tripTypes.length ? s.tripTypes : undefined,
+      standout: s.standoutTags[0] ? stripChipEmoji(s.standoutTags[0]) : undefined,
+      standoutTags: s.standoutTags.length ? s.standoutTags : undefined,
       coupDeCoeur: s.coupDeCoeur,
     }
 
@@ -734,6 +823,24 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const progressSteps: WizardStep[] = state.kind === 'zone'
     ? ['type', 'search', 'questions', 'stops']
     : ['type', 'search', 'questions']
+
+  const toggleTripType = (option: string) => {
+    setState(prev => {
+      const selected = prev.tripTypes.includes(option)
+      if (selected) return { ...prev, tripTypes: prev.tripTypes.filter(item => item !== option) }
+      if (prev.tripTypes.length >= 2) return prev
+      return { ...prev, tripTypes: [...prev.tripTypes, option] }
+    })
+  }
+
+  const toggleStandoutTag = (option: string) => {
+    setState(prev => ({
+      ...prev,
+      standoutTags: prev.standoutTags.includes(option)
+        ? prev.standoutTags.filter(item => item !== option)
+        : [...prev.standoutTags, option],
+    }))
+  }
 
   const renderStopsSection = () => (
     <div className="wizard-stops">
@@ -969,9 +1076,19 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <strong>{finalScore.toFixed(1).replace('.', ',')}</strong>
             </div>
             <div className="result-axes">
-              {(['food', 'night', 'culture', 'nature', 'value'] as const).map(axis => {
-                const val = state[axis] || 3
-                const label = { food: 'Bouffe', night: 'Soirées', culture: 'Activités', nature: 'Nature', value: 'Prix' }[axis]
+              {(['food', 'night', 'culture', 'nature', 'value', 'ease', 'memorability'] as const).map(axis => {
+                const raw = state[axis]
+                if ((axis === 'ease' || axis === 'memorability') && raw === null) return null
+                const val = raw || 3
+                const label = {
+                  food: 'Bouffe',
+                  night: 'Soirées',
+                  culture: 'Activités',
+                  nature: 'Cadre',
+                  value: 'Prix',
+                  ease: 'Facilité',
+                  memorability: 'Souvenir',
+                }[axis]
                 return (
                   <div key={axis} className="result-axis">
                     <span>{label}</span>
@@ -983,7 +1100,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               })}
             </div>
             <div className="wizard-context">
-              <p className="wizard-context-title">Contexte optionnel</p>
+              <p className="wizard-context-title">Contexte du séjour</p>
               <div className="wizard-context-grid">
                 <label>
                   <span>Année</span>
@@ -1011,6 +1128,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                     placeholder="450 €"
                     onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
                   />
+                  <small className="wizard-field-helper">hors transport si besoin</small>
                 </label>
               </div>
               <div className="wizard-context-group">
@@ -1028,13 +1146,32 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 </div>
               </div>
               <div className="wizard-context-group">
-                <span>Ce qui t'a marque ?</span>
-                <div className="wizard-chip-row" aria-label="Ce qui t'a marqué">
+                <span>Type de séjour</span>
+                <div className="wizard-chip-row" aria-label="Type de séjour">
+                  {TRIP_TYPE_OPTIONS.map(option => {
+                    const isSelected = state.tripTypes.includes(option)
+                    const isDisabled = !isSelected && state.tripTypes.length >= 2
+                    return (
+                      <button
+                        key={option}
+                        className={isSelected ? 'is-selected' : ''}
+                        disabled={isDisabled}
+                        onClick={() => toggleTripType(option)}
+                      >
+                        {option}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="wizard-context-group">
+                <span>Ce que tu retiens du séjour</span>
+                <div className="wizard-chip-row" aria-label="Ce que tu retiens du séjour">
                   {STANDOUT_OPTIONS.map(option => (
                     <button
                       key={option}
-                      className={state.standout === option ? 'is-selected' : ''}
-                      onClick={() => setState(prev => ({ ...prev, standout: prev.standout === option ? '' : option }))}
+                      className={state.standoutTags.includes(option) ? 'is-selected' : ''}
+                      onClick={() => toggleStandoutTag(option)}
                     >
                       {option}
                     </button>
@@ -1042,20 +1179,23 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 </div>
               </div>
               <div className="wizard-context-group">
-                <span>Coup de coeur ?</span>
-                <div className="wizard-chip-row" aria-label="Coup de coeur">
+                <span>Coup de cœur</span>
+                <div className="wizard-toggle-row" aria-label="Coup de cœur">
                   <button
                     type="button"
-                    data-kind="favorite"
-                    className={state.coupDeCoeur ? 'is-selected' : ''}
+                    role="switch"
+                    aria-checked={state.coupDeCoeur}
+                    className={`wizard-favorite-toggle${state.coupDeCoeur ? ' is-selected' : ''}`}
                     onClick={() => setState(prev => ({
                       ...prev,
                       coupDeCoeur: !prev.coupDeCoeur,
                       replaceCoupDeCoeurName: prev.coupDeCoeur ? '' : prev.replaceCoupDeCoeurName,
                     }))}
                   >
-                    <span aria-hidden="true">♥</span>
-                    Coup de coeur
+                    <span className="wizard-favorite-switch" aria-hidden="true">
+                      <span>❤️</span>
+                    </span>
+                    <span>Coup de cœur</span>
                   </button>
                 </div>
                 {needsCoupDeCoeurReplacement && (

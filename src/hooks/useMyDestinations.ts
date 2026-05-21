@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Destination } from '../types'
-import { resolveDestinationImage } from '../services/imageSearch'
+import { getDestinationImagesForDestinations, type DestinationImageResult } from '../services/imageSearch'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import {
@@ -18,11 +18,23 @@ const DEFAULT_COUP_DE_COEUR_NAMES = new Set(['Kyoto'])
 const SUPABASE_PUSH_DEBOUNCE_MS = 400
 const MAX_REMOTE_DESTINATIONS = 200
 
-function hasWeakAutoImage(destination: Destination) {
-  return (destination.imageProvider === 'wikipedia' && destination.imageSearchVersion !== AUTO_IMAGE_VERSION)
-    || destination.imageProvider === 'wikimedia'
-    || destination.imageProvider === 'fallback'
-    || (!destination.imageProvider && destination.image === AUTO_IMAGE_FALLBACK)
+function needsCatalogImage(destination: Destination) {
+  return !destination.destinationKey
+    || !destination.image
+    || destination.imageSearchVersion !== AUTO_IMAGE_VERSION
+}
+
+function applyCatalogImage(destination: Destination, imageResult: DestinationImageResult): Destination {
+  return {
+    ...destination,
+    destinationKey: imageResult.destinationKey,
+    image: imageResult.image,
+    imageProvider: imageResult.imageProvider,
+    imageAuthor: imageResult.imageAuthor,
+    imageSourceUrl: imageResult.imageSourceUrl,
+    imageQuery: imageResult.imageQuery,
+    imageSearchVersion: AUTO_IMAGE_VERSION,
+  }
 }
 
 type DestinationNormalizer = (value: unknown) => Destination[] | null
@@ -288,39 +300,18 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
   // ---- Refresh d'images "faibles" en arrière-plan (existant conservé) -----
 
   useEffect(() => {
-    const refreshTargets = destinations.filter(hasWeakAutoImage)
+    const refreshTargets = destinations.filter(needsCatalogImage)
     if (!refreshTargets.length) return
 
     let cancelled = false
     void (async () => {
-      const results = await Promise.all(refreshTargets.map(async destination => {
-        const imageResult = await resolveDestinationImage({
-          name: destination.name,
-          country: destination.country,
-          kind: destination.kind,
-          stops: destination.stops,
-          fallbackImage: destination.image ?? AUTO_IMAGE_FALLBACK,
-        })
-        if (cancelled) return null
-        if (imageResult.imageProvider === 'fallback' || imageResult.imageProvider === 'wikimedia') return null
-        return { name: destination.name, imageResult }
-      }))
+      const results = await getDestinationImagesForDestinations(refreshTargets, AUTO_IMAGE_FALLBACK)
       if (cancelled) return
       const upgrades = results.filter((result): result is NonNullable<typeof result> => result !== null)
       if (!upgrades.length) return
       setDestinationsState(previous => previous.map(destination => {
         const upgrade = upgrades.find(item => item.name === destination.name)
-        return upgrade
-          ? {
-              ...destination,
-              image: upgrade.imageResult.image,
-              imageProvider: upgrade.imageResult.imageProvider,
-              imageAuthor: upgrade.imageResult.imageAuthor,
-              imageSourceUrl: upgrade.imageResult.imageSourceUrl,
-              imageQuery: upgrade.imageResult.imageQuery,
-              imageSearchVersion: AUTO_IMAGE_VERSION,
-            }
-          : destination
+        return upgrade ? applyCatalogImage(destination, upgrade.imageResult) : destination
       }))
     })().catch(() => { /* garder les images stockées */ })
 

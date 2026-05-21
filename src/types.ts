@@ -15,7 +15,10 @@ export interface RoadTripStop {
   type?: 'stage' | 'passage'
 }
 
+export type DestinationImageSource = 'unsplash' | 'pexels' | 'wikivoyage' | 'wikipedia' | 'wikimedia' | 'fallback'
+
 export interface Destination {
+  destinationKey?: string
   name: string
   country: string
   lat: number
@@ -27,8 +30,11 @@ export interface Destination {
   geojson?: GeoJSON.Geometry
   state?: string
   osmValue?: string
+  osmId?: number
+  osmType?: 'N' | 'W' | 'R' | 'node' | 'way' | 'relation'
+  countryCode?: string
   image?: string
-  imageProvider?: 'pexels' | 'wikivoyage' | 'wikipedia' | 'wikimedia' | 'fallback'
+  imageProvider?: DestinationImageSource
   imageAuthor?: string
   imageSourceUrl?: string
   imageQuery?: string
@@ -41,12 +47,16 @@ export interface Destination {
   tripDays?: number
   companions?: 'solo' | 'couple' | 'amis' | 'famille' | 'travail'
   personalBudget?: number
+  tripTypes?: string[]
   standout?: string
+  standoutTags?: string[]
   food: number
   night: number
   culture: number
   nature: number
   value: number
+  ease?: number
+  memorability?: number
   intent: Intent
   coupDeCoeur?: boolean
 }
@@ -124,4 +134,6 @@ export interface NewDestinationForm {
   culture: number
   nature: number
   value: number
+  ease?: number
+  memorability?: number
 }

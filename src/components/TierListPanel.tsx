@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react'
 import type { Destination, Friendship, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
+import { calculateScore } from '../utils'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
 
 interface TierListPanelProps {
@@ -36,13 +37,7 @@ const mobileSortLabels: Record<SortMode, string> = {
 }
 
 function destinationScore(destination: Destination) {
-  return destination.score ?? (
-    destination.food +
-    destination.night +
-    destination.culture +
-    destination.nature +
-    destination.value
-  ) / 5
+  return destination.score ?? calculateScore(destination, destination.intent)
 }
 
 function compareDestinations(a: Destination, b: Destination, sortMode: SortMode) {

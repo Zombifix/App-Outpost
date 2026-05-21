@@ -1,7 +1,9 @@
 import type { Tier, Intent } from './types'
 
-export type Ratings = { food: number; night: number; culture: number; nature: number; value: number }
-export type Weights = Record<keyof Ratings, number>
+export type WeightedRatingKey = 'food' | 'night' | 'culture' | 'nature' | 'value'
+export type NeutralRatingKey = 'ease' | 'memorability'
+export type Ratings = Record<WeightedRatingKey, number | null> & Partial<Record<NeutralRatingKey, number | null>>
+export type Weights = Record<WeightedRatingKey, number>
 
 // Source unique des poids — importée par utils + AddDestinationWizard.
 export const INTENT_WEIGHTS: Record<Intent, Weights> = {
@@ -13,16 +15,32 @@ export const INTENT_WEIGHTS: Record<Intent, Weights> = {
   'city-trip':{ culture: 1.0, food: 1.0, night: 1.0, nature: 1.0, value: 1.0 },
 }
 
-export function calculateScore(ratings: Ratings, intent: Intent): number {
+const WEIGHTED_RATING_KEYS: WeightedRatingKey[] = ['food', 'night', 'culture', 'nature', 'value']
+const NEUTRAL_RATING_KEYS: NeutralRatingKey[] = ['ease', 'memorability']
+
+export function calculateScore(
+  ratings: Ratings,
+  intent: Intent,
+  options?: { vibeBoost?: number | null; retourBonus?: number },
+): number {
   const w = INTENT_WEIGHTS[intent]
-  const raw =
-    ratings.food * w.food +
-    ratings.night * w.night +
-    ratings.culture * w.culture +
-    ratings.nature * w.nature +
-    ratings.value * w.value
-  const maxRaw = 5 * (w.food + w.night + w.culture + w.nature + w.value)
-  return (raw / maxRaw) * 5
+  const activeWeighted = WEIGHTED_RATING_KEYS
+    .map(key => [key, ratings[key]] as const)
+    .filter((entry): entry is readonly [WeightedRatingKey, number] => entry[1] !== null)
+  const totalWeight = activeWeighted.reduce((sum, [key]) => sum + w[key], 0)
+  const weighted = totalWeight === 0
+    ? 3
+    : activeWeighted.reduce((sum, [key, value]) => sum + value * w[key], 0) / totalWeight
+  const neutralAxes = NEUTRAL_RATING_KEYS
+    .map(key => ratings[key])
+    .filter((value): value is number => value !== null && value !== undefined)
+  const combined = neutralAxes.length === 0
+    ? weighted
+    : (weighted * totalWeight + neutralAxes.reduce((sum, value) => sum + value, 0)) / (totalWeight + neutralAxes.length)
+  const withVibe = options && 'vibeBoost' in options
+    ? combined + (options.vibeBoost ?? 3) * 0.2 * ((combined - 1) / 4)
+    : combined
+  return Math.min(5, Math.max(1, withVibe + (options?.retourBonus ?? 0)))
 }
 
 export function scoreToTier(score: number): Tier {

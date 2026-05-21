@@ -2209,7 +2209,7 @@ svg {
   pointer-events: none;
 }
 
-/* Coup de coeur — heart badge top-left + glow ring */
+/* Coup de coeur — heart badge top-left only */
 .map-pin-heart {
   position: absolute;
   top: -5px;
@@ -2231,11 +2231,10 @@ svg {
 
 .map-pin--coup-de-coeur {
   border-width: 3px;
-  border-color: #ff3b5c;
+  border-color: #fff;
   box-shadow:
-    0 0 0 3px rgba(255, 59, 92, 0.18),
-    0 10px 22px rgba(20, 30, 60, 0.26),
-    0 1px 2px rgba(20, 30, 60, 0.14);
+    0 8px 18px rgba(20, 30, 60, 0.22),
+    0 1px 2px rgba(20, 30, 60, 0.18);
   transform: scale(1.08);
 }
 
@@ -2246,7 +2245,6 @@ svg {
 .pin-selected .map-pin--coup-de-coeur {
   transform: translateY(-3px) scale(1.16);
   box-shadow:
-    0 0 0 4px rgba(255, 59, 92, 0.22),
     0 18px 32px rgba(20, 30, 60, 0.40),
     0 1px 2px rgba(20, 30, 60, 0.18);
 }
@@ -5147,9 +5145,9 @@ svg {
 .wizard-panel {
   background: #fff;
   border-radius: 22px;
-  padding: 36px 32px 32px;
+  padding: 38px 40px 34px;
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   position: relative;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
   max-height: 90vh;
@@ -5684,6 +5682,14 @@ svg {
   font-weight: var(--weight-semibold);
 }
 
+.wizard-field-helper {
+  color: #9aa5b7;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .wizard-context-group {
   padding-top: 12px;
   border-top: 1px solid #e7eef8;
@@ -5722,6 +5728,74 @@ svg {
   border-color: #1B5FE8;
   color: #1B5FE8;
   background: rgba(27, 95, 232, 0.1);
+}
+
+.wizard-chip-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.wizard-toggle-row {
+  display: flex;
+  align-items: center;
+}
+
+.wizard-favorite-toggle {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid #dde6f3;
+  border-radius: 999px;
+  background: #fff;
+  color: #56637a;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.wizard-favorite-switch {
+  width: 48px;
+  height: 28px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #e8eef7;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: background 0.16s ease;
+}
+
+.wizard-favorite-switch span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(24, 38, 68, 0.16);
+  font-size: 12px;
+  line-height: 1;
+  transform: translateX(0);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wizard-favorite-toggle.is-selected {
+  border-color: rgba(242, 95, 115, 0.32);
+  color: #9f2339;
+  background: rgba(255, 246, 248, 0.96);
+  box-shadow: 0 8px 18px rgba(242, 95, 115, 0.14);
+}
+
+.wizard-favorite-toggle.is-selected .wizard-favorite-switch {
+  background: linear-gradient(135deg, #f25f73 0%, #ff9f43 100%);
+}
+
+.wizard-favorite-toggle.is-selected .wizard-favorite-switch span {
+  transform: translateX(20px);
 }
 
 .wizard-chip-row button[data-kind="favorite"] {
@@ -5799,6 +5873,13 @@ svg {
   transition: color 0.12s;
 }
 .wizard-result-redo:hover { color: #3b7cf4; }
+
+@media (max-width: 900px) {
+  .wizard-panel {
+    max-width: 560px;
+    padding-inline: 34px;
+  }
+}
 
 @media (max-width: 760px) {
   .wizard-overlay {

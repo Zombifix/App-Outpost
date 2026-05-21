@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Destination } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
-import { scoreToTier } from '../utils'
+import { calculateScore, scoreToTier } from '../utils'
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
@@ -77,25 +77,36 @@ function getDestinationContext(destination: Destination) {
   if (destination.companions) {
     details.push({ icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })
   }
-  if (destination.standout) {
-    details.push({ icon: 'sparkles', label: 'Marquant', value: destination.standout })
+  if (destination.tripTypes?.length) {
+    details.push({ icon: 'sliders', label: 'Type', value: destination.tripTypes.join(' · ') })
+  }
+  const standoutValues = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
+  if (standoutValues.length) {
+    details.push({ icon: 'sparkles', label: 'Retenu', value: standoutValues.join(' · ') })
   }
 
   return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
 }
 
 function getCriteria(destination: Destination) {
-  return [
+  const base: Array<[string, number, string]> = [
     ['Gastronomie', destination.food, 'utensils'],
     ['Sorties & Vie nocturne', destination.night, 'martini'],
     ['Culture & Histoire', destination.culture, 'temple'],
     ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualite/prix', destination.value, 'coins'],
-  ] as const
+    ['Rapport qualité/prix', destination.value, 'coins'],
+  ]
+  if (typeof destination.ease === 'number') {
+    base.push(['Facilité sur place', destination.ease, 'compass'])
+  }
+  if (typeof destination.memorability === 'number') {
+    base.push(['Souvenir laissé', destination.memorability, 'star'])
+  }
+  return base
 }
 
 function formatScore(destination: Destination) {
-  return (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
+  return (destination.score ?? calculateScore(destination, destination.intent))
     .toFixed(1)
     .replace('.', ',')
 }

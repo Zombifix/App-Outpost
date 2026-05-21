@@ -43,6 +43,7 @@ const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
 const VALID_INTENTS: Intent[] = ['city-trip', 'tourisme', 'sorties', 'gastro', 'nature', 'travail']
 const VALID_KINDS: NonNullable<Destination['kind']>[] = ['place', 'zone', 'stop', 'stage']
 const VALID_COMPANIONS: NonNullable<Destination['companions']>[] = ['solo', 'couple', 'amis', 'famille', 'travail']
+const VALID_OSM_TYPES: NonNullable<Destination['osmType']>[] = ['N', 'W', 'R', 'node', 'way', 'relation']
 const DEFAULT_FILTERS: DestinationFilters = {
   topTiers: false,
   under300: false,
@@ -74,6 +75,15 @@ function normalizeStops(value: unknown): RoadTripStop[] | undefined {
   return stops.length ? stops : undefined
 }
 
+function normalizeStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const items = value
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean)
+  return items.length ? items : undefined
+}
+
 function normalizeDestination(value: unknown): Destination | null {
   if (!isRecord(value)) return null
   const name = typeof value.name === 'string' ? value.name.trim() : ''
@@ -96,6 +106,7 @@ function normalizeDestination(value: unknown): Destination | null {
   // Construction explicite : on ne fait PAS de spread du record d'entrée pour
   // éviter de propager des champs inconnus (sécurité de typage + invariants types).
   return {
+    destinationKey: typeof value.destinationKey === 'string' ? value.destinationKey : undefined,
     name,
     country,
     lat,
@@ -108,6 +119,8 @@ function normalizeDestination(value: unknown): Destination | null {
     culture: finiteNumber(value.culture, 3),
     nature: finiteNumber(value.nature, 3),
     value: finiteNumber(value.value, 3),
+    ease: value.ease === undefined || value.ease === null ? undefined : finiteNumber(value.ease, undefined),
+    memorability: value.memorability === undefined || value.memorability === null ? undefined : finiteNumber(value.memorability, undefined),
     score: value.score === undefined ? undefined : finiteNumber(value.score, 3),
     notes: value.notes === undefined ? undefined : finiteNumber(value.notes, 1),
     stops: normalizeStops(value.stops),
@@ -117,8 +130,13 @@ function normalizeDestination(value: unknown): Destination | null {
       : undefined,
     state: typeof value.state === 'string' ? value.state : undefined,
     osmValue: typeof value.osmValue === 'string' ? value.osmValue : undefined,
+    osmId: value.osmId === undefined ? undefined : finiteNumber(value.osmId, undefined),
+    osmType: VALID_OSM_TYPES.includes(value.osmType as NonNullable<Destination['osmType']>)
+      ? value.osmType as Destination['osmType']
+      : undefined,
+    countryCode: typeof value.countryCode === 'string' ? value.countryCode : undefined,
     image: typeof value.image === 'string' ? value.image : undefined,
-    imageProvider: ['pexels', 'wikivoyage', 'wikipedia', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
+    imageProvider: ['unsplash', 'pexels', 'wikivoyage', 'wikipedia', 'wikimedia', 'fallback'].includes(value.imageProvider as string)
       ? value.imageProvider as Destination['imageProvider']
       : undefined,
     imageAuthor: typeof value.imageAuthor === 'string' ? value.imageAuthor : undefined,
@@ -133,7 +151,9 @@ function normalizeDestination(value: unknown): Destination | null {
       ? value.companions as Destination['companions']
       : undefined,
     personalBudget: value.personalBudget === undefined ? undefined : finiteNumber(value.personalBudget, undefined),
+    tripTypes: normalizeStringList(value.tripTypes),
     standout: typeof value.standout === 'string' ? value.standout : undefined,
+    standoutTags: normalizeStringList(value.standoutTags),
     coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
   }
 }
@@ -345,7 +365,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
       if (filters.recentOnly && (!destination.tripYear || destination.tripYear < currentYear - 1)) return false
       if (filters.duration === 'short' && (!destination.tripDays || destination.tripDays > 4)) return false
       if (filters.duration === 'long' && (!destination.tripDays || destination.tripDays < 7)) return false
-      if (filters.ambiance && destination.standout !== 'Ambiance') return false
+      if (filters.ambiance && destination.standout !== 'Ambiance' && !destination.standoutTags?.some(tag => tag.includes('Ambiance'))) return false
       return true
     })
 
@@ -1045,8 +1065,12 @@ function getDestinationContext(destination: Destination) {
       label: destination.tripDays ? `~${formatEuro(perDay)}/jour` : `~${formatEuro(destination.personalBudget)}`,
     })
   }
-  if (destination.standout) {
-    details.push({ icon: 'sparkles', label: 'Marquant', value: destination.standout })
+  if (destination.tripTypes?.length) {
+    details.push({ icon: 'sliders', label: 'Type', value: destination.tripTypes.join(' · ') })
+  }
+  const standoutValues = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
+  if (standoutValues.length) {
+    details.push({ icon: 'sparkles', label: 'Retenu', value: standoutValues.join(' · ') })
   }
 
   return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
@@ -1057,13 +1081,19 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const context = getDestinationContext(destination)
 
-  const criteria = [
+  const criteria: Array<[string, number, string]> = [
     ['Gastronomie', destination.food, 'utensils'],
     ['Sorties & Vie nocturne', destination.night, 'martini'],
     ['Culture & Histoire', destination.culture, 'temple'],
     ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualite/prix', destination.value, 'coins'],
-  ] as const
+    ['Rapport qualité/prix', destination.value, 'coins'],
+  ]
+  if (typeof destination.ease === 'number') {
+    criteria.push(['Facilité sur place', destination.ease, 'compass'])
+  }
+  if (typeof destination.memorability === 'number') {
+    criteria.push(['Souvenir laissé', destination.memorability, 'star'])
+  }
 
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
 

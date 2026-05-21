@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
+import { calculateScore } from '../utils'
 import { destinationNameKey } from '../utils/destinationIdentity'
 import { haversineMeters } from '../utils/duplicates'
 
@@ -1067,7 +1068,7 @@ const Pin = memo(function Pin({
 
   const color = getTierColor(destination.tier)
   if (!color) return null
-  const score = (destination.score ?? (destination.food + destination.night + destination.culture + destination.nature + destination.value) / 5)
+  const score = (destination.score ?? calculateScore(destination, destination.intent))
     .toFixed(1).replace('.', ',')
 
   // ── Zone (road trip / région)

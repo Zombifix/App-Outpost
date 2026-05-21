@@ -3233,7 +3233,7 @@ svg {
   pointer-events: none;
 }
 
-.tier-board.is-collapsed .tier-board-head button {
+.tier-board.is-collapsed .tier-board-head button:not(.next-control-inline) {
   opacity: 0;
   pointer-events: none;
 }
@@ -3716,39 +3716,6 @@ svg {
   z-index: 4;
 }
 
-.next-control {
-  position: absolute;
-  left: 50%;
-  top: -19px;
-  min-width: 128px;
-  height: 38px;
-  padding: 0 15px 0 13px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: #25304c;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(208, 222, 240, 0.72);
-  box-shadow: 0 10px 22px rgba(93, 118, 151, 0.18);
-  transform: translateX(-50%);
-  z-index: 10;
-}
-
-.next-control span {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-}
-
-.next-control:hover {
-  color: #1B5FE8;
-  box-shadow: 0 13px 26px rgba(93, 118, 151, 0.22);
-}
-
-.is-collapsed .next-control svg {
-  transform: none;
-}
 
 .explore-page {
   position: absolute;
@@ -4629,7 +4596,6 @@ svg {
   /* ── Desktop sections — hidden on mobile ── */
   .tier-board-head { display: none; }
   .tier-rail { display: none; }
-  .next-control { display: none; }
   .mobile-tier-toggle { display: none; }
 
   /* ── Mobile tier section ── */

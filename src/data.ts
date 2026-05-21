@@ -6,6 +6,7 @@ export const DESTINATIONS: Destination[] = [
     image: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=900&q=85',
     score: 4.9, notes: 24,
     summary: 'Entre traditions ancestrales et modernite discrete, Kyoto enchante a chaque saison.',
+    coupDeCoeur: true,
     food: 5, night: 4, culture: 5, nature: 5, value: 4, intent: 'tourisme',
   },
   {

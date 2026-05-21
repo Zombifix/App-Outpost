@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react'
 import type { Destination, Friendship, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
-import { Icon } from './Icon'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
 
 interface TierListPanelProps {
@@ -29,6 +28,11 @@ type SortMode = 'score' | 'recent'
 const sortLabels: Record<SortMode, string> = {
   score: 'Meilleures notes',
   recent: 'Derniers voyages',
+}
+
+const mobileSortLabels: Record<SortMode, string> = {
+  score: 'Notes',
+  recent: 'Recents',
 }
 
 function destinationScore(destination: Destination) {
@@ -62,7 +66,6 @@ export default function TierListPanel({
   onCollapseToggle,
   onFlyTo,
   onCompareFriend,
-  onMobileToggle,
   onViewTierList,
 }: TierListPanelProps) {
   const tiersWithItems = TIER_ORDER.filter(t =>
@@ -152,7 +155,7 @@ export default function TierListPanel({
     event.stopPropagation()
   }
 
-  const sortControl = (className = '') => (
+  const sortControl = (className = '', compact = false) => (
     <div className={`tier-sort-toggle${className ? ` ${className}` : ''}`} role="group" aria-label="Trier la tier list">
       {(['score', 'recent'] as SortMode[]).map(mode => (
         <button
@@ -161,7 +164,7 @@ export default function TierListPanel({
           className={sortMode === mode ? 'is-active' : ''}
           onClick={() => setSortMode(mode)}
         >
-          {sortLabels[mode]}
+          {compact ? mobileSortLabels[mode] : sortLabels[mode]}
         </button>
       ))}
     </div>
@@ -214,17 +217,6 @@ export default function TierListPanel({
             </svg>
             <span>{collapsed ? 'Afficher' : 'Masquer'}</span>
           </button>
-          {onMobileToggle && (
-            <button
-              type="button"
-              className="tier-board-mobile-toggle"
-              onClick={onMobileToggle}
-              aria-label="Masquer la tier list"
-            >
-              <Icon name="sliders" />
-              Masquer
-            </button>
-          )}
         </div>
       </div>
 
@@ -232,7 +224,6 @@ export default function TierListPanel({
       <div className="tier-mobile-section">
         <div className="tier-mobile-topline">
           <h2 className="tier-mobile-title">Ma tier list</h2>
-          {sortControl('tier-sort-toggle-mobile')}
         </div>
         <div className="tier-mobile-tabs">
           <button
@@ -254,6 +245,7 @@ export default function TierListPanel({
               </button>
             )
           })}
+          {sortControl('tier-sort-toggle-mobile', true)}
         </div>
         <div className="tier-mobile-strip">
           {mobileTierItems.map(destination => {
@@ -349,7 +341,7 @@ export default function TierListPanel({
                         </button>
                         {isCoupDeCoeur && (
                           <span className="mini-favorite-button is-active" aria-label="Coup de coeur" title="Coup de coeur">
-                            <HeartIcon />
+                            <HeartIcon filled />
                             <span>Coup de coeur</span>
                           </span>
                         )}

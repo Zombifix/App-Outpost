@@ -2100,15 +2100,17 @@ svg {
   position: absolute;
   top: -5px;
   left: -5px;
-  width: 20px;
-  height: 20px;
+  width: 21px;
+  height: 21px;
   border-radius: 50%;
-  background: #ff3b5c;
-  color: #fff;
-  border: 2.5px solid #fff;
+  background: #fff;
+  color: #ff3b73;
+  border: 2px solid rgba(255, 255, 255, 0.98);
   display: grid;
   place-items: center;
-  box-shadow: 0 2px 8px rgba(255, 59, 92, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(255, 59, 115, 0.20),
+    0 3px 9px rgba(27, 38, 66, 0.22);
   pointer-events: none;
   z-index: 2;
 }
@@ -2392,7 +2394,7 @@ svg {
 .legend {
   position: absolute;
   left: calc(var(--sidebar-w) + 72px);
-  bottom: var(--map-b-open);
+  bottom: calc(var(--map-b-open) + 18px);
   height: 46px;
   padding: 0 22px;
   border-radius: 999px;
@@ -3224,7 +3226,7 @@ svg {
 }
 
 .tier-board.is-collapsed {
-  transform: translateY(calc(100% - 58px));
+  transform: translateY(calc(100% - 58px + var(--tier-bottom)));
   overflow: hidden;
 }
 
@@ -4165,7 +4167,7 @@ svg {
 .travel-app.tier-collapsed .map-controls,
 .travel-app.tier-collapsed .legend,
 .travel-app.tier-collapsed .compare-inline-bar {
-  bottom: var(--map-b-closed);
+  bottom: calc(var(--map-b-closed) + 18px);
 }
 
 /* === No destination card shown — map already at right: 0, nothing to override === */
@@ -4605,9 +4607,8 @@ svg {
   }
 
   .tier-mobile-topline {
-    display: grid;
-    gap: 10px;
-    padding: 0 18px 12px;
+    display: block;
+    padding: 0 18px 8px;
   }
 
   /* "Ma tier list" heading */
@@ -4621,24 +4622,26 @@ svg {
   }
 
   .tier-sort-toggle-mobile {
-    width: fit-content;
-    max-width: 100%;
-    min-height: 34px;
+    width: auto;
+    max-width: none;
+    min-height: 30px;
+    margin-left: auto;
     padding: 3px;
+    flex: 0 0 auto;
   }
 
   .tier-sort-toggle-mobile button {
-    min-height: 28px;
-    padding: 0 10px;
-    font-size: 11px;
+    min-height: 24px;
+    padding: 0 8px;
+    font-size: 10px;
   }
 
   /* Tier pills row */
   .tier-mobile-tabs {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 14px 15px;
+    gap: 7px;
+    padding: 0 14px 14px;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -5573,33 +5576,25 @@ svg {
 
 @media (max-width: 760px) {
   .wizard-overlay {
-    align-items: flex-end;
-    justify-content: stretch;
-    padding: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
     background: rgba(10, 20, 40, 0.48);
   }
 
   .wizard-panel {
-    width: 100%;
-    max-width: none;
+    width: min(100%, 520px);
+    max-width: calc(100vw - 28px);
     max-height: 92dvh;
-    padding: 34px 22px calc(18px + env(safe-area-inset-bottom, 0px));
-    border-radius: 28px 28px 0 0;
-    box-shadow: 0 -18px 54px rgba(15, 28, 48, 0.24);
+    padding: 32px 22px calc(18px + env(safe-area-inset-bottom, 0px));
+    border-radius: 28px;
+    box-shadow: 0 22px 68px rgba(15, 28, 48, 0.28);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
 
   .wizard-panel::before {
-    content: '';
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    width: 42px;
-    height: 5px;
-    border-radius: 999px;
-    background: rgba(20, 30, 50, 0.18);
-    transform: translateX(-50%);
+    display: none;
   }
 
   .wizard-close {
@@ -5628,13 +5623,30 @@ svg {
   }
 
   .wizard-type-card,
-  .wizard-answer-btn,
   .wizard-suggestions li button {
     min-height: 48px;
   }
 
+  .wizard-answers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
   .wizard-answer-btn {
-    padding: 15px 16px;
+    min-height: 86px;
+    padding: 14px 12px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    border-radius: 18px;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+  }
+
+  .wizard-answer-btn:hover {
+    transform: translateY(-1px);
   }
 
   .wizard-search-box {

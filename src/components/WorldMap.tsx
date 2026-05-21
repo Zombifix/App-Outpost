@@ -1091,7 +1091,7 @@ const Pin = memo(function Pin({
           data-lat={destination.lat}
           transform={`translate(${cx},${cy}) scale(${pinScale})`}
         >
-          <foreignObject x="-10" y="-30" width="300" height="64" overflow="visible">
+          <foreignObject x="-10" y="-36" width="300" height="76" overflow="visible">
             <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
               <button
                 className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}${(tripHovered || selected) ? ' map-pin-trip-card--revealed' : ''}`}

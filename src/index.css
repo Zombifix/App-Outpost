@@ -2125,8 +2125,8 @@ svg {
 /* ── Photo pin (Airbnb style) ─────────────────────────────────── */
 .map-pin {
   position: relative;
-  width: 58px;
-  height: 58px;
+  width: 72px;
+  height: 72px;
   padding: 0;
   border-radius: 50%;
   background-color: #f4f7fb;
@@ -5951,8 +5951,8 @@ svg {
 /* Trip card — pill avec photo thumb intégrée */
 .map-pin-trip-card {
   position: relative;
-  min-width: 48px;
-  min-height: 48px;
+  min-width: 60px;
+  min-height: 60px;
   display: inline-flex;
   align-items: center;
   gap: 0;
@@ -5971,8 +5971,8 @@ svg {
 
 .map-pin-trip-card:hover,
 .map-pin-trip-card--revealed {
-  min-height: 36px;
-  padding: 0 13px 0 42px;
+  min-height: 42px;
+  padding: 0 13px 0 54px;
   background: rgba(255,255,255,0.97);
   box-shadow: 0 2px 12px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.07);
 }
@@ -5996,8 +5996,8 @@ svg {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   flex-shrink: 0;
   background-image: var(--pin-photo);

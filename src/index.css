@@ -150,10 +150,10 @@ svg {
   left: 16px;
   bottom: 16px;
   width: var(--sidebar-w);
-  padding: 32px 20px 24px;
+  padding: 28px 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.97);
   border-radius: 20px;
   border: 1px solid rgba(220, 230, 242, 0.7);
@@ -162,14 +162,16 @@ svg {
     0 1px 4px rgba(15, 23, 42, 0.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 13px;
-  height: 52px;
-  margin-bottom: 14px;
+  height: 36px;
+  flex-shrink: 0;
+  margin-bottom: 4px;
   color: #17213a;
   border: 0;
   background: transparent;
@@ -183,7 +185,9 @@ svg {
 }
 
 .create-button {
-  height: 52px;
+  height: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
   padding: 0 20px;
   border-radius: 14px;
   display: flex;
@@ -191,13 +195,13 @@ svg {
   justify-content: center;
   gap: 10px;
   color: white;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
   background: linear-gradient(135deg, #1B5FE8, #3D80F5);
-  box-shadow: 0 6px 22px rgba(27, 95, 232, 0.32);
+  box-shadow: 0 4px 16px rgba(27, 95, 232, 0.32);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .create-button .create-icon {
@@ -226,7 +230,8 @@ svg {
 .side-menu {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 /* ─── Carte stats Mon carnet ────────────────────────────────────────────────── */
@@ -235,8 +240,9 @@ svg {
   align-items: center;
   justify-content: space-between;
   gap: 0;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 14px;
+  flex-shrink: 0;
   background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
   border: 1px solid rgba(99, 132, 240, 0.15);
   cursor: pointer;
@@ -295,7 +301,10 @@ svg {
   border-top: 0.5px solid rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  flex-shrink: 1;
 }
 
 .sidebar-activity-head {
@@ -336,8 +345,8 @@ svg {
 .sidebar-hero {
   position: relative;
   width: 100%;
-  min-height: 150px;
-  padding: 12px 12px 10px;
+  min-height: 120px;
+  padding: 10px 12px 10px;
   border: none;
   border-radius: 14px;
   cursor: pointer;
@@ -1298,8 +1307,8 @@ svg {
 }
 
 .side-menu button {
-  min-height: 50px;
-  padding: 0 20px;
+  min-height: 44px;
+  padding: 0 16px;
   border-radius: 14px;
   color: #6f7c95;
   background: transparent;

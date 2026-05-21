@@ -408,7 +408,7 @@ function CarnetStats({
       <div className="carnet-stats-divider" />
       <div className="carnet-stats-item">
         <span className="carnet-stats-value carnet-stats-coeur">{coeurs} <span aria-hidden="true">♥</span></span>
-        <span className="carnet-stats-label">coups de cœur</span>
+        <span className="carnet-stats-label">❤ cœur</span>
       </div>
     </div>
   )

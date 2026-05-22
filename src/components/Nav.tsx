@@ -410,6 +410,7 @@ function RowCard({ event: ev, onClick }: {
       <span className="sidebar-row-body">
         <strong>{destShort || name || renderShortLabel(ev.kind, name)}</strong>
         {country && <span className="sidebar-row-country">{country}</span>}
+        <span className="sidebar-row-actor">{actor}</span>
       </span>
       {tier && <span className={`sidebar-row-tier tier-${tier.toLowerCase()}`}>{tier}</span>}
     </button>

@@ -61,6 +61,7 @@ export function useActivityFeed(limit = 30) {
     const { data, error } = await supabase
       .from('activities')
       .select('id, actor, kind, payload, created_at')
+      .neq('actor', user.id)
       .order('created_at', { ascending: false })
       .limit(limit)
     if (error) {
@@ -71,13 +72,41 @@ export function useActivityFeed(limit = 30) {
     const rows = (data ?? []) as ActivityRow[]
     const actors = Array.from(new Set(rows.map(r => r.actor)))
     const profiles = await fetchProfiles(actors)
+
+    // Enrichit les events destination_added avec image/tier courants
+    // (les anciens events n'avaient pas l'image en payload, on la récupère depuis destinations).
+    const destIds = Array.from(new Set(
+      rows
+        .filter(r => typeof r.payload?.destination_id === 'string' && (!r.payload?.image || !r.payload?.tier))
+        .map(r => r.payload.destination_id as string)
+    ))
+    const destMap = new Map<string, { image?: string; tier?: string }>()
+    if (destIds.length > 0) {
+      const { data: destData } = await supabase
+        .from('destinations')
+        .select('id, image, tier')
+        .in('id', destIds)
+      for (const d of (destData ?? []) as Array<{ id: string; image: string | null; tier: string | null }>) {
+        destMap.set(d.id, { image: d.image ?? undefined, tier: d.tier ?? undefined })
+      }
+    }
+
     setEvents(rows.map(r => {
       const profile = profiles.get(r.actor)
+      const destId = typeof r.payload?.destination_id === 'string' ? r.payload.destination_id : undefined
+      const destExtra = destId ? destMap.get(destId) : undefined
+      const payload = destExtra
+        ? {
+            ...r.payload,
+            image: r.payload.image ?? destExtra.image,
+            tier: r.payload.tier ?? destExtra.tier,
+          }
+        : r.payload
       return {
         id: r.id,
         actor: r.actor,
         kind: r.kind,
-        payload: r.payload,
+        payload,
         createdAt: r.created_at,
         actorHandle: profile?.handle,
         actorDisplayName: profile?.displayName,

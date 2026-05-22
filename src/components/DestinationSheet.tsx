@@ -57,9 +57,22 @@ const INTENT_EMOJIS: Record<Destination['intent'], string> = {
   'city-trip': '🏙',
 }
 
+type ContextDetail =
+  | { kind: 'text'; icon: string; label: string; value: string }
+  | { kind: 'chips'; icon: string; label: string; chips: Array<{ label: string; tone: 'neutral' | 'positive' | 'negative' }> }
+
+const STANDOUT_FLOP_LABELS = new Set([
+  '💸 Budget qui pique',
+  '🚏 Transports galère',
+  '👤 La foule',
+  '🎪 Pièges à touristes',
+  '😴 Rythme épuisant',
+  '🌦️ Météo capricieuse',
+])
+
 function getDestinationContext(destination: Destination) {
   const meta: Array<{ icon: string; label: string }> = []
-  const details: Array<{ icon: string; label: string; value: string }> = []
+  const details: ContextDetail[] = []
 
   if (destination.tripYear) {
     meta.push({ icon: 'calendar', label: String(destination.tripYear) })
@@ -75,14 +88,27 @@ function getDestinationContext(destination: Destination) {
     })
   }
   if (destination.companions) {
-    details.push({ icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })
+    details.push({ kind: 'text', icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })
   }
   if (destination.tripTypes?.length) {
-    details.push({ icon: 'sliders', label: 'Type', value: destination.tripTypes.join(' · ') })
+    details.push({
+      kind: 'chips',
+      icon: 'sliders',
+      label: 'Type',
+      chips: destination.tripTypes.map(label => ({ label, tone: 'neutral' as const })),
+    })
   }
   const standoutValues = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
   if (standoutValues.length) {
-    details.push({ icon: 'sparkles', label: 'Retenu', value: standoutValues.join(' · ') })
+    details.push({
+      kind: 'chips',
+      icon: 'sparkles',
+      label: 'Retenu',
+      chips: standoutValues.map(label => ({
+        label,
+        tone: STANDOUT_FLOP_LABELS.has(label) ? ('negative' as const) : ('positive' as const),
+      })),
+    })
   }
 
   return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
@@ -116,7 +142,7 @@ function getDisplayTier(destination: Destination) {
 }
 
 export default function DestinationSheet(props: DestinationSheetProps) {
-  const isMobile = useMediaQuery('(max-width: 760px)')
+  const isMobile = useMediaQuery('(max-width: 1100px)')
 
   if (isMobile) return <MobileSheet {...props} />
   return (
@@ -419,10 +445,26 @@ function DestinationCardContent({
           {context.details.length > 0 && (
             <div className="destination-context-details">
               {context.details.map(item => (
-                <div key={`${item.icon}-${item.label}`}>
+                <div
+                  key={`${item.icon}-${item.label}`}
+                  className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
+                >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
-                  <strong>{item.value}</strong>
+                  {item.kind === 'text' ? (
+                    <strong>{item.value}</strong>
+                  ) : (
+                    <div className="destination-context-chips">
+                      {item.chips.map(chip => (
+                        <span
+                          key={chip.label}
+                          className={`destination-context-chip destination-context-chip--${chip.tone}`}
+                        >
+                          {chip.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -568,10 +610,26 @@ function RoadTripCardContent({
           {context.details.length > 0 && (
             <div className="destination-context-details">
               {context.details.map(item => (
-                <div key={`${item.icon}-${item.label}`}>
+                <div
+                  key={`${item.icon}-${item.label}`}
+                  className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
+                >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
-                  <strong>{item.value}</strong>
+                  {item.kind === 'text' ? (
+                    <strong>{item.value}</strong>
+                  ) : (
+                    <div className="destination-context-chips">
+                      {item.chips.map(chip => (
+                        <span
+                          key={chip.label}
+                          className={`destination-context-chip destination-context-chip--${chip.tone}`}
+                        >
+                          {chip.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

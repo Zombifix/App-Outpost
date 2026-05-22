@@ -1151,6 +1151,7 @@ const Pin = memo(function Pin({
 
   // ── Full destination pin ───────────────────────────────────────────────────
   const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
+  const isLivedThere = Boolean(destination.livedThere)
   return (
     <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
@@ -1172,6 +1173,9 @@ const Pin = memo(function Pin({
                   <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
                 </svg>
               </span>
+            )}
+            {isLivedThere && (
+              <span className="map-pin-home" aria-label="A vécu là-bas">🏠</span>
             )}
             <strong>
               {destination.name}

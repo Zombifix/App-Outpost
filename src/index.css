@@ -2229,6 +2229,26 @@ svg {
   z-index: 2;
 }
 
+.map-pin-home {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.98);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow:
+    0 0 0 2px rgba(27, 95, 232, 0.20),
+    0 3px 9px rgba(27, 38, 66, 0.22);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .map-pin--coup-de-coeur {
   border-width: 3px;
   border-color: #fff;
@@ -3025,6 +3045,54 @@ svg {
 .destination-context-details strong {
   color: #26324d;
   font-size: var(--text-sm);
+}
+
+.destination-context-row--chips {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 28px;
+}
+
+.destination-context-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: auto;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.destination-context-details .destination-context-chip {
+  margin-right: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.destination-context-details .destination-context-chip--neutral {
+  background: #f1f4fb;
+  color: #3b4763;
+  box-shadow: inset 0 0 0 1px #dde4f1;
+}
+
+.destination-context-details .destination-context-chip--positive {
+  background: #eaf8ee;
+  color: #1f7a3a;
+  box-shadow: inset 0 0 0 1px #c9ecd2;
+}
+
+.destination-context-details .destination-context-chip--negative {
+  background: #fdeef0;
+  color: #9c2b3a;
+  box-shadow: inset 0 0 0 1px #f4cbd2;
 }
 
 .destination-context svg {
@@ -5823,6 +5891,17 @@ svg {
 
 .wizard-favorite-toggle.is-selected .wizard-favorite-switch span {
   transform: translateX(20px);
+}
+
+.wizard-lived-toggle.is-selected {
+  border-color: rgba(27, 95, 232, 0.32);
+  color: #1b3f9c;
+  background: rgba(244, 248, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(27, 95, 232, 0.14);
+}
+
+.wizard-lived-toggle.is-selected .wizard-favorite-switch {
+  background: linear-gradient(135deg, #1B5FE8 0%, #4ea2ff 100%);
 }
 
 .wizard-chip-row button[data-kind="favorite"] {

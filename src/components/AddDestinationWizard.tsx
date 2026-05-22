@@ -70,6 +70,7 @@ interface WizardState {
   standout: string
   standoutTags: string[]
   coupDeCoeur: boolean
+  livedThere: boolean
   replaceCoupDeCoeurName: string
 }
 
@@ -563,6 +564,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           standout: initialDestination.standout ?? '',
           standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, STANDOUT_OPTIONS)] : []),
           coupDeCoeur: Boolean(initialDestination.coupDeCoeur),
+          livedThere: Boolean(initialDestination.livedThere),
           replaceCoupDeCoeurName: '',
         }
       : {
@@ -573,7 +575,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           vibeBoost: null, retourBonus: 0,
           intent: 'tourisme',
           tripYear: null, tripDays: null, companions: null, personalBudget: null, tripTypes: [], standout: '', standoutTags: [],
-          coupDeCoeur: false, replaceCoupDeCoeurName: '',
+          coupDeCoeur: false, livedThere: false, replaceCoupDeCoeurName: '',
         }
   )
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -799,6 +801,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       standout: s.standoutTags[0] ? stripChipEmoji(s.standoutTags[0]) : undefined,
       standoutTags: s.standoutTags.length ? s.standoutTags : undefined,
       coupDeCoeur: s.coupDeCoeur,
+      livedThere: s.livedThere,
     }
 
     const saveOptions: SaveOptions | undefined = s.replaceCoupDeCoeurName
@@ -942,6 +945,18 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <span>❤️</span>
             </span>
             <span>Coup de cœur</span>
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.livedThere}
+            className={`wizard-favorite-toggle wizard-lived-toggle${state.livedThere ? ' is-selected' : ''}`}
+            onClick={() => setState(prev => ({ ...prev, livedThere: !prev.livedThere }))}
+          >
+            <span className="wizard-favorite-switch" aria-hidden="true">
+              <span>🏠</span>
+            </span>
+            <span>A vécu là-bas</span>
           </button>
         </div>
         {needsCoupDeCoeurReplacement && (

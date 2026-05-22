@@ -61,6 +61,7 @@ export interface Destination {
   retourBonus?: number
   intent: Intent
   coupDeCoeur?: boolean
+  livedThere?: boolean
 }
 
 // Identité publique d'un utilisateur Outpost (cf. table public_profiles)

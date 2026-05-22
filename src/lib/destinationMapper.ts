@@ -52,6 +52,7 @@ export interface DbDestinationRow {
   standout: string | null
   standout_tags: string[] | null
   coup_de_coeur: boolean | null
+  lived_there: boolean | null
 }
 
 /**
@@ -61,7 +62,7 @@ export interface DbDestinationRow {
  * in-flight dans useFriendDestinations).
  */
 export const DESTINATION_SELECT_COLUMNS =
-  'id, user_id, destination_key, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, ease, memorability, score, notes, stops, extent, geojson, state, osm_value, osm_id, osm_type, country_code, image, image_provider, image_author, image_source_url, image_query, image_search_version, summary, trip_name, trip_year, trip_days, companions, personal_budget, trip_types, standout, standout_tags, coup_de_coeur' as const
+  'id, user_id, destination_key, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, ease, memorability, score, notes, stops, extent, geojson, state, osm_value, osm_id, osm_type, country_code, image, image_provider, image_author, image_source_url, image_query, image_search_version, summary, trip_name, trip_year, trip_days, companions, personal_budget, trip_types, standout, standout_tags, coup_de_coeur, lived_there' as const
 
 const VALID_IMAGE_PROVIDERS = ['unsplash', 'pexels', 'wikivoyage', 'wikipedia', 'wikimedia', 'fallback'] as const
 const VALID_COMPANIONS = ['solo', 'couple', 'amis', 'famille', 'travail'] as const
@@ -226,6 +227,7 @@ export function rowToDestination(row: DbDestinationRow): Destination {
     standout: row.standout ?? undefined,
     standoutTags: remapList(normalizeStringList(row.standout_tags), LEGACY_STANDOUT_MAP),
     coupDeCoeur: row.coup_de_coeur ?? undefined,
+    livedThere: row.lived_there ?? undefined,
   }
 }
 
@@ -277,5 +279,6 @@ export function destinationToRow(destination: Destination, userId: string): Omit
     standout: destination.standout ?? null,
     standout_tags: destination.standoutTags?.length ? destination.standoutTags : null,
     coup_de_coeur: destination.coupDeCoeur ?? null,
+    lived_there: destination.livedThere ?? null,
   }
 }

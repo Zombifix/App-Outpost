@@ -5543,6 +5543,12 @@ svg {
   transform: translateY(-1px);
 }
 
+.wizard-next:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
 .wizard-stops-title {
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
@@ -5644,6 +5650,27 @@ svg {
   border-radius: 18px;
   background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
   text-align: left;
+}
+
+.wizard-context--embedded {
+  margin-top: 2px;
+  margin-bottom: 0;
+}
+
+.wizard-context--tags {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.wizard-context--tags .wizard-context-group {
+  padding: 0;
+  border-top: 0;
+}
+
+.wizard-context--tags .wizard-context-group + .wizard-context-group {
+  margin-top: 18px;
 }
 
 .wizard-context-title {

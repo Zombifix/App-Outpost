@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 import { getDestinationImage } from '../services/imageSearch'
@@ -20,7 +20,7 @@ export interface SaveOptions {
 }
 
 type DestKind = 'place' | 'zone' | 'stop' | 'stage'
-type WizardStep = 'search' | 'type' | 'questions' | 'stops' | 'result'
+type WizardStep = 'search' | 'type' | 'questions' | 'profile' | 'context' | 'stops' | 'result'
 
 interface PhotonResult {
   name: string
@@ -415,23 +415,9 @@ const QUESTIONS = [
       { label: 'Non', value: -0.3 },
     ],
   },
-  {
-    key: 'intent' as const,
-    question: '🧭 Ce séjour, c\'était surtout quel type d\'expérience ?',
-    answers: [
-      { label: 'Culture', value: 'tourisme' as Intent },
-      { label: 'Food', value: 'gastro' as Intent },
-      { label: 'Nature', value: 'nature' as Intent },
-      { label: 'Ville', value: 'city-trip' as Intent },
-      { label: 'Fête', value: 'sorties' as Intent },
-      { label: 'Repos', value: 'city-trip' as Intent },
-      { label: 'Boulot', value: 'travail' as Intent },
-      { label: 'Road trip', value: 'nature' as Intent },
-    ],
-  },
 ]
 
-type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'memorability' | 'vibeBoost' | 'retourBonus' | 'intent'
+type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'memorability' | 'vibeBoost' | 'retourBonus'
 
 const TYPE_OPTIONS: { kind: DestKind; icon: string; label: string; desc: string }[] = [
   { kind: 'place', icon: '📍', label: 'Destination', desc: 'Une ville ou un endroit précis' },
@@ -456,6 +442,16 @@ const TRIP_TYPE_OPTIONS = [
   '💻 Boulot',
   '🚗 Road trip',
 ]
+
+function getIntentFromTripTypes(tripTypes: string[]): Intent {
+  const labels = tripTypes.map(option => normalizeCountry(stripChipEmoji(option)))
+  if (labels.includes('food')) return 'gastro'
+  if (labels.includes('fete')) return 'sorties'
+  if (labels.includes('boulot')) return 'travail'
+  if (labels.includes('nature') || labels.includes('road trip')) return 'nature'
+  if (labels.includes('ville') || labels.includes('repos')) return 'city-trip'
+  return 'tourisme'
+}
 
 const STANDOUT_OPTIONS = [
   '✨ Ambiance',
@@ -550,8 +546,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           value: initialDestination.value,
           ease: initialDestination.ease ?? null,
           memorability: initialDestination.memorability ?? null,
-          vibeBoost: null,
-          retourBonus: 0,
+          vibeBoost: initialDestination.vibeBoost ?? null,
+          retourBonus: initialDestination.retourBonus ?? 0,
           intent: initialDestination.intent,
           tripYear: initialDestination.tripYear ?? null,
           tripDays: initialDestination.tripDays ?? null,
@@ -576,8 +572,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   )
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answeredKeys, setAnsweredKeys] = useState<Set<QuestionKey>>(new Set())
-  const [finalScore, setFinalScore] = useState(0)
-  const [finalTier, setFinalTier] = useState<Tier>('B')
+  const finalScore = useMemo(() => computeScore(state), [state])
+  const finalTier = scoreToTier(finalScore)
   const [stops, setStops] = useState<RoadTripStop[]>(
     isEditing && initialDestination.stops?.length ? initialDestination.stops : []
   )
@@ -589,17 +585,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const inputRef = useRef<HTMLInputElement>(null)
   const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
   const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= 2
-
-  // En mode édition, précalculer le score/tier depuis les valeurs initiales
-  // pour ne pas afficher 0 / 'B' sur l'écran résultat.
-  useEffect(() => {
-    if (isEditing && step === 'result' && finalScore === 0) {
-      const score = computeScore(state)
-      setFinalScore(score)
-      setFinalTier(scoreToTier(score))
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const reorderStops = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0 || from >= stops.length || to >= stops.length) return
@@ -686,20 +671,19 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     setStep('search')
   }
 
-  const answerQuestion = (key: QuestionKey, value: number | null | Intent) => {
+  const answerQuestion = (key: QuestionKey, value: number | null) => {
     setState(prev => ({ ...prev, [key]: value }))
     setAnsweredKeys(prev => new Set([...prev, key]))
 
     if (questionIndex < QUESTIONS.length - 1) {
       setQuestionIndex(i => i + 1)
     } else {
-      const nextState = { ...state, [key]: value }
-      const score = computeScore(nextState as WizardState)
-      const tier = scoreToTier(score)
-      setFinalScore(score)
-      setFinalTier(tier)
-      setStep(state.kind === 'zone' ? 'stops' : 'result')
+      setStep('profile')
     }
+  }
+
+  const finishQuestionnaire = (nextState: WizardState = state) => {
+    setStep(nextState.kind === 'zone' ? 'stops' : 'result')
   }
 
   const addEmptyStop = () => {
@@ -736,6 +720,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     if (needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName) return
     setResolvingImage(true)
     const s = state
+    const score = computeScore(s)
+    const tier = scoreToTier(score)
     const isZone = s.kind === 'zone'
     const lat = isZone && s.extent ? (s.extent[1] + s.extent[3]) / 2 : s.lat
     const lng = isZone && s.extent ? (s.extent[0] + s.extent[2]) / 2 : s.lng
@@ -771,7 +757,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       country: s.country,
       destinationKey: imageResult.destinationKey,
       lat, lng,
-      tier: finalTier,
+      tier,
       kind: s.kind,
       stops: validStops,
       extent: s.kind === 'zone' ? s.extent : undefined,
@@ -788,15 +774,17 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       value: s.value || 3,
       ease: s.ease ?? undefined,
       memorability: s.memorability ?? undefined,
+      vibeBoost: s.vibeBoost ?? undefined,
+      retourBonus: s.retourBonus || undefined,
       intent: s.intent,
-      score: Math.round(finalScore * 10) / 10,
+      score: Math.round(score * 10) / 10,
       notes: isEditing ? (initialDestination.notes ?? 1) : 1,
       image: imageResult.image,
       imageProvider: imageResult.imageProvider,
       imageAuthor: imageResult.imageAuthor,
       imageSourceUrl: imageResult.imageSourceUrl,
       imageQuery: imageResult.imageQuery,
-      imageSearchVersion: AUTO_IMAGE_VERSION,
+      imageSearchVersion: imageResult.imageProvider === 'fallback' ? undefined : AUTO_IMAGE_VERSION,
       tripYear: Number.isFinite(s.tripYear) ? s.tripYear ?? undefined : undefined,
       tripDays: Number.isFinite(s.tripDays) ? s.tripDays ?? undefined : undefined,
       companions: s.companions ?? undefined,
@@ -821,15 +809,19 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   const activeQuestions = QUESTIONS
   const progressSteps: WizardStep[] = state.kind === 'zone'
-    ? ['type', 'search', 'questions', 'stops']
-    : ['type', 'search', 'questions']
+    ? ['type', 'search', 'questions', 'profile', 'context', 'stops']
+    : ['type', 'search', 'questions', 'profile', 'context']
 
   const toggleTripType = (option: string) => {
     setState(prev => {
       const selected = prev.tripTypes.includes(option)
-      if (selected) return { ...prev, tripTypes: prev.tripTypes.filter(item => item !== option) }
+      if (selected) {
+        const tripTypes = prev.tripTypes.filter(item => item !== option)
+        return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
+      }
       if (prev.tripTypes.length >= 2) return prev
-      return { ...prev, tripTypes: [...prev.tripTypes, option] }
+      const tripTypes = [...prev.tripTypes, option]
+      return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
     })
   }
 
@@ -841,6 +833,130 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         : [...prev.standoutTags, option],
     }))
   }
+
+  const renderStayTypeFields = () => (
+    <div className="wizard-context wizard-context--embedded wizard-context--tags">
+      <div className="wizard-context-group">
+        <span>Type de séjour</span>
+        <div className="wizard-chip-row" aria-label="Type de séjour">
+          {TRIP_TYPE_OPTIONS.map(option => {
+            const isSelected = state.tripTypes.includes(option)
+            const isDisabled = !isSelected && state.tripTypes.length >= 2
+            return (
+              <button
+                key={option}
+                className={isSelected ? 'is-selected' : ''}
+                disabled={isDisabled}
+                onClick={() => toggleTripType(option)}
+              >
+                {option}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div className="wizard-context-group">
+        <span>Ce que tu retiens du séjour</span>
+        <div className="wizard-chip-row" aria-label="Ce que tu retiens du séjour">
+          {STANDOUT_OPTIONS.map(option => (
+            <button
+              key={option}
+              className={state.standoutTags.includes(option) ? 'is-selected' : ''}
+              onClick={() => toggleStandoutTag(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderTripContextFields = () => (
+    <div className="wizard-context wizard-context--embedded">
+      <div className="wizard-context-grid">
+        <label>
+          <span>Année</span>
+          <input
+            value={state.tripYear ?? ''}
+            inputMode="numeric"
+            placeholder="2024"
+            onChange={e => setState(prev => ({ ...prev, tripYear: e.target.value ? Number(e.target.value) : null }))}
+          />
+        </label>
+        <label>
+          <span>Durée</span>
+          <input
+            value={state.tripDays ?? ''}
+            inputMode="numeric"
+            placeholder="5 jours"
+            onChange={e => setState(prev => ({ ...prev, tripDays: e.target.value ? Number(e.target.value) : null }))}
+          />
+        </label>
+        <label>
+          <span>Budget perso</span>
+          <input
+            value={state.personalBudget ?? ''}
+            inputMode="numeric"
+            placeholder="450 €"
+            onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
+          />
+          <small className="wizard-field-helper">hors transport si besoin</small>
+        </label>
+      </div>
+      <div className="wizard-context-group">
+        <span>Avec qui ?</span>
+        <div className="wizard-chip-row" aria-label="Avec qui">
+          {COMPANION_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              className={state.companions === option.value ? 'is-selected' : ''}
+              onClick={() => setState(prev => ({ ...prev, companions: prev.companions === option.value ? null : option.value }))}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="wizard-context-group">
+        <span>Coup de cœur</span>
+        <div className="wizard-toggle-row" aria-label="Coup de cœur">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.coupDeCoeur}
+            className={`wizard-favorite-toggle${state.coupDeCoeur ? ' is-selected' : ''}`}
+            onClick={() => setState(prev => ({
+              ...prev,
+              coupDeCoeur: !prev.coupDeCoeur,
+              replaceCoupDeCoeurName: prev.coupDeCoeur ? '' : prev.replaceCoupDeCoeurName,
+            }))}
+          >
+            <span className="wizard-favorite-switch" aria-hidden="true">
+              <span>❤️</span>
+            </span>
+            <span>Coup de cœur</span>
+          </button>
+        </div>
+        {needsCoupDeCoeurReplacement && (
+          <div className="wizard-replace-choice">
+            <span>Tu as déjà 2 coups de cœur. Remplacer lequel ?</span>
+            <div className="wizard-chip-row" aria-label="Remplacer un coup de cœur">
+              {replaceOptions.map(destination => (
+                <button
+                  key={destination.name}
+                  className={state.replaceCoupDeCoeurName === destination.name ? 'is-selected' : ''}
+                  onClick={() => setState(prev => ({ ...prev, replaceCoupDeCoeurName: destination.name }))}
+                >
+                  {destination.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   const renderStopsSection = () => (
     <div className="wizard-stops">
@@ -1018,24 +1134,67 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             </div>
             <h2 className="wizard-title">{activeQuestions[questionIndex]?.question}</h2>
             <div className="wizard-answers">
-              {activeQuestions[questionIndex]?.answers.map((a, i) => (
-                <button
-                  key={i}
-                  className={`wizard-answer-btn ${answeredKeys.has(activeQuestions[questionIndex].key as QuestionKey) ? 'answered' : ''}`}
-                  onClick={() => answerQuestion(
-                    activeQuestions[questionIndex].key as QuestionKey,
-                    a.value as number | null | Intent,
-                  )}
-                >
-                  {a.label}
-                </button>
-              ))}
+              {activeQuestions[questionIndex]?.answers.map((a, i) => {
+                const questionKey = activeQuestions[questionIndex].key as QuestionKey
+                return (
+                  <button
+                    key={i}
+                    className={`wizard-answer-btn ${answeredKeys.has(questionKey) ? 'answered' : ''}`}
+                    onClick={() => answerQuestion(
+                      questionKey,
+                      a.value as number | null,
+                    )}
+                  >
+                    {a.label}
+                  </button>
+                )
+              })}
             </div>
             {questionIndex > 0 && (
               <button className="wizard-back" onClick={() => setQuestionIndex(i => i - 1)}>
                 ← Retour
               </button>
             )}
+          </div>
+        )}
+
+        {step === 'profile' && (
+          <div className="wizard-step">
+            <div className="wizard-question-counter">
+              {activeQuestions.length + 1} / {activeQuestions.length + 2}
+            </div>
+            <h2 className="wizard-title">Type de séjour</h2>
+            {renderStayTypeFields()}
+            <div className="wizard-step-actions">
+              <button className="wizard-back" onClick={() => setStep('questions')}>
+                Retour
+              </button>
+              <button className="wizard-next" onClick={() => setStep('context')}>
+                Continuer
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'context' && (
+          <div className="wizard-step">
+            <div className="wizard-question-counter">
+              {activeQuestions.length + 2} / {activeQuestions.length + 2}
+            </div>
+            <h2 className="wizard-title">Derniers détails</h2>
+            {renderTripContextFields()}
+            <div className="wizard-step-actions">
+              <button className="wizard-back" onClick={() => setStep('profile')}>
+                Retour
+              </button>
+              <button
+                className="wizard-next"
+                onClick={() => finishQuestionnaire()}
+                disabled={needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName}
+              >
+                Continuer
+              </button>
+            </div>
           </div>
         )}
 
@@ -1098,123 +1257,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   </div>
                 )
               })}
-            </div>
-            <div className="wizard-context">
-              <p className="wizard-context-title">Contexte du séjour</p>
-              <div className="wizard-context-grid">
-                <label>
-                  <span>Année</span>
-                  <input
-                    value={state.tripYear ?? ''}
-                    inputMode="numeric"
-                    placeholder="2024"
-                    onChange={e => setState(prev => ({ ...prev, tripYear: e.target.value ? Number(e.target.value) : null }))}
-                  />
-                </label>
-                <label>
-                  <span>Durée</span>
-                  <input
-                    value={state.tripDays ?? ''}
-                    inputMode="numeric"
-                    placeholder="5 jours"
-                    onChange={e => setState(prev => ({ ...prev, tripDays: e.target.value ? Number(e.target.value) : null }))}
-                  />
-                </label>
-                <label>
-                  <span>Budget perso</span>
-                  <input
-                    value={state.personalBudget ?? ''}
-                    inputMode="numeric"
-                    placeholder="450 €"
-                    onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
-                  />
-                  <small className="wizard-field-helper">hors transport si besoin</small>
-                </label>
-              </div>
-              <div className="wizard-context-group">
-                <span>Avec qui ?</span>
-                <div className="wizard-chip-row" aria-label="Avec qui">
-                  {COMPANION_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      className={state.companions === option.value ? 'is-selected' : ''}
-                      onClick={() => setState(prev => ({ ...prev, companions: prev.companions === option.value ? null : option.value }))}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="wizard-context-group">
-                <span>Type de séjour</span>
-                <div className="wizard-chip-row" aria-label="Type de séjour">
-                  {TRIP_TYPE_OPTIONS.map(option => {
-                    const isSelected = state.tripTypes.includes(option)
-                    const isDisabled = !isSelected && state.tripTypes.length >= 2
-                    return (
-                      <button
-                        key={option}
-                        className={isSelected ? 'is-selected' : ''}
-                        disabled={isDisabled}
-                        onClick={() => toggleTripType(option)}
-                      >
-                        {option}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className="wizard-context-group">
-                <span>Ce que tu retiens du séjour</span>
-                <div className="wizard-chip-row" aria-label="Ce que tu retiens du séjour">
-                  {STANDOUT_OPTIONS.map(option => (
-                    <button
-                      key={option}
-                      className={state.standoutTags.includes(option) ? 'is-selected' : ''}
-                      onClick={() => toggleStandoutTag(option)}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="wizard-context-group">
-                <span>Coup de cœur</span>
-                <div className="wizard-toggle-row" aria-label="Coup de cœur">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={state.coupDeCoeur}
-                    className={`wizard-favorite-toggle${state.coupDeCoeur ? ' is-selected' : ''}`}
-                    onClick={() => setState(prev => ({
-                      ...prev,
-                      coupDeCoeur: !prev.coupDeCoeur,
-                      replaceCoupDeCoeurName: prev.coupDeCoeur ? '' : prev.replaceCoupDeCoeurName,
-                    }))}
-                  >
-                    <span className="wizard-favorite-switch" aria-hidden="true">
-                      <span>❤️</span>
-                    </span>
-                    <span>Coup de cœur</span>
-                  </button>
-                </div>
-                {needsCoupDeCoeurReplacement && (
-                  <div className="wizard-replace-choice">
-                    <span>Tu as deja 2 coups de coeur. Remplacer lequel ?</span>
-                    <div className="wizard-chip-row" aria-label="Remplacer un coup de coeur">
-                      {replaceOptions.map(destination => (
-                        <button
-                          key={destination.name}
-                          className={state.replaceCoupDeCoeurName === destination.name ? 'is-selected' : ''}
-                          onClick={() => setState(prev => ({ ...prev, replaceCoupDeCoeurName: destination.name }))}
-                        >
-                          {destination.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
             <button className="wizard-submit" onClick={confirmAdd} disabled={resolvingImage || (needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName)}>
               {resolvingImage

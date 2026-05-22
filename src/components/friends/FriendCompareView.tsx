@@ -1,6 +1,7 @@
 import type { Destination, Friendship, Tier } from '../../types'
 import { TIER_COLORS, TIER_ORDER } from '../../data'
 import { destinationNameKey } from '../../utils/destinationIdentity'
+import { getDestinationTier } from '../../utils'
 
 interface FriendCompareViewProps {
   friend: Friendship
@@ -42,14 +43,16 @@ function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs
       <h4>{common.length} destination{common.length > 1 ? 's' : ''} en commun</h4>
       <div className="friend-compare-common-list">
         {common.map(({ them, mine: m }) => {
-          const same = them.tier === m.tier
+          const myTier = getDestinationTier(m)
+          const theirTier = getDestinationTier(them)
+          const same = theirTier === myTier
           return (
             <div key={them.name} className={`friend-compare-common-row${same ? ' is-match' : ''}`}>
               <span className="friend-compare-common-name">{them.name}</span>
               <span className="friend-compare-common-tiers">
-                {m.tier && <TierBadge tier={m.tier} />}
+                <TierBadge tier={myTier} />
                 <span className="friend-compare-vs">{same ? '=' : 'vs'}</span>
-                {them.tier && <TierBadge tier={them.tier} />}
+                <TierBadge tier={theirTier} />
               </span>
             </div>
           )
@@ -76,7 +79,7 @@ function DestList({ destinations, label }: { destinations: Destination[]; label:
     <div className="friend-compare-col">
       <h5 className="friend-compare-col-label">{label}</h5>
       {TIER_ORDER.map(tier => {
-        const items = destinations.filter(d => d.tier === tier)
+        const items = destinations.filter(d => getDestinationTier(d) === tier)
         if (items.length === 0) return null
         const c = TIER_COLORS[tier]
         return (

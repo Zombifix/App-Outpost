@@ -97,6 +97,72 @@ function normalizeStringList(value: unknown): string[] | undefined {
   return items.length ? items : undefined
 }
 
+// Anciens libellés (V1 court initial + V2 long intermédiaire) remappés vers
+// les libellés courts actuels (V3) pour que les destinations déjà saisies
+// affichent les chips actuelles.
+const LEGACY_TRIP_TYPE_MAP: Record<string, string> = {
+  // V1 court
+  '🏛️ Culture':   '🏛️ Musées & monuments',
+  '🍽️ Food':      '🍽️ Food tour',
+  '🌿 Nature':    '🌿 Grand air & rando',
+  '🏙️ Ville':     '🏙️ City break',
+  '🌙 Fête':      '🌙 Vie nocturne',
+  '🧘 Repos':     '🧘 Mode lézard',
+  '🚗 Road trip': '🚗 Road trip',
+  '💻 Boulot':    '💻 Bleisure',
+  // V2 long
+  '🏛️ Enchaîner les musées & monuments':   '🏛️ Musées & monuments',
+  '🍽️ Food tour & adresses pépites':       '🍽️ Food tour',
+  '🌿 Grand air, rando & paysages':         '🌿 Grand air & rando',
+  '🏙️ City break / Explorer à pied':       '🏙️ City break',
+  '🌙 Vie nocturne & tournée des bars':     '🌙 Vie nocturne',
+  '🧘 Mode lézard / Déconnexion totale':    '🧘 Mode lézard',
+  '🚗 Avaler les kilomètres / Road trip':   '🚗 Road trip',
+  '💻 Bleisure (Télétravail + exploration)':'💻 Bleisure',
+}
+
+const LEGACY_STANDOUT_MAP: Record<string, string> = {
+  // V1 court
+  '✨ Ambiance':         '✨ L\'énergie',
+  '🍽️ Bouffe':           '🤤 Claques culinaires',
+  '🤝 Rencontres':       '💬 Les locaux',
+  '🏞️ Paysages':         '📸 Spots de folie',
+  '🎯 Activités':        '📸 Spots de folie',
+  '🌍 Dépaysement':      '⛩️ Dépaysement',
+  '🏛️ Architecture':     '🧱 Architecture & ruelles',
+  '😌 Calme':            '⛩️ Dépaysement',
+  '💸 Trop cher':        '💸 Budget qui pique',
+  '🧩 Galères':          '🚏 Transports galère',
+  '📸 Trop touristique': '🎪 Pièges à touristes',
+  '😮‍💨 Fatigant':       '😴 Rythme épuisant',
+  // V2 long
+  '✨ L\'énergie de la ville':         '✨ L\'énergie',
+  '🤤 Les claques culinaires':         '🤤 Claques culinaires',
+  '💬 Les rencontres avec les locaux': '💬 Les locaux',
+  '📸 Les spots de folie':             '📸 Spots de folie',
+  '⛩️ Le dépaysement total':           '⛩️ Dépaysement',
+  '🧱 L\'architecture et les ruelles': '🧱 Architecture & ruelles',
+  '💸 Le budget qui pique':            '💸 Budget qui pique',
+  '🚏 Les transports en galère':       '🚏 Transports galère',
+  '👤 La foule étouffante':            '👤 La foule',
+  '🎪 Les pièges à touristes':         '🎪 Pièges à touristes',
+  '😴 Le rythme épuisant':             '😴 Rythme épuisant',
+  '🌦️ La météo capricieuse':          '🌦️ Météo capricieuse',
+}
+
+function remapList(items: string[] | undefined, map: Record<string, string>): string[] | undefined {
+  if (!items?.length) return items
+  const remapped: string[] = []
+  const seen = new Set<string>()
+  for (const item of items) {
+    const next = map[item] ?? item
+    if (seen.has(next)) continue
+    seen.add(next)
+    remapped.push(next)
+  }
+  return remapped.length ? remapped : undefined
+}
+
 export function rowToDestination(row: DbDestinationRow): Destination {
   const tier = VALID_TIERS.includes(row.tier as Tier) ? (row.tier as Tier) : undefined
   const kind = VALID_KINDS.includes(row.kind as NonNullable<Destination['kind']>)
@@ -156,9 +222,9 @@ export function rowToDestination(row: DbDestinationRow): Destination {
     tripDays: row.trip_days ?? undefined,
     companions,
     personalBudget: row.personal_budget ?? undefined,
-    tripTypes: normalizeStringList(row.trip_types),
+    tripTypes: remapList(normalizeStringList(row.trip_types), LEGACY_TRIP_TYPE_MAP),
     standout: row.standout ?? undefined,
-    standoutTags: normalizeStringList(row.standout_tags),
+    standoutTags: remapList(normalizeStringList(row.standout_tags), LEGACY_STANDOUT_MAP),
     coupDeCoeur: row.coup_de_coeur ?? undefined,
   }
 }
@@ -195,12 +261,12 @@ export function destinationToRow(destination: Destination, userId: string): Omit
     osm_id: destination.osmId ?? null,
     osm_type: destination.osmType ?? null,
     country_code: destination.countryCode ?? null,
-    image: null,
-    image_provider: null,
-    image_author: null,
-    image_source_url: null,
-    image_query: null,
-    image_search_version: null,
+    image: destination.image ?? null,
+    image_provider: destination.imageProvider ?? null,
+    image_author: destination.imageAuthor ?? null,
+    image_source_url: destination.imageSourceUrl ?? null,
+    image_query: destination.imageQuery ?? null,
+    image_search_version: destination.imageSearchVersion ?? null,
     summary: destination.summary ?? null,
     trip_name: destination.tripName ?? null,
     trip_year: destination.tripYear ?? null,

@@ -57,6 +57,8 @@ export interface Destination {
   value: number
   ease?: number
   memorability?: number
+  vibeBoost?: number
+  retourBonus?: number
   intent: Intent
   coupDeCoeur?: boolean
 }

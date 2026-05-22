@@ -4,7 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
-import { calculateScore } from '../utils'
+import { getDestinationScore, getDestinationTier } from '../utils'
 import { destinationNameKey } from '../utils/destinationIdentity'
 import { haversineMeters } from '../utils/duplicates'
 
@@ -20,6 +20,10 @@ function pinScaleFromZoomK(_zoomK: number) {
 
 function getTierColor(tier?: Tier) {
   return tier ? TIER_COLORS[tier]?.pin : undefined
+}
+
+function getDestinationColor(destination: Destination) {
+  return TIER_COLORS[getDestinationTier(destination)]?.pin
 }
 
 interface FlyTarget { lat: number; lng: number; name: string }
@@ -462,7 +466,7 @@ function clearZoneRouteLayers(map: maplibregl.Map) {
 
 function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend') {
   if (!map.isStyleLoaded()) return
-  const color = getTierColor(d.tier)
+  const color = getDestinationColor(d)
   if (!color) return
   const sid = `_z_${owner}_${d.name}`
 
@@ -759,7 +763,7 @@ export default function WorldMap({
 
             for (const trip of destinations) {
               if (trip.kind !== 'zone' || !trip.stops?.length) continue
-              const tripColor = getTierColor(trip.tier) ?? '#1B5FE8'
+              const tripColor = getDestinationColor(trip) ?? '#1B5FE8'
               let stageCounter = 0
               trip.stops.forEach((stop, index) => {
                 const stageNumber = ++stageCounter
@@ -777,7 +781,7 @@ export default function WorldMap({
             }
 
             const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
-              const color = getTierColor(d.tier)
+              const color = getDestinationColor(d)
               if (!d.stops?.length || !color) return [] as JSX.Element[]
               if (expandedRouteKey !== `${owner}:${d.name}` && selectedName !== d.name) return [] as JSX.Element[]
               const stopEls = d.stops.map((stop, index) => {
@@ -1066,9 +1070,10 @@ const Pin = memo(function Pin({
     )
   }
 
-  const color = getTierColor(destination.tier)
+  const destinationTier = getDestinationTier(destination)
+  const color = getTierColor(destinationTier)
   if (!color) return null
-  const score = (destination.score ?? calculateScore(destination, destination.intent))
+  const score = getDestinationScore(destination)
     .toFixed(1).replace('.', ',')
 
   // ── Zone (road trip / région)
@@ -1107,9 +1112,7 @@ const Pin = memo(function Pin({
                 }}
               >
                 <span className="map-pin-trip-thumb">
-                  {destination.tier && (
-                    <span className="map-pin-trip-badge">{destination.tier}</span>
-                  )}
+                  <span className="map-pin-trip-badge">{destinationTier}</span>
                   <span className="map-pin-trip-icon" aria-hidden="true">🚗</span>
                 </span>
                 <span className="map-pin-pill-name">{destination.name}</span>
@@ -1138,9 +1141,7 @@ const Pin = memo(function Pin({
             >
               <ZoneStar />
               <span className="map-pin-pill-name">{destination.name}</span>
-              {destination.score != null && (
-                <span className="map-pin-pill-sub">· {destination.score.toFixed(1)}</span>
-              )}
+              <span className="map-pin-pill-sub">· {score}</span>
             </button>
           </div>
         </foreignObject>
@@ -1164,7 +1165,7 @@ const Pin = memo(function Pin({
               '--pin-color': color,
               '--pin-photo': destination.image ? `url("${destination.image}")` : 'none',
             } as CSSProperties}>
-            <span className="map-pin-tier">{destination.tier}</span>
+            <span className="map-pin-tier">{destinationTier}</span>
             {isCoupDeCoeur && (
               <span className="map-pin-heart" aria-label="Coup de coeur">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

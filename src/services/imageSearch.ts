@@ -54,7 +54,7 @@ interface DestinationImageFunctionResponse {
   imageQuery?: string
 }
 
-const CACHE_KEY = 'outpost-destination-image-catalog-v1'
+const CACHE_KEY = 'outpost-destination-image-catalog-v2'
 const CACHE_TTL_MS = 5 * 60_000
 const CACHE_LIMIT = 240
 const memoryCache = new Map<string, { value: DestinationImageResult; cachedAt: number }>()

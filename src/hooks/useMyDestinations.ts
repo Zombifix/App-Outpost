@@ -9,6 +9,7 @@ import {
   DESTINATION_SELECT_COLUMNS,
   type DbDestinationRow,
 } from '../lib/destinationMapper'
+import { withRecalculatedScore } from '../utils'
 
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
@@ -21,10 +22,12 @@ const MAX_REMOTE_DESTINATIONS = 200
 function needsCatalogImage(destination: Destination) {
   return !destination.destinationKey
     || !destination.image
+    || destination.imageProvider === 'fallback'
     || destination.imageSearchVersion !== AUTO_IMAGE_VERSION
 }
 
 function applyCatalogImage(destination: Destination, imageResult: DestinationImageResult): Destination {
+  const imageSearchVersion = imageResult.imageProvider === 'fallback' ? undefined : AUTO_IMAGE_VERSION
   return {
     ...destination,
     destinationKey: imageResult.destinationKey,
@@ -33,8 +36,19 @@ function applyCatalogImage(destination: Destination, imageResult: DestinationIma
     imageAuthor: imageResult.imageAuthor,
     imageSourceUrl: imageResult.imageSourceUrl,
     imageQuery: imageResult.imageQuery,
-    imageSearchVersion: AUTO_IMAGE_VERSION,
+    imageSearchVersion,
   }
+}
+
+function catalogImageChanged(destination: Destination, imageResult: DestinationImageResult) {
+  const imageSearchVersion = imageResult.imageProvider === 'fallback' ? undefined : AUTO_IMAGE_VERSION
+  return destination.destinationKey !== imageResult.destinationKey
+    || destination.image !== imageResult.image
+    || destination.imageProvider !== imageResult.imageProvider
+    || destination.imageAuthor !== imageResult.imageAuthor
+    || destination.imageSourceUrl !== imageResult.imageSourceUrl
+    || destination.imageQuery !== imageResult.imageQuery
+    || destination.imageSearchVersion !== imageSearchVersion
 }
 
 type DestinationNormalizer = (value: unknown) => Destination[] | null
@@ -47,13 +61,17 @@ function applySeedMigrations(destinations: Destination[]) {
   ))
 }
 
+function normalizeScores(destinations: Destination[]) {
+  return destinations.map(withRecalculatedScore)
+}
+
 function loadFromLocalStorage(normalize: DestinationNormalizer): Destination[] | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!saved) return null
     const normalized = normalize(JSON.parse(saved))
     if (!normalized) return null
-    return applySeedMigrations(normalized)
+    return normalizeScores(applySeedMigrations(normalized))
   } catch {
     return null
   }
@@ -80,6 +98,11 @@ function destinationsEqual(a: Destination, b: Destination): boolean {
   // Comparaison structurelle suffisante : si une seule propriété change on push.
   // Stringify est OK pour < 200 destinations.
   return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function destinationsEqualList(a: Destination[], b: Destination[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((destination, index) => destinationsEqual(destination, b[index]))
 }
 
 function indexByName(list: Destination[]): Map<string, Destination> {
@@ -132,7 +155,8 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
   const pushUpsert = useCallback((destination: Destination) => {
     if (!supabase || !userId) return
     const client = supabase
-    const row = destinationToRow(destination, userId)
+    const normalized = withRecalculatedScore(destination)
+    const row = destinationToRow(normalized, userId)
     void client
       .from('destinations')
       .upsert(row, { onConflict: 'user_id,name' })
@@ -226,7 +250,8 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
         return
       }
 
-      const remoteList = (data as DbDestinationRow[]).map(rowToDestination)
+      const remoteListRaw = (data as DbDestinationRow[]).map(rowToDestination)
+      const remoteList = normalizeScores(remoteListRaw)
       const localList = loadFromLocalStorage(normalize)
       const localHasUserData = !!localList && localList.length > 0
 
@@ -252,10 +277,10 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
       } else {
         // Supabase fait foi. On efface le cache local pour qu'il ne pollue
         // jamais une autre session/un autre compte sur ce navigateur.
-        suppressNextSyncRef.current = true
         const next = remoteList.length ? remoteList : []
+        suppressNextSyncRef.current = destinationsEqualList(remoteListRaw, next)
         setDestinationsState(next)
-        prevByNameRef.current = indexByName(next)
+        prevByNameRef.current = indexByName(remoteListRaw)
         clearLocalCache()
       }
       setHydrated(true)
@@ -309,10 +334,16 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
       if (cancelled) return
       const upgrades = results.filter((result): result is NonNullable<typeof result> => result !== null)
       if (!upgrades.length) return
-      setDestinationsState(previous => previous.map(destination => {
-        const upgrade = upgrades.find(item => item.name === destination.name)
-        return upgrade ? applyCatalogImage(destination, upgrade.imageResult) : destination
-      }))
+      setDestinationsState(previous => {
+        let changed = false
+        const next = previous.map(destination => {
+          const upgrade = upgrades.find(item => item.name === destination.name)
+          if (!upgrade || !catalogImageChanged(destination, upgrade.imageResult)) return destination
+          changed = true
+          return applyCatalogImage(destination, upgrade.imageResult)
+        })
+        return changed ? next : previous
+      })
     })().catch(() => { /* garder les images stockées */ })
 
     return () => { cancelled = true }

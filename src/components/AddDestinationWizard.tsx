@@ -327,92 +327,92 @@ async function searchPhoton(
 const QUESTIONS = [
   {
     key: 'food' as const,
-    question: '🍽️ Tu as bien mangé pendant ce séjour ?',
+    question: '🍽️ Niveau food, tu t\'es régalé(e) ?',
     answers: [
-      { label: 'Très bien', value: 5 },
-      { label: 'Plutôt bien', value: 4 },
-      { label: 'Moyen', value: 2 },
-      { label: 'Pas assez testé / pas marquant', value: null },
+      { label: '🤤 Incroyable, j\'ai pris 3 kilos de bonheur', value: 5 },
+      { label: '😋 Vraiment pas mal, on a fait de bonnes découvertes', value: 4 },
+      { label: '😐 Bof, c\'était juste pour se nourrir', value: 2 },
+      { label: '🤷‍♂️ Pas vraiment testé / J\'ai fait mes propres repas', value: null },
     ],
   },
   {
     key: 'night' as const,
-    question: '🌙 Le soir, il y avait de la vie sur place ?',
+    question: '🌙 L\'ambiance le soir, ça donnait quoi ?',
     answers: [
-      { label: 'Oui, beaucoup', value: 5 },
-      { label: 'Oui, un peu', value: 4 },
-      { label: 'Plutôt calme', value: 2 },
-      { label: 'Je n\'ai pas vraiment vu', value: null },
+      { label: '🔥 Énorme, ça ne s\'arrête jamais', value: 5 },
+      { label: '🍻 Animé juste ce qu\'il faut (bars, restos sympas)', value: 4 },
+      { label: '🌙 Très calme, c\'est plutôt mort le soir', value: 2 },
+      { label: '🛌 Pas mon délire pour ce séjour / J\'étais au lit tôt', value: null },
     ],
   },
   {
     key: 'culture' as const,
-    question: '🗺️ Tu as trouvé facilement des choses à voir ou à faire ?',
+    question: '🗺️ Niveau visites et activités, tu avais de quoi faire ?',
     answers: [
-      { label: 'Oui, largement', value: 5 },
-      { label: 'Oui, assez pour mon séjour', value: 4 },
-      { label: 'Pas tant que ça', value: 2 },
-      { label: 'J\'ai vite fait le tour', value: 1 },
+      { label: '🎢 Trop de trucs à voir, il faudrait revenir !', value: 5 },
+      { label: '👍 Pile-poil ce qu\'il fallait pour la durée du séjour', value: 4 },
+      { label: '🚶‍♀️ On a vite fait le tour, faut chercher un peu pour s\'occuper', value: 2 },
+      { label: '🥱 Franchement, il n\'y a pas grand-chose à faire', value: 1 },
     ],
   },
   {
     key: 'nature' as const,
-    question: '🏙️ La destination était agréable à regarder / parcourir ?',
+    question: '📸 Visuellement, on en prend plein les yeux ?',
     answers: [
-      { label: 'Oui, vraiment', value: 5 },
-      { label: 'Oui, plutôt', value: 4 },
-      { label: 'Pas spécialement', value: 2 },
-      { label: 'Ce n\'était pas son point fort', value: 1 },
+      { label: '😍 Magnifique, une vraie carte postale', value: 5 },
+      { label: '📷 Très sympa, pas mal de jolis coins', value: 4 },
+      { label: '🏢 Sans plus, ça manque un peu de charme', value: 2 },
+      { label: '🏗️ Clairement pas ouf, on ne vient pas pour la beauté du lieu', value: 1 },
     ],
   },
   {
     key: 'value' as const,
-    question: '💸 Globalement, tu as trouvé que les prix étaient justifiés ?',
+    question: '💸 Niveau budget sur place, ça disait quoi ?',
     answers: [
-      { label: 'Oui, ça valait clairement son prix', value: 5 },
-      { label: 'Oui, plutôt', value: 4 },
-      { label: 'Un peu cher pour ce que c\'était', value: 2 },
-      { label: 'Trop cher pour l\'expérience', value: 1 },
+      { label: '👑 Un vrai bon plan, j\'ai vécu comme un roi / une reine', value: 5 },
+      { label: '⚖️ Correct, les prix m\'ont semblé honnêtes', value: 4 },
+      { label: '💸 Mitigé : pas mal de pièges à touristes / Assez cher', value: 2 },
+      { label: '🚨 Hors de prix / Un braquage à chaque coin de rue', value: 1 },
     ],
   },
   {
     key: 'ease' as const,
-    question: '🧩 Sur place, c\'était facile de profiter du séjour ?',
+    question: '🧩 Côté orga (transports, déplacements), c\'était fluide ?',
     answers: [
-      { label: 'Oui, très facile', value: 5 },
-      { label: 'Globalement oui', value: 4 },
-      { label: 'Pas toujours', value: 2 },
-      { label: 'Non, trop de galères', value: 1 },
+      { label: '🛝 Hyper facile, tout glisse tout seul', value: 5 },
+      { label: '👌 Ça va, on prend vite le pli', value: 4 },
+      { label: '🗺️ Un peu galère par moments, faut s\'accrocher', value: 2 },
+      { label: '🚧 L\'enfer : rien n\'est pensé pour, on a perdu un temps fou', value: 1 },
     ],
   },
   {
     key: 'memorability' as const,
-    question: '✨ Cette destination t\'a laissé un vrai souvenir ?',
+    question: '✨ Avec le recul, la destination t\'a marqué(e) ?',
     answers: [
-      { label: 'Oui, clairement', value: 5 },
-      { label: 'Oui, quelques bons moments', value: 4 },
-      { label: 'Pas vraiment', value: 2 },
-      { label: 'Non, rien de marquant', value: 1 },
+      { label: '🤯 Une énorme claque, j\'y pense encore tous les jours', value: 5 },
+      { label: '❤️ Une super expérience, j\'en garde d\'excellents souvenirs', value: 4 },
+      { label: '🤷‍♀️ Sympa sur le coup, mais ça ne restera pas gravé à vie', value: 2 },
+      { label: '🗑️ Franchement oubliable / Déjà hâte de passer à autre chose', value: 1 },
     ],
   },
   {
     key: 'vibeBoost' as const,
-    question: '🫶 Globalement, tu t\'es senti bien là-bas ?',
+    question: '🫶 Niveau ambiance globale et accueil, c\'était comment ?',
     answers: [
-      { label: 'Oui, direct', value: 5 },
-      { label: 'Oui, globalement', value: 4 },
-      { label: 'Mitigé', value: 3 },
-      { label: 'Pas accroché', value: 2 },
+      { label: '🥰 Adorables, je me suis senti(e) hyper bien accueilli(e)', value: 5 },
+      { label: '🤙 Tranquille, ambiance cool et sans prise de tête', value: 4 },
+      { label: '🤐 Un peu froids ou distants', value: 3 },
+      { label: '😬 Pas très à l\'aise / Ambiance parfois pesante ou stressante', value: 2 },
     ],
   },
   {
     key: 'retourBonus' as const,
-    question: '🔁 Avec le recul, tu y retournerais ?',
+    question: '🔁 Finalement, tu y retournerais un jour ?',
     answers: [
-      { label: 'Oui, sans hésiter', value: 0.3 },
-      { label: 'Oui, mais pas en priorité', value: 0.1 },
-      { label: 'Pas sûr', value: 0 },
-      { label: 'Non', value: -0.3 },
+      { label: '🎒 Demain s\'il le faut, j\'ai pas tout vu !', value: 0.3 },
+      { label: '✈️ Pourquoi pas, si l\'occasion se présente', value: 0.1 },
+      { label: '🌍 Bof, le monde est grand, je préfère voir autre chose', value: 0 },
+      { label: '🚫 Jamais de la vie', value: -0.3 },
     ],
   },
 ]
@@ -432,40 +432,46 @@ const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; 
   { value: 'travail', label: '💻 Travail' },
 ]
 
-const TRIP_TYPE_OPTIONS = [
-  '🏛️ Culture',
-  '🍽️ Food',
-  '🌿 Nature',
-  '🏙️ Ville',
-  '🌙 Fête',
-  '🧘 Repos',
-  '💻 Boulot',
-  '🚗 Road trip',
+const TRIP_TYPE_OPTIONS: { id: string; label: string }[] = [
+  { id: 'culture',  label: '🏛️ Musées & monuments' },
+  { id: 'food',     label: '🍽️ Food tour' },
+  { id: 'nature',   label: '🌿 Grand air & rando' },
+  { id: 'ville',    label: '🏙️ City break' },
+  { id: 'fete',     label: '🌙 Vie nocturne' },
+  { id: 'repos',    label: '🧘 Mode lézard' },
+  { id: 'roadtrip', label: '🚗 Road trip' },
+  { id: 'bleisure', label: '💻 Bleisure' },
 ]
 
+const TRIP_TYPE_LABEL_TO_ID: Record<string, string> = Object.fromEntries(
+  TRIP_TYPE_OPTIONS.map(option => [option.label, option.id])
+)
+
 function getIntentFromTripTypes(tripTypes: string[]): Intent {
-  const labels = tripTypes.map(option => normalizeCountry(stripChipEmoji(option)))
-  if (labels.includes('food')) return 'gastro'
-  if (labels.includes('fete')) return 'sorties'
-  if (labels.includes('boulot')) return 'travail'
-  if (labels.includes('nature') || labels.includes('road trip')) return 'nature'
-  if (labels.includes('ville') || labels.includes('repos')) return 'city-trip'
+  const ids = tripTypes.map(label => TRIP_TYPE_LABEL_TO_ID[label]).filter(Boolean)
+  if (ids.includes('food')) return 'gastro'
+  if (ids.includes('fete')) return 'sorties'
+  if (ids.includes('bleisure')) return 'travail'
+  if (ids.includes('nature') || ids.includes('roadtrip')) return 'nature'
+  if (ids.includes('ville') || ids.includes('repos')) return 'city-trip'
   return 'tourisme'
 }
 
 const STANDOUT_OPTIONS = [
-  '✨ Ambiance',
-  '🍽️ Bouffe',
-  '🤝 Rencontres',
-  '🏞️ Paysages',
-  '🎯 Activités',
-  '😌 Calme',
-  '🌍 Dépaysement',
-  '🏛️ Architecture',
-  '🧩 Galères',
-  '💸 Trop cher',
-  '📸 Trop touristique',
-  '😮‍💨 Fatigant',
+  // Tops
+  '✨ L\'énergie',
+  '🤤 Claques culinaires',
+  '💬 Les locaux',
+  '📸 Spots de folie',
+  '⛩️ Dépaysement',
+  '🧱 Architecture & ruelles',
+  // Flops
+  '💸 Budget qui pique',
+  '🚏 Transports galère',
+  '👤 La foule',
+  '🎪 Pièges à touristes',
+  '😴 Rythme épuisant',
+  '🌦️ Météo capricieuse',
 ]
 
 function stripChipEmoji(label: string) {
@@ -819,7 +825,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         const tripTypes = prev.tripTypes.filter(item => item !== option)
         return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
       }
-      if (prev.tripTypes.length >= 2) return prev
+      if (prev.tripTypes.length >= 3) return prev
       const tripTypes = [...prev.tripTypes, option]
       return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
     })
@@ -840,16 +846,16 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         <span>Type de séjour</span>
         <div className="wizard-chip-row" aria-label="Type de séjour">
           {TRIP_TYPE_OPTIONS.map(option => {
-            const isSelected = state.tripTypes.includes(option)
-            const isDisabled = !isSelected && state.tripTypes.length >= 2
+            const isSelected = state.tripTypes.includes(option.label)
+            const isDisabled = !isSelected && state.tripTypes.length >= 3
             return (
               <button
-                key={option}
+                key={option.id}
                 className={isSelected ? 'is-selected' : ''}
                 disabled={isDisabled}
-                onClick={() => toggleTripType(option)}
+                onClick={() => toggleTripType(option.label)}
               >
-                {option}
+                {option.label}
               </button>
             )
           })}

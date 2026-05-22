@@ -61,6 +61,7 @@ interface Candidate {
 
 const DEFAULT_ALLOWED = ['http://localhost:5173', 'http://localhost:4173']
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
+const FAILED_RETRY_COOLDOWN_MS = 10 * 60_000
 const MIN_LANDSCAPE_RATIO = 1.15
 const TRAVEL_KEYWORDS = ['landscape', 'cityscape', 'coast', 'mountain', 'old town', 'road', 'skyline', 'architecture', 'nature', 'beach', 'desert', 'forest', 'cliff', 'landmark']
 const GENERIC_KEYWORDS = ['airport', 'airplane', 'plane', 'passport', 'luggage', 'suitcase', 'ticket', 'map', 'person', 'people', 'woman', 'man', 'portrait', 'flag', 'seal']
@@ -461,7 +462,7 @@ Deno.serve(async (req: Request) => {
   if (existingRow?.status === 'active') return jsonWith(corsHeaders, rowToResponse(existingRow))
   if (existingRow?.status === 'failed' && existingRow.last_validated_at) {
     const failedAt = new Date(existingRow.last_validated_at).getTime()
-    if (Number.isFinite(failedAt) && Date.now() - failedAt < 24 * 60 * 60_000) {
+    if (Number.isFinite(failedAt) && Date.now() - failedAt < FAILED_RETRY_COOLDOWN_MS) {
       return jsonWith(corsHeaders, rowToResponse(existingRow))
     }
   }

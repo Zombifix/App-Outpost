@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Destination } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
-import { calculateScore, scoreToTier } from '../utils'
+import { getDestinationScore, getDestinationTier } from '../utils'
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
@@ -106,14 +106,13 @@ function getCriteria(destination: Destination) {
 }
 
 function formatScore(destination: Destination) {
-  return (destination.score ?? calculateScore(destination, destination.intent))
+  return getDestinationScore(destination)
     .toFixed(1)
     .replace('.', ',')
 }
 
 function getDisplayTier(destination: Destination) {
-  if (Number.isFinite(destination.score)) return scoreToTier(destination.score as number)
-  return destination.tier
+  return getDestinationTier(destination)
 }
 
 export default function DestinationSheet(props: DestinationSheetProps) {
@@ -254,6 +253,7 @@ function DestinationCardContent({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const context = getDestinationContext(destination)
   const criteria = getCriteria(destination)
+  const displayTier = getDisplayTier(destination)
 
   const tripStopsHere = useMemo(() => {
     if (!allDestinations?.length) return []
@@ -265,7 +265,8 @@ function DestinationCardContent({
     const map = new Map<string, { stages: number[]; color: string }>()
     for (const m of tripStopsHere) {
       const trip = allDestinations?.find(d => d.name === m.tripName)
-      const tierColor = trip?.tier ? TIER_COLORS[trip.tier]?.pin : undefined
+      const tripTier = trip ? getDisplayTier(trip) : undefined
+      const tierColor = tripTier ? TIER_COLORS[tripTier]?.pin : undefined
       const entry = map.get(m.tripName) ?? { stages: [], color: tierColor ?? '#1B5FE8' }
       if (m.stageNumber !== undefined) entry.stages.push(m.stageNumber)
       map.set(m.tripName, entry)
@@ -374,7 +375,7 @@ function DestinationCardContent({
         </div>
       </div>
       <div className="destination-title-row">
-        {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
+        <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
         <div>
           <h2>{destination.name}, {destination.country}</h2>
         </div>

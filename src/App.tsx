@@ -12,6 +12,7 @@ import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
+import { getDestinationScore, getDestinationTier, withRecalculatedScore } from './utils'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 
@@ -121,6 +122,8 @@ function normalizeDestination(value: unknown): Destination | null {
     value: finiteNumber(value.value, 3),
     ease: value.ease === undefined || value.ease === null ? undefined : finiteNumber(value.ease, undefined),
     memorability: value.memorability === undefined || value.memorability === null ? undefined : finiteNumber(value.memorability, undefined),
+    vibeBoost: value.vibeBoost === undefined || value.vibeBoost === null ? undefined : finiteNumber(value.vibeBoost, undefined),
+    retourBonus: value.retourBonus === undefined || value.retourBonus === null ? undefined : finiteNumber(value.retourBonus, undefined),
     score: value.score === undefined ? undefined : finiteNumber(value.score, 3),
     notes: value.notes === undefined ? undefined : finiteNumber(value.notes, 1),
     stops: normalizeStops(value.stops),
@@ -241,7 +244,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const { destinations: friendDestsProd } = useFriendDestinations(friendUserIdProd)
   const destinations = useMemo(() => {
     if (!viewingFriend) return myDestinations
-    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(viewingFriend.userId)
+    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(viewingFriend.userId).map(withRecalculatedScore)
     return friendDestsProd
   }, [viewingFriend, myDestinations, friendDestsProd])
 
@@ -251,7 +254,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const { destinations: compareFriendDestsProd } = useFriendDestinations(compareFriendUserIdProd)
   const compareFriendDests = useMemo(() => {
     if (!compareFriend) return [] as Destination[]
-    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(compareFriend.otherUser)
+    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(compareFriend.otherUser).map(withRecalculatedScore)
     return compareFriendDestsProd
   }, [compareFriend, compareFriendDestsProd])
   // Noms partagés (insensible casse + accents) — sert au visuel.
@@ -360,7 +363,8 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const visibleDestinations = useMemo(() => {
     const currentYear = new Date().getFullYear()
     const filtered = destinations.filter(destination => {
-      if (filters.topTiers && destination.tier !== 'S' && destination.tier !== 'A') return false
+      const tier = getDestinationTier(destination)
+      if (filters.topTiers && tier !== 'S' && tier !== 'A') return false
       if (filters.under300 && (!destination.personalBudget || destination.personalBudget > 300)) return false
       if (filters.recentOnly && (!destination.tripYear || destination.tripYear < currentYear - 1)) return false
       if (filters.duration === 'short' && (!destination.tripDays || destination.tripDays > 4)) return false
@@ -370,7 +374,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     })
 
     return [...filtered].sort((a, b) => {
-      if (sortByScore) return (b.score ?? 0) - (a.score ?? 0)
+      if (sortByScore) return getDestinationScore(b) - getDestinationScore(a)
       return a.name.localeCompare(b.name)
     })
   }, [destinations, filters, sortByScore])
@@ -432,9 +436,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
 
   const updateDestination = (updated: Destination, options?: SaveOptions) => {
     const originalName = editingDestination?.name ?? updated.name
-    const merged = editingDestination
-      ? { ...updated }
-      : updated
+    const merged = withRecalculatedScore(updated)
 
     setDestinations(previous => previous.map(item => {
       if (options?.replaceCoupDeCoeurName && item.name === options.replaceCoupDeCoeurName) {
@@ -448,9 +450,10 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   }
 
   const addDestination = (destination: Destination, options?: SaveOptions) => {
-    const dup = findDuplicate(destination, destinations)
+    const normalizedDestination = withRecalculatedScore(destination)
+    const dup = findDuplicate(normalizedDestination, destinations)
     if (dup) {
-      setDuplicateConflict({ existing: dup, incoming: destination })
+      setDuplicateConflict({ existing: dup, incoming: normalizedDestination })
       setAddingDestination(false)
       return
     }
@@ -460,10 +463,10 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
           ? { ...item, coupDeCoeur: false }
           : item
       )),
-      destination,
+      normalizedDestination,
     ])
-    setSelectedName(destination.name)
-    setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
+    setSelectedName(normalizedDestination.name)
+    setFlyTarget({ lat: normalizedDestination.lat, lng: normalizedDestination.lng, name: normalizedDestination.name })
     setAddingDestination(false)
     setActiveView('map')
   }
@@ -723,7 +726,10 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
 }
 
 function ExploreView({ destinations, onSelect }: { destinations: Destination[]; onSelect: (name: string) => void }) {
-  const topTiers = destinations.filter(destination => destination.tier === 'S' || destination.tier === 'A')
+  const topTiers = destinations.filter(destination => {
+    const tier = getDestinationTier(destination)
+    return tier === 'S' || tier === 'A'
+  })
   const suggestionSeeds = [
     {
       name: 'Seoul',
@@ -1096,6 +1102,7 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
   }
 
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
+  const tier = getDestinationTier(destination)
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
 
@@ -1144,7 +1151,7 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
         )}
       </div>
       <div className="destination-title-row">
-        {destination.tier && <span className={`tier-orb tier-${destination.tier.toLowerCase()}`}>{destination.tier}</span>}
+        <span className={`tier-orb tier-${tier.toLowerCase()}`}>{tier}</span>
         <div>
           <h2>{destination.name}, {destination.country}</h2>
           <div className="destination-pill-row">

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react'
 import type { Destination, Friendship, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
-import { calculateScore } from '../utils'
+import { getDestinationScore, getDestinationTier } from '../utils'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
 
 interface TierListPanelProps {
@@ -37,7 +37,7 @@ const mobileSortLabels: Record<SortMode, string> = {
 }
 
 function destinationScore(destination: Destination) {
-  return destination.score ?? calculateScore(destination, destination.intent)
+  return getDestinationScore(destination)
 }
 
 function compareDestinations(a: Destination, b: Destination, sortMode: SortMode) {
@@ -64,7 +64,7 @@ export default function TierListPanel({
   onViewTierList,
 }: TierListPanelProps) {
   const tiersWithItems = TIER_ORDER.filter(t =>
-    destinations.some(d => d.tier === t && d.kind !== 'stop')
+    destinations.some(d => getDestinationTier(d) === t && d.kind !== 'stop')
   )
   const [mobileTier, setMobileTier] = useState<Tier | 'all'>('all')
   const [sortMode, setSortMode] = useState<SortMode>('score')
@@ -167,8 +167,8 @@ export default function TierListPanel({
 
   const mobileTierItems = destinations.filter(d => {
     if (d.kind === 'stop') return false
-    if (mobileTier === 'all') return Boolean(d.tier)
-    return d.tier === mobileTier
+    if (mobileTier === 'all') return true
+    return getDestinationTier(d) === mobileTier
   }).sort((a, b) => compareDestinations(a, b, sortMode))
 
   return (
@@ -187,7 +187,7 @@ export default function TierListPanel({
               Ma tier list
             </span>
             <span className="tier-board-collapsed-count">
-              {destinations.filter(d => d.tier && d.kind !== 'stop').length}
+              {destinations.filter(d => d.kind !== 'stop').length}
             </span>
           </span>
         )}
@@ -273,7 +273,8 @@ export default function TierListPanel({
         <div className="tier-mobile-strip">
           {mobileTierItems.map(destination => {
             const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
-            const colors = destination.tier ? TIER_COLORS[destination.tier] : null
+            const destinationTier = getDestinationTier(destination)
+            const colors = TIER_COLORS[destinationTier]
             return (
               <article
                 key={destination.name}
@@ -291,11 +292,9 @@ export default function TierListPanel({
                   <span>{destination.name}</span>
                   <em>{destination.country}</em>
                 </button>
-                {destination.tier && (
-                  <span className="mini-tier-badge" aria-hidden="true" style={{ background: colors?.pin } as CSSProperties}>
-                    {destination.tier}
-                  </span>
-                )}
+                <span className="mini-tier-badge" aria-hidden="true" style={{ background: colors.pin } as CSSProperties}>
+                  {destinationTier}
+                </span>
                 {isCoupDeCoeur && (
                   <span className="mini-heart-badge is-active" aria-label="Coup de coeur">
                     <HeartIcon filled />
@@ -329,7 +328,7 @@ export default function TierListPanel({
         >
           {TIER_ORDER.map(tier => {
             const items = destinations
-              .filter(destination => destination.tier === tier && destination.kind !== 'stop')
+              .filter(destination => getDestinationTier(destination) === tier && destination.kind !== 'stop')
               .filter(() => mobileTier === 'all' || mobileTier === tier)
               .sort((a, b) => compareDestinations(a, b, sortMode))
             const colors = TIER_COLORS[tier]

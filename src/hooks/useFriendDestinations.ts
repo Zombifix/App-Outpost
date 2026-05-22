@@ -7,6 +7,7 @@ import {
   rowToDestination,
   type DbDestinationRow,
 } from '../lib/destinationMapper'
+import { withRecalculatedScore } from '../utils'
 
 const FRIEND_DESTINATIONS_CACHE_TTL_MS = 60_000
 const MAX_FRIEND_DESTINATIONS = 200
@@ -66,7 +67,7 @@ async function loadFriendDestinations(friendUserId: string, force = false): Prom
   )
     .then(({ data, error: err }) => {
       if (err) throw err
-      const destinations = (data as DbDestinationRow[]).map(rowToDestination)
+      const destinations = (data as DbDestinationRow[]).map(rowToDestination).map(withRecalculatedScore)
       return hydrateCatalogImages(destinations)
     })
     .then(destinations => {

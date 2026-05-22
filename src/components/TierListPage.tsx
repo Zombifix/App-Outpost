@@ -10,6 +10,7 @@ import {
 import { useFriends } from '../hooks/useFriends'
 import { useFriendDestinations } from '../hooks/useFriendDestinations'
 import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
+import { getDestinationScore, getDestinationTier } from '../utils'
 
 interface TierListPageProps {
   destinations: Destination[]
@@ -161,21 +162,28 @@ function filterDestinations(list: Destination[], filter: TierListFilter, compare
     if (filter === 'favorites') return Boolean(destination.coupDeCoeur)
     if (filter === 'friends') return destination.companions === 'amis'
     if (filter === 'solo') return destination.companions === 'solo'
-    if (filter === 'top') return destination.tier === 'S' || destination.tier === 'A'
+    if (filter === 'top') {
+      const tier = getDestinationTier(destination)
+      return tier === 'S' || tier === 'A'
+    }
     if (filter === 'shared') return compareByName.has(destinationNameKey(destination))
     if (filter === 'disagreements') {
       const theirs = compareByName.get(destinationNameKey(destination))
-      return Boolean(theirs && theirs.tier !== destination.tier)
+      return Boolean(theirs && getDestinationTier(theirs) !== getDestinationTier(destination))
     }
     return true
   }).sort((a, b) => {
     if (filter === 'recent') return (b.tripYear ?? 0) - (a.tripYear ?? 0)
     if (filter === 'favorites') return Number(Boolean(b.coupDeCoeur)) - Number(Boolean(a.coupDeCoeur))
-    if (filter === 'top') return (b.score ?? 0) - (a.score ?? 0)
+    if (filter === 'top') return getDestinationScore(b) - getDestinationScore(a)
     if (filter === 'disagreements') {
-      const aTier = compareByName.get(destinationNameKey(a))?.tier ?? a.tier
-      const bTier = compareByName.get(destinationNameKey(b))?.tier ?? b.tier
-      return Math.abs(TIER_RANK[b.tier ?? 'B'] - TIER_RANK[bTier ?? 'B']) - Math.abs(TIER_RANK[a.tier ?? 'B'] - TIER_RANK[aTier ?? 'B'])
+      const aTier = getDestinationTier(a)
+      const bTier = getDestinationTier(b)
+      const aCompare = compareByName.get(destinationNameKey(a))
+      const bCompare = compareByName.get(destinationNameKey(b))
+      const aCompareTier = aCompare ? getDestinationTier(aCompare) : aTier
+      const bCompareTier = bCompare ? getDestinationTier(bCompare) : bTier
+      return Math.abs(TIER_RANK[bTier] - TIER_RANK[bCompareTier]) - Math.abs(TIER_RANK[aTier] - TIER_RANK[aCompareTier])
     }
     return 0
   })
@@ -239,13 +247,13 @@ function ComparisonBanner({
     .filter((item): item is { my: Destination; theirs: Destination } => item !== null)
 
   const commonCount = commonItems.length
-  const sameCount = commonItems.filter(item => item.my.tier === item.theirs.tier).length
-  const gapItems = commonItems.filter(item => item.my.tier !== item.theirs.tier)
+  const sameCount = commonItems.filter(item => getDestinationTier(item.my) === getDestinationTier(item.theirs)).length
+  const gapItems = commonItems.filter(item => getDestinationTier(item.my) !== getDestinationTier(item.theirs))
   const gapCount = gapItems.length
   const alignmentScore = commonCount ? Math.round((sameCount / commonCount) * 100) : 0
   const widestGap = gapItems
     .slice()
-    .sort((a, b) => Math.abs(TIER_RANK[b.my.tier ?? 'B'] - TIER_RANK[b.theirs.tier ?? 'B']) - Math.abs(TIER_RANK[a.my.tier ?? 'B'] - TIER_RANK[a.theirs.tier ?? 'B']))[0]
+    .sort((a, b) => Math.abs(TIER_RANK[getDestinationTier(b.my)] - TIER_RANK[getDestinationTier(b.theirs)]) - Math.abs(TIER_RANK[getDestinationTier(a.my)] - TIER_RANK[getDestinationTier(a.theirs)]))[0]
   const friendFirstName = friend.name.split(' ')[0]
   const myBudget = getAverage(myDests.map(destination => destination.personalBudget))
   const friendBudget = getAverage(friendDests.map(destination => destination.personalBudget))
@@ -284,7 +292,7 @@ function ComparisonBanner({
         <ComparisonInsight icon="🧭" label="Styles" value={`${myIntent} vs ${friendIntent}`} />
         <ComparisonInsight icon="🤝" label="Accord" value={`${alignmentScore}% · ${commonCount} communs`} />
         {widestGap && (
-          <ComparisonInsight icon="⚡" label="Ecart" value={`${widestGap.my.name} · ${widestGap.my.tier}/${widestGap.theirs.tier}`} />
+          <ComparisonInsight icon="⚡" label="Ecart" value={`${widestGap.my.name} · ${getDestinationTier(widestGap.my)}/${getDestinationTier(widestGap.theirs)}`} />
         )}
       </div>
       <button className="comparison-banner-close" onClick={onClose} aria-label="Fermer la comparaison">×</button>
@@ -315,6 +323,7 @@ function DestinationPreview({
   onOpenMap: (name: string) => void
 }) {
   const stats = getPreviewStats(destination)
+  const tier = getDestinationTier(destination)
 
   return (
     <aside className="tier-destination-preview" aria-label={`Apercu de ${destination.name}`}>
@@ -329,7 +338,7 @@ function DestinationPreview({
       <div className="tier-destination-preview-body">
         <button className="tier-destination-preview-close" onClick={onClose} aria-label="Fermer l'apercu">×</button>
         <div className="tier-preview-heading">
-          <span className={`tier-orb tier-${destination.tier?.toLowerCase() ?? 'b'}`}>{destination.tier ?? '-'}</span>
+          <span className={`tier-orb tier-${tier.toLowerCase()}`}>{tier}</span>
           {destination.coupDeCoeur && <span className="tier-preview-favorite">♥ Coup de coeur</span>}
         </div>
         <h3>{destination.name}, {destination.country}</h3>
@@ -378,8 +387,8 @@ function TierRow({
   onSelectFriend: (destination: Destination) => void
 }) {
   const colors = TIER_COLORS[tier]
-  const mine = myDests.filter(destination => destination.tier === tier && destination.kind !== 'stop')
-  const theirs = friendDests.filter(destination => destination.tier === tier && destination.kind !== 'stop')
+  const mine = myDests.filter(destination => getDestinationTier(destination) === tier && destination.kind !== 'stop')
+  const theirs = friendDests.filter(destination => getDestinationTier(destination) === tier && destination.kind !== 'stop')
 
   const count = friend
     ? `${mine.length} · ${theirs.length}`
@@ -508,7 +517,7 @@ export default function TierListPage({
     () => new Set(destinations.map(destination => COUNTRY_TO_CONTINENT[destination.country]).filter(Boolean)).size,
     [destinations]
   )
-  const topTiers = destinations.filter(destination => destination.tier === 'S')
+  const topTiers = destinations.filter(destination => getDestinationTier(destination) === 'S')
 
   function toggleCollapse(tier: Tier) {
     setCollapsed(prev => ({ ...prev, [tier]: !prev[tier] }))
@@ -696,7 +705,7 @@ function getPreviewStats(destination: Destination) {
   if (destination.tripYear) stats.push({ icon: '🗓', label: 'Voyage', value: String(destination.tripYear) })
   if (destination.companions) stats.push({ icon: COMPANION_EMOJI[destination.companions], label: 'Avec', value: COMPANION_LABEL[destination.companions] })
   stats.push({ icon: INTENT_EMOJI[destination.intent], label: 'Style', value: INTENT_LABEL[destination.intent] })
-  if (destination.score !== undefined) stats.push({ icon: '⭐', label: 'Score', value: destination.score.toFixed(1).replace('.', ',') })
+  stats.push({ icon: '⭐', label: 'Score', value: getDestinationScore(destination).toFixed(1).replace('.', ',') })
   if (destination.value !== undefined) stats.push({ icon: '💶', label: 'Valeur', value: `${destination.value.toFixed(1).replace('.', ',')}/5` })
   return stats
 }

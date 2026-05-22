@@ -202,9 +202,13 @@ function AppInner() {
     if (!token) return
     const client = supabase
     void (async () => {
-      const { data: inviterId } = await client.rpc('consume_invite', { invite_token: token })
+      const { data: inviterId, error } = await client.rpc('consume_invite', { invite_token: token })
       url.searchParams.delete('invite')
       window.history.replaceState({}, '', url.toString())
+      if (error) {
+        setFriendToast(`Invitation impossible : ${error.message}`)
+        return
+      }
       if (inviterId) {
         const { data: inviterProfile } = await client
           .from('public_profiles')
@@ -329,6 +333,13 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [publicId, setPublicId] = useState<string>(loadPublicId)
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (!user && url.searchParams.has('invite')) {
+      setAccountOpen(true)
+    }
+  }, [user])
 
   useEffect(() => {
     try {
@@ -824,6 +835,7 @@ interface AccountPanelProps {
 }
 
 type AccountMode = 'login' | 'public'
+type PasswordAuthMode = 'signin' | 'signup'
 
 function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
   const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut } = useAuth()
@@ -832,6 +844,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<AccountMode>(user && publicId ? 'public' : 'login')
+  const [passwordMode, setPasswordMode] = useState<PasswordAuthMode>('signin')
   const [busy, setBusy] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
@@ -866,7 +879,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
     window.setTimeout(() => setSavedTick(false), 1800)
   }
 
-  const submitPasswordAuth = async (intent: 'signin' | 'signup') => {
+  const submitPasswordAuth = async () => {
     const cleaned = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
       setFeedback({ kind: 'err', msg: 'Email invalide' })
@@ -878,7 +891,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
     }
 
     setBusy(true)
-    const res = intent === 'signin'
+    const res: { error?: string; needsConfirmation?: boolean } = passwordMode === 'signin'
       ? await signInWithPassword(cleaned, password)
       : await signUpWithPassword(cleaned, password)
     setBusy(false)
@@ -886,9 +899,16 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
       setFeedback({ kind: 'err', msg: res.error })
       return
     }
-    setFeedback({ kind: 'ok', msg: intent === 'signin'
+    if (res.needsConfirmation) {
+      setFeedback({
+        kind: 'err',
+        msg: 'Compte créé, mais Supabase attend une confirmation email. Désactive "Confirm email" dans Supabase pour connecter les nouveaux comptes sans SMTP.',
+      })
+      return
+    }
+    setFeedback({ kind: 'ok', msg: passwordMode === 'signin'
       ? 'Connexion réussie.'
-      : 'Compte créé. Si Supabase demande une confirmation email, désactive-la pour les tests sans SMTP.' })
+      : 'Compte créé. Tu peux utiliser ce mot de passe pour revenir.' })
   }
 
   const connectWithGoogle = async () => {
@@ -934,16 +954,16 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
           </button>
         </div>
 
-        <div className="account-tabs" role="tablist" aria-label="Paramètres du compte">
-          <button
-            role="tab"
-            aria-selected={mode === 'login'}
-            className={mode === 'login' ? 'is-active' : ''}
-            onClick={() => { setMode('login'); setFeedback(null) }}
-          >
-            Connexion
-          </button>
-          {user && publicId && (
+        {user && publicId && (
+          <div className="account-tabs" role="tablist" aria-label="Paramètres du compte">
+            <button
+              role="tab"
+              aria-selected={mode === 'login'}
+              className={mode === 'login' ? 'is-active' : ''}
+              onClick={() => { setMode('login'); setFeedback(null) }}
+            >
+              Connexion
+            </button>
             <button
               role="tab"
               aria-selected={mode === 'public'}
@@ -952,8 +972,8 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
             >
               Lien public
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {mode === 'login' && (
           <div className="account-section">
@@ -978,14 +998,33 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
             ) : (
               <>
                 <p className="account-hint">
-                  Synchronise tes destinations et active les amis avec ton compte. Sur un nouvel appareil,
-                  reconnecte-toi avec Google ou ton email et mot de passe pour retrouver ta carte.
+                  Synchronise tes destinations et retrouve ta carte sur tous tes appareils.
                 </p>
                 <button className="account-google" onClick={connectWithGoogle} disabled={googleBusy || busy}>
                   <span aria-hidden="true">G</span>
                   {googleBusy ? 'Connexion...' : 'Continuer avec Google'}
                 </button>
                 <div className="account-divider"><span>ou</span></div>
+                <div className="account-auth-tabs" role="tablist" aria-label="Connexion ou inscription">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={passwordMode === 'signin'}
+                    className={passwordMode === 'signin' ? 'is-active' : ''}
+                    onClick={() => { setPasswordMode('signin'); setFeedback(null) }}
+                  >
+                    Connexion
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={passwordMode === 'signup'}
+                    className={passwordMode === 'signup' ? 'is-active' : ''}
+                    onClick={() => { setPasswordMode('signup'); setFeedback(null) }}
+                  >
+                    Inscription
+                  </button>
+                </div>
                 <label>
                   Email
                   <input
@@ -1004,20 +1043,15 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
                     value={password}
                     onChange={event => setPassword(event.target.value)}
                     placeholder="6 caractères minimum"
-                    autoComplete="current-password"
+                    autoComplete={passwordMode === 'signin' ? 'current-password' : 'new-password'}
                     onKeyDown={event => {
-                      if (event.key === 'Enter') void submitPasswordAuth('signin')
+                      if (event.key === 'Enter') void submitPasswordAuth()
                     }}
                   />
                 </label>
-                <div className="account-actions">
-                  <button className="add-submit account-primary" onClick={() => void submitPasswordAuth('signin')} disabled={busy || googleBusy}>
-                    {busy ? 'Connexion...' : 'Se connecter'}
-                  </button>
-                  <button className="account-secondary" onClick={() => void submitPasswordAuth('signup')} disabled={busy || googleBusy}>
-                    Créer un compte
-                  </button>
-                </div>
+                <button className="add-submit account-primary" onClick={() => void submitPasswordAuth()} disabled={busy || googleBusy}>
+                  {busy ? 'Patiente...' : passwordMode === 'signin' ? 'Se connecter' : 'S’inscrire'}
+                </button>
                 {feedback && (
                   <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
                     {feedback.msg}

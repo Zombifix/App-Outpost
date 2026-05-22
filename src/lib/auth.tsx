@@ -29,6 +29,12 @@ function friendlyAuthError(message: string) {
   if (normalized.includes('invalid login credentials')) {
     return 'Email ou mot de passe incorrect.'
   }
+  if (normalized.includes('email not confirmed') || normalized.includes('not confirmed')) {
+    return 'Ce compte existe, mais il attend encore une confirmation email. Pour les tests sans SMTP, désactive "Confirm email" dans Supabase puis confirme ou recrée cet utilisateur.'
+  }
+  if (normalized.includes('signups not allowed') || normalized.includes('signup is disabled')) {
+    return 'Les inscriptions sont désactivées dans Supabase. Active "Allow new users" / "Enable sign ups" dans Authentication > Sign In / Providers > Email.'
+  }
   if (normalized.includes('user already registered') || normalized.includes('already registered')) {
     return 'Un compte existe déjà avec cet email. Essaie plutôt de te connecter.'
   }

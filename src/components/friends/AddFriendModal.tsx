@@ -19,7 +19,7 @@ interface AddFriendModalProps {
  */
 export default function AddFriendModal({ onClose }: AddFriendModalProps) {
   const [tab, setTab] = useState<Tab>('handle')
-  const { user, signInWithEmail } = useAuth()
+  const { user } = useAuth()
   const { searchProfiles, sendRequestByUserId, createEmailInvite, pendingActions } = useFriends()
 
   const [handleQuery, setHandleQuery] = useState('')
@@ -30,10 +30,13 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
 
   const [email, setEmail] = useState('')
   const [emailBusy, setEmailBusy] = useState(false)
+  const [emailInviteLink, setEmailInviteLink] = useState('')
 
   const [linkCopied, setLinkCopied] = useState(false)
   const [inviteToken, setInviteToken] = useState<string | null>(null)
   const [inviteBusy, setInviteBusy] = useState(false)
+
+  const buildInviteLink = (token: string) => `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(token)}`
 
   // Debounce + recherche live des profils par handle/displayName
   useEffect(() => {
@@ -74,14 +77,10 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
       setEmailBusy(false)
       return
     }
-    const auth = await signInWithEmail(cleaned, inv.token)
+    const link = buildInviteLink(inv.token)
+    setEmailInviteLink(link)
     setEmailBusy(false)
-    if (auth.error) {
-      setFeedback({ kind: 'err', msg: auth.error })
-    } else {
-      setFeedback({ kind: 'ok', msg: `Invitation envoyée à ${cleaned}. Le dernier email reçu contient le lien valide.` })
-      setEmail('')
-    }
+    setFeedback({ kind: 'ok', msg: `Lien prêt pour ${cleaned}. Copie-le et envoie-le depuis ton app de messagerie.` })
   }
 
   const generateInviteLink = async () => {
@@ -96,8 +95,19 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
 
   const shareLink = useMemo(() => {
     if (!inviteToken) return ''
-    return `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(inviteToken)}`
+    return buildInviteLink(inviteToken)
   }, [inviteToken])
+
+  const copyEmailLink = async () => {
+    if (!emailInviteLink) return
+    try {
+      await navigator.clipboard.writeText(emailInviteLink)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 1800)
+    } catch {
+      window.prompt('Copie le lien', emailInviteLink)
+    }
+  }
 
   const copyLink = async () => {
     if (!shareLink) return
@@ -126,13 +136,12 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
       <aside
         className="account-panel friends-add-panel"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 460 }}
       >
         <button className="floating-close" aria-label="Fermer" onClick={onClose}>
           <CloseIcon />
         </button>
 
-        <h2 style={{ marginTop: 4 }}>Ajouter un ami</h2>
+        <h2>Ajouter un ami</h2>
         <p className="account-hint">
           Trouve quelqu'un par pseudo, invite-le par email, ou partage ton lien personnel.
         </p>
@@ -196,12 +205,19 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
               />
             </label>
             <p className="friends-muted">
-              Si la personne n'a pas encore de compte Outpost, elle recevra un email pour s'inscrire.
-              Une fois connectée, vous serez amis automatiquement.
+              Génère un lien pour cette personne, puis envoie-le depuis ton app de messagerie.
             </p>
-            <button className="add-submit" onClick={sendEmail} disabled={emailBusy}>
-              {emailBusy ? 'Envoi…' : 'Inviter par email'}
+            <button className="add-submit friends-primary-action" onClick={sendEmail} disabled={emailBusy}>
+              {emailBusy ? 'Création…' : 'Créer le lien'}
             </button>
+            {emailInviteLink && (
+              <div className="friends-share-box">
+                <input readOnly value={emailInviteLink} onClick={e => (e.target as HTMLInputElement).select()} />
+                <button className="friends-secondary-action" onClick={copyEmailLink}>
+                  {linkCopied ? 'Copié' : 'Copier'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -211,7 +227,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
               Partage ce lien à qui tu veux ; toute personne qui se connecte avec deviendra ami avec toi.
             </p>
             {!inviteToken && (
-              <button className="add-submit" onClick={generateInviteLink} disabled={inviteBusy}>
+              <button className="add-submit friends-primary-action" onClick={generateInviteLink} disabled={inviteBusy}>
                 {inviteBusy ? 'Création…' : 'Générer mon lien d\'invitation'}
               </button>
             )}
@@ -221,11 +237,11 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
                   Ton lien
                   <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
                 </label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="add-submit" onClick={copyLink} style={{ flex: 1 }}>
+                <div className="friends-link-actions">
+                  <button className="add-submit friends-primary-action" onClick={copyLink}>
                     {linkCopied ? 'Copié ✓' : 'Copier'}
                   </button>
-                  <button className="add-submit" onClick={nativeShare} style={{ flex: 1 }}>
+                  <button className="friends-secondary-action" onClick={nativeShare}>
                     Partager
                   </button>
                 </div>

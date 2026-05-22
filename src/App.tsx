@@ -826,12 +826,14 @@ interface AccountPanelProps {
 type AccountMode = 'login' | 'public'
 
 function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
-  const { user, signInWithEmail, signOut } = useAuth()
+  const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut } = useAuth()
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [mode, setMode] = useState<AccountMode>(user && publicId ? 'public' : 'login')
   const [busy, setBusy] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [savedTick, setSavedTick] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
@@ -864,18 +866,36 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
     window.setTimeout(() => setSavedTick(false), 1800)
   }
 
-  const sendMagicLink = async () => {
+  const submitPasswordAuth = async (intent: 'signin' | 'signup') => {
     const cleaned = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
       setFeedback({ kind: 'err', msg: 'Email invalide' })
       return
     }
+    if (password.length < 6) {
+      setFeedback({ kind: 'err', msg: 'Mot de passe trop court : utilise au moins 6 caractères.' })
+      return
+    }
+
     setBusy(true)
-    const res = await signInWithEmail(cleaned)
+    const res = intent === 'signin'
+      ? await signInWithPassword(cleaned, password)
+      : await signUpWithPassword(cleaned, password)
     setBusy(false)
-    setFeedback(res.error
-      ? { kind: 'err', msg: res.error }
-      : { kind: 'ok', msg: 'Lien envoyé. Ouvre le dernier email reçu : le lien expire dans 1 heure et ne sert qu\'une fois.' })
+    if (res.error) {
+      setFeedback({ kind: 'err', msg: res.error })
+      return
+    }
+    setFeedback({ kind: 'ok', msg: intent === 'signin'
+      ? 'Connexion réussie.'
+      : 'Compte créé. Si Supabase demande une confirmation email, désactive-la pour les tests sans SMTP.' })
+  }
+
+  const connectWithGoogle = async () => {
+    setGoogleBusy(true)
+    const res = await signInWithGoogle()
+    setGoogleBusy(false)
+    if (res.error) setFeedback({ kind: 'err', msg: res.error })
   }
 
   // Fallback slug 'invite' cohérent avec le bouton "Partager" du header.
@@ -958,9 +978,14 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
             ) : (
               <>
                 <p className="account-hint">
-                  Synchronise tes destinations et active les amis avec un lien de connexion par email.
-                  Sur un nouvel appareil ? Entre ton email pour retrouver ta carte.
+                  Synchronise tes destinations et active les amis avec ton compte. Sur un nouvel appareil,
+                  reconnecte-toi avec Google ou ton email et mot de passe pour retrouver ta carte.
                 </p>
+                <button className="account-google" onClick={connectWithGoogle} disabled={googleBusy || busy}>
+                  <span aria-hidden="true">G</span>
+                  {googleBusy ? 'Connexion...' : 'Continuer avec Google'}
+                </button>
+                <div className="account-divider"><span>ou</span></div>
                 <label>
                   Email
                   <input
@@ -972,9 +997,27 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
                     autoFocus
                   />
                 </label>
-                <button className="add-submit account-primary" onClick={sendMagicLink} disabled={busy}>
-                  {busy ? 'Envoi...' : 'Recevoir le lien'}
-                </button>
+                <label>
+                  Mot de passe
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={event => setPassword(event.target.value)}
+                    placeholder="6 caractères minimum"
+                    autoComplete="current-password"
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') void submitPasswordAuth('signin')
+                    }}
+                  />
+                </label>
+                <div className="account-actions">
+                  <button className="add-submit account-primary" onClick={() => void submitPasswordAuth('signin')} disabled={busy || googleBusy}>
+                    {busy ? 'Connexion...' : 'Se connecter'}
+                  </button>
+                  <button className="account-secondary" onClick={() => void submitPasswordAuth('signup')} disabled={busy || googleBusy}>
+                    Créer un compte
+                  </button>
+                </div>
                 {feedback && (
                   <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
                     {feedback.msg}

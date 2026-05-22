@@ -8,6 +8,9 @@ interface AuthContextValue {
   loading: boolean
   /** Envoie un magic link à `email`. Si `inviteToken` fourni, sera consommé après login. */
   signInWithEmail: (email: string, inviteToken?: string) => Promise<{ error?: string }>
+  signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>
+  signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsConfirmation?: boolean }>
+  signInWithGoogle: () => Promise<{ error?: string }>
   signOut: () => Promise<void>
 }
 
@@ -23,7 +26,22 @@ function friendlyAuthError(message: string) {
   if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
     return 'Trop de tentatives rapprochées. Attends une minute avant de demander un nouveau lien.'
   }
+  if (normalized.includes('invalid login credentials')) {
+    return 'Email ou mot de passe incorrect.'
+  }
+  if (normalized.includes('user already registered') || normalized.includes('already registered')) {
+    return 'Un compte existe déjà avec cet email. Essaie plutôt de te connecter.'
+  }
+  if (normalized.includes('password should be at least') || normalized.includes('weak password')) {
+    return 'Mot de passe trop court. Utilise au moins 6 caractères.'
+  }
   return message
+}
+
+function getAuthRedirectTo() {
+  const redirectBase = `${window.location.origin}${window.location.pathname}`
+  const tokenFromUrl = new URL(window.location.href).searchParams.get('invite') ?? undefined
+  return tokenFromUrl ? `${redirectBase}?invite=${encodeURIComponent(tokenFromUrl)}` : redirectBase
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -70,6 +88,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: friendlyAuthError(error.message) } : {}
   }
 
+  const signInWithPassword = async (email: string, password: string) => {
+    if (!supabase) return { error: 'Supabase non configuré' }
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    })
+    return error ? { error: friendlyAuthError(error.message) } : {}
+  }
+
+  const signUpWithPassword = async (email: string, password: string) => {
+    if (!supabase) return { error: 'Supabase non configuré' }
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: { emailRedirectTo: getAuthRedirectTo() },
+    })
+    if (error) return { error: friendlyAuthError(error.message) }
+    return { needsConfirmation: !data.session }
+  }
+
+  const signInWithGoogle = async () => {
+    if (!supabase) return { error: 'Supabase non configuré' }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: getAuthRedirectTo() },
+    })
+    return error ? { error: friendlyAuthError(error.message) } : {}
+  }
+
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
@@ -87,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithEmail, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   )

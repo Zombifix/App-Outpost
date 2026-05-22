@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from './types'
 import { useMyDestinations } from './hooks/useMyDestinations'
 import WorldMap from './components/WorldMap'
@@ -233,6 +233,7 @@ function AppInner() {
 
 function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: number; profileHandle: string | null }) {
   const { user } = useAuth()
+  const { friendships, sendRequestByUserId, acceptRequest } = useFriends()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
@@ -287,6 +288,33 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     }
     return n
   }, [compareFriend, compareFriendDests, myDestinations])
+
+  const friendshipWithViewed = useMemo(
+    () => viewingFriend ? (friendships.find(f => f.otherUser === viewingFriend.userId) ?? null) : null,
+    [friendships, viewingFriend]
+  )
+
+  const [addFriendFeedback, setAddFriendFeedback] = useState<'idle' | 'sent' | 'accepted'>('idle')
+
+  useEffect(() => { setAddFriendFeedback('idle') }, [viewingFriend?.userId])
+
+  const handleAddViewingFriend = useCallback(async () => {
+    if (!viewingFriend) return
+    const existing = friendships.find(f => f.otherUser === viewingFriend.userId)
+    if (existing?.status === 'pending' && existing.initiator === 'them') {
+      await acceptRequest(existing.otherUser)
+      setAddFriendFeedback('accepted')
+    } else {
+      await sendRequestByUserId(viewingFriend.userId)
+      setAddFriendFeedback('sent')
+    }
+  }, [viewingFriend, friendships, sendRequestByUserId, acceptRequest])
+
+  const handleCompareViewingFriend = useCallback(() => {
+    if (!viewingFriend) return
+    const f = friendships.find(fr => fr.otherUser === viewingFriend.userId)
+    if (f) { setCompareFriend(f); setViewingFriend(null) }
+  }, [viewingFriend, friendships])
 
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>(null)
@@ -623,6 +651,11 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
         }}
         viewingFriend={viewingFriend}
         onBackToMyCarnet={() => { setViewingFriend(null); setSelectedName(null) }}
+        isAuthenticated={!!user}
+        friendshipWithViewed={friendshipWithViewed}
+        addFriendFeedback={addFriendFeedback}
+        onAddViewingFriend={handleAddViewingFriend}
+        onCompareViewingFriend={handleCompareViewingFriend}
       />
       {friendsManageOpen && (
         <Suspense fallback={null}>

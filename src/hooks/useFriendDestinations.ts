@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase'
 import type { Destination } from '../types'
 import { getDestinationImagesForDestinations } from '../services/imageSearch'
 import {
-  DESTINATION_SELECT_COLUMNS,
   rowToDestination,
   type DbDestinationRow,
 } from '../lib/destinationMapper'
@@ -60,10 +59,7 @@ async function loadFriendDestinations(friendUserId: string, force = false): Prom
   // `.finally` pour le cleanup du registre in-flight.
   const request = Promise.resolve(
     supabase
-      .from('destinations')
-      .select(DESTINATION_SELECT_COLUMNS)
-      .eq('user_id', friendUserId)
-      .limit(MAX_FRIEND_DESTINATIONS)
+      .rpc('get_public_destinations', { target_user_id: friendUserId })
   )
     .then(({ data, error: err }) => {
       if (err) throw err

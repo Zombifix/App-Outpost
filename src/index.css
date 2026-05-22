@@ -1937,6 +1937,44 @@ svg {
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+.top-actions .share-add-friend {
+  min-width: 148px;
+  justify-content: center;
+  color: white;
+  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  box-shadow: 0 4px 18px rgba(27, 95, 232, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.top-actions .share-add-friend:disabled {
+  background: rgba(210, 220, 235, 0.85);
+  box-shadow: none;
+  color: #7a8fa8;
+  cursor: default;
+  border-color: rgba(185, 205, 232, 0.5);
+}
+
+.top-actions .share-compare {
+  min-width: 118px;
+  justify-content: center;
+  color: white;
+  background: linear-gradient(135deg, #0f9b8e, #14b8a6);
+  box-shadow: 0 4px 18px rgba(15, 155, 142, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.top-actions .share-feedback {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 18px;
+  min-height: 42px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: #0d7a5f;
+  background: rgba(209, 250, 229, 0.90);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
 .top-actions .filter-popover button {
   min-height: 34px;
   box-shadow: none;
@@ -4514,8 +4552,8 @@ svg {
 .bottom-nav { display: none; }
 .mobile-tier-toggle { display: none; }
 
-/* === Tablet / mobile (max 760px) === */
-@media (max-width: 760px) {
+/* === Tablet / mobile (max 900px) === */
+@media (max-width: 900px) {
   :root {
     --sidebar-w: 0px;
     --gap: 12px;

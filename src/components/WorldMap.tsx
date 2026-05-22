@@ -12,6 +12,8 @@ const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
 const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
 const INIT_CENTER: [number, number] = [10, 10]
 const INIT_ZOOM = 1.5
+const AUTO_FIT_MAX_ZOOM = 5.6
+const PIN_FOCUS_INSET = 92
 type Proj = (ll: [number, number]) => [number, number] | null
 
 function pinScaleFromZoomK(_zoomK: number) {
@@ -24,6 +26,137 @@ function getTierColor(tier?: Tier) {
 
 function getDestinationColor(destination: Destination) {
   return TIER_COLORS[getDestinationTier(destination)]?.pin
+}
+
+function isFiniteLngLat(point: { lng: number; lat: number }) {
+  return Number.isFinite(point.lng) && Number.isFinite(point.lat)
+}
+
+function getDestinationFocusPoints(destination: Destination): Array<{ lng: number; lat: number }> {
+  const points: Array<{ lng: number; lat: number }> = []
+
+  if (Array.isArray(destination.extent) && destination.extent.length === 4) {
+    const [west, south, east, north] = destination.extent
+    if ([west, south, east, north].every(Number.isFinite)) {
+      points.push(
+        { lng: west, lat: south },
+        { lng: east, lat: north },
+      )
+    }
+  }
+
+  if (destination.stops?.length) {
+    for (const stop of destination.stops) {
+      if (isFiniteLngLat(stop)) points.push({ lng: stop.lng, lat: stop.lat })
+    }
+  }
+
+  if (isFiniteLngLat(destination)) {
+    points.push({ lng: destination.lng, lat: destination.lat })
+  }
+
+  return points
+}
+
+function getMapFocusPoints(destinations: Destination[], friendDestinations?: Destination[]) {
+  return [...destinations, ...(friendDestinations ?? [])].flatMap(getDestinationFocusPoints)
+}
+
+function getMapFocusFingerprint(destinations: Destination[], friendDestinations?: Destination[]) {
+  return getMapFocusPoints(destinations, friendDestinations)
+    .map(point => `${point.lng.toFixed(4)},${point.lat.toFixed(4)}`)
+    .sort()
+    .join('|')
+}
+
+function visibleRect(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return null
+  const style = element.ownerDocument.defaultView?.getComputedStyle(element)
+  if (!style || style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return null
+  const rect = element.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return null
+  return rect
+}
+
+function getMapFitPadding(map: maplibregl.Map) {
+  const container = map.getContainer()
+  const width = container.clientWidth
+  const height = container.clientHeight
+  const doc = container.ownerDocument
+  const isCompact = width < 720
+  const sidebar = visibleRect(doc.querySelector('.sidebar'))
+  const topbar = visibleRect(doc.querySelector('.topbar'))
+  const mobileHeader = visibleRect(doc.querySelector('.mobile-header'))
+  const tierBoard = visibleRect(doc.querySelector('.tier-board'))
+  const legend = visibleRect(doc.querySelector('.legend'))
+
+  const overlayLeft = sidebar ? Math.min(sidebar.right, width * 0.42) : 0
+  const overlayTop = Math.max(topbar?.bottom ?? 0, mobileHeader?.bottom ?? 0)
+  const overlayBottom = Math.max(
+    tierBoard && tierBoard.top < height ? height - tierBoard.top : 0,
+    legend && legend.top < height ? height - legend.top : 0,
+  )
+
+  if (isCompact) {
+    return {
+      top: Math.min(170, Math.max(118, overlayTop + PIN_FOCUS_INSET * 0.7)),
+      right: 64,
+      bottom: Math.min(280, Math.max(170, overlayBottom + PIN_FOCUS_INSET)),
+      left: 64,
+    }
+  }
+
+  return {
+    top: Math.min(190, Math.max(150, overlayTop + PIN_FOCUS_INSET)),
+    right: Math.min(150, Math.max(112, width * 0.1)),
+    bottom: Math.min(220, Math.max(132, overlayBottom + PIN_FOCUS_INSET * 0.75)),
+    left: Math.min(width * 0.46, Math.max(overlayLeft + PIN_FOCUS_INSET, width * 0.28)),
+  }
+}
+
+function fitMapToDestinations(
+  map: maplibregl.Map,
+  destinations: Destination[],
+  friendDestinations: Destination[] | undefined,
+  options?: { duration?: number; fallbackToWorld?: boolean },
+) {
+  const visiblePoints = getMapFocusPoints(destinations, friendDestinations)
+  const duration = options?.duration ?? 650
+  const padding = getMapFitPadding(map)
+
+  if (visiblePoints.length > 1) {
+    const bounds = new maplibregl.LngLatBounds()
+    for (const point of visiblePoints) {
+      bounds.extend([point.lng, point.lat])
+    }
+    map.fitBounds(bounds, {
+      padding,
+      maxZoom: AUTO_FIT_MAX_ZOOM,
+      duration,
+      easing: t => 1 - Math.pow(1 - t, 3),
+    })
+    return true
+  }
+
+  if (visiblePoints.length === 1) {
+    map.flyTo({
+      center: [visiblePoints[0].lng, visiblePoints[0].lat],
+      zoom: Math.min(Math.max(map.getZoom(), 4.4), AUTO_FIT_MAX_ZOOM),
+      duration,
+      offset: [
+        (padding.left - padding.right) / 2,
+        (padding.top - padding.bottom) / 2,
+      ],
+      easing: t => 1 - Math.pow(1 - t, 3),
+    })
+    return true
+  }
+
+  if (options?.fallbackToWorld) {
+    map.flyTo({ center: INIT_CENTER, zoom: INIT_ZOOM, duration: Math.min(duration, 400) })
+  }
+
+  return false
 }
 
 interface FlyTarget { lat: number; lng: number; name: string }
@@ -537,9 +670,12 @@ export default function WorldMap({
   const svgRef          = useRef<SVGSVGElement>(null)
   const pinsGroupRef    = useRef<SVGGElement>(null)
   const projFnRef       = useRef<Proj>(() => null)
+  const lastAutoFitFingerprintRef = useRef<string | null>(null)
+  const autoFitTimeoutRef = useRef<number | null>(null)
 
   const [mapReady, setMapReady] = useState(false)
   const [zoomK, setZoomK]       = useState(1)
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
 
   // ── Init MapLibre ───────────────────────────────────────────────────────────
@@ -570,8 +706,30 @@ export default function WorldMap({
     map.on('zoom', () => setZoomK(Math.pow(2, map.getZoom() - INIT_ZOOM)))
 
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null; setMapReady(false) }
+    return () => {
+      if (autoFitTimeoutRef.current !== null) window.clearTimeout(autoFitTimeoutRef.current)
+      map.remove()
+      mapRef.current = null
+      setMapReady(false)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return
+    const updateMapSize = () => {
+      const rect = mapContainerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setMapSize(previous => {
+        const width = Math.round(rect.width)
+        const height = Math.round(rect.height)
+        return previous.width === width && previous.height === height ? previous : { width, height }
+      })
+    }
+    updateMapSize()
+    const observer = new ResizeObserver(updateMapSize)
+    observer.observe(mapContainerRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   // ── Resize MapLibre quand la map redevient visible ─────────────────────────
   useEffect(() => {
@@ -607,6 +765,22 @@ export default function WorldMap({
     if (!mapReady || !mapRef.current) return
     updatePins(mapRef.current)
   }, [mapReady, destinations, friendDestinations, expandedRouteKey, selectedName])
+
+  // Cadrage automatique du carnet au premier affichage (et quand on change de jeu
+  // de destinations), sans voler la caméra pendant un focus explicite sur un pin.
+  useEffect(() => {
+    if (hidden || !mapReady || !mapRef.current || flyTarget || selectedName) return
+    const fingerprint = getMapFocusFingerprint(destinations, friendDestinations)
+    const fitKey = `${fingerprint}@${mapSize.width}x${mapSize.height}`
+    if (fitKey === lastAutoFitFingerprintRef.current || !mapSize.width || !mapSize.height) return
+    lastAutoFitFingerprintRef.current = fitKey
+    if (autoFitTimeoutRef.current !== null) window.clearTimeout(autoFitTimeoutRef.current)
+    autoFitTimeoutRef.current = window.setTimeout(() => {
+      if (!mapRef.current) return
+      mapRef.current.resize()
+      fitMapToDestinations(mapRef.current, destinations, friendDestinations, { duration: 780 })
+    }, 120)
+  }, [hidden, mapReady, destinations, friendDestinations, flyTarget, selectedName, mapSize])
 
   // ── Mise à jour directe des transforms SVG (bypass React) ──────────────────
   function updatePins(map: maplibregl.Map) {
@@ -688,29 +862,7 @@ export default function WorldMap({
   const resetZoom = () => {
     const map = mapRef.current
     if (!map) return
-
-    const visiblePoints = [
-      ...destinations,
-      ...(friendDestinations ?? []),
-      ...destinations.flatMap(destination => destination.stops ?? []),
-      ...(friendDestinations ?? []).flatMap(destination => destination.stops ?? []),
-    ].filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng))
-
-    if (visiblePoints.length > 1) {
-      const bounds = new maplibregl.LngLatBounds()
-      for (const point of visiblePoints) {
-        bounds.extend([point.lng, point.lat])
-      }
-      map.fitBounds(bounds, { padding: 58, maxZoom: 4.2, duration: 520 })
-      return
-    }
-
-    if (visiblePoints.length === 1) {
-      map.flyTo({ center: [visiblePoints[0].lng, visiblePoints[0].lat], zoom: 4, duration: 520 })
-      return
-    }
-
-    map.flyTo({ center: INIT_CENTER, zoom: INIT_ZOOM, duration: 400 })
+    fitMapToDestinations(map, destinations, friendDestinations, { duration: 520, fallbackToWorld: true })
   }
 
   const zoomToZone = (d: Destination) => {

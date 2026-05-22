@@ -311,10 +311,10 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
       <header className="sidebar-activity-head">
         <h4>
           <span className="sidebar-activity-live" aria-hidden="true" />
-          Activit� r�cente
+          Activité récente
         </h4>
       </header>
-      <p className="sidebar-activity-sub">Derni�res destinations ajout�es</p>
+      <p className="sidebar-activity-sub">Dernières destinations ajoutées</p>
 
       {hero && (
         <HeroCard

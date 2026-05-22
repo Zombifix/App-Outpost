@@ -1862,7 +1862,7 @@ svg {
 .topbar-title h1 {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: var(--text-2xl);
+  font-size: 32px;
   font-weight: var(--weight-semibold);
   color: var(--ink);
   letter-spacing: var(--tracking-tight);
@@ -1872,7 +1872,7 @@ svg {
   line-height: 1.15;
 }
 .topbar-title-sub {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 

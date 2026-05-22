@@ -873,7 +873,9 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
     setBusy(true)
     const res = await signInWithEmail(cleaned)
     setBusy(false)
-    setFeedback(res.error ? { kind: 'err', msg: res.error } : { kind: 'ok', msg: 'Lien envoyé. Ouvre ton email pour te connecter.' })
+    setFeedback(res.error
+      ? { kind: 'err', msg: res.error }
+      : { kind: 'ok', msg: 'Lien envoyé. Ouvre le dernier email reçu : le lien expire dans 1 heure et ne sert qu\'une fois.' })
   }
 
   // Fallback slug 'invite' cohérent avec le bouton "Partager" du header.

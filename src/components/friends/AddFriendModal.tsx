@@ -79,7 +79,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
     if (auth.error) {
       setFeedback({ kind: 'err', msg: auth.error })
     } else {
-      setFeedback({ kind: 'ok', msg: `Invitation envoyée à ${cleaned}` })
+      setFeedback({ kind: 'ok', msg: `Invitation envoyée à ${cleaned}. Le dernier email reçu contient le lien valide.` })
       setEmail('')
     }
   }

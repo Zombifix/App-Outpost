@@ -6168,27 +6168,6 @@ svg {
   opacity: 0.7;
 }
 
-/* Zone label — pill étoile + nom + score */
-.map-pin-zone-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 16px 7px 10px;
-  background: rgba(255,255,255,0.97);
-  border: none;
-  border-radius: 99px;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  white-space: nowrap;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.07);
-  transform-origin: left center;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.map-pin-zone-label:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 18px rgba(0,0,0,0.17), 0 1px 5px rgba(0,0,0,0.08);
-}
-
 /* Trip card — pill avec photo thumb intégrée */
 .map-pin-trip-card {
   position: relative;
@@ -6352,20 +6331,6 @@ svg {
   transform: translateX(0);
 }
 
-/* Zone label (roadtrip sans étape) → nom + score toujours visibles */
-.map-pin-zone-label .map-pin-pill-name {
-  max-width: 140px;
-  opacity: 1;
-  transform: none;
-  transition: none;
-}
-.map-pin-zone-label .map-pin-pill-sub {
-  max-width: 80px;
-  opacity: 1;
-  transform: none;
-  transition: none;
-}
-.map-pin-zone-label--friend,
 .map-pin-trip-card--friend {
   box-shadow: 0 0 0 2px #7C8DB5, 0 2px 10px rgba(0,0,0,0.11);
 }

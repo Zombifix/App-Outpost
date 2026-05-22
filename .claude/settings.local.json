@@ -28,7 +28,8 @@
       "Bash(git revert *)",
       "PowerShell($path = 'src/components/Nav.tsx'; $bytes = [System.IO.File]::ReadAllBytes\\($path\\); $asUtf8 = [System.Text.Encoding]::UTF8.GetString\\($bytes\\); $cp1252Bytes = [System.Text.Encoding]::GetEncoding\\(1252\\).GetBytes\\($asUtf8\\); $fixed = [System.Text.Encoding]::UTF8.GetString\\($cp1252Bytes\\); [System.IO.File]::WriteAllText\\($path, $fixed, \\(New-Object System.Text.UTF8Encoding $false\\)\\); Write-Output 'done')",
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\('src/components/Nav.tsx'\\); $bytes[0..5] | ForEach-Object { '{0:X2}' -f $_ })",
-      "Bash(xargs grep -l \"calculateScore\")"
+      "Bash(xargs grep -l \"calculateScore\")",
+      "Bash(supabase --version)"
     ]
   }
 }

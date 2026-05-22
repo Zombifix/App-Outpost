@@ -1077,16 +1077,11 @@ const Pin = memo(function Pin({
     .toFixed(1).replace('.', ',')
 
   // ── Zone (road trip / région)
+  // Note: si zone sans étape → fall-through vers le pin standard (rendu identique
+  // à une destination 'place'), pour éviter la petite pill discrète sans photo.
   if (destination.kind === 'zone') {
     const validStops = destination.stops?.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng)) ?? []
     const stageCount = validStops.length
-
-    const ZoneStar = () => (
-      <svg className="map-pin-pill-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
-    )
-
 
     // Road trip avec arrêts → pill unifiée avec photo + texte
     if (stageCount > 0) {
@@ -1124,29 +1119,7 @@ const Pin = memo(function Pin({
       )
     }
 
-    // Zone simple sans route → pill étoile + nom + score
-    return (
-      <g
-        className={`pin-root pin-owner-${owner}`}
-        data-lng={destination.lng}
-        data-lat={destination.lat}
-        transform={`translate(${cx},${cy}) scale(${pinScale})`}
-      >
-        <foreignObject x="-10" y="-24" width="300" height="50" overflow="visible">
-          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-            <button
-              className={`map-pin-zone-label${owner === 'friend' ? ' map-pin-zone-label--friend' : ''}`}
-              style={{ '--pin-color': color } as CSSProperties}
-              onClick={() => { onSelect(destination.name); onZoomToZone?.(destination) }}
-            >
-              <ZoneStar />
-              <span className="map-pin-pill-name">{destination.name}</span>
-              <span className="map-pin-pill-sub">· {score}</span>
-            </button>
-          </div>
-        </foreignObject>
-      </g>
-    )
+    // Zone sans étape → rendu identique au pin standard (fall-through)
   }
 
   // ── Full destination pin ───────────────────────────────────────────────────

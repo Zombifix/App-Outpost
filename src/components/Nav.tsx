@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
-import type { Destination } from '../types'
+import type { Destination, Friendship } from '../types'
 import { BrandLogo } from './BrandLogo'
 import { useActivityFeed } from '../hooks/useActivityFeed'
 
@@ -26,6 +26,11 @@ interface NavProps {
   onActivityFlyTo?: (lat: number, lng: number, name: string, actor?: { userId: string; handle: string; displayName: string }) => void
   viewingFriend?: { userId: string; handle: string; displayName: string } | null
   onBackToMyCarnet?: () => void
+  isAuthenticated?: boolean
+  friendshipWithViewed?: Friendship | null
+  addFriendFeedback?: 'idle' | 'sent' | 'accepted'
+  onAddViewingFriend?: () => void
+  onCompareViewingFriend?: () => void
 }
 
 export default function Nav({
@@ -48,6 +53,11 @@ export default function Nav({
   onActivityFlyTo,
   viewingFriend,
   onBackToMyCarnet,
+  isAuthenticated,
+  friendshipWithViewed,
+  addFriendFeedback = 'idle',
+  onAddViewingFriend,
+  onCompareViewingFriend,
 }: NavProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const activeFilterCount = [
@@ -176,12 +186,36 @@ export default function Nav({
               </span>
             )}
           </button>
-          {canShare && (
+          {viewingFriend && isAuthenticated ? (
+            friendshipWithViewed?.status === 'accepted' ? (
+              <button className="share share-compare" onClick={onCompareViewingFriend}>
+                <Icon name="versus" />
+                Comparer
+              </button>
+            ) : addFriendFeedback !== 'idle' ? (
+              <span className="share-feedback">
+                {addFriendFeedback === 'accepted' ? 'Ami ✓' : 'Demande envoyée ✓'}
+              </span>
+            ) : (
+              <button
+                className="share share-add-friend"
+                onClick={onAddViewingFriend}
+                disabled={friendshipWithViewed?.status === 'pending' && friendshipWithViewed.initiator === 'me'}
+              >
+                <Icon name="user-plus" />
+                {friendshipWithViewed?.status === 'pending' && friendshipWithViewed.initiator === 'me'
+                  ? 'Demande envoyée'
+                  : friendshipWithViewed?.status === 'pending' && friendshipWithViewed.initiator === 'them'
+                    ? '+ Accepter'
+                    : '+ Ajouter en ami'}
+              </button>
+            )
+          ) : !viewingFriend ? (
             <button className="share" onClick={onShare}>
               <Icon name="share" />
               {shareCopied ? 'Lien copié' : 'Partager'}
             </button>
-          )}
+          ) : null}
           <button
             className={`user-badge${accountOpen ? ' is-active' : ''}`}
             onClick={onAccountClick}
@@ -221,6 +255,7 @@ function Icon({ name }: { name: string }) {
     sort: <><path d="M7 4v16" /><path d="m3 8 4-4 4 4" /><path d="M17 20V4" /><path d="m13 16 4 4 4-4" /></>,
     share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" /></>,
     user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+    'user-plus': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></>,
     'chevron-down': <path d="m6 9 6 6 6-6" />,
     'chevron-up': <path d="m6 15 6-6 6 6" />,
     versus: <><path d="M5 4 8 14 11 4" /><path d="m18 4-5 16" /><path d="M14 11h6" /></>,

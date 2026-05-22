@@ -232,6 +232,7 @@ function AppInner() {
 }
 
 function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: number; profileHandle: string | null }) {
+  const { user } = useAuth()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
@@ -472,7 +473,8 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   }
 
   const shareTierList = async () => {
-    const slug = publicId.trim() || 'invite'
+    if (!publicId.trim()) return
+    const slug = publicId.trim()
     const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(slug)}`
     // Feedback visuel IMMÉDIAT : on bascule le label "Partager" → "Lien copie"
     // avant l'appel au clipboard. Si jamais l'API bloque indéfiniment (popup
@@ -603,6 +605,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
         filters={filters}
         shareCopied={shareCopied}
         publicId={publicId}
+        canShare={!!user && !!publicId}
         accountOpen={accountOpen}
         pendingFriendCount={pendingFriendCount}
         onViewChange={setActiveView}
@@ -794,7 +797,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
   const [email, setEmail] = useState('')
-  const [mode, setMode] = useState<AccountMode>(user ? 'public' : 'login')
+  const [mode, setMode] = useState<AccountMode>(user && publicId ? 'public' : 'login')
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [savedTick, setSavedTick] = useState(false)
@@ -885,14 +888,16 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
           >
             Connexion
           </button>
-          <button
-            role="tab"
-            aria-selected={mode === 'public'}
-            className={mode === 'public' ? 'is-active' : ''}
-            onClick={() => { setMode('public'); setFeedback(null) }}
-          >
-            Lien public
-          </button>
+          {user && publicId && (
+            <button
+              role="tab"
+              aria-selected={mode === 'public'}
+              className={mode === 'public' ? 'is-active' : ''}
+              onClick={() => { setMode('public'); setFeedback(null) }}
+            >
+              Lien public
+            </button>
+          )}
         </div>
 
         {mode === 'login' && (
@@ -919,6 +924,7 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
               <>
                 <p className="account-hint">
                   Synchronise tes destinations et active les amis avec un lien de connexion par email.
+                  Sur un nouvel appareil ? Entre ton email pour retrouver ta carte.
                 </p>
                 <label>
                   Email

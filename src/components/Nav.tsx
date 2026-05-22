@@ -13,6 +13,7 @@ interface NavProps {
   filters: DestinationFilters
   shareCopied: boolean
   publicId: string
+  canShare: boolean
   accountOpen: boolean
   pendingFriendCount: number
   onViewChange: (view: View) => void
@@ -34,6 +35,7 @@ export default function Nav({
   filters,
   shareCopied,
   publicId,
+  canShare,
   accountOpen,
   pendingFriendCount,
   onViewChange,
@@ -174,10 +176,12 @@ export default function Nav({
               </span>
             )}
           </button>
-          <button className="share" onClick={onShare}>
-            <Icon name="share" />
-            {shareCopied ? 'Lien copie' : 'Partager'}
-          </button>
+          {canShare && (
+            <button className="share" onClick={onShare}>
+              <Icon name="share" />
+              {shareCopied ? 'Lien copié' : 'Partager'}
+            </button>
+          )}
           <button
             className={`user-badge${accountOpen ? ' is-active' : ''}`}
             onClick={onAccountClick}

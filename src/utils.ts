@@ -66,7 +66,7 @@ export function calculateScore(
     ? 3
     : activeWeighted.reduce((sum, [key, value]) => sum + value * w[key], 0) / totalWeight
   const confidence = Math.min(1, activeWeighted.length / 4)
-  const weighted = 3 + (rawWeighted - 3) * confidence
+  const weighted = 3 + (rawWeighted - 3) * confidence * 1.15
   const neutralAxes = NEUTRAL_RATING_KEYS
     .map(key => ratings[key])
     .filter((value): value is number => value !== null && value !== undefined && Number.isFinite(value))
@@ -81,10 +81,10 @@ export function calculateScore(
 }
 
 export function scoreToTier(score: number): Tier {
-  if (score >= 4.5) return 'S'
-  if (score >= 3.5) return 'A'
-  if (score >= 2.5) return 'B'
-  if (score >= 1.5) return 'C'
+  if (score >= 4.3) return 'S'
+  if (score >= 3.7) return 'A'
+  if (score >= 3.0) return 'B'
+  if (score >= 2.2) return 'C'
   return 'D'
 }
 
@@ -93,7 +93,7 @@ export function calculateTier(ratings: Ratings, intent: Intent): Tier {
 }
 
 export function getDestinationScore(destination: Destination): number {
-  return calculateScore({
+  const base = calculateScore({
     food: destination.food,
     night: destination.night,
     culture: destination.culture,
@@ -105,6 +105,8 @@ export function getDestinationScore(destination: Destination): number {
     vibeBoost: destination.vibeBoost,
     retourBonus: destination.retourBonus,
   })
+  const withCoupBonus = base + (destination.coupDeCoeur ? 0.3 : 0)
+  return clampScore(withCoupBonus)
 }
 
 export function getDestinationTier(destination: Destination): Tier {

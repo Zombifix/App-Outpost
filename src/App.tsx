@@ -423,9 +423,9 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const toggleCoupDeCoeur = (name: string) => {
     setDestinations(previous => previous.map(d => {
       if (d.name !== name) return d
-      if (d.coupDeCoeur) return { ...d, coupDeCoeur: false }
+      if (d.coupDeCoeur) return withRecalculatedScore({ ...d, coupDeCoeur: false })
       if (previous.filter(x => x.coupDeCoeur).length >= 2) return d
-      return { ...d, coupDeCoeur: true }
+      return withRecalculatedScore({ ...d, coupDeCoeur: true })
     }))
   }
 

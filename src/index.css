@@ -2257,6 +2257,11 @@ svg {
 
 .map-gl-container {
   position: absolute;
+  /* Fallback explicite pour Safari < 14.1 */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   inset: 0;
   background: #c9e3ee;
   touch-action: none;
@@ -2304,12 +2309,22 @@ svg {
 
 .map-pins-overlay {
   position: absolute;
+  /* Fallback explicite pour Safari < 14.1 (inset non supporté) */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
   pointer-events: none;
   z-index: 4;
+  /* Force un layer GPU sur Safari/Metal — nécessaire pour que le SVG soit
+     composité au-dessus du canvas WebGL de MapLibre.
+     Sans ce translateZ(0), Safari peut "perdre" le SVG derrière le canvas. */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .map-attribution {
@@ -2376,13 +2391,16 @@ svg {
   padding: 0;
   border-radius: 50%;
   background-color: #f4f7fb;
+  /* Fallback pour Safari < 15.4 (color-mix non supporté) :
+     pin visible avec dégradé neutre, sans couleur de tier */
   background-image: var(--pin-photo, none),
-                    linear-gradient(135deg, color-mix(in srgb, var(--pin-color, #5039ee) 30%, #fff), #fff);
+                    linear-gradient(135deg, #dde6f3, #f4f7fb);
   background-size: cover, 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
   border: 3px solid #fff;
-  outline: 2px solid color-mix(in srgb, var(--pin-color, #5039ee) 65%, transparent);
+  /* Fallback outline sans color-mix */
+  outline: 2px solid var(--pin-color, #5039ee);
   outline-offset: -1px;
   box-shadow:
     0 8px 18px rgba(20, 30, 60, 0.22),
@@ -2390,12 +2408,24 @@ svg {
   cursor: pointer;
   pointer-events: auto;
   transform-origin: center;
-  will-change: transform;
+  /* NE PAS mettre will-change: transform ici.
+     Les layers GPU à l'intérieur d'un <foreignObject> SVG ne sont pas
+     composités correctement par Safari/WebKit — les pins disparaissent.
+     Le GPU compositing est géré au niveau du SVG parent (.map-pins-overlay). */
   transition:
     transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 200ms ease,
     border-color 160ms ease,
     outline-width 160ms ease;
+}
+/* Dégradé couleur de tier + outline semi-transparent pour les navigateurs
+   supportant color-mix() — Safari 15.4+, Chrome 111+, Firefox 113+ */
+@supports (color: color-mix(in srgb, red, blue)) {
+  .map-pin {
+    background-image: var(--pin-photo, none),
+                      linear-gradient(135deg, color-mix(in srgb, var(--pin-color, #5039ee) 30%, #fff), #fff);
+    outline-color: color-mix(in srgb, var(--pin-color, #5039ee) 65%, transparent);
+  }
 }
 
 /* Remove old teardrop tail */
@@ -6033,8 +6063,7 @@ svg {
   border-top: 2px solid transparent;
   transition: opacity 0.12s, border-color 0.12s;
 }
-.wizard-stop-row.is-dragging { opacity: 0.4; }
-.wizard-stop-row.is-drag-target { border-top-color: #3b7cf4; }
+/* drag-and-drop retiré — réordonnancement via boutons ↑↓ */
 
 .wizard-stop-field {
   display: flex;
@@ -6042,20 +6071,39 @@ svg {
   align-items: center;
 }
 
-.wizard-stop-handle {
+.wizard-stop-move {
   flex-shrink: 0;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 20px;
+}
+
+.wizard-stop-move-btn {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 30px;
+  width: 20px;
+  height: 14px;
+  border: none;
+  background: none;
   color: var(--text-muted);
-  cursor: grab;
-  user-select: none;
-  font-size: var(--text-base);
-  letter-spacing: -1px;
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+  font-family: inherit;
+  line-height: 1;
 }
-.wizard-stop-handle:active { cursor: grabbing; }
+.wizard-stop-move-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #374151;
+}
+.wizard-stop-move-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
 
 .wizard-stop-input {
   flex: 1;
@@ -6083,7 +6131,7 @@ svg {
 .wizard-stop-suggestions {
   position: absolute;
   top: 100%;
-  left: 26px;
+  left: 28px;
   right: 38px;
   margin-top: 4px;
   z-index: 10;
@@ -6091,6 +6139,21 @@ svg {
   overflow-y: auto;
   background: #fff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.wizard-stops-continue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.wizard-stops-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: right;
+  line-height: 1.3;
 }
 
 .wizard-add-stop {
@@ -6645,12 +6708,13 @@ svg {
   left: -15px;
 }
 
-/* Tier badge (S/A/B/C/D) en bas de la photo du roadtrip */
+/* Tier badge (S/A/B/C/D) — haut-gauche du cercle road trip.
+   Déplacé du bas-centre pour ne jamais chevaucher le texte pill "N arrêts". */
 .map-pin-trip-badge {
   position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: -5px;
+  left: -5px;
+  transform: none;
   min-width: 18px;
   height: 18px;
   padding: 0 3px;

@@ -603,6 +603,12 @@ function clearZoneRouteLayers(map: maplibregl.Map) {
 
 function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend') {
   if (!map.isStyleLoaded()) return
+  // Si le road trip a ≥ 2 étapes valides, la route SVG suffit — on ne superpose
+  // pas de zone qui risque d'être inexacte ou mal positionnée.
+  const validStopCount = (d.stops ?? []).filter(
+    s => s.name?.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng),
+  ).length
+  if (validStopCount >= 2) return
   const color = getDestinationColor(d)
   if (!color) return
   const sid = `_z_${owner}_${d.name}`
@@ -922,7 +928,9 @@ export default function WorldMap({
         />
       )}
 
-      <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">
+      {/* width/height attrs requis par Safari WebKit pour établir le viewport SVG
+          et permettre le rendu des éléments <foreignObject> enfants. */}
+      <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label="Pins des destinations">
         <g ref={pinsGroupRef}>
           {mapReady && (() => {
             const shared   = sharedNames ?? new Set<string>()

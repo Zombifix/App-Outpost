@@ -38,6 +38,11 @@ interface PhotonResult {
 
 const ZONE_OSM_VALUES = new Set(['country', 'state', 'region', 'province', 'county', 'department', 'district'])
 const PLACE_OSM_VALUES = new Set(['city', 'town', 'village', 'hamlet', 'suburb', 'locality'])
+// Cas particulier : certaines « villes » sont taguées en OSM comme entités
+// administratives (Tokyo = province car la ville a été dissoute en 1943 ;
+// Berlin/Hamburg = state ; Singapour/Monaco = country). On les autorise en
+// mode "place" quand le filtre strict ne retourne rien.
+const PLACE_ADMIN_FALLBACK_VALUES = new Set(['province', 'state', 'region', 'district', 'county', 'country'])
 
 interface WizardState {
   name: string
@@ -307,7 +312,12 @@ async function searchPhoton(
     : await fetchResults(Number.isFinite(opts.lat) && Number.isFinite(opts.lng))
 
   if (opts.kindFilter === 'place') {
-    all = all.filter(r => r.osmValue && PLACE_OSM_VALUES.has(r.osmValue))
+    const strict = all.filter(r => r.osmValue && PLACE_OSM_VALUES.has(r.osmValue))
+    // Fallback Tokyo/Berlin/Singapour : si aucun résultat strict, on accepte
+    // les entités administratives (Tokyo → province, etc.).
+    all = strict.length > 0
+      ? strict
+      : all.filter(r => r.osmValue && PLACE_ADMIN_FALLBACK_VALUES.has(r.osmValue))
   } else if (opts.kindFilter === 'zone') {
     all = all.filter(r => r.osmValue && ZONE_OSM_VALUES.has(r.osmValue))
   }

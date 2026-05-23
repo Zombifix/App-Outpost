@@ -120,13 +120,7 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
                       </>
                     ) : (
                       <>
-                        <IconButton
-                          tone="neutral"
-                          title="Comparer nos cartes"
-                          onClick={() => onCompareFriend(f)}
-                        >
-                          <CompareIcon />
-                        </IconButton>
+                        <CompareButton onClick={() => onCompareFriend(f)} />
                         <IconButton
                           tone="neutral"
                           title="Retirer"
@@ -191,6 +185,21 @@ function ManageRow({ friendship: f, onOpen, statusLabel, hint, actions }: Manage
   )
 }
 
+function CompareButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="manage-compare-btn"
+      aria-label="Comparer nos cartes"
+      title="Comparer nos cartes"
+      onClick={onClick}
+    >
+      <CompareIcon />
+      <span>Comparer</span>
+    </button>
+  )
+}
+
 function IconButton({
   tone, title, onClick, children,
 }: {
@@ -241,11 +250,12 @@ function CloseIcon() {
 function CompareIcon() {
   // Deux colonnes superposées symbolisant "comparer"
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 4v16" />
-      <path d="m3 8 4-4 4 4" />
-      <path d="M17 20V4" />
-      <path d="m13 16 4 4 4-4" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="7" height="14" rx="1.8" />
+      <rect x="14" y="5" width="7" height="14" rx="1.8" />
+      <path d="M6.5 9.5h.01" />
+      <path d="M17.5 14.5h.01" />
+      <path d="M10 12h4" />
     </svg>
   )
 }

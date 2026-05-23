@@ -1581,6 +1581,31 @@ svg {
   flex-shrink: 0;
 }
 
+.manage-compare-btn {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: rgba(27, 95, 232, 0.08);
+  color: #1B5FE8;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.manage-compare-btn:hover {
+  background: rgba(27, 95, 232, 0.14);
+  color: #174fc1;
+}
+
+.manage-compare-btn:active { transform: scale(0.97); }
+.manage-compare-btn svg { flex: 0 0 auto; }
+
 .manage-icon-btn {
   width: 28px;
   height: 28px;

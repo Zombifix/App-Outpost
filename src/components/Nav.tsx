@@ -482,44 +482,14 @@ function CarnetStats({
   const coeurs = destinations.filter(d => d.coupDeCoeur).length
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewChange('map') } }}>
-      <svg className="carnet-stats-watermark" viewBox="0 0 190 170" fill="none" aria-hidden="true">
-        <defs>
-          <radialGradient id="carnetGlobeGlow" cx="44%" cy="42%" r="68%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.98" />
-            <stop offset="58%" stopColor="#f3f8ff" stopOpacity="0.56" />
-            <stop offset="100%" stopColor="#dbeafe" stopOpacity="0.2" />
-          </radialGradient>
-          <linearGradient id="carnetPinBlue" x1="60" y1="74" x2="77" y2="106" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#a9bfff" />
-            <stop offset="1" stopColor="#6f94f6" />
-          </linearGradient>
-          <clipPath id="carnetGlobeClip">
-            <circle cx="78" cy="78" r="76" />
-          </clipPath>
-        </defs>
-        <circle cx="78" cy="78" r="76" fill="url(#carnetGlobeGlow)" />
-        <g clipPath="url(#carnetGlobeClip)">
-          <path className="carnet-globe-grid" d="M-2 78h160M5 51c36 10 108 10 146 0M7 104c38-9 102-9 142 0" />
-          <path className="carnet-globe-grid carnet-globe-grid-soft" d="M78 2c-17 27-26 52-26 76s9 49 26 76M78 2c17 27 26 52 26 76s-9 49-26 76M28 16c20 31 31 52 32 65 1 16-9 36-32 59M127 17c-19 30-30 51-31 64-1 16 9 36 31 58" />
-          <path className="carnet-globe-greatline" d="M24 19c31 33 71 59 121 78M135 12c-23 35-61 68-113 99" />
-          <path className="carnet-globe-route" d="M92 82c12-10 27-12 39-5 10 6 14 18 9 29-5 12-18 19-31 15-15-4-23-16-18-30" />
-          <circle className="carnet-globe-dot" cx="94" cy="82" r="1.7" />
-          <circle className="carnet-globe-dot" cx="125" cy="78" r="1.7" />
-          <circle className="carnet-globe-dot" cx="140" cy="103" r="1.7" />
-        </g>
-        <circle className="carnet-globe-rim" cx="78" cy="78" r="76" />
-        <g className="carnet-globe-pin">
-          <path d="M69 70c-6.6 0-11.8 5.1-11.8 11.5 0 8.3 11.8 21.1 11.8 21.1s11.8-12.8 11.8-21.1C80.8 75.1 75.6 70 69 70Z" fill="url(#carnetPinBlue)" />
-          <circle cx="69" cy="81.4" r="4.2" fill="white" />
-          <circle cx="69" cy="81.4" r="1.9" fill="#86a5f7" />
-        </g>
-      </svg>
+      <img className="carnet-stats-globe" src="/carnet-globe.svg?v=7" alt="" aria-hidden="true" />
+      <img className="carnet-stats-plane" src="/carnet-plane.svg?v=4" alt="" aria-hidden="true" />
 
       {/* Hero */}
       <div className="carnet-stats-hero">
         <span className="carnet-stats-hero-num">{destinations.length}</span>
         <span className="carnet-stats-hero-label">destination{destinations.length > 1 ? 's' : ''}</span>
-        <span className="carnet-stats-hero-sub">vos aventures vous attendent</span>
+        <span className="carnet-stats-hero-sub">Vos aventures à travers le monde</span>
       </div>
 
       {/* Bottom row */}
@@ -544,10 +514,7 @@ function CarnetStats({
           </span>
           <div>
             <span className="carnet-stats-chip-num">{coeurs}</span>
-            <span className="carnet-stats-chip-label">
-              <span>coups de</span>
-              <span>cœur</span>
-            </span>
+            <span className="carnet-stats-chip-label">{coeurs > 1 ? 'coups de cœur' : 'coup de cœur'}</span>
           </div>
         </div>
       </div>

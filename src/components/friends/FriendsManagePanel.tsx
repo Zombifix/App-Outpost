@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useFriends } from '../../hooks/useFriends'
 import type { Friendship } from '../../types'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 interface FriendsManagePanelProps {
   onClose: () => void
@@ -16,9 +18,12 @@ interface FriendsManagePanelProps {
 export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFriendCarnet, onCompareFriend }: FriendsManagePanelProps) {
   const { accepted, incoming, outgoing, loading, acceptRequest, removeFriendship, error } = useFriends()
   const isEmpty = accepted.length === 0 && incoming.length === 0 && outgoing.length === 0
+  const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null)
+
+  const trapRef = useFocusTrap<HTMLDivElement>(true)
 
   return (
-    <div className="manage-overlay" role="dialog" aria-label="Gestion des amis" onClick={onClose}>
+    <div ref={trapRef} className="manage-overlay" role="dialog" aria-modal="true" aria-label="Gestion des amis" onClick={onClose}>
       <aside className="manage-panel" onClick={e => e.stopPropagation()}>
         <header className="manage-head">
           <div className="manage-title">
@@ -92,36 +97,48 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
 
           {accepted.length > 0 && (
             <RowGroup label={`Mes amis · ${accepted.length}`}>
-              {accepted.map(f => (
-                <ManageRow
-                  key={f.otherUser}
-                  friendship={f}
-                  onOpen={() => onViewFriendCarnet(f)}
-                  hint="Voir sa carte"
-                  actions={
-                    <>
-                      <IconButton
-                        tone="neutral"
-                        title="Comparer nos cartes"
-                        onClick={() => onCompareFriend(f)}
-                      >
-                        <CompareIcon />
-                      </IconButton>
-                      <IconButton
-                        tone="neutral"
-                        title="Retirer"
-                        onClick={() => {
-                          if (window.confirm(`Retirer ${f.displayName} de tes amis ?`)) {
-                            void removeFriendship(f.otherUser)
-                          }
-                        }}
-                      >
-                        <CloseIcon />
-                      </IconButton>
-                    </>
-                  }
-                />
-              ))}
+              {accepted.map(f => {
+                const isConfirming = confirmingRemove === f.otherUser
+                return (
+                  <ManageRow
+                    key={f.otherUser}
+                    friendship={f}
+                    onOpen={isConfirming ? undefined : () => onViewFriendCarnet(f)}
+                    hint="Voir sa carte"
+                    statusLabel={isConfirming ? `Retirer ${f.displayName} ?` : undefined}
+                    actions={isConfirming ? (
+                      <>
+                        <IconButton tone="reject" title="Confirmer le retrait" onClick={() => {
+                          setConfirmingRemove(null)
+                          void removeFriendship(f.otherUser)
+                        }}>
+                          <CheckIcon />
+                        </IconButton>
+                        <IconButton tone="neutral" title="Annuler" onClick={() => setConfirmingRemove(null)}>
+                          <CloseIcon />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <>
+                        <IconButton
+                          tone="neutral"
+                          title="Comparer nos cartes"
+                          onClick={() => onCompareFriend(f)}
+                        >
+                          <CompareIcon />
+                        </IconButton>
+                        <IconButton
+                          tone="neutral"
+                          title="Retirer"
+                          onClick={() => setConfirmingRemove(f.otherUser)}
+                        >
+                          <CloseIcon />
+                        </IconButton>
+                      </>
+                    )}
+                  />
+                )
+              })}
             </RowGroup>
           )}
         </div>

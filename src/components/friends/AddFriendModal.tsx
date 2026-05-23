@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { PublicProfile } from '../../types'
 import { useFriends } from '../../hooks/useFriends'
 import { useAuth } from '../../lib/auth'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 type Tab = 'email' | 'handle' | 'link'
 
@@ -105,7 +106,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
       setLinkCopied(true)
       window.setTimeout(() => setLinkCopied(false), 1800)
     } catch {
-      window.prompt('Copie le lien', emailInviteLink)
+      setFeedback({ kind: 'err', msg: 'Copie impossible — sélectionne le lien manuellement.' })
     }
   }
 
@@ -116,7 +117,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
       setLinkCopied(true)
       window.setTimeout(() => setLinkCopied(false), 1800)
     } catch {
-      window.prompt('Copie le lien', shareLink)
+      setFeedback({ kind: 'err', msg: 'Copie impossible — sélectionne le lien manuellement.' })
     }
   }
 
@@ -131,8 +132,10 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
     } catch { /* user cancelled */ }
   }
 
+  const trapRef = useFocusTrap<HTMLDivElement>(true)
+
   return (
-    <div className="account-overlay" role="dialog" aria-label="Ajouter un ami" onClick={onClose}>
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Ajouter un ami" onClick={onClose}>
       <aside
         className="account-panel friends-add-panel"
         onClick={e => e.stopPropagation()}

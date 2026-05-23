@@ -838,9 +838,13 @@ export default function WorldMap({
   // ── Fly to destination ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!flyTarget || !mapRef.current || !mapReady) return
-    const zoneTarget = [...destinations, ...(friendDestinations ?? [])]
-      .find(destination => destination.name === flyTarget.name && destination.kind === 'zone')
+    const zoneTargetMine = destinations.find(d => d.name === flyTarget.name && d.kind === 'zone')
+    const zoneTargetFriend = !zoneTargetMine
+      ? (friendDestinations ?? []).find(d => d.name === flyTarget.name && d.kind === 'zone')
+      : null
+    const zoneTarget = zoneTargetMine ?? zoneTargetFriend
     if (zoneTarget) {
+      setExpandedRouteKey(`${zoneTargetMine ? 'me' : 'friend'}:${zoneTarget.name}`)
       zoomToZone(zoneTarget)
       onFlyTargetConsumed()
       return
@@ -898,6 +902,21 @@ export default function WorldMap({
       onDragStartCapture={(event) => event.preventDefault()}
     >
       <div ref={mapContainerRef} className="map-gl-container" draggable={false} />
+      {!mapReady && (
+        <div
+          className="map-loading-shimmer"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(110deg, #f2eee4 30%, #f7f3ea 50%, #f2eee4 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'mapShimmer 1.4s ease-in-out infinite',
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      )}
 
       <svg ref={svgRef} className="map-pins-overlay" aria-label="Pins des destinations">
         <g ref={pinsGroupRef}>

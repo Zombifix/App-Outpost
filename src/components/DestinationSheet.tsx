@@ -23,7 +23,7 @@ interface DestinationSheetProps {
 
 type SnapState = 'peek' | 'full'
 
-const PEEK_RATIO = 0.40
+const PEEK_RATIO = 0.55
 const FULL_RATIO = 0.08
 const CLOSE_RATIO = 0.85
 
@@ -142,7 +142,7 @@ function getDisplayTier(destination: Destination) {
 }
 
 export default function DestinationSheet(props: DestinationSheetProps) {
-  const isMobile = useMediaQuery('(max-width: 1100px)')
+  const isMobile = useMediaQuery('(max-width: 900px)')
 
   if (isMobile) return <MobileSheet {...props} />
   return (
@@ -175,8 +175,12 @@ function MobileSheet(props: DestinationSheetProps) {
   }, [])
 
   const onPointerDown = (e: React.PointerEvent) => {
-    const target = e.currentTarget as HTMLElement
-    try { target.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+    const t = e.target as HTMLElement
+    // Initiate drag only from the handle bar or the hero image area; never from
+    // inner scrollable content so vertical scroll inside the sheet still works.
+    if (!t.closest('.destination-sheet-handle, .destination-hero')) return
+    const captureTarget = e.currentTarget as HTMLElement
+    try { captureTarget.setPointerCapture(e.pointerId) } catch { /* ignore */ }
     dragRef.current = { startY: e.clientY, lastY: e.clientY, lastT: performance.now(), v: 0, current: 0 }
     setIsDragging(true)
   }
@@ -241,17 +245,19 @@ function MobileSheet(props: DestinationSheetProps) {
       <aside
         ref={sheetRef}
         className={`destination-sheet is-${snap}${isDragging ? ' is-dragging' : ''}`}
-        aria-label={`Detail de ${props.destination.name}`}
+        aria-label={`Détail de ${props.destination.name}`}
         onClick={e => e.stopPropagation()}
         style={style}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         <button
+          type="button"
           className="destination-sheet-handle"
-          aria-label={snap === 'peek' ? 'Agrandir' : 'Reduire'}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          aria-label={snap === 'peek' ? 'Agrandir' : 'Réduire'}
+          onClick={() => setSnap(s => s === 'peek' ? 'full' : 'peek')}
         >
           <span className="destination-sheet-grabber" />
         </button>
@@ -387,15 +393,25 @@ function DestinationCardContent({
               {INTENT_LABELS[destination.intent]}
             </span>
           )}
-          {coupDeCoeur && (
+          {coupDeCoeur ? (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
-              aria-label="Retirer le coup de coeur"
-              title="Coup de coeur - retirer"
+              aria-label="Retirer le coup de cœur"
+              title="Coup de cœur — retirer"
               onClick={onCoupDeCoeur}
             >
               <span aria-hidden="true">❤️</span>
-              Coup de coeur
+              Coup de cœur
+            </button>
+          ) : !coupDeCoeurDisabled && (
+            <button
+              className="coup-de-coeur-button destination-hero-favorite"
+              aria-label="Ajouter aux coups de cœur"
+              title="Ajouter aux coups de cœur"
+              onClick={onCoupDeCoeur}
+            >
+              <span aria-hidden="true">🤍</span>
+              Coup de cœur
             </button>
           )}
         </div>
@@ -471,7 +487,7 @@ function DestinationCardContent({
           )}
         </div>
       )}
-      <h3>Notes par critere</h3>
+      <h3>Notes par critère</h3>
       <div className="criteria-list">
         {criteria.map(([label, value, icon]) => (
           <div className="criterion" key={label}>
@@ -563,7 +579,7 @@ function RoadTripCardContent({
             Road trip
           </span>
           <span className="intent-pill destination-hero-pill">
-            {stageCount || validStops.length} etape{(stageCount || validStops.length) > 1 ? 's' : ''}
+            {stageCount} étape{stageCount > 1 ? 's' : ''}
           </span>
           {coupDeCoeur && (
             <button
@@ -587,12 +603,12 @@ function RoadTripCardContent({
         </div>
       </div>
 
-      <section className="roadtrip-score-card" aria-label="Evaluation globale du road trip">
+      <section className="roadtrip-score-card" aria-label="Évaluation globale du road trip">
         <div>
-          <span>Evaluation globale</span>
+          <span>Évaluation globale</span>
           <strong>{score}</strong>
         </div>
-        <p>Note le road trip comme l'experience que tu as vraiment vecue. Les etapes racontent le trajet; tu peux detailler une ville seulement si elle merite sa propre fiche.</p>
+        <p>Note le road trip comme l'expérience que tu as vraiment vécue. Les étapes racontent le trajet ; tu peux détailler une ville seulement si elle mérite sa propre fiche.</p>
       </section>
 
       {context.hasContext && (
@@ -648,9 +664,9 @@ function RoadTripCardContent({
         ))}
       </div>
 
-      <section className="roadtrip-itinerary" aria-label="Itineraire du road trip">
+      <section className="roadtrip-itinerary" aria-label="Itinéraire du road trip">
         <div className="roadtrip-section-head">
-          <h3>Itineraire</h3>
+          <h3>Itinéraire</h3>
           <span>{validStops.length} stop{validStops.length > 1 ? 's' : ''}</span>
         </div>
         {validStops.length > 0 ? (
@@ -670,7 +686,7 @@ function RoadTripCardContent({
                         Fiche existante
                       </button>
                     ) : (
-                      <em>Itineraire</em>
+                      <em>Itinéraire</em>
                     )}
                   </div>
                 </li>
@@ -678,7 +694,7 @@ function RoadTripCardContent({
             })}
           </ol>
         ) : (
-          <p className="roadtrip-empty">Ajoute des etapes pour raconter le trajet sans devoir noter chaque ville.</p>
+          <p className="roadtrip-empty">Ajoute des étapes pour raconter le trajet sans devoir noter chaque ville.</p>
         )}
       </section>
 

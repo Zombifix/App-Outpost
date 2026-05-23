@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from './types'
 import { useMyDestinations } from './hooks/useMyDestinations'
+import { useFocusTrap } from './hooks/useFocusTrap'
 import WorldMap from './components/WorldMap'
 import DestinationSheet from './components/DestinationSheet'
 import BottomNav from './components/BottomNav'
@@ -242,7 +243,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
   const [compareFriend, setCompareFriend] = useState<import('./types').Friendship | null>(null)
-  const [myDestinations, setDestinations, { resetAll: resetMyDestinations }] = useMyDestinations(normalizeDestinations)
+  const [myDestinations, setDestinations, { resetAll: resetMyDestinations, error: myDestinationsError }] = useMyDestinations(normalizeDestinations)
   // Quand on visite le carnet d'un ami : en mode fake on lit depuis _fakeFriends, sinon
   // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
   // friendUserId est null, donc on peut l'appeler systématiquement.
@@ -525,10 +526,12 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url)
       } else {
-        window.prompt('Lien de partage', url)
+        throw new Error('Clipboard API unavailable')
       }
     } catch {
-      window.prompt('Lien de partage', url)
+      // Fallback discret : on garde le toast "Lien copié" mais on log le lien
+      // pour permettre une copie manuelle via les devtools si besoin.
+      console.warn('[share] clipboard unavailable, link:', url)
     }
   }
 
@@ -542,6 +545,29 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
 
   return (
     <div className={appClass}>
+      {myDestinationsError && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: '#fff1f0',
+            color: '#8a1a1a',
+            border: '1px solid #f3c2c2',
+            borderRadius: 10,
+            padding: '8px 14px',
+            fontSize: 13,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+            maxWidth: 'min(92vw, 480px)',
+          }}
+        >
+          Sync en échec : {myDestinationsError}. Tes changements restent en local.
+        </div>
+      )}
       <div className="mobile-header">
         <BrandLogo className="mobile-brand-logo" />
         <button
@@ -568,7 +594,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
         onDeselect={() => setSelectedName(null)}
         onFlyTargetConsumed={() => setFlyTarget(null)}
         friendDestinations={compareFriend ? compareFriendDests : undefined}
-        friendInitials={compareFriend ? compareFriend.displayName.slice(0, 1).toUpperCase() : undefined}
+        friendInitials={compareFriend ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
         sharedNames={compareFriend ? compareSharedNames : undefined}
         hidden={activeView !== 'map'}
       />
@@ -617,6 +643,36 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
               onClick={() => { setViewingFriend(null); setSelectedName(null) }}
             >
               ← Mon carnet
+            </button>
+          </div>
+        </div>
+      )}
+      {!viewingFriend && activeView === 'map' && myDestinations.length === 0 && (
+        <div className="empty-friend-carnet" role="status">
+          <div className="empty-friend-carnet-card">
+            <h3>Ton carnet est vide</h3>
+            <p>Ajoute ta première destination pour la voir apparaître sur la carte.</p>
+            <button
+              type="button"
+              className="add-submit"
+              onClick={() => setAddingDestination(true)}
+            >
+              + Ajouter ma première destination
+            </button>
+          </div>
+        </div>
+      )}
+      {!viewingFriend && activeView === 'map' && myDestinations.length > 0 && visibleDestinations.length === 0 && (
+        <div className="empty-friend-carnet" role="status">
+          <div className="empty-friend-carnet-card">
+            <h3>Aucun résultat pour ces filtres</h3>
+            <p>Modifie ou réinitialise les filtres pour revoir tes destinations.</p>
+            <button
+              type="button"
+              className="friends-action-btn friends-action-secondary"
+              onClick={() => setFilters(DEFAULT_FILTERS)}
+            >
+              Réinitialiser les filtres
             </button>
           </div>
         </div>
@@ -772,11 +828,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   )
 }
 
-function ExploreView({ destinations, onSelect }: { destinations: Destination[]; onSelect: (name: string) => void }) {
-  const topTiers = destinations.filter(destination => {
-    const tier = getDestinationTier(destination)
-    return tier === 'S' || tier === 'A'
-  })
+function ExploreView({ onSelect }: { destinations: Destination[]; onSelect: (name: string) => void }) {
   const suggestionSeeds = [
     {
       name: 'Seoul',
@@ -798,16 +850,12 @@ function ExploreView({ destinations, onSelect }: { destinations: Destination[]; 
   return (
     <main className="explore-page" aria-label="Explorer des suggestions">
       <section className="ai-panel">
-        <span className="ai-chip">IA bientot connectee</span>
-        <h2>Suggestions basees sur ton classement</h2>
+        <span className="ai-chip">Aperçu — IA bientôt connectée</span>
+        <h2>Aperçu des suggestions</h2>
         <p>
-          Pour le moment, ce module est un placeholder. Il simulera ensuite des recommandations en regardant tes tiers,
-          tes notes par critere et les destinations que tes amis ajoutent.
+          Ces trois exemples sont fixes pour montrer la forme du module. Quand l'IA sera branchée, elle
+          regardera tes tiers, tes notes par critère et les destinations que tes amis ajoutent.
         </p>
-        <div className="ai-context">
-          <strong>{topTiers.length}</strong>
-          <span>destinations fortes detectees dans ta tier list</span>
-        </div>
       </section>
 
       <section className="suggestion-grid">
@@ -816,7 +864,7 @@ function ExploreView({ destinations, onSelect }: { destinations: Destination[]; 
             <div style={{ backgroundImage: `url(${suggestion.image})` }} />
             <h3>{suggestion.name}</h3>
             <p>{suggestion.reason}</p>
-            <button onClick={() => onSelect('Kyoto')}>Voir un exemple sur la carte</button>
+            <button onClick={() => onSelect(suggestion.name)}>Voir un exemple sur la carte</button>
           </article>
         ))}
       </section>
@@ -838,6 +886,7 @@ type AccountMode = 'login' | 'public'
 type PasswordAuthMode = 'signin' | 'signup'
 
 function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
+  const trapRef = useFocusTrap<HTMLDivElement>(true)
   const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut } = useAuth()
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
@@ -901,9 +950,12 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
     }
     if (res.needsConfirmation) {
       setFeedback({
-        kind: 'err',
-        msg: 'Compte créé, mais Supabase attend une confirmation email. Désactive "Confirm email" dans Supabase pour connecter les nouveaux comptes sans SMTP.',
+        kind: 'ok',
+        msg: 'Compte créé. Vérifie ta boîte mail pour confirmer ton adresse, puis reviens te connecter.',
       })
+      if (import.meta.env.DEV) {
+        console.info('[auth] Supabase awaiting email confirmation. Disable "Confirm email" in Supabase to skip SMTP during dev.')
+      }
       return
     }
     setFeedback({ kind: 'ok', msg: passwordMode === 'signin'
@@ -931,15 +983,15 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareLink)
       } else {
-        window.prompt('Lien de partage', shareLink)
+        throw new Error('Clipboard API unavailable')
       }
     } catch {
-      window.prompt('Lien de partage', shareLink)
+      console.warn('[share] clipboard unavailable, link:', shareLink)
     }
   }
 
   return (
-    <div className="account-overlay" role="dialog" aria-label="Compte" onClick={onClose}>
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Compte" onClick={onClose}>
       <aside className="account-panel" onClick={event => event.stopPropagation()}>
         <div className="account-panel-head">
           <div className="account-identity">

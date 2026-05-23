@@ -123,6 +123,7 @@ export default function Nav({
               {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · carnet de voyage` : 'Mon carnet de voyages')}
               {activeView === 'explore' && 'Explorer · Suggestions IA'}
               {activeView === 'tier-list' && 'Tier list'}
+              {activeView === 'friends' && 'Amis'}
             </h1>
             {activeView === 'map' && (
               <span className="topbar-title-sub">{totalDestinations} destination{totalDestinations > 1 ? 's' : ''} notée{totalDestinations > 1 ? 's' : ''}</span>
@@ -317,7 +318,19 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
     return () => observer.disconnect()
   }, [])
 
-  if (events.length === 0) return null
+  if (events.length === 0) {
+    return (
+      <section className="sidebar-activity is-empty" aria-label="Activité récente">
+        <header className="sidebar-activity-head">
+          <h4>
+            <span className="sidebar-activity-live" aria-hidden="true" />
+            Activité récente
+          </h4>
+        </header>
+        <p className="sidebar-activity-sub">Aucune activité pour l'instant.</p>
+      </section>
+    )
+  }
   // Pour le hero, on préfère une destination_added récente (riche en visuel : image + tier).
   // Si aucune, on retombe sur le premier event peu importe le kind.
   const heroIdx = events.findIndex(e => e.kind === 'destination_added')
@@ -468,7 +481,7 @@ function CarnetStats({
   const countries = new Set(destinations.map(d => d.country)).size
   const coeurs = destinations.filter(d => d.coupDeCoeur).length
   return (
-    <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onViewChange('map')}>
+    <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewChange('map') } }}>
       <svg className="carnet-stats-watermark" viewBox="0 0 190 170" fill="none" aria-hidden="true">
         <defs>
           <radialGradient id="carnetGlobeGlow" cx="44%" cy="42%" r="68%">

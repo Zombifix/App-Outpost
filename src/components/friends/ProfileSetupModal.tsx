@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { useMyProfile } from '../../hooks/useMyProfile'
 import { useAuth } from '../../lib/auth'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 type ProfileHook = ReturnType<typeof useMyProfile>
 
@@ -63,8 +64,10 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
     if (!res.ok) setError(res.error ?? 'Erreur')
   }
 
+  const trapRef = useFocusTrap<HTMLDivElement>(true)
+
   return (
-    <div className="account-overlay" role="dialog" aria-modal="true" aria-label="Créer ton profil">
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Créer ton profil">
       <aside className="account-panel friends-add-panel" style={{ maxWidth: 460 }}>
         <h2 style={{ marginTop: 4 }}>Bienvenue sur Outpost</h2>
         <p className="account-hint">

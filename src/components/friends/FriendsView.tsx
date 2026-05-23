@@ -18,6 +18,7 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
   const { accepted, incoming, outgoing, loading, acceptRequest, removeFriendship, error } = useFriends()
   const { events } = useActivityFeed(60)
   const [addOpen, setAddOpen] = useState(false)
+  const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null)
 
   const sharedCount = useMemo(() => {
     const since = Date.now() - 30 * 24 * 3600 * 1000
@@ -27,14 +28,13 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
   }, [events])
 
   if (!supabaseConfigured && !FAKE_FRIENDS_MODE) {
+    if (import.meta.env.DEV) {
+      console.info('[FriendsView] Supabase not configured — see .env.local.example for VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY.')
+    }
     return (
       <main className="friends-view friends-view--unconfigured">
         <h2>Amis</h2>
-        <p>
-          Le système d'amis nécessite Supabase. Crée un fichier <code>.env.local</code> à la racine
-          (voir <code>.env.local.example</code>) avec <code>VITE_SUPABASE_URL</code> et
-          <code> VITE_SUPABASE_ANON_KEY</code>, puis relance <code>npm run dev</code>.
-        </p>
+        <p>Cette fonctionnalité n'est pas encore disponible.</p>
       </main>
     )
   }
@@ -135,20 +135,24 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
               <section className="friends-section">
                 <SectionHead title="Mes amis" count={accepted.length} />
                 <div className="friends-list">
-                  {accepted.map(f => (
-                    <FriendRow
-                      key={f.otherUser}
-                      friendship={f}
-                      onOpenProfile={onOpenProfile}
-                      secondaryLabel="Retirer"
-                      onSecondary={() => {
-                        if (window.confirm(`Retirer ${f.displayName} de tes amis ?`)) {
+                  {accepted.map(f => {
+                    const isConfirming = confirmingRemove === f.otherUser
+                    return (
+                      <FriendRow
+                        key={f.otherUser}
+                        friendship={f}
+                        onOpenProfile={onOpenProfile}
+                        primaryLabel={isConfirming ? 'Confirmer' : undefined}
+                        onPrimary={isConfirming ? () => {
+                          setConfirmingRemove(null)
                           void removeFriendship(f.otherUser)
-                        }
-                      }}
-                      compact
-                    />
-                  ))}
+                        } : undefined}
+                        secondaryLabel={isConfirming ? 'Annuler' : 'Retirer'}
+                        onSecondary={() => setConfirmingRemove(isConfirming ? null : f.otherUser)}
+                        compact
+                      />
+                    )
+                  })}
                 </div>
               </section>
             )}

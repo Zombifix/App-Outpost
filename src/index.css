@@ -1,6 +1,6 @@
 :root {
   --ink: #17213a;
-  --muted: #7d8aa3;
+  --muted: #5a6a84;
   --faint: #eef4fb;
   --surface: rgba(255, 255, 255, 0.78);
   --surface-strong: rgba(255, 255, 255, 0.94);
@@ -78,9 +78,12 @@ body,
   height: 100%;
 }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   margin: 0;
   overflow: hidden;
+  overflow-x: hidden;
   color: var(--ink);
   font-family: var(--font-sans);
   background: #ecf8ff;
@@ -478,7 +481,7 @@ svg {
 .sidebar-activity-sub {
   margin: -2px 0 4px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 /* ─── Hero card (1ère activité, grand format style mobile inspo) ───────────── */
@@ -568,6 +571,7 @@ svg {
   font-size: 11px;
   font-weight: 500;
   min-width: 0;
+  flex: 1;
 }
 .sidebar-hero-actor > span:last-child {
   white-space: nowrap;
@@ -664,7 +668,7 @@ svg {
 }
 .sidebar-row-country {
   font-size: 10px;
-  color: #9ca3af;
+  color: #6b7280;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -961,9 +965,16 @@ svg {
   animation: compare-inline-slide 220ms cubic-bezier(0.16, 1, 0.3, 1);
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
+.travel-app.tier-collapsed .compare-inline-bar {
+  bottom: var(--map-b-closed);
+}
 @keyframes compare-inline-slide {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes mapShimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 .compare-inline-legend {
   display: flex;
@@ -1127,7 +1138,7 @@ svg {
 }
 .compare-picker-meta small {
   font-size: 10px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 /* Badge "X amis y sont allés" sur DestinationSheet */
@@ -1181,6 +1192,7 @@ svg {
   font-size: 10px;
   font-weight: 600;
 }
+.top-action-badge svg { width: 18px; height: 18px; display: block; }
 
 /* Mini pop-up Amis : volontairement compacte et discrète. */
 .manage-overlay {
@@ -1245,7 +1257,7 @@ svg {
 
 .manage-count {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1343,7 +1355,7 @@ svg {
 .manage-empty {
   margin: 16px 8px;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   text-align: center;
 }
 
@@ -1351,7 +1363,7 @@ svg {
   margin: 8px 8px 4px;
   font-size: 10px;
   font-weight: 600;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -1427,7 +1439,7 @@ svg {
 
 .manage-row-meta small {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1443,9 +1455,10 @@ svg {
 .manage-icon-btn {
   width: 28px;
   height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -1472,7 +1485,7 @@ svg {
 
 .manage-icon-btn--neutral {
   background: transparent;
-  color: #9ca3af;
+  color: #6b7280;
 }
 .manage-icon-btn--neutral:hover {
   background: rgba(0, 0, 0, 0.06);
@@ -1926,7 +1939,9 @@ svg {
   font-size: var(--text-xs);
   background: rgba(255, 255, 255, 0.90);
   border: 1px solid rgba(185, 205, 232, 0.72);
+  white-space: nowrap;
 }
+.top-actions button > svg, .top-actions button > .icon { flex-shrink: 0; }
 
 .top-actions .share {
   min-width: 118px;
@@ -2674,7 +2689,7 @@ svg {
   touch-action: none;
 }
 
-.destination-sheet.is-peek { transform: translateY(40vh); }
+.destination-sheet.is-peek { transform: translateY(55vh); }
 .destination-sheet.is-full { transform: translateY(0); }
 .destination-sheet.is-dragging { transition: none; }
 
@@ -2774,6 +2789,8 @@ svg {
   margin: 2px 0 9px;
   font-size: var(--text-xl);
   line-height: var(--leading-tight);
+  line-height: 1.2;
+  min-width: 0;
 }
 
 .destination-pill-row {
@@ -4548,9 +4565,10 @@ svg {
   height: 46px;
   border-radius: 13px;
   color: white;
-  background: linear-gradient(135deg, #5039ee, #8986ff);
+  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  font-size: 14px;
   font-weight: var(--weight-bold);
-  box-shadow: 0 16px 28px rgba(98, 85, 242, 0.24);
+  box-shadow: 0 16px 28px rgba(27, 95, 232, 0.24);
 }
 
 @keyframes fade-in {
@@ -4599,12 +4617,9 @@ svg {
 @media (max-width: 1100px) {
   :root {
     --sidebar-w: 220px;
-    --card-w: 0px;
-    --card-r: 16px;
+    --card-w: 250px;
+    --card-r: 14px;
   }
-  .destination-card { display: none; }
-  /* Mobile sheet stays visible — overrides .destination-card hide */
-  .destination-sheet-backdrop { display: block; }
   .sidebar { padding-inline: 16px; }
   .create-button {
     height: 50px;
@@ -4634,6 +4649,24 @@ svg {
 /* Mobile bottom nav — hidden on desktop */
 .bottom-nav { display: none; }
 .mobile-tier-toggle { display: none; }
+
+/* Touch target sizing for primary action buttons on mobile.
+   Ensures ≥44px tap height per WCAG 2.5.5 / AAA recommandation. */
+@media (max-width: 900px) {
+  .friends-action-btn,
+  .add-submit,
+  .map-button,
+  .next-control-inline,
+  .floating-close,
+  .account-close {
+    min-height: 44px;
+  }
+  .friends-action-btn,
+  .add-submit,
+  .map-button {
+    padding-block: 10px;
+  }
+}
 
 /* === Tablet / mobile (max 900px) === */
 @media (max-width: 900px) {
@@ -4857,9 +4890,15 @@ svg {
   /* Légende cachée sur mobile (couleurs des pins suffisent) */
   .legend { display: none; }
 
+  /* Sur mobile le tier board flotte au-dessus de la carte ; on ancre les
+     contrôles au-dessus du board pour qu'ils restent atteignables même quand
+     la tier list est déployée. */
   .map-controls {
-    bottom: 8px;
+    bottom: calc(var(--tier-collapsed-h) + var(--tier-bottom) + 60px + env(safe-area-inset-bottom, 0px));
     left: 14px;
+  }
+  .travel-app:not(.tier-collapsed) .map-controls {
+    bottom: calc(var(--tier-h) + var(--tier-bottom) + 60px + env(safe-area-inset-bottom, 0px));
   }
   /* Pinch + double-tap suffisent — on garde uniquement le recadrage global */
   .map-controls button[aria-label="Zoomer"],
@@ -5440,7 +5479,7 @@ svg {
   color: #111;
   font-family: inherit;
 }
-.wizard-input::placeholder { color: #9ca3af; }
+.wizard-input::placeholder { color: #6b7280; }
 
 .wizard-spinner {
   font-size: var(--text-xl);
@@ -5476,7 +5515,7 @@ svg {
 }
 .wizard-suggestions li button:hover { background: #f5f7ff; }
 .sug-name { font-weight: var(--weight-medium); color: #111; }
-.sug-country { color: #9ca3af; font-size: var(--text-sm); flex-shrink: 0; }
+.sug-country { color: #6b7280; font-size: var(--text-sm); flex-shrink: 0; }
 
 .wizard-type-grid {
   display: grid;
@@ -5509,7 +5548,7 @@ svg {
 
 .wizard-question-counter {
   font-size: var(--text-sm);
-  color: #9ca3af;
+  color: #6b7280;
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-wide);
   margin-bottom: 10px;
@@ -5543,7 +5582,7 @@ svg {
 .wizard-back {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 14px;
   cursor: pointer;
   font-family: inherit;
@@ -5610,7 +5649,7 @@ svg {
   gap: 8px;
   margin-bottom: 20px;
   font-size: var(--text-base);
-  color: #9ca3af;
+  color: #6b7280;
 }
 .result-score strong { font-size: var(--text-xl); color: #111827; font-weight: var(--weight-bold); }
 
@@ -5755,7 +5794,7 @@ svg {
 
 .wizard-stops-title span {
   font-weight: var(--weight-regular);
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .wizard-stop-row {
@@ -5782,7 +5821,7 @@ svg {
   justify-content: center;
   width: 18px;
   height: 30px;
-  color: #9ca3af;
+  color: #6b7280;
   cursor: grab;
   user-select: none;
   font-size: var(--text-base);
@@ -6099,7 +6138,7 @@ svg {
   margin: 10px auto 0;
   background: none;
   border: none;
-  color: #9ca3af;
+  color: #6b7280;
   font-size: var(--text-sm);
   cursor: pointer;
   font-family: inherit;
@@ -7190,7 +7229,7 @@ svg {
 
 .friends-row-meta small {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .friends-row-actions {
@@ -7324,7 +7363,7 @@ svg {
 
 .friends-result-meta small {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .friends-action-btn {
@@ -7403,7 +7442,7 @@ svg {
 }
 
 .profile-setup-handle-prefix {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 14px;
   font-weight: 500;
 }
@@ -7510,7 +7549,7 @@ svg {
 .friend-profile-header p {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .friend-profile-tabs {
@@ -7593,7 +7632,7 @@ svg {
 
 .friend-profile-dest-row small {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 /* Compare view (utilisé dans le profil + TierListPage) */
@@ -7644,7 +7683,7 @@ svg {
 
 .friend-compare-vs {
   font-size: 10px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .friend-compare-grid {
@@ -7713,7 +7752,7 @@ svg {
 
 .friend-compare-tier-country {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .tier-badge-compact {
@@ -7908,7 +7947,7 @@ svg {
 
 .activity-row-body small {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .activity-row-expand {
@@ -8183,7 +8222,7 @@ svg {
   border: none;
   cursor: pointer;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .panel-friends-list {
@@ -8231,7 +8270,7 @@ svg {
 
 .panel-friends-meta small {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .panel-friends-add {

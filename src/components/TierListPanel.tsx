@@ -157,6 +157,7 @@ export default function TierListPanel({
           key={mode}
           type="button"
           className={sortMode === mode ? 'is-active' : ''}
+          aria-pressed={sortMode === mode}
           onClick={() => setSortMode(mode)}
         >
           {compact ? mobileSortLabels[mode] : sortLabels[mode]}
@@ -195,7 +196,7 @@ export default function TierListPanel({
 
       <div className="tier-board-head">
         <div className="tier-board-title">
-          <h2>Ma tier list <span>({destinations.length} destinations)</span></h2>
+          <h2>Ma tier list <span>({destinations.filter(d => d.kind !== 'stop').length} destinations)</span></h2>
         </div>
         <div className="tier-board-actions">
           {onCompareFriend && (

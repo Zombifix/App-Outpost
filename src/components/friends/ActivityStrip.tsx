@@ -24,7 +24,11 @@ type EnrichedEvent = ActivityEvent & {
 export default function ActivityStrip({ onFlyTo, onOpenProfile, onSeeAll, variant = 'compact' }: ActivityStripProps) {
   const { events, loading } = useActivityFeed(variant === 'full' ? 60 : 12)
   const [collapsed, setCollapsed] = useState(false)
-  const grouped = useMemo(() => groupSameActorSameKindRecent(events), [events])
+  const filteredEvents = useMemo(
+    () => events.filter(e => e.kind !== 'friendship_accepted'),
+    [events]
+  )
+  const grouped = useMemo(() => groupSameActorSameKindRecent(filteredEvents), [filteredEvents])
 
   if (variant === 'compact' && collapsed) {
     return (
@@ -110,10 +114,18 @@ function ActivityCard({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity;
     if (lat !== undefined && lng !== undefined && name) onFlyTo?.(lat, lng, name)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onClick()
+    }
+  }
+
   return (
-    <button className="activity-card" onClick={onClick}>
+    <div className="activity-card" role="button" tabIndex={0} onClick={onClick} onKeyDown={handleKeyDown}>
       <div className="activity-card-head">
         <button
+          type="button"
           className="friends-avatar activity-card-avatar"
           onClick={e => { e.stopPropagation(); if (ev.actor) onOpenProfile?.(ev.actor) }}
           style={{ background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
@@ -128,7 +140,7 @@ function ActivityCard({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity;
         {renderActivityLabel(ev.kind, ev.payload, item.count)}
         {tier && <span className="tier-badge-compact" style={{ color: TIER_COLORS[tier].label, background: TIER_COLORS[tier].pin + '22' }}>{tier}</span>}
       </div>
-    </button>
+    </div>
   )
 }
 

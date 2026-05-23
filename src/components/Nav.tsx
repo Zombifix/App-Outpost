@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
 import type { Destination, Friendship } from '../types'
 import { BrandLogo } from './BrandLogo'
@@ -267,7 +267,8 @@ function Icon({ name }: { name: string }) {
 }
 
 function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?: (lat: number, lng: number, name: string, actor?: { userId: string; handle: string; displayName: string }) => void }) {
-  const { events } = useActivityFeed(10)
+  const { events: allEvents } = useActivityFeed(20)
+  const events = useMemo(() => allEvents.filter(e => e.kind === 'destination_added'), [allEvents])
   const activityRef = useRef<HTMLElement | null>(null)
 
   // Mémorise les IDs déjà vus pour ne marquer "is-new" que les arrivées live.

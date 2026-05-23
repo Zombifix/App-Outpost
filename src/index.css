@@ -133,6 +133,99 @@ svg {
   display: block;
 }
 
+/* ─── Bouton — composant unifié ─────────────────────────────────────────────
+   Variantes :
+   - .btn-primary  : action principale (bleu, plein)
+   - .btn-secondary: action secondaire (blanc, bordure)
+   - .btn-ghost    : action tertiaire (transparent)
+   - .btn-icon     : icône seule (44×44 hit area)
+
+   Modifiers :
+   - .btn-pill     : pill shape (sinon arrondi --radius-lg)
+   - .btn-sm       : compact (36px)
+   - .btn-lg       : large (52px)
+   ───────────────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease,
+    box-shadow 140ms ease, filter 140ms ease;
+}
+.btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+.btn-pill { border-radius: var(--radius-pill); }
+.btn-sm { min-height: 36px; padding: 0 var(--space-4); font-size: var(--text-xs); }
+.btn-lg { min-height: 52px; padding: 0 var(--space-6); font-size: var(--text-base); }
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(27, 95, 232, 0.32);
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.btn-primary:disabled {
+  background: rgba(210, 220, 235, 0.85);
+  box-shadow: none;
+  color: #7a8fa8;
+  border-color: rgba(185, 205, 232, 0.5);
+}
+
+.btn-secondary {
+  color: #24304b;
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(185, 205, 232, 0.72);
+  box-shadow: var(--shadow-soft);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(235, 244, 255, 0.96);
+  border-color: rgba(27, 95, 232, 0.32);
+  color: var(--purple);
+}
+
+.btn-ghost {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.btn-icon {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.btn-icon:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink);
+}
+
 .travel-app {
   position: relative;
   width: 100vw;
@@ -1061,14 +1154,19 @@ svg {
   color: var(--text-muted);
 }
 .compare-close {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   font-size: var(--text-2xl);
   line-height: 1;
   color: var(--text-muted);
   cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
 }
 .compare-close:hover { background: rgba(0,0,0,0.05); color: var(--ink); }
 
@@ -2593,8 +2691,8 @@ svg {
 }
 
 .map-controls button {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   color: #2c3754;
   background: transparent;
@@ -2766,10 +2864,10 @@ svg {
 
 .floating-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 34px;
-  height: 34px;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -2968,8 +3066,8 @@ svg {
 }
 
 .card-kebab {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -4268,9 +4366,9 @@ svg {
 }
 
 .account-close {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -4926,11 +5024,19 @@ svg {
      contrôles au-dessus du board pour qu'ils restent atteignables même quand
      la tier list est déployée. */
   .map-controls {
-    bottom: calc(var(--tier-collapsed-h) + var(--tier-bottom) + 60px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--tier-collapsed-h) + var(--tier-bottom) + 88px + env(safe-area-inset-bottom, 0px));
     left: 14px;
+    /* Sur mobile, on n'a qu'un seul bouton visible (recadrer) — on retire
+       l'enveloppe pour ne pas faire croire à des boutons cachés derrière. */
+    width: auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
   }
   .travel-app:not(.tier-collapsed) .map-controls {
-    bottom: calc(var(--tier-h) + var(--tier-bottom) + 60px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--tier-h) + var(--tier-bottom) + 88px + env(safe-area-inset-bottom, 0px));
   }
   /* Pinch + double-tap suffisent — on garde uniquement le recadrage global */
   .map-controls button[aria-label="Zoomer"],
@@ -5366,7 +5472,7 @@ svg {
   /* Quand sheet replié, le bouton remonte au-dessus du panel replié */
   .tier-board.is-collapsed ~ .map-area .map-controls,
   .travel-app:has(.tier-board.is-collapsed) .map-controls {
-    bottom: calc(142px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(172px + env(safe-area-inset-bottom, 0px)) !important;
   }
   .map-controls button {
     background: rgba(255, 255, 255, 0.92);

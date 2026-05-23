@@ -406,11 +406,7 @@ svg {
 .carnet-stats::after {
   content: '';
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 66px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(174, 197, 237, 0.72), transparent);
+  display: none;
   pointer-events: none;
 }
 
@@ -500,8 +496,19 @@ svg {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: 7px;
-  padding-top: 13px;
+  padding-top: 16px;
   min-width: 0;
+}
+
+.carnet-stats-bottom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(174, 197, 237, 0.72), transparent);
+  pointer-events: none;
 }
 
 .carnet-stats-chip {
@@ -512,6 +519,10 @@ svg {
 }
 
 .carnet-stats-chip > div {
+  display: flex;
+  min-height: 29px;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
 }
 
@@ -544,7 +555,7 @@ svg {
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
   color: #1e2d50;
-  line-height: 1;
+  line-height: 1.12;
   letter-spacing: 0;
 }
 

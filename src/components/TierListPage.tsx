@@ -556,6 +556,21 @@ export default function TierListPage({
             </div>
           )}
         </div>
+      </header>
+
+      <div className="tier-list-filter-row">
+        <div className="tier-list-filters" role="group" aria-label="Filtrer la tier list">
+          {visibleFilters.map(filterItem => (
+            <button
+              key={filterItem}
+              className={`tier-filter-pill ${filter === filterItem ? 'is-active' : ''}`}
+              onClick={() => setFilter(filterItem)}
+            >
+              <span aria-hidden="true">{TIER_FILTER_ICON[filterItem]}</span>
+              {TIER_FILTER_LABEL[filterItem]}
+            </button>
+          ))}
+        </div>
 
         <div className="tier-list-actions" ref={pickerRef}>
           <button
@@ -619,19 +634,6 @@ export default function TierListPage({
             </div>
           )}
         </div>
-      </header>
-
-      <div className="tier-list-filters" role="group" aria-label="Filtrer la tier list">
-        {visibleFilters.map(filterItem => (
-          <button
-            key={filterItem}
-            className={`tier-filter-pill ${filter === filterItem ? 'is-active' : ''}`}
-            onClick={() => setFilter(filterItem)}
-          >
-            <span aria-hidden="true">{TIER_FILTER_ICON[filterItem]}</span>
-            {TIER_FILTER_LABEL[filterItem]}
-          </button>
-        ))}
       </div>
 
       {friend && (

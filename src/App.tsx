@@ -622,7 +622,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
           </div>
           <button
             type="button"
-            className="compare-inline-close"
+            className="btn btn-primary btn-pill btn-sm compare-inline-close"
             onClick={() => setCompareFriend(null)}
             aria-label={`Quitter la comparaison avec ${compareFriend.displayName}`}
           >
@@ -828,45 +828,16 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   )
 }
 
-function ExploreView({ onSelect }: { destinations: Destination[]; onSelect: (name: string) => void }) {
-  const suggestionSeeds = [
-    {
-      name: 'Seoul',
-      reason: 'Tu notes haut les villes culture, food et energie nocturne.',
-      image: 'https://images.unsplash.com/photo-1538485399081-7c8ed6f92825?auto=format&fit=crop&w=900&q=85',
-    },
-    {
-      name: 'Porto',
-      reason: 'Proche de Lisbonne dans ton classement, plus doux et tres bon rapport qualite/prix.',
-      image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=85',
-    },
-    {
-      name: 'Osaka',
-      reason: 'Si Kyoto est S tier, Osaka peut completer la carte cote gastronomie.',
-      image: 'https://images.unsplash.com/photo-1590253230532-a67f6bc61c9e?auto=format&fit=crop&w=900&q=85',
-    },
-  ]
-
+function ExploreView(_props: { destinations: Destination[]; onSelect: (name: string) => void }) {
   return (
-    <main className="explore-page" aria-label="Explorer des suggestions">
-      <section className="ai-panel">
-        <span className="ai-chip">Aperçu — IA bientôt connectée</span>
-        <h2>Aperçu des suggestions</h2>
-        <p>
-          Ces trois exemples sont fixes pour montrer la forme du module. Quand l'IA sera branchée, elle
-          regardera tes tiers, tes notes par critère et les destinations que tes amis ajoutent.
+    <main className="explore-page explore-page--soon" aria-label="Explorer — bientôt disponible">
+      <section className="explore-soon">
+        <span className="explore-soon__chip">Bientôt disponible</span>
+        <h2 className="explore-soon__title">L'explorateur arrive bientôt</h2>
+        <p className="explore-soon__text">
+          Cette section te proposera des destinations sur mesure à partir de ton carnet, de tes notes
+          et de celles de tes amis. On y travaille — rendez-vous très vite.
         </p>
-      </section>
-
-      <section className="suggestion-grid">
-        {suggestionSeeds.map(suggestion => (
-          <article className="suggestion-card" key={suggestion.name}>
-            <div style={{ backgroundImage: `url(${suggestion.image})` }} />
-            <h3>{suggestion.name}</h3>
-            <p>{suggestion.reason}</p>
-            <button onClick={() => onSelect(suggestion.name)}>Voir un exemple sur la carte</button>
-          </article>
-        ))}
       </section>
     </main>
   )

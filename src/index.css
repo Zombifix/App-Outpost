@@ -4208,6 +4208,50 @@ svg {
   gap: 18px;
 }
 
+.explore-page--soon {
+  grid-template-columns: 1fr;
+  place-items: center;
+}
+
+.explore-soon {
+  max-width: 560px;
+  padding: 40px 36px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(214, 226, 242, 0.78);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+  text-align: center;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.explore-soon__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+}
+
+.explore-soon__title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.explore-soon__text {
+  margin: 0;
+  color: var(--muted, #4b5563);
+  line-height: 1.55;
+}
+
 .ai-panel,
 .suggestion-card,
 .account-panel {
@@ -6850,17 +6894,30 @@ svg {
 }
 
 /* Filter pills */
+.tier-list-filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 1px solid rgba(214, 226, 242, 0.64);
+  min-width: 0;
+}
+
+.tier-list-filter-row .tier-list-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .tier-list-filters {
   display: flex;
   gap: 6px;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
-  flex-shrink: 0;
+  flex: 1 1 auto;
   min-width: 0;
   max-width: 100%;
   padding: 0;
-  border-bottom: 1px solid rgba(214, 226, 242, 0.64);
+  border-bottom: none;
   background: transparent;
   box-shadow: none;
   filter: none;

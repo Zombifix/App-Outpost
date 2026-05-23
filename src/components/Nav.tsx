@@ -79,7 +79,7 @@ export default function Nav({
           <BrandLogo />
         </button>
 
-        <button className="create-button" onClick={onAddClick}>
+        <button className="btn btn-primary create-button" onClick={onAddClick}>
           <span className="create-icon"><Icon name="plus" /></span>
           <span>Destination</span>
         </button>
@@ -189,7 +189,7 @@ export default function Nav({
           </button>
           {viewingFriend && isAuthenticated ? (
             friendshipWithViewed?.status === 'accepted' ? (
-              <button className="share share-compare" onClick={onCompareViewingFriend}>
+              <button className="btn btn-primary btn-pill btn-sm share share-compare" onClick={onCompareViewingFriend}>
                 <Icon name="versus" />
                 Comparer
               </button>
@@ -199,7 +199,7 @@ export default function Nav({
               </span>
             ) : (
               <button
-                className="share share-add-friend"
+                className="btn btn-primary btn-pill btn-sm share share-add-friend"
                 onClick={onAddViewingFriend}
                 disabled={friendshipWithViewed?.status === 'pending' && friendshipWithViewed.initiator === 'me'}
               >
@@ -212,7 +212,7 @@ export default function Nav({
               </button>
             )
           ) : !viewingFriend ? (
-            <button className="share" onClick={onShare}>
+            <button className="btn btn-primary btn-pill btn-sm share" onClick={onShare}>
               <Icon name="share" />
               {shareCopied ? 'Lien copié' : 'Partager'}
             </button>

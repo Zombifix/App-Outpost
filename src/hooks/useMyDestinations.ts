@@ -10,6 +10,7 @@ import {
   type DbDestinationRow,
 } from '../lib/destinationMapper'
 import { withRecalculatedScore } from '../utils'
+import { geoCentroid, isSuspiciousZone } from '../lib/geoCentroid'
 
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
@@ -348,6 +349,60 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
 
     return () => { cancelled = true }
   }, [destinations])
+
+  // ---- Migration géométrie : zones legacy mal placées --------------------
+  // Certaines zones sauvegardées avant le fix « centroïde du plus grand polygone »
+  // ont un `lat/lng` aberrant (ex. France → Mauritanie) ou pas de `geojson`.
+  // On les détecte et on recalcule via Nominatim, en respectant la policy
+  // 1 req/sec. Une fois récupérée la nouvelle géométrie, on met à jour l'état :
+  // le diff push existant propagera la correction vers Supabase automatiquement.
+  const attemptedRepairRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!hydrated) return
+    const candidates = destinations.filter(d =>
+      d.kind === 'zone'
+      && !attemptedRepairRef.current.has(d.name)
+      && (isSuspiciousZone({ lat: d.lat, lng: d.lng }, d.extent) || !d.geojson),
+    )
+    if (!candidates.length) return
+
+    let cancelled = false
+    void (async () => {
+      for (const dest of candidates) {
+        if (cancelled) return
+        attemptedRepairRef.current.add(dest.name)
+        try {
+          const q = dest.country ? `${dest.name}, ${dest.country}` : dest.name
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=geojson&polygon_geojson=1&polygon_threshold=0.01&limit=1`,
+            { headers: { 'Accept-Language': 'fr' } },
+          )
+          if (cancelled) return
+          const data = await res.json()
+          const geom = data?.features?.[0]?.geometry as GeoJSON.Geometry | undefined
+          const centroid = geoCentroid(geom)
+          if (centroid && geom) {
+            const dLat = Math.abs(centroid.lat - dest.lat)
+            const dLng = Math.abs(centroid.lng - dest.lng)
+            const meaningful = !Number.isFinite(dest.lat) || !Number.isFinite(dest.lng) || dLat > 1 || dLng > 1 || !dest.geojson
+            if (meaningful) {
+              setDestinationsState(previous => previous.map(item =>
+                item.name === dest.name
+                  ? { ...item, lat: centroid.lat, lng: centroid.lng, extent: centroid.bbox, geojson: geom }
+                  : item,
+              ))
+            }
+          }
+        } catch (err) {
+          console.warn('[useMyDestinations] geo repair failed for', dest.name, err)
+        }
+        // Nominatim usage policy: max 1 req/sec — we use 1200ms to be safe.
+        await new Promise(r => setTimeout(r, 1200))
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [destinations, hydrated])
 
   // ---- Cleanup au unmount : flush des timers en attente -------------------
 

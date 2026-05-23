@@ -4,6 +4,7 @@ import { TIER_COLORS } from '../data'
 import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 import { calculateScore, scoreToTier } from '../utils'
+import { geoCentroid } from '../lib/geoCentroid'
 
 interface WizardProps {
   onClose: () => void
@@ -727,12 +728,42 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     if (resolvingImage) return
     if (needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName) return
     setResolvingImage(true)
-    const s = state
+    let s = state
     const score = computeScore(s)
     const tier = scoreToTier(score)
     const isZone = s.kind === 'zone'
-    const lat = isZone && s.extent ? (s.extent[1] + s.extent[3]) / 2 : s.lat
-    const lng = isZone && s.extent ? (s.extent[0] + s.extent[2]) / 2 : s.lng
+
+    // Zones: pin position must come from the *main* polygon centroid, not from
+    // Photon's extent average (which encompasses overseas territories — putting
+    // "France" in West Africa) nor from Photon's label point (often offset for
+    // regions like Corse). We await Nominatim here if its background fetch from
+    // selectSuggestion hasn't completed yet.
+    let geojson = s.geojson
+    if (isZone && !geojson) {
+      geojson = await fetchNominatimGeojson(s.name, s.country)
+      if (geojson) {
+        s = { ...s, geojson }
+        setState(s)
+      }
+    }
+    const centroid = isZone ? geoCentroid(geojson) : null
+
+    // Resolution order for zones:
+    //   1. centroid of the largest polygon (Nominatim) — accurate for metropoles
+    //      and islands
+    //   2. Photon's r.lat/r.lng — usually the OSM label point (decent fallback)
+    //   3. average of Photon's extent — worst case, biased by outlier territories
+    const lat = isZone
+      ? (centroid?.lat ?? (Number.isFinite(s.lat) ? s.lat : (s.extent ? (s.extent[1] + s.extent[3]) / 2 : NaN)))
+      : s.lat
+    const lng = isZone
+      ? (centroid?.lng ?? (Number.isFinite(s.lng) ? s.lng : (s.extent ? (s.extent[0] + s.extent[2]) / 2 : NaN)))
+      : s.lng
+    // Persist the bbox of the main polygon so the map zoom/focus stays tight on
+    // the real region (e.g. metropolitan France) rather than the global extent.
+    const extentForSave: [number, number, number, number] | undefined = isZone
+      ? (centroid?.bbox ?? s.extent)
+      : s.extent
     const validStops = s.kind === 'zone'
       ? stops.filter(st => st.name.trim() && Number.isFinite(st.lat) && Number.isFinite(st.lng))
       : undefined
@@ -768,7 +799,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       tier,
       kind: s.kind,
       stops: validStops,
-      extent: s.kind === 'zone' ? s.extent : undefined,
+      extent: s.kind === 'zone' ? extentForSave : undefined,
       geojson: s.kind === 'zone' ? s.geojson : undefined,
       state: s.state,
       osmValue: s.osmValue,

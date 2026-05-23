@@ -2418,65 +2418,56 @@ svg {
     0 1px 2px rgba(20, 30, 60, 0.18);
 }
 
-/* Tier letter — small badge bottom-right corner of the circle */
-.map-pin .map-pin-tier {
+/* ── Shared pin badge base — all corner badges share this foundation */
+.map-pin-tier,
+.map-pin-heart,
+.map-pin-home,
+.pin-friend-badge,
+.pin-shared-badge {
   position: absolute;
-  bottom: -3px;
-  right: -3px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--pin-color);
-  color: #fff;
   border: 2px solid #fff;
   display: grid;
   place-items: center;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   line-height: 1;
-  letter-spacing: 0.02em;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
   pointer-events: none;
+  z-index: 2;
 }
 
-/* Coup de coeur — heart badge top-left only */
+/* Tier — bottom-right, couleur du tier */
+.map-pin .map-pin-tier {
+  bottom: -4px;
+  right: -4px;
+  background: var(--pin-color);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+/* Coup de coeur — top-left, blanc/rose */
 .map-pin-heart {
-  position: absolute;
-  top: -5px;
-  left: -5px;
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
+  top: -4px;
+  left: -4px;
   background: #fff;
   color: #ff3b73;
-  border: 2px solid rgba(255, 255, 255, 0.98);
-  display: grid;
-  place-items: center;
   box-shadow:
     0 0 0 2px rgba(255, 59, 115, 0.20),
-    0 3px 9px rgba(27, 38, 66, 0.22);
-  pointer-events: none;
-  z-index: 2;
+    0 2px 6px rgba(27, 38, 66, 0.22);
 }
 
+/* Vécu là-bas — bottom-left, blanc/bleu (évite le chevauchement avec ami top-right) */
 .map-pin-home {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
+  bottom: -4px;
+  left: -4px;
   background: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.98);
-  display: grid;
-  place-items: center;
-  font-size: var(--text-2xs);
-  line-height: 1;
+  color: #1B5FE8;
   box-shadow:
     0 0 0 2px rgba(27, 95, 232, 0.20),
-    0 3px 9px rgba(27, 38, 66, 0.22);
-  pointer-events: none;
-  z-index: 2;
+    0 2px 6px rgba(27, 38, 66, 0.22);
 }
 
 .map-pin--coup-de-coeur {
@@ -2536,12 +2527,8 @@ svg {
   border-width: 3px;
 }
 .map-pin--compact .map-pin-tier {
-  width: 22px;
-  height: 22px;
-  font-size: var(--text-2xs);
-  border-width: 2px;
-  bottom: -3px;
-  right: -3px;
+  bottom: -4px;
+  right: -4px;
 }
 .map-pin--compact strong { display: none; }
 
@@ -7307,28 +7294,21 @@ svg {
   color: #2a3144 !important;
 }
 
-.pin-friend-badge,
-.pin-shared-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+/* Ami — top-right, ardoise */
+.pin-friend-badge {
+  top: -4px;
+  right: -4px;
   background: #7C8DB5;
-  color: white;
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-bold);
+  color: #fff;
   font-style: normal;
-  display: grid;
-  place-items: center;
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  z-index: 2;
 }
 
+/* Partagé — top-right, vert */
 .pin-shared-badge {
+  top: -4px;
+  right: -4px;
   background: #3B6D11;
+  color: #fff;
 }
 
 /* ============================================================

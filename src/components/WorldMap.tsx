@@ -36,6 +36,10 @@ function getDestinationFocusPoints(destination: Destination): Array<{ lng: numbe
   const points: Array<{ lng: number; lat: number }> = []
 
   if (Array.isArray(destination.extent) && destination.extent.length === 4) {
+    // Format attendu (écrit par AddDestinationWizard via geoCentroid) :
+    // [west, south, east, north]. Pour les destinations legacy issues directement
+    // de Photon, le format peut être [w, n, e, s] — sans impact ici car on s'en
+    // sert uniquement comme deux coins diagonaux pour le fit bounds.
     const [west, south, east, north] = destination.extent
     if ([west, south, east, north].every(Number.isFinite)) {
       points.push(

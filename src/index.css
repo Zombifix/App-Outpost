@@ -5761,6 +5761,16 @@ svg {
   letter-spacing: var(--tracking-wide);
   margin-bottom: 10px;
 }
+/* Nom de la destination affiché discrètement sous le compteur (mode ajout) */
+.wizard-dest-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: #6e7a91;
+  margin: -4px 0 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .wizard-answers {
   display: flex;
@@ -5785,6 +5795,16 @@ svg {
   border-color: #3b7cf4;
   background: #f5f7ff;
   transform: translateX(3px);
+}
+/* Réponse sélectionnée en mode édition (surlignage discret mais clair) */
+.wizard-answer-btn.is-selected {
+  border-color: #3b7cf4;
+  background: #eef2ff;
+  color: #1e40af;
+  font-weight: var(--weight-semibold);
+}
+.wizard-answer-btn.is-selected:hover {
+  background: #e0e7ff;
 }
 
 .wizard-back {
@@ -6435,6 +6455,9 @@ svg {
   }
 
   .wizard-answer-btn:hover {
+    transform: translateY(-1px);
+  }
+  .wizard-answer-btn.is-selected:hover {
     transform: translateY(-1px);
   }
 

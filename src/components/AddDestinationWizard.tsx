@@ -590,7 +590,22 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         }
   )
   const [questionIndex, setQuestionIndex] = useState(0)
-  const [answeredKeys, setAnsweredKeys] = useState<Set<QuestionKey>>(new Set())
+  const [answeredKeys, setAnsweredKeys] = useState<Set<QuestionKey>>(() => {
+    // En mode édition, pré-marquer les questions déjà répondues pour que
+    // l'utilisateur sache où il en est et puisse naviguer sans tout re-saisir.
+    if (!initialDestination) return new Set()
+    const keys = new Set<QuestionKey>()
+    if (initialDestination.food != null) keys.add('food')
+    if (initialDestination.night != null) keys.add('night')
+    if (initialDestination.culture != null) keys.add('culture')
+    if (initialDestination.nature != null) keys.add('nature')
+    if (initialDestination.value != null) keys.add('value')
+    if (initialDestination.ease != null) keys.add('ease')
+    if (initialDestination.memorability != null) keys.add('memorability')
+    if (initialDestination.vibeBoost != null) keys.add('vibeBoost')
+    if (initialDestination.retourBonus) keys.add('retourBonus')
+    return keys
+  })
   const finalScore = useMemo(() => computeScore(state), [state])
   const finalTier = scoreToTier(finalScore)
   const [stops, setStops] = useState<RoadTripStop[]>(
@@ -604,6 +619,14 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const inputRef = useRef<HTMLInputElement>(null)
   const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
   const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= 2
+
+  // Fermeture avec garde : demande confirmation si l'utilisateur est en plein
+  // questionnaire pour éviter la perte accidentelle de réponses.
+  const handleClose = () => {
+    const hasProgress = step !== 'type' && step !== 'search'
+    if (hasProgress && !window.confirm('Fermer le formulaire ? Tes réponses seront perdues.')) return
+    onClose()
+  }
 
   const reorderStops = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0 || from >= stops.length || to >= stops.length) return
@@ -1103,9 +1126,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   )
 
   return (
-    <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) handleClose() }}>
       <div className="wizard-panel">
-        <button className="wizard-close" aria-label="Fermer" onClick={onClose}>
+        <button className="wizard-close" aria-label="Fermer" onClick={handleClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M18 6 6 18" /><path d="m6 6 12 12" />
           </svg>
@@ -1194,14 +1217,21 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             <div className="wizard-question-counter">
               {questionIndex + 1} / {activeQuestions.length}
             </div>
+            {/* Afficher le nom de la destination sélectionnée pendant les questions
+                (mode ajout uniquement — en édition, wizard-edit-label joue ce rôle) */}
+            {!isEditing && state.name && (
+              <p className="wizard-dest-label">{state.name}</p>
+            )}
             <h2 className="wizard-title">{activeQuestions[questionIndex]?.question}</h2>
             <div className="wizard-answers">
               {activeQuestions[questionIndex]?.answers.map((a, i) => {
                 const questionKey = activeQuestions[questionIndex].key as QuestionKey
+                const currentValue = state[questionKey as keyof WizardState]
+                const isSelected = a.value === currentValue && answeredKeys.has(questionKey)
                 return (
                   <button
                     key={i}
-                    className={`wizard-answer-btn ${answeredKeys.has(questionKey) ? 'answered' : ''}`}
+                    className={`wizard-answer-btn${isSelected ? ' is-selected' : ''}`}
                     onClick={() => answerQuestion(
                       questionKey,
                       a.value as number | null,
@@ -1330,7 +1360,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 className="wizard-result-redo"
                 onClick={() => {
                   setQuestionIndex(0)
-                  setAnsweredKeys(new Set())
+                  // Ne pas effacer answeredKeys : les réponses déjà données
+                  // restent visibles pour que l'utilisateur sache où il en est.
                   setStep('questions')
                 }}
               >

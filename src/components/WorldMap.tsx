@@ -1,5 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { createRoot } from 'react-dom/client'
+import type { Root } from 'react-dom/client'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
@@ -15,6 +17,7 @@ const INIT_ZOOM = 1.5
 const AUTO_FIT_MAX_ZOOM = 5.6
 const PIN_FOCUS_INSET = 92
 type Proj = (ll: [number, number]) => [number, number] | null
+const MARKER_PROJ: Proj = () => [0, 0]
 
 function pinScaleFromZoomK(_zoomK: number) {
   return 1
@@ -679,6 +682,7 @@ export default function WorldMap({
   const mapRef          = useRef<maplibregl.Map | null>(null)
   const svgRef          = useRef<SVGSVGElement>(null)
   const pinsGroupRef    = useRef<SVGGElement>(null)
+  const htmlMarkersRef  = useRef<Array<{ marker: maplibregl.Marker; root: Root; element: HTMLDivElement }>>([])
   const projFnRef       = useRef<Proj>(() => null)
   const lastAutoFitFingerprintRef = useRef<string | null>(null)
   const autoFitTimeoutRef = useRef<number | null>(null)
@@ -687,6 +691,14 @@ export default function WorldMap({
   const [zoomK, setZoomK]       = useState(1)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
+
+  function clearHtmlMarkers() {
+    for (const entry of htmlMarkersRef.current) {
+      entry.root.unmount()
+      entry.marker.remove()
+    }
+    htmlMarkersRef.current = []
+  }
 
   // ── Init MapLibre ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -718,6 +730,7 @@ export default function WorldMap({
     mapRef.current = map
     return () => {
       if (autoFitTimeoutRef.current !== null) window.clearTimeout(autoFitTimeoutRef.current)
+      clearHtmlMarkers()
       map.remove()
       mapRef.current = null
       setMapReady(false)
@@ -795,16 +808,6 @@ export default function WorldMap({
   // ── Mise à jour directe des transforms SVG (bypass React) ──────────────────
   function updatePins(map: maplibregl.Map) {
     if (!pinsGroupRef.current) return
-    const k    = Math.pow(2, map.getZoom() - INIT_ZOOM)
-    const pinScale = pinScaleFromZoomK(k)
-
-    pinsGroupRef.current.querySelectorAll<SVGGElement>('g.pin-root').forEach(el => {
-      const lng = parseFloat(el.dataset.lng ?? '0')
-      const lat = parseFloat(el.dataset.lat ?? '0')
-      if (!isFinite(lng) || !isFinite(lat)) return
-      const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
-      el.setAttribute('transform', `translate(${x},${y}) scale(${pinScale})`)
-    })
 
     pinsGroupRef.current.querySelectorAll<SVGGElement>('g.stop-root').forEach(el => {
       const lng = parseFloat(el.dataset.lng ?? '0')
@@ -903,6 +906,150 @@ export default function WorldMap({
     zoomToZone(d)
   }
 
+  const shared = sharedNames ?? new Set<string>()
+  const friendOnly = friendDestinations
+    ? friendDestinations.filter(d => !shared.has(destinationNameKey(d)))
+    : []
+
+  const placeDests = destinations.filter(d => d.kind !== 'zone' && d.kind !== 'stop')
+  const overlapsByDest: Record<string, PinTripBadge[]> = {}
+  const skipStops = new Set<string>() // `${tripName}|${stopIndex}`
+
+  for (const trip of destinations) {
+    if (trip.kind !== 'zone' || !trip.stops?.length) continue
+    const tripColor = getDestinationColor(trip) ?? '#1B5FE8'
+    let stageCounter = 0
+    trip.stops.forEach((stop, index) => {
+      const stageNumber = ++stageCounter
+      if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return
+      const match = placeDests.find(p => haversineMeters(p, stop) <= 50)
+      if (match) {
+        ;(overlapsByDest[match.name] ||= []).push({
+          tripName: trip.name,
+          color: tripColor,
+          stageNumber,
+        })
+        skipStops.add(`${trip.name}|${index}`)
+      }
+    })
+  }
+
+  const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
+    const color = getDestinationColor(d)
+    if (!d.stops?.length || !color) return [] as JSX.Element[]
+    if (expandedRouteKey !== `${owner}:${d.name}` && selectedName !== d.name) return [] as JSX.Element[]
+    const stopEls = d.stops.map((stop, index) => {
+      if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
+      return (
+        <RouteStop
+          key={`${owner}-stop:${d.name}:${stop.name}:${index}`}
+          stop={stop}
+          parentName={d.name}
+          projection={projFnRef.current}
+          color={color}
+          owner={owner}
+          onSelect={onSelect}
+        />
+      )
+    })
+    return [
+      <RoutePath
+        key={`${owner}-path:${d.name}`}
+        stops={d.stops}
+        projection={projFnRef.current}
+        color={color}
+        owner={owner}
+      />,
+      ...stopEls.filter((el): el is JSX.Element => el !== null),
+    ]
+  }
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) {
+      clearHtmlMarkers()
+      return
+    }
+
+    const map = mapRef.current
+    clearHtmlMarkers()
+
+    const markerPins = [
+      ...friendOnly
+        .filter(d => d.kind !== 'stop')
+        .map(destination => ({
+          key: `friend:${destination.name}`,
+          destination,
+          owner: 'friend' as const,
+          selected: expandedRouteKey === `friend:${destination.name}`,
+          badge: friendInitials,
+          shared: false,
+          tripBadges: undefined as PinTripBadge[] | undefined,
+        })),
+      ...destinations
+        .filter(d => d.kind !== 'stop')
+        .map(destination => ({
+          key: `me:${destination.name}`,
+          destination,
+          owner: 'me' as const,
+          selected: destination.name === selectedName || expandedRouteKey === `me:${destination.name}`,
+          badge: undefined,
+          shared: shared.has(destinationNameKey(destination)),
+          tripBadges: overlapsByDest[destination.name],
+        })),
+    ]
+
+    for (const pin of markerPins) {
+      const element = document.createElement('div')
+      element.className = 'map-pin-marker-host'
+      element.style.width = '0'
+      element.style.height = '0'
+      element.style.overflow = 'visible'
+      element.style.pointerEvents = 'none'
+      const stopMapClick = (event: Event) => event.stopPropagation()
+      element.addEventListener('click', stopMapClick)
+      element.addEventListener('pointerdown', stopMapClick)
+
+      const root = createRoot(element)
+      root.render(
+        <Pin
+          destination={pin.destination}
+          projection={MARKER_PROJ}
+          zoomK={zoomK}
+          selected={pin.selected}
+          onSelect={onSelect}
+          onZoomToZone={zoomToZone}
+          onExpandTrip={expandTripRoute}
+          owner={pin.owner}
+          badge={pin.badge}
+          shared={pin.shared}
+          tripBadges={pin.tripBadges}
+        />,
+      )
+
+      const marker = new maplibregl.Marker({
+        element,
+        anchor: 'top-left',
+      })
+        .setLngLat([pin.destination.lng, pin.destination.lat] as maplibregl.LngLatLike)
+        .addTo(map)
+
+      htmlMarkersRef.current.push({ marker, root, element })
+    }
+
+    return () => clearHtmlMarkers()
+  }, [
+    mapReady,
+    destinations,
+    friendDestinations,
+    friendInitials,
+    shared,
+    overlapsByDest,
+    expandedRouteKey,
+    selectedName,
+    zoomK,
+    onSelect,
+  ])
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <section
@@ -932,97 +1079,28 @@ export default function WorldMap({
           et permettre le rendu des éléments <foreignObject> enfants. */}
       <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label="Pins des destinations">
         <g ref={pinsGroupRef}>
-          {mapReady && (() => {
-            const shared   = sharedNames ?? new Set<string>()
-            const friendOnly = friendDestinations
-              ? friendDestinations.filter(d => !shared.has(destinationNameKey(d)))
-              : []
-
+          {mapReady && (
+            <>
+              {/*
             // Index of standalone destinations (place/stage) — used to detect
             // when a roadtrip stop sits at the same location as one of them.
-            const placeDests = destinations.filter(d => d.kind !== 'zone' && d.kind !== 'stop')
-            const overlapsByDest: Record<string, PinTripBadge[]> = {}
-            const skipStops = new Set<string>() // `${tripName}|${stopIndex}`
-
-            for (const trip of destinations) {
-              if (trip.kind !== 'zone' || !trip.stops?.length) continue
-              const tripColor = getDestinationColor(trip) ?? '#1B5FE8'
-              let stageCounter = 0
-              trip.stops.forEach((stop, index) => {
-                const stageNumber = ++stageCounter
-                if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return
-                const match = placeDests.find(p => haversineMeters(p, stop) <= 50)
-                if (match) {
-                  ;(overlapsByDest[match.name] ||= []).push({
-                    tripName: trip.name,
-                    color: tripColor,
-                    stageNumber,
-                  })
-                  skipStops.add(`${trip.name}|${index}`)
-                }
-              })
-            }
-
-            const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
-              const color = getDestinationColor(d)
-              if (!d.stops?.length || !color) return [] as JSX.Element[]
-              if (expandedRouteKey !== `${owner}:${d.name}` && selectedName !== d.name) return [] as JSX.Element[]
-              const stopEls = d.stops.map((stop, index) => {
                 // Stop fusionné avec une destination solo → masqué au profit du pin photo
-                if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
-                return (
-                  <RouteStop
-                    key={`${owner}-stop:${d.name}:${stop.name}:${index}`}
-                    stop={stop}
-                    parentName={d.name}
-                    projection={projFnRef.current}
-                    color={color}
-                    owner={owner}
-                    onSelect={onSelect}
-                  />
-                )
-              })
-              return [
-                <RoutePath
-                  key={`${owner}-path:${d.name}`}
-                  stops={d.stops}
-                  projection={projFnRef.current}
-                  color={color}
-                  owner={owner}
-                />,
-                ...stopEls.filter((el): el is JSX.Element => el !== null),
-              ]
-            }
-
-            return (
-              <>
+              */}
                 {friendOnly.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'friend') : [])}
                 {destinations.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'me') : [])}
-                {friendOnly.filter(d => d.kind !== 'zone').map(d => (
+                {friendOnly.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
                     owner="friend" badge={friendInitials} />
                 ))}
-                {destinations.filter(d => d.kind !== 'zone').map(d => (
-                  <Pin key={d.name} destination={d} projection={projFnRef.current}
-                    zoomK={zoomK} selected={d.name === selectedName || expandedRouteKey === `me:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
-                    owner="me" shared={shared.has(destinationNameKey(d))}
-                    tripBadges={overlapsByDest[d.name]} />
-                ))}
-                {friendOnly.filter(d => d.kind === 'zone').map(d => (
-                  <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
-                    zoomK={zoomK} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
-                    owner="friend" badge={friendInitials} />
-                ))}
-                {destinations.filter(d => d.kind === 'zone').map(d => (
+                {destinations.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
                     zoomK={zoomK} selected={d.name === selectedName || expandedRouteKey === `me:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
                     owner="me" shared={shared.has(destinationNameKey(d))}
                     tripBadges={overlapsByDest[d.name]} />
                 ))}
               </>
-            )
-          })()}
+          )}
         </g>
       </svg>
 
@@ -1269,14 +1347,20 @@ const Pin = memo(function Pin({
     // Road trip avec arrêts → pill unifiée avec photo + texte
     if (stageCount > 0) {
       return (
-        <g
-          className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
+        <div
+          className={`map-pin-html-root pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
           data-lng={destination.lng}
           data-lat={destination.lat}
-          transform={`translate(${cx},${cy}) scale(${pinScale})`}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            transformOrigin: 'center bottom',
+            pointerEvents: 'none',
+            transform: `translate(${cx}px, ${cy}px) scale(${pinScale})`,
+          }}
         >
-          <foreignObject x="-10" y="-36" width="300" height="76" overflow="visible">
-            <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <div className="pin-stage" style={{ marginLeft: '-10px', marginTop: '-36px' }}>
               <button
                 className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}${(tripHovered || selected) ? ' map-pin-trip-card--revealed' : ''}`}
                 style={{ '--pin-color': color, '--pin-photo': destination.image ? `url("${destination.image}")` : 'none' } as CSSProperties}
@@ -1296,9 +1380,8 @@ const Pin = memo(function Pin({
                 <span className="map-pin-pill-name">{destination.name}</span>
                 <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>
               </button>
-            </div>
-          </foreignObject>
-        </g>
+          </div>
+        </div>
       )
     }
 
@@ -1309,11 +1392,17 @@ const Pin = memo(function Pin({
   const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
   const isLivedThere = Boolean(destination.livedThere)
   return (
-    <g className={`pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
+    <div className={`map-pin-html-root pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
-       transform={`translate(${cx},${cy}) scale(${pinScale})`}>
-      <foreignObject className="pin-foreign-object" x="-82" y="-148" width="164" height="168">
-        <div className="pin-stage">
+       style={{
+         position: 'absolute',
+         top: 0,
+         left: 0,
+         transformOrigin: 'center bottom',
+         pointerEvents: 'none',
+         transform: `translate(${cx}px, ${cy}px) scale(${pinScale})`,
+       }}>
+      <div className="pin-stage" style={{ marginLeft: '-82px', marginTop: '-148px' }}>
           <button
             className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}${isCoupDeCoeur ? ' map-pin--coup-de-coeur' : ''}`}
             draggable={false}
@@ -1354,8 +1443,7 @@ const Pin = memo(function Pin({
               </span>
             )}
           </button>
-        </div>
-      </foreignObject>
-    </g>
+      </div>
+    </div>
   )
 })

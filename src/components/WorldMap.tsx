@@ -682,7 +682,7 @@ export default function WorldMap({
   const mapRef          = useRef<maplibregl.Map | null>(null)
   const svgRef          = useRef<SVGSVGElement>(null)
   const pinsGroupRef    = useRef<SVGGElement>(null)
-  const htmlMarkersRef  = useRef<Array<{ marker: maplibregl.Marker; root: Root; element: HTMLDivElement }>>([])
+  const htmlMarkersRef  = useRef<Array<{ key: string; marker: maplibregl.Marker; root: Root; element: HTMLDivElement }>>([])
   const projFnRef       = useRef<Proj>(() => null)
   const lastAutoFitFingerprintRef = useRef<string | null>(null)
   const autoFitTimeoutRef = useRef<number | null>(null)
@@ -971,8 +971,6 @@ export default function WorldMap({
     }
 
     const map = mapRef.current
-    clearHtmlMarkers()
-
     const markerPins = [
       ...friendOnly
         .filter(d => d.kind !== 'stop')
@@ -998,19 +996,36 @@ export default function WorldMap({
         })),
     ]
 
-    for (const pin of markerPins) {
-      const element = document.createElement('div')
-      element.className = 'map-pin-marker-host'
-      element.style.width = '0'
-      element.style.height = '0'
-      element.style.overflow = 'visible'
-      element.style.pointerEvents = 'none'
-      const stopMapClick = (event: Event) => event.stopPropagation()
-      element.addEventListener('click', stopMapClick)
-      element.addEventListener('pointerdown', stopMapClick)
+    const entriesByKey = new Map(htmlMarkersRef.current.map(entry => [entry.key, entry]))
+    const nextEntries: typeof htmlMarkersRef.current = []
 
-      const root = createRoot(element)
-      root.render(
+    for (const pin of markerPins) {
+      let entry = entriesByKey.get(pin.key)
+
+      if (!entry) {
+        const element = document.createElement('div')
+        element.className = 'map-pin-marker-host'
+        element.style.width = '0'
+        element.style.height = '0'
+        element.style.overflow = 'visible'
+        element.style.pointerEvents = 'none'
+        const stopMapClick = (event: Event) => event.stopPropagation()
+        element.addEventListener('click', stopMapClick)
+        element.addEventListener('pointerdown', stopMapClick)
+
+        const root = createRoot(element)
+        const marker = new maplibregl.Marker({
+          element,
+          anchor: 'top-left',
+        }).addTo(map)
+
+        entry = { key: pin.key, marker, root, element }
+      } else {
+        entriesByKey.delete(pin.key)
+      }
+
+      entry.marker.setLngLat([pin.destination.lng, pin.destination.lat] as maplibregl.LngLatLike)
+      entry.root.render(
         <Pin
           destination={pin.destination}
           projection={MARKER_PROJ}
@@ -1026,17 +1041,15 @@ export default function WorldMap({
         />,
       )
 
-      const marker = new maplibregl.Marker({
-        element,
-        anchor: 'top-left',
-      })
-        .setLngLat([pin.destination.lng, pin.destination.lat] as maplibregl.LngLatLike)
-        .addTo(map)
-
-      htmlMarkersRef.current.push({ marker, root, element })
+      nextEntries.push(entry)
     }
 
-    return () => clearHtmlMarkers()
+    for (const staleEntry of entriesByKey.values()) {
+      staleEntry.root.unmount()
+      staleEntry.marker.remove()
+    }
+
+    htmlMarkersRef.current = nextEntries
   }, [
     mapReady,
     destinations,

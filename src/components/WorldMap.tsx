@@ -19,10 +19,6 @@ const PIN_FOCUS_INSET = 92
 type Proj = (ll: [number, number]) => [number, number] | null
 const MARKER_PROJ: Proj = () => [0, 0]
 
-function pinScaleFromZoomK(_zoomK: number) {
-  return 1
-}
-
 function getTierColor(tier?: Tier) {
   return tier ? TIER_COLORS[tier]?.pin : undefined
 }
@@ -688,7 +684,7 @@ export default function WorldMap({
   const autoFitTimeoutRef = useRef<number | null>(null)
 
   const [mapReady, setMapReady] = useState(false)
-  const [zoomK, setZoomK]       = useState(1)
+  const [compactPins, setCompactPins] = useState(true)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
 
@@ -720,12 +716,13 @@ export default function WorldMap({
         const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
         return [x, y]
       }
+      setCompactPins(Math.pow(2, map.getZoom() - INIT_ZOOM) < 2)
       setMapReady(true)
     })
 
     // Mise à jour directe du DOM des pins — zéro re-render React par frame
     map.on('move', () => updatePins(map))
-    map.on('zoom', () => setZoomK(Math.pow(2, map.getZoom() - INIT_ZOOM)))
+    map.on('zoomend', () => setCompactPins(Math.pow(2, map.getZoom() - INIT_ZOOM) < 2))
 
     mapRef.current = map
     return () => {
@@ -1014,7 +1011,7 @@ export default function WorldMap({
         <Pin
           destination={pin.destination}
           projection={MARKER_PROJ}
-          zoomK={zoomK}
+          compactMode={compactPins}
           selected={pin.selected}
           onSelect={onSelect}
           onZoomToZone={zoomToZone}
@@ -1046,7 +1043,7 @@ export default function WorldMap({
     overlapsByDest,
     expandedRouteKey,
     selectedName,
-    zoomK,
+    compactPins,
     onSelect,
   ])
 
@@ -1090,12 +1087,12 @@ export default function WorldMap({
                 {destinations.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'me') : [])}
                 {friendOnly.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
-                    zoomK={zoomK} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
+                    compactMode={compactPins} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
                     owner="friend" badge={friendInitials} />
                 ))}
                 {destinations.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
-                    zoomK={zoomK} selected={d.name === selectedName || expandedRouteKey === `me:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
+                    compactMode={compactPins} selected={d.name === selectedName || expandedRouteKey === `me:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
                     owner="me" shared={shared.has(destinationNameKey(d))}
                     tripBadges={overlapsByDest[d.name]} />
                 ))}
@@ -1145,7 +1142,7 @@ export interface PinTripBadge {
 interface PinProps {
   destination: Destination
   projection: Proj
-  zoomK: number
+  compactMode: boolean
   selected: boolean
   onSelect: (name: string) => void
   onZoomToZone?: (d: Destination) => void
@@ -1304,14 +1301,14 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
 })
 
 const Pin = memo(function Pin({
-  destination, projection, zoomK, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, shared, tripBadges,
+  destination, projection, compactMode, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, shared, tripBadges,
 }: PinProps) {
   const [tripHovered, setTripHovered] = useState(false)
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
   const [cx, cy] = projected
-  const pinScale = pinScaleFromZoomK(zoomK)
-  const isCompact = zoomK < 2
+  const pinScale = 1
+  const isCompact = compactMode
 
   // ── Stop (road trip waypoint) ──────────────────────────────────────────────
   if (destination.kind === 'stop') {

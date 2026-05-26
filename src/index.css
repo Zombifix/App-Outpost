@@ -5321,14 +5321,15 @@ svg {
 
   /* Mobile floating header — logo centré + avatar à droite */
   .mobile-header {
-    display: flex;
+    --mobile-header-side: 44px;
+    display: grid;
+    grid-template-columns: var(--mobile-header-side) minmax(0, 1fr) var(--mobile-header-side);
     position: fixed;
     top: env(safe-area-inset-top, 0px);
     left: 0;
     right: 0;
     height: 58px;
     align-items: center;
-    justify-content: center;
     padding: 0 16px;
     z-index: 40;
     pointer-events: none;
@@ -5340,17 +5341,25 @@ svg {
     );
   }
 
+  .mobile-header::before {
+    content: '';
+    grid-column: 1;
+    width: var(--mobile-header-side);
+    height: 1px;
+  }
+
   .mobile-brand-logo {
+    grid-column: 2;
+    justify-self: center;
     height: 30px;
     width: auto;
+    max-width: min(44vw, 156px);
     display: block;
   }
 
   .mobile-header-avatar {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
+    grid-column: 3;
+    justify-self: end;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -5370,7 +5379,7 @@ svg {
   }
 
   .mobile-header-avatar:active {
-    transform: translateY(-50%) scale(0.94);
+    transform: scale(0.94);
   }
 
   .mobile-header-avatar.is-active {
@@ -5385,6 +5394,52 @@ svg {
   }
 
   .top-actions { display: none; }
+
+  .compare-inline-bar {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
+    padding: 6px;
+    gap: 8px;
+    height: auto;
+    min-height: 46px;
+    transform: none;
+  }
+
+  .travel-app.tier-collapsed .compare-inline-bar {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
+  }
+
+  .compare-inline-legend {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .compare-inline-item {
+    min-width: 0;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .compare-inline-close {
+    flex: 0 0 34px;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+
+  .compare-inline-close svg {
+    width: 14px;
+    height: 14px;
+  }
 
   /* Map = full width hero */
   .map-area {

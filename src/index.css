@@ -5162,15 +5162,43 @@ svg {
   .destination-sheet.is-comparison {
     left: 8px;
     right: 8px;
+    width: auto;
+    max-width: calc(100vw - 16px);
     top: max(8px, env(safe-area-inset-top, 0px));
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .destination-sheet.is-comparison .destination-sheet-body {
     padding-inline: 10px;
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   .destination-sheet.is-comparison .destination-title-row {
     padding-inline: 4px;
+  }
+
+  .destination-sheet.is-comparison .destination-title-row > div,
+  .destination-sheet.is-comparison .compare-meta,
+  .destination-sheet.is-comparison .compare-sheet-card,
+  .destination-sheet.is-comparison .compare-tag-groups,
+  .destination-sheet.is-comparison .criteria-compare {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .destination-sheet.is-comparison .destination-title-row h2,
+  .compare-meta-item,
+  .compare-sheet-stat,
+  .compare-tag,
+  .criteria-compare-row span {
+    overflow-wrap: anywhere;
+  }
+
+  .compare-meta-item {
+    max-width: 100%;
   }
 
   .compare-sheet-card {
@@ -5182,8 +5210,21 @@ svg {
     gap: 9px;
   }
 
+  .compare-sheet-stat {
+    min-width: 0;
+  }
+
   .compare-tag-columns {
     grid-template-columns: 1fr;
+  }
+
+  .compare-tag-column,
+  .compare-tag-group {
+    min-width: 0;
+  }
+
+  .compare-tag {
+    max-width: 100%;
   }
 
   .criteria-compare {
@@ -5192,13 +5233,19 @@ svg {
 
   .criteria-compare-head,
   .criteria-compare-row {
-    grid-template-columns: 16px minmax(86px, 1fr) 35px 42px 38px;
-    column-gap: 5px;
+    grid-template-columns: 14px minmax(0, 1fr) 33px 40px 35px;
+    column-gap: 4px;
   }
 
   .criteria-compare-head {
     font-size: 10px;
     letter-spacing: 0.03em;
+  }
+
+  .criteria-compare-head strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .criteria-compare-row {

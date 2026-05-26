@@ -1287,6 +1287,7 @@ svg {
 .friend-visitors {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin: 8px 0 4px;
   padding: var(--space-2) var(--space-3);
@@ -1313,11 +1314,28 @@ svg {
 }
 .friend-visitors-avatar:first-child { margin-left: 0; }
 .friend-visitors-text {
+  flex: 1 1 160px;
   font-size: var(--text-xs);
   color: var(--ink);
   line-height: 1.3;
 }
 .friend-visitors-text strong { font-weight: var(--weight-semibold); }
+.friend-visitors-action {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(27, 95, 232, 0.18);
+  color: var(--purple);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.friend-visitors-action:hover {
+  background: rgba(240, 247, 255, 0.98);
+  border-color: rgba(27, 95, 232, 0.32);
+}
 
 /* Badge sur le bouton Amis de la top bar (compteur demandes en attente) */
 .top-action-badge {
@@ -2484,8 +2502,9 @@ svg {
 .pin-friend-badge,
 .pin-shared-badge {
   position: absolute;
-  width: 22px;
+  min-width: 22px;
   height: 22px;
+  padding: 0 5px;
   border-radius: 50%;
   border: 2px solid #fff;
   display: grid;
@@ -2496,12 +2515,14 @@ svg {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
   pointer-events: none;
   z-index: 2;
+  background-clip: padding-box;
 }
 
 /* Tier — bottom-right, couleur du tier */
 .map-pin .map-pin-tier {
   bottom: -4px;
   right: -4px;
+  width: 22px;
   background: var(--pin-color);
   color: #fff;
   letter-spacing: 0.02em;
@@ -2953,18 +2974,30 @@ svg {
 /* Reuse .destination-card visual rules inside the sheet for the hero/title etc.,
    but the sheet itself replaces .destination-card positioning. */
 .destination-sheet-body .destination-hero { height: 160px; }
-.destination-sheet-body .floating-close { top: 8px; right: 12px; }
-.destination-sheet-body .floating-kebab-wrap { top: 8px; }
+.destination-sheet-body .destination-card-actions {
+  top: 8px;
+  right: 12px;
+}
 
 /* When peek-snapped: shrink hero so the title row sits near the visible top */
 .destination-sheet.is-peek .destination-sheet-body .destination-hero { height: 110px; }
 
-.floating-close {
+.destination-card-actions {
   position: absolute;
   top: 12px;
   right: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+}
+
+.floating-close {
+  position: relative;
   width: 44px;
   height: 44px;
+  flex: 0 0 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -3156,10 +3189,8 @@ svg {
 }
 
 .floating-kebab-wrap {
-  position: absolute;
-  top: 16px;
-  right: 58px;
-  z-index: 2;
+  position: relative;
+  z-index: 1;
 }
 
 .card-kebab {
@@ -3179,7 +3210,7 @@ svg {
 
 .card-kebab-menu {
   position: absolute;
-  top: 40px;
+  top: calc(100% + 8px);
   right: 0;
   min-width: 160px;
   padding: 6px;
@@ -8103,11 +8134,6 @@ svg {
   color: #2a3144 !important;
 }
 
-.map-pin--friend span {
-  color: var(--pin-color) !important;
-  background: rgba(124,141,181,0.12) !important;
-}
-
 .map-pin--friend strong,
 .map-pin--friend small {
   color: #2a3144 !important;
@@ -8117,6 +8143,8 @@ svg {
 .pin-friend-badge {
   top: -4px;
   right: -4px;
+  width: auto;
+  border-radius: var(--radius-pill);
   background: #7C8DB5;
   color: #fff;
   font-style: normal;
@@ -8126,6 +8154,8 @@ svg {
 .pin-shared-badge {
   top: -4px;
   right: -4px;
+  width: auto;
+  border-radius: var(--radius-pill);
   background: #3B6D11;
   color: #fff;
 }
@@ -9512,11 +9542,12 @@ svg {
 ============================================================ */
 .pin-trip-badges {
   position: absolute;
-  right: -6px;
-  bottom: 6px;
+  left: 50%;
+  top: -8px;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  gap: 4px;
+  transform: translateX(-50%);
   pointer-events: none;
   z-index: 2;
 }

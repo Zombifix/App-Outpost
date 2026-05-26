@@ -19,6 +19,7 @@ interface DestinationSheetProps {
   }
   onClose: () => void
   onFocus: () => void
+  onCompareFriend?: (friendUserId: string) => void
   onCoupDeCoeur: () => void
   onEdit: (destination: Destination) => void
   onDelete: (name: string) => void
@@ -327,6 +328,7 @@ function DestinationCardContent({
   allDestinations,
   onClose,
   onFocus,
+  onCompareFriend,
   onCoupDeCoeur,
   onEdit,
   onDelete,
@@ -375,7 +377,7 @@ function DestinationCardContent({
   const { events: activityEvents } = useActivityFeed(60)
   const friendVisitors = useMemo(() => {
     const targetName = destination.name.toLowerCase().trim()
-    const seen = new Map<string, { displayName: string; handle?: string; bg?: string; fg?: string }>()
+    const seen = new Map<string, { userId: string; displayName: string; handle?: string; bg?: string; fg?: string }>()
     for (const ev of activityEvents) {
       if (ev.kind !== 'destination_added') continue
       const evName = (typeof ev.payload?.name === 'string' ? ev.payload.name : '')
@@ -383,6 +385,7 @@ function DestinationCardContent({
       if (!evName || evName.toLowerCase().trim() !== targetName) continue
       if (seen.has(ev.actor)) continue
       seen.set(ev.actor, {
+        userId: ev.actor,
         displayName: ev.actorDisplayName ?? ev.actorHandle ?? 'Un ami',
         handle: ev.actorHandle,
         bg: ev.actorAvatarBg,
@@ -391,45 +394,52 @@ function DestinationCardContent({
     }
     return Array.from(seen.values())
   }, [activityEvents, destination.name])
+  const compareableVisitor = !compareWith && friendVisitors.length === 1 ? friendVisitors[0] : null
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
 
   return (
     <>
-      <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
-        <Icon name="x" />
-      </button>
-      <div className="floating-kebab-wrap">
-        <button
-          className={`card-kebab${menuOpen ? ' is-open' : ''}`}
-          aria-label="Options"
-          aria-expanded={menuOpen}
-          onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
-        >
-          <Icon name="more-vertical" />
-        </button>
-        {menuOpen && !confirmDelete && (
-          <div className="card-kebab-menu">
-            <button onClick={() => { closeMenu(); onEdit(destination) }}>
-              <Icon name="edit" />
-              Modifier
-            </button>
-            <button className="danger" onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" />
-              Supprimer
-            </button>
-          </div>
-        )}
-        {menuOpen && confirmDelete && (
-          <div className="card-kebab-menu card-delete-confirm">
-            <p>Supprimer <strong>{destination.name}</strong> ?</p>
-            <div className="confirm-actions">
-              <button onClick={closeMenu}>Annuler</button>
-              <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+      <div className="destination-card-actions">
+        <div className="floating-kebab-wrap">
+          <button
+            className={`card-kebab${menuOpen ? ' is-open' : ''}`}
+            aria-label="Options"
+            aria-expanded={menuOpen}
+            onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
+          >
+            <Icon name="more-vertical" />
+          </button>
+          {menuOpen && !confirmDelete && (
+            <div className="card-kebab-menu">
+              <button onClick={() => { closeMenu(); onFocus() }}>
+                <Icon name="map" />
+                Centrer sur la carte
+              </button>
+              <button onClick={() => { closeMenu(); onEdit(destination) }}>
+                <Icon name="edit" />
+                Modifier
+              </button>
+              <button className="danger" onClick={() => setConfirmDelete(true)}>
+                <Icon name="trash" />
+                Supprimer
+              </button>
             </div>
-          </div>
-        )}
+          )}
+          {menuOpen && confirmDelete && (
+            <div className="card-kebab-menu card-delete-confirm">
+              <p>Supprimer <strong>{destination.name}</strong> ?</p>
+              <div className="confirm-actions">
+                <button onClick={closeMenu}>Annuler</button>
+                <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+              </div>
+            </div>
+          )}
+        </div>
+        <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
+          <Icon name="x" />
+        </button>
       </div>
       {destination.kind === 'zone' ? (
         <RoadTripCardContent
@@ -441,7 +451,6 @@ function DestinationCardContent({
           criteria={criteria}
           allDestinations={allDestinations}
           onCoupDeCoeur={onCoupDeCoeur}
-          onFocus={onFocus}
           onOpenDestination={onOpenTrip}
         />
       ) : (
@@ -514,6 +523,15 @@ function DestinationCardContent({
                 : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont allés</>
             }
           </span>
+          {compareableVisitor && onCompareFriend && (
+            <button
+              type="button"
+              className="friend-visitors-action"
+              onClick={() => onCompareFriend(compareableVisitor.userId)}
+            >
+              Comparer cette destination
+            </button>
+          )}
         </div>
       )}
       {!compareWith && context.hasContext && (
@@ -699,10 +717,6 @@ function DestinationCardContent({
           </ul>
         </div>
       )}
-      <button className="map-button" onClick={onFocus}>
-        <Icon name="map" />
-        Voir sur la carte
-      </button>
         </>
       )}
     </>
@@ -718,7 +732,6 @@ interface RoadTripCardContentProps {
   criteria: ReturnType<typeof getCriteria>
   allDestinations?: Destination[]
   onCoupDeCoeur: () => void
-  onFocus: () => void
   onOpenDestination?: (name: string) => void
 }
 
@@ -731,7 +744,6 @@ function RoadTripCardContent({
   criteria,
   allDestinations,
   onCoupDeCoeur,
-  onFocus,
   onOpenDestination,
 }: RoadTripCardContentProps) {
   const validStops = destination.stops?.filter(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)) ?? []
@@ -869,11 +881,6 @@ function RoadTripCardContent({
           <p className="roadtrip-empty">Ajoute des étapes pour raconter le trajet sans devoir noter chaque ville.</p>
         )}
       </section>
-
-      <button className="map-button" onClick={onFocus}>
-        <Icon name="map" />
-        Voir le trajet
-      </button>
     </>
   )
 }

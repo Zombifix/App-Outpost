@@ -320,6 +320,12 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     const f = friendships.find(fr => fr.otherUser === viewingFriend.userId)
     if (f) { setCompareFriend(f); setViewingFriend(null) }
   }, [viewingFriend, friendships])
+  const handleCompareFriendByUserId = useCallback((friendUserId: string) => {
+    const friend = friendships.find(item => item.otherUser === friendUserId && item.status === 'accepted')
+    if (!friend) return
+    setViewingFriend(null)
+    setCompareFriend(friend)
+  }, [friendships])
 
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>(null)
@@ -756,6 +762,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
             : undefined}
           onClose={() => setSelectedName(null)}
           onFocus={focusSelected}
+          onCompareFriend={handleCompareFriendByUserId}
           onCoupDeCoeur={() => toggleCoupDeCoeur(selected.name)}
           onEdit={dest => setEditingDestination(dest)}
           onDelete={name => removeDestination(name)}

@@ -1516,7 +1516,7 @@ const Pin = memo(function Pin({
               {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}
             </strong>
             {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
-            {shared && <em className="pin-shared-badge">2</em>}
+            {shared && <em className="pin-shared-badge" aria-label="Destination en commun">2x</em>}
             {tripBadges && tripBadges.length > 0 && (
               <span className="pin-trip-badges" aria-hidden="true">
                 {tripBadges.map((b, i) => (

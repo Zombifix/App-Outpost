@@ -191,11 +191,12 @@ function getDisplayTier(destination: Destination) {
 }
 
 export default function DestinationSheet(props: DestinationSheetProps) {
-  const isMobile = useMediaQuery('(max-width: 900px)')
+  const isComparison = Boolean(props.compareWith)
+  const useSheetLayout = useMediaQuery(isComparison ? '(max-width: 1100px)' : '(max-width: 900px)')
 
-  if (isMobile) return <MobileSheet {...props} />
+  if (useSheetLayout) return <MobileSheet {...props} />
   return (
-    <aside className="destination-card" aria-label={`Detail de ${props.destination.name}`}>
+    <aside className={`destination-card${isComparison ? ' is-comparison' : ''}`} aria-label={`Detail de ${props.destination.name}`}>
       <DestinationCardContent {...props} />
     </aside>
   )
@@ -204,17 +205,18 @@ export default function DestinationSheet(props: DestinationSheetProps) {
 type DragState = { startY: number; lastY: number; lastT: number; v: number; current: number } | null
 
 function MobileSheet(props: DestinationSheetProps) {
+  const isComparison = Boolean(props.compareWith)
   const sheetRef = useRef<HTMLElement | null>(null)
-  const [snap, setSnap] = useState<SnapState>('peek')
+  const [snap, setSnap] = useState<SnapState>(isComparison ? 'full' : 'peek')
   const dragRef = useRef<DragState>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
 
-  // Reset to peek when destination changes
+  // A comparison needs its full reading surface; a regular card keeps the peek affordance.
   useEffect(() => {
-    setSnap('peek')
+    setSnap(isComparison ? 'full' : 'peek')
     setDragOffset(0)
-  }, [props.destination.name])
+  }, [props.destination.name, isComparison])
 
   // Lock body scroll while sheet open
   useEffect(() => {
@@ -293,7 +295,7 @@ function MobileSheet(props: DestinationSheetProps) {
     <div className="destination-sheet-backdrop" onClick={props.onClose} role="presentation">
       <aside
         ref={sheetRef}
-        className={`destination-sheet is-${snap}${isDragging ? ' is-dragging' : ''}`}
+        className={`destination-sheet is-${snap}${isComparison ? ' is-comparison' : ''}${isDragging ? ' is-dragging' : ''}`}
         aria-label={`Détail de ${props.destination.name}`}
         onClick={e => e.stopPropagation()}
         style={style}
@@ -490,7 +492,7 @@ function DestinationCardContent({
           <h2>{destination.name}, {destination.country}</h2>
         </div>
       </div>
-      {friendVisitors.length > 0 && (
+      {!compareWith && friendVisitors.length > 0 && (
         <div className="friend-visitors" aria-label="Amis qui y sont allés">
           <div className="friend-visitors-avatars">
             {friendVisitors.slice(0, 3).map((v, i) => (
@@ -514,7 +516,7 @@ function DestinationCardContent({
           </span>
         </div>
       )}
-      {context.hasContext && (
+      {!compareWith && context.hasContext && (
         <div className="destination-context" aria-label="Contexte du voyage">
           {context.meta.length > 0 && (
             <div className="destination-context-meta">
@@ -557,22 +559,22 @@ function DestinationCardContent({
       )}
       {compareWith && (
         <>
-          <div className="destination-context destination-context--compare" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
-            <div className="destination-context-meta">
+          <div className="compare-meta" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
+            <div className="compare-meta-list">
               {destination.tripYear && compareWith.destination.tripYear && (
-                <span>
+                <span className="compare-meta-item">
                   <Icon name="calendar" />
                   {destination.tripYear} / {compareWith.destination.tripYear}
                 </span>
               )}
               {destination.tripDays && compareWith.destination.tripDays && (
-                <span>
+                <span className="compare-meta-item">
                   <Icon name="clock" />
                   {destination.tripDays} j / {compareWith.destination.tripDays} j
                 </span>
               )}
               {destination.personalBudget && compareWith.destination.personalBudget && (
-                <span>
+                <span className="compare-meta-item">
                   <Icon name="coins" />
                   {formatCompareLabel(
                     destination.personalBudget / Math.max(destination.tripDays ?? 1, 1),
@@ -612,7 +614,7 @@ function DestinationCardContent({
               </div>
             )}
             {(compareTags.mineOnly.length > 0 || compareTags.theirsOnly.length > 0) && (
-              <div className="compare-tag-columns">
+              <div className={`compare-tag-columns${compareTags.mineOnly.length === 0 || compareTags.theirsOnly.length === 0 ? ' is-single' : ''}`}>
                 {compareTags.mineOnly.length > 0 && (
                   <div className="compare-tag-column">
                     <h3>Toi seulement ({compareTags.mineOnly.length})</h3>

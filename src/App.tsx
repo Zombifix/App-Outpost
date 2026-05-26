@@ -546,6 +546,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     tierListCollapsed ? 'tier-collapsed' : '',
     !(activeView === 'map' && selected) ? 'no-card' : '',
     compareFriend && activeView === 'map' && !viewingFriend ? 'compare-active' : '',
+    selectedCompareDestination && activeView === 'map' ? 'destination-compare-open' : '',
   ].filter(Boolean).join(' ')
 
   return (

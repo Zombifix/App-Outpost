@@ -425,6 +425,11 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     [destinations, selectedName],
   )
 
+  const selectedCompareDestination = useMemo(() => {
+    if (!selected || !compareFriend) return null
+    return compareFriendDests.find(destination => destinationNameKey(destination) === destinationNameKey(selected)) ?? null
+  }, [selected, compareFriend, compareFriendDests])
+
   const selectByName = (name: string) => {
     const destination = destinations.find(item => item.name === name)
     if (!destination) return
@@ -745,6 +750,9 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
           coupDeCoeur={selected.coupDeCoeur ?? false}
           coupDeCoeurCount={coupDeCoeurCount}
           allDestinations={destinations}
+          compareWith={compareFriend && selectedCompareDestination
+            ? { friend: compareFriend, destination: selectedCompareDestination }
+            : undefined}
           onClose={() => setSelectedName(null)}
           onFocus={focusSelected}
           onCoupDeCoeur={() => toggleCoupDeCoeur(selected.name)}
@@ -1360,4 +1368,3 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
     </aside>
   )
 }
-

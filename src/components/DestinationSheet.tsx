@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Destination } from '../types'
+import type { Destination, Friendship } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
 import { getDestinationScore, getDestinationTier } from '../utils'
@@ -13,6 +13,10 @@ interface DestinationSheetProps {
   coupDeCoeur: boolean
   coupDeCoeurCount: number
   allDestinations?: Destination[]
+  compareWith?: {
+    friend: Friendship
+    destination: Destination
+  }
   onClose: () => void
   onFocus: () => void
   onCoupDeCoeur: () => void
@@ -129,6 +133,51 @@ function getCriteria(destination: Destination) {
     base.push(['Souvenir laissé', destination.memorability, 'star'])
   }
   return base
+}
+
+function getComparableCriteria(destination: Destination, compareDestination: Destination) {
+  const mine = new Map(getCriteria(destination).map(([label, value, icon]) => [label, { value, icon }]))
+  return getCriteria(compareDestination).flatMap(([label, compareValue]) => {
+    const current = mine.get(label)
+    if (!current) return []
+    return [{
+      label,
+      icon: current.icon,
+      mine: current.value,
+      theirs: compareValue,
+      gap: Math.abs(current.value - compareValue),
+    }]
+  })
+}
+
+function getCompareTags(destination: Destination, compareDestination: Destination) {
+  const mine = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
+  const theirs = compareDestination.standoutTags?.length ? compareDestination.standoutTags : compareDestination.standout ? [compareDestination.standout] : []
+  const mineSet = new Set(mine)
+  const theirSet = new Set(theirs)
+  return {
+    common: mine.filter(tag => theirSet.has(tag)),
+    mineOnly: mine.filter(tag => !theirSet.has(tag)),
+    theirsOnly: theirs.filter(tag => !mineSet.has(tag)),
+  }
+}
+
+function getCompareCompatibility(compareCriteria: Array<{ gap: number }>) {
+  if (!compareCriteria.length) return { score: 0, shared: 0, differences: 0 }
+  const shared = compareCriteria.filter(item => item.gap <= 1).length
+  const differences = compareCriteria.filter(item => item.gap > 1).length
+  const averageGap = compareCriteria.reduce((sum, item) => sum + item.gap, 0) / compareCriteria.length
+  return {
+    score: Math.max(0, Math.min(100, Math.round(100 - averageGap * 16))),
+    shared,
+    differences,
+  }
+}
+
+function formatCompareLabel(mine: number | undefined, theirs: number | undefined, suffix = '') {
+  if (mine == null || theirs == null) return ''
+  const format = (value: number) => `${Math.round(value).toLocaleString('fr-FR')}${suffix}`
+  return `${format(mine)} / ${format(theirs)}`
 }
 
 function formatScore(destination: Destination) {
@@ -280,11 +329,24 @@ function DestinationCardContent({
   onEdit,
   onDelete,
   onOpenTrip,
+  compareWith,
 }: DestinationSheetProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const context = getDestinationContext(destination)
   const criteria = getCriteria(destination)
+  const compareCriteria = useMemo(
+    () => compareWith ? getComparableCriteria(destination, compareWith.destination) : [],
+    [compareWith, destination]
+  )
+  const compareTags = useMemo(
+    () => compareWith ? getCompareTags(destination, compareWith.destination) : { common: [], mineOnly: [], theirsOnly: [] },
+    [compareWith, destination]
+  )
+  const compareCompatibility = useMemo(
+    () => getCompareCompatibility(compareCriteria),
+    [compareCriteria]
+  )
   const displayTier = getDisplayTier(destination)
 
   const tripStopsHere = useMemo(() => {
@@ -387,6 +449,12 @@ function DestinationCardContent({
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
         <div className="destination-hero-pills">
+          {compareWith && (
+            <span className="intent-pill destination-hero-pill">
+              <Icon name="users" />
+              Toi + {compareWith.friend.displayName.split(' ')[0]}
+            </span>
+          )}
           {destination.intent && (
             <span className="intent-pill destination-hero-pill">
               <span aria-hidden="true">{INTENT_EMOJIS[destination.intent]}</span>
@@ -487,16 +555,118 @@ function DestinationCardContent({
           )}
         </div>
       )}
-      <h3>Notes par critère</h3>
-      <div className="criteria-list">
-        {criteria.map(([label, value, icon]) => (
-          <div className="criterion" key={label}>
-            <Icon name={icon} />
-            <span>{label}</span>
-            <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
+      {compareWith && (
+        <>
+          <div className="destination-context destination-context--compare" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
+            <div className="destination-context-meta">
+              {destination.tripYear && compareWith.destination.tripYear && (
+                <span>
+                  <Icon name="calendar" />
+                  {destination.tripYear} / {compareWith.destination.tripYear}
+                </span>
+              )}
+              {destination.tripDays && compareWith.destination.tripDays && (
+                <span>
+                  <Icon name="clock" />
+                  {destination.tripDays} j / {compareWith.destination.tripDays} j
+                </span>
+              )}
+              {destination.personalBudget && compareWith.destination.personalBudget && (
+                <span>
+                  <Icon name="coins" />
+                  {formatCompareLabel(
+                    destination.personalBudget / Math.max(destination.tripDays ?? 1, 1),
+                    compareWith.destination.personalBudget / Math.max(compareWith.destination.tripDays ?? 1, 1),
+                    ' €/j'
+                  )}
+                </span>
+              )}
+            </div>
           </div>
-        ))}
-      </div>
+
+          <section className="compare-sheet-card" aria-label="Compatibilité">
+            <div className="compare-sheet-score">
+              <span>Compatibilité</span>
+              <strong>{compareCompatibility.score}%</strong>
+              <em>d'accord</em>
+            </div>
+            <div className="compare-sheet-stats">
+              <div className="compare-sheet-stat compare-sheet-stat--ok">
+                <span>✓</span>
+                {compareCompatibility.shared} critères en commun
+              </div>
+              <div className="compare-sheet-stat compare-sheet-stat--warn">
+                <span>!</span>
+                {compareCompatibility.differences} différences marquées
+              </div>
+            </div>
+          </section>
+
+          <section className="compare-tag-groups" aria-label="Goûts comparés">
+            {compareTags.common.length > 0 && (
+              <div className="compare-tag-group">
+                <h3>En commun ({compareTags.common.length})</h3>
+                <div className="compare-tag-list">
+                  {compareTags.common.map(tag => <span key={tag} className="compare-tag compare-tag--common">{tag}</span>)}
+                </div>
+              </div>
+            )}
+            {(compareTags.mineOnly.length > 0 || compareTags.theirsOnly.length > 0) && (
+              <div className="compare-tag-columns">
+                {compareTags.mineOnly.length > 0 && (
+                  <div className="compare-tag-column">
+                    <h3>Toi seulement ({compareTags.mineOnly.length})</h3>
+                    <div className="compare-tag-list">
+                      {compareTags.mineOnly.map(tag => <span key={tag} className="compare-tag compare-tag--mine">{tag}</span>)}
+                    </div>
+                  </div>
+                )}
+                {compareTags.theirsOnly.length > 0 && (
+                  <div className="compare-tag-column">
+                    <h3>{compareWith.friend.displayName.split(' ')[0]} seulement ({compareTags.theirsOnly.length})</h3>
+                    <div className="compare-tag-list">
+                      {compareTags.theirsOnly.map(tag => <span key={tag} className="compare-tag compare-tag--theirs">{tag}</span>)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+      <h3>Notes par critère</h3>
+      {compareWith && compareCriteria.length > 0 ? (
+        <div className="criteria-compare" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
+          <div className="criteria-compare-head">
+            <span />
+            <span />
+            <strong>Toi</strong>
+            <strong>{compareWith.friend.displayName.split(' ')[0]}</strong>
+            <strong>Écart</strong>
+          </div>
+          <div className="criteria-compare-list">
+            {compareCriteria.map(item => (
+              <div className="criteria-compare-row" key={item.label}>
+                <Icon name={item.icon} />
+                <span>{item.label}</span>
+                <strong>{item.mine.toFixed(1).replace('.', ',')}</strong>
+                <strong>{item.theirs.toFixed(1).replace('.', ',')}</strong>
+                <strong>{item.gap.toFixed(1).replace('.', ',')}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="criteria-list">
+          {criteria.map(([label, value, icon]) => (
+            <div className="criterion" key={label}>
+              <Icon name={icon} />
+              <span>{label}</span>
+              <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
+            </div>
+          ))}
+        </div>
+      )}
       {tripsHereByName.length > 0 && (
         <div className="sheet-cross-links">
           <p className="sheet-cross-links-title">Aussi étape de</p>

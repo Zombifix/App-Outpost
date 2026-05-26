@@ -6,6 +6,7 @@ import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 import { calculateScore, scoreToTier } from '../utils'
 import { geoCentroid } from '../lib/geoCentroid'
 import { resolveZoneGeojson } from '../lib/zoneGeometry'
+import { Icon } from './Icon'
 
 interface WizardProps {
   onClose: () => void
@@ -104,6 +105,39 @@ function computeScore(state: WizardState): number {
   }, state.intent, {
     vibeBoost: state.vibeBoost,
     retourBonus: state.retourBonus,
+  })
+}
+
+function normalizeNullableNumber(value: number | null | undefined) {
+  return value == null ? null : value
+}
+
+function buildEditableSnapshot(state: WizardState, stops: RoadTripStop[]) {
+  return JSON.stringify({
+    food: normalizeNullableNumber(state.food),
+    night: normalizeNullableNumber(state.night),
+    culture: normalizeNullableNumber(state.culture),
+    nature: normalizeNullableNumber(state.nature),
+    value: normalizeNullableNumber(state.value),
+    ease: normalizeNullableNumber(state.ease),
+    memorability: normalizeNullableNumber(state.memorability),
+    vibeBoost: normalizeNullableNumber(state.vibeBoost),
+    retourBonus: state.retourBonus,
+    tripYear: normalizeNullableNumber(state.tripYear),
+    tripDays: normalizeNullableNumber(state.tripDays),
+    companions: state.companions ?? null,
+    personalBudget: normalizeNullableNumber(state.personalBudget),
+    tripTypes: [...state.tripTypes].sort(),
+    standoutTags: [...state.standoutTags].sort(),
+    coupDeCoeur: state.coupDeCoeur,
+    livedThere: state.livedThere,
+    replaceCoupDeCoeurName: state.replaceCoupDeCoeurName || '',
+    stops: stops.map(stop => ({
+      name: stop.name.trim(),
+      lat: Number.isFinite(stop.lat) ? stop.lat : null,
+      lng: Number.isFinite(stop.lng) ? stop.lng : null,
+      type: stop.type ?? 'stage',
+    })),
   })
 }
 
@@ -665,10 +699,54 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [resolvingImage, setResolvingImage] = useState(false)
+  const [hasTriggeredRerate, setHasTriggeredRerate] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
   const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= 2
+  const initialEditSnapshot = useMemo(() => {
+    if (!initialDestination) return null
+    return buildEditableSnapshot({
+      name: initialDestination.name,
+      country: initialDestination.country,
+      countryCode: initialDestination.countryCode,
+      state: initialDestination.state,
+      osmValue: initialDestination.osmValue,
+      osmId: initialDestination.osmId,
+      osmType: initialDestination.osmType,
+      lat: initialDestination.lat,
+      lng: initialDestination.lng,
+      extent: initialDestination.extent,
+      geojson: initialDestination.geojson,
+      kind: initialDestination.kind ?? 'place',
+      tripName: initialDestination.tripName ?? '',
+      food: initialDestination.food,
+      night: initialDestination.night,
+      culture: initialDestination.culture,
+      nature: initialDestination.nature,
+      value: initialDestination.value,
+      ease: initialDestination.ease ?? null,
+      memorability: initialDestination.memorability ?? null,
+      vibeBoost: initialDestination.vibeBoost ?? null,
+      retourBonus: initialDestination.retourBonus ?? 0,
+      intent: initialDestination.intent,
+      tripYear: initialDestination.tripYear ?? null,
+      tripDays: initialDestination.tripDays ?? null,
+      companions: initialDestination.companions ?? null,
+      personalBudget: initialDestination.personalBudget ?? null,
+      tripTypes: initialDestination.tripTypes ?? [],
+      standout: initialDestination.standout ?? '',
+      standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, STANDOUT_OPTIONS)] : []),
+      coupDeCoeur: Boolean(initialDestination.coupDeCoeur),
+      livedThere: Boolean(initialDestination.livedThere),
+      replaceCoupDeCoeurName: '',
+    }, initialDestination.stops ?? [])
+  }, [initialDestination])
+  const currentEditSnapshot = useMemo(() => buildEditableSnapshot(state, stops), [state, stops])
+  const hasEditChanges = isEditing && initialEditSnapshot !== currentEditSnapshot
+  const canSubmit = !resolvingImage
+    && (!needsCoupDeCoeurReplacement || Boolean(state.replaceCoupDeCoeurName))
+    && (!isEditing || hasEditChanges || hasTriggeredRerate)
 
   // Fermeture avec garde : demande confirmation si l'utilisateur est en plein
   // questionnaire pour éviter la perte accidentelle de réponses.
@@ -1395,17 +1473,28 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         {step === 'result' && (
           <div className="wizard-step wizard-result">
             <p className="wizard-place-name">{state.name}</p>
-            <div
-              className="result-tier-badge"
-              style={{ '--tier-color': TIER_COLORS[finalTier].pin } as React.CSSProperties}
-            >
-              {finalTier}
+            <div className="wizard-result-hero">
+              <div className="wizard-result-burst" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div
+                className="result-tier-badge"
+                style={{ '--tier-color': TIER_COLORS[finalTier].pin } as React.CSSProperties}
+              >
+                <span>{finalTier}</span>
+              </div>
             </div>
             <h2 className="wizard-title">{TIER_LABELS[finalTier]}</h2>
             <p className="result-explanation">{TIER_EXPLANATIONS[finalTier]}</p>
             <div className="result-score">
-              <span>Score</span>
+              <span>Score global</span>
               <strong>{finalScore.toFixed(1).replace('.', ',')}</strong>
+              <em>/5</em>
             </div>
             <div className="result-axes">
               {(['food', 'night', 'culture', 'nature', 'value', 'ease', 'memorability'] as const).map(axis => {
@@ -1421,17 +1510,30 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   ease: 'Facilité',
                   memorability: 'Souvenir',
                 }[axis]
+                const icon = {
+                  food: 'utensils',
+                  night: 'martini',
+                  culture: 'temple',
+                  nature: 'mountain',
+                  value: 'coins',
+                  ease: 'calendar',
+                  memorability: 'heart',
+                }[axis]
                 return (
                   <div key={axis} className="result-axis">
-                    <span>{label}</span>
+                    <div className="result-axis-label">
+                      <Icon name={icon} />
+                      <span>{label}</span>
+                    </div>
                     <div className="axis-bar">
                       <div className="axis-fill" style={{ width: `${(val / 5) * 100}%`, background: TIER_COLORS[finalTier].pin }} />
                     </div>
+                    <strong>{val.toFixed(1).replace('.', ',')}</strong>
                   </div>
                 )
               })}
             </div>
-            <button className="wizard-submit" onClick={confirmAdd} disabled={resolvingImage || (needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName)}>
+            <button className="wizard-submit" onClick={confirmAdd} disabled={!canSubmit}>
               {resolvingImage
                 ? 'Recherche de la photo...'
                 : isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
@@ -1442,18 +1544,21 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   className="wizard-result-redo"
                   onClick={() => setStep('context')}
                 >
-                  Modifier les détails
+                  <Icon name="edit" />
+                  <span>Modifier les détails</span>
                 </button>
                 <button
                   className="wizard-result-redo"
                   onClick={() => {
+                    setHasTriggeredRerate(true)
                     setQuestionIndex(0)
                     // Ne pas effacer answeredKeys : les réponses déjà données
                     // restent visibles pour que l'utilisateur sache où il en est.
                     setStep('questions')
                   }}
                 >
-                  Refaire la notation
+                  <Icon name="trash" />
+                  <span>Refaire la notation</span>
                 </button>
               </div>
             )}

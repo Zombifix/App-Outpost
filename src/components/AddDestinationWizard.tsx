@@ -5,6 +5,7 @@ import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 import { calculateScore, scoreToTier } from '../utils'
 import { geoCentroid } from '../lib/geoCentroid'
+import { resolveZoneGeojson } from '../lib/zoneGeometry'
 
 interface WizardProps {
   onClose: () => void
@@ -36,7 +37,16 @@ interface PhotonResult {
   extent?: [number, number, number, number] // [minLng, minLat, maxLng, maxLat]
 }
 
-const ZONE_OSM_VALUES = new Set(['country', 'state', 'region', 'province', 'county', 'department', 'district'])
+interface SuggestionItem {
+  result: PhotonResult
+  alreadyAdded: boolean
+  displayCountry?: string
+  flag?: string
+  zoneTypeLabel?: string
+}
+
+const ADMIN_ZONE_OSM_VALUES = new Set(['country', 'state', 'region', 'province', 'county', 'department', 'district'])
+const ZONE_OSM_VALUES = new Set([...ADMIN_ZONE_OSM_VALUES, 'island', 'archipelago'])
 const PLACE_OSM_VALUES = new Set(['city', 'town', 'village', 'hamlet', 'suburb', 'locality'])
 // Cas particulier : certaines « villes » sont taguées en OSM comme entités
 // administratives (Tokyo = province car la ville a été dissoute en 1943 ;
@@ -78,25 +88,6 @@ interface WizardState {
   coupDeCoeur: boolean
   livedThere: boolean
   replaceCoupDeCoeurName: string
-}
-
-async function fetchNominatimGeojson(name: string, country: string): Promise<GeoJSON.Geometry | undefined> {
-  const q = country ? `${name}, ${country}` : name
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=geojson&polygon_geojson=1&polygon_threshold=0.01&limit=1`,
-      { headers: { 'Accept-Language': 'fr' } },
-    )
-    const data = await res.json()
-    const geom = data?.features?.[0]?.geometry
-    // Validation minimale du shape — Nominatim peut renvoyer n'importe quoi en erreur
-    if (geom && typeof geom === 'object' && typeof (geom as { type?: unknown }).type === 'string') {
-      return geom as GeoJSON.Geometry
-    }
-    return undefined
-  } catch {
-    return undefined
-  }
 }
 
 // calculateScore et scoreToTier importés de ../utils — source unique.
@@ -237,6 +228,64 @@ function normalizeCountry(s: string): string {
     .trim()
 }
 
+function getFlagEmoji(countryCode?: string): string | undefined {
+  if (!countryCode) return undefined
+  const normalized = countryCode.trim().toUpperCase()
+  if (!/^[A-Z]{2}$/.test(normalized)) return undefined
+  return String.fromCodePoint(...normalized.split('').map(char => 127397 + char.charCodeAt(0)))
+}
+
+function isPhotonDuplicate(result: PhotonResult, existingDestinations?: Destination[]): boolean {
+  if (!existingDestinations?.length) return false
+  return Boolean(findDuplicate(
+    { name: result.name, lat: result.lat, lng: result.lng, kind: 'place' },
+    existingDestinations,
+  ))
+}
+
+function getZoneTypeLabel(result: PhotonResult): string | undefined {
+  switch (result.osmValue) {
+    case 'island': return 'Île'
+    case 'archipelago': return 'Archipel'
+    case 'country': return 'Pays'
+    case 'state':
+    case 'region':
+    case 'province':
+    case 'county':
+    case 'department':
+    case 'district':
+      return 'Région'
+    default:
+      return undefined
+  }
+}
+
+function hasZoneGeometryCandidate(result: PhotonResult) {
+  const type = result.osmType?.toLowerCase()
+  return type === 'relation' || type === 'r' || type === 'way' || type === 'w'
+}
+
+function sortSuggestions(results: PhotonResult[], query: string, kind: DestKind): PhotonResult[] {
+  const normalizedQuery = normalizeCountry(query)
+  return [...results].sort((a, b) => {
+    const exactA = normalizeCountry(a.name) === normalizedQuery ? 1 : 0
+    const exactB = normalizeCountry(b.name) === normalizedQuery ? 1 : 0
+    if (exactA !== exactB) return exactB - exactA
+
+    if (kind === 'zone') {
+      const polygonA = hasZoneGeometryCandidate(a) ? 1 : 0
+      const polygonB = hasZoneGeometryCandidate(b) ? 1 : 0
+      if (polygonA !== polygonB) return polygonB - polygonA
+    }
+
+    const countryA = a.country ? 1 : 0
+    const countryB = b.country ? 1 : 0
+    if (countryA !== countryB) return countryB - countryA
+
+    return 0
+  })
+}
+
 function mergePhotonResults(...groups: PhotonResult[][]): PhotonResult[] {
   const seen = new Set<string>()
   const merged: PhotonResult[] = []
@@ -322,18 +371,19 @@ async function searchPhoton(
     all = all.filter(r => r.osmValue && ZONE_OSM_VALUES.has(r.osmValue))
   }
 
+  const ordered = opts.kindFilter === 'zone' ? sortSuggestions(all, q, 'zone') : all
   if (opts.state) {
     // Filtre strict : si la zone est un état/région, on n'accepte QUE des résultats
     // dans cet état (peu importe le résultat — on retourne vide si rien ne match).
     const target = normalizeCountry(opts.state)
-    return dedupePhotonResults(all.filter(r => r.state && normalizeCountry(r.state) === target)).slice(0, 6)
+    return dedupePhotonResults(ordered.filter(r => r.state && normalizeCountry(r.state) === target)).slice(0, 6)
   }
   if (opts.country) {
     // Filtre strict aussi pour les pays : on n'accepte que des villes du pays.
     const target = normalizeCountry(opts.country)
-    return dedupePhotonResults(all.filter(r => normalizeCountry(r.country) === target)).slice(0, 6)
+    return dedupePhotonResults(ordered.filter(r => normalizeCountry(r.country) === target)).slice(0, 6)
   }
-  return dedupePhotonResults(all).slice(0, 6)
+  return dedupePhotonResults(ordered).slice(0, 6)
 }
 
 const QUESTIONS = [
@@ -643,10 +693,26 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   // Si la zone est un état/région/comté, on restreint les étapes à cet état.
   // Le nom de la zone EST le nom de l'état (Photon ne renvoie pas `state` quand l'élément est lui-même un state).
-  const stopStateFilter = state.osmValue && ZONE_OSM_VALUES.has(state.osmValue) && state.osmValue !== 'country'
+  const stopStateFilter = state.osmValue && ADMIN_ZONE_OSM_VALUES.has(state.osmValue) && state.osmValue !== 'country'
     ? (state.state || state.name)
     : undefined
   const quickStopSuggestions = getQuickStopSuggestions(state, stops)
+  const suggestionItems = useMemo<SuggestionItem[]>(() => {
+    return sortSuggestions(suggestions, query, state.kind)
+      .map(result => {
+        const displayCountry = result.country
+          ? `${result.state && result.state !== result.name ? `${result.state}, ` : ''}${result.country}`
+          : undefined
+        return {
+          result,
+          alreadyAdded: !isEditing && state.kind === 'place' && isPhotonDuplicate(result, existingDestinations),
+          displayCountry,
+          flag: getFlagEmoji(result.countryCode),
+          zoneTypeLabel: state.kind === 'zone' ? getZoneTypeLabel(result) : undefined,
+        }
+      })
+      .slice(0, 4)
+  }, [existingDestinations, isEditing, query, state.kind, suggestions])
 
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
@@ -702,10 +768,16 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     setQuestionIndex(0)
     setAnsweredKeys(new Set())
     setStep('questions')
-    // fetch the real polygon in background — will be ready before user finishes questions
-    fetchNominatimGeojson(r.name, r.country).then(geojson => {
-      setState(prev => ({ ...prev, geojson }))
-    })
+    if (state.kind === 'zone') {
+      // Resolve the exact OSM selection so homonyms cannot replace the chosen island/region.
+      resolveZoneGeojson(r).then(geojson => {
+        setState(prev => (
+          prev.osmId === r.osmId && prev.osmType === r.osmType
+            ? { ...prev, geojson }
+            : prev
+        ))
+      })
+    }
   }
 
   const selectKind = (kind: DestKind) => {
@@ -727,6 +799,21 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const finishQuestionnaire = (nextState: WizardState = state) => {
     setStep(nextState.kind === 'zone' ? 'stops' : 'result')
   }
+
+  const renderWizardHeading = (counterLabel?: string) => (
+    <div className="wizard-step-top">
+      {state.name && (
+        <p className={`wizard-dest-label${isEditing ? ' is-editing' : ''}`}>
+          {state.name}
+        </p>
+      )}
+      {counterLabel && (
+        <div className="wizard-question-counter">
+          {counterLabel}
+        </div>
+      )}
+    </div>
+  )
 
   const addEmptyStop = () => {
     if (stops.length >= 7) return
@@ -773,7 +860,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     // selectSuggestion hasn't completed yet.
     let geojson = s.geojson
     if (isZone && !geojson) {
-      geojson = await fetchNominatimGeojson(s.name, s.country)
+      geojson = await resolveZoneGeojson(s)
       if (geojson) {
         s = { ...s, geojson }
         setState(s)
@@ -1188,15 +1275,22 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             </div>
             {suggestions.length > 0 && (
               <ul className="wizard-suggestions">
-                {suggestions.map((r, i) => (
+                {suggestionItems.map(({ result, alreadyAdded, displayCountry, flag, zoneTypeLabel }, i) => (
                   <li key={i}>
-                    <button onClick={() => selectSuggestion(r)}>
-                      <span className="sug-name">{r.name}</span>
-                      {r.country && (
-                        <span className="sug-country">
-                          {r.state && r.state !== r.name ? `${r.state}, ` : ''}{r.country}
+                    <button onClick={() => selectSuggestion(result)} className={alreadyAdded ? 'is-duplicate' : ''}>
+                      <span className="sug-main">
+                        <span className="sug-name-row">
+                          <span className="sug-name">{result.name}</span>
+                          {zoneTypeLabel && <span className="sug-kind">{zoneTypeLabel}</span>}
+                          {alreadyAdded && <span className="sug-status">Déjà ajouté</span>}
                         </span>
-                      )}
+                        {displayCountry && (
+                          <span className="sug-country">
+                            {flag && <span className="sug-flag" aria-hidden="true">{flag}</span>}
+                            {displayCountry}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -1214,14 +1308,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'questions' && (
           <div className="wizard-step">
-            <div className="wizard-question-counter">
-              {questionIndex + 1} / {activeQuestions.length}
-            </div>
-            {/* Afficher le nom de la destination sélectionnée pendant les questions
-                (mode ajout uniquement — en édition, wizard-edit-label joue ce rôle) */}
-            {!isEditing && state.name && (
-              <p className="wizard-dest-label">{state.name}</p>
-            )}
+            {renderWizardHeading(`${questionIndex + 1} / ${activeQuestions.length}`)}
             <h2 className="wizard-title">{activeQuestions[questionIndex]?.question}</h2>
             <div className="wizard-answers">
               {activeQuestions[questionIndex]?.answers.map((a, i) => {
@@ -1244,7 +1331,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             </div>
             {questionIndex > 0 && (
               <button className="wizard-back" onClick={() => setQuestionIndex(i => i - 1)}>
-                ← Retour
+                ← Précédent
               </button>
             )}
           </div>
@@ -1252,14 +1339,12 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'profile' && (
           <div className="wizard-step">
-            <div className="wizard-question-counter">
-              {activeQuestions.length + 1} / {activeQuestions.length + 2}
-            </div>
+            {renderWizardHeading(`${activeQuestions.length + 1} / ${activeQuestions.length + 2}`)}
             <h2 className="wizard-title">Type de séjour</h2>
             {renderStayTypeFields()}
             <div className="wizard-step-actions">
               <button className="wizard-back" onClick={() => setStep('questions')}>
-                Retour
+                Précédent
               </button>
               <button className="wizard-next" onClick={() => setStep('context')}>
                 Continuer
@@ -1270,14 +1355,12 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'context' && (
           <div className="wizard-step">
-            <div className="wizard-question-counter">
-              {activeQuestions.length + 2} / {activeQuestions.length + 2}
-            </div>
+            {renderWizardHeading(`${activeQuestions.length + 2} / ${activeQuestions.length + 2}`)}
             <h2 className="wizard-title">Derniers détails</h2>
             {renderTripContextFields()}
             <div className="wizard-step-actions">
-              <button className="wizard-back" onClick={() => setStep('profile')}>
-                Retour
+              <button className="wizard-back" onClick={() => setStep(isEditing ? 'result' : 'profile')}>
+                Précédent
               </button>
               <button
                 className="wizard-next"
@@ -1292,17 +1375,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'stops' && state.kind === 'zone' && (
           <div className="wizard-step wizard-stops-step">
-            <div className="wizard-question-counter">
-              Itineraire
-            </div>
+            {renderWizardHeading('Itineraire')}
             <h2 className="wizard-title">Quelles etaient les etapes ?</h2>
             <p className="wizard-sub">
               Optionnel : ajoute seulement les stops qui racontent le trajet. La note reste globale au road trip.
             </p>
             {renderStopsSection()}
             <div className="wizard-step-actions">
-              <button className="wizard-back" onClick={() => setStep('questions')}>
-                Retour
+              <button className="wizard-back" onClick={() => setStep(isEditing ? 'context' : 'questions')}>
+                Précédent
               </button>
               <button className="wizard-next" onClick={() => setStep('result')}>
                 {stops.length > 0 ? 'Continuer' : 'Passer'}
@@ -1356,17 +1437,25 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 : isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
             </button>
             {isEditing && (
-              <button
-                className="wizard-result-redo"
-                onClick={() => {
-                  setQuestionIndex(0)
-                  // Ne pas effacer answeredKeys : les réponses déjà données
-                  // restent visibles pour que l'utilisateur sache où il en est.
-                  setStep('questions')
-                }}
-              >
-                Refaire la notation
-              </button>
+              <div className="wizard-result-secondary-actions">
+                <button
+                  className="wizard-result-redo"
+                  onClick={() => setStep('context')}
+                >
+                  Modifier les détails
+                </button>
+                <button
+                  className="wizard-result-redo"
+                  onClick={() => {
+                    setQuestionIndex(0)
+                    // Ne pas effacer answeredKeys : les réponses déjà données
+                    // restent visibles pour que l'utilisateur sache où il en est.
+                    setStep('questions')
+                  }}
+                >
+                  Refaire la notation
+                </button>
+              </div>
             )}
           </div>
         )}

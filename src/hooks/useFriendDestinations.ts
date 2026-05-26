@@ -7,6 +7,7 @@ import {
   type DbDestinationRow,
 } from '../lib/destinationMapper'
 import { withRecalculatedScore } from '../utils'
+import { needsZoneGeometryRepair, repairZoneDestinationGeometry } from '../lib/zoneGeometry'
 
 const FRIEND_DESTINATIONS_CACHE_TTL_MS = 60_000
 const MAX_FRIEND_DESTINATIONS = 200
@@ -38,6 +39,21 @@ async function hydrateCatalogImages(destinations: Destination[]): Promise<Destin
   })
 }
 
+async function repairSuspiciousZones(destinations: Destination[]): Promise<Destination[]> {
+  const candidates = destinations.filter(needsZoneGeometryRepair)
+  if (!candidates.length) return destinations
+
+  const repairedByName = new Map<string, Destination>()
+  for (const destination of candidates) {
+    const repaired = await repairZoneDestinationGeometry(destination)
+    if (repaired) repairedByName.set(destination.name, repaired)
+    await new Promise(resolve => window.setTimeout(resolve, 1200))
+  }
+
+  if (!repairedByName.size) return destinations
+  return destinations.map(destination => repairedByName.get(destination.name) ?? destination)
+}
+
 function getFreshCachedFriendDestinations(friendUserId: string) {
   const cached = friendDestinationsCache.get(friendUserId)
   if (!cached) return null
@@ -66,6 +82,7 @@ async function loadFriendDestinations(friendUserId: string, force = false): Prom
       const destinations = (data as DbDestinationRow[]).map(rowToDestination).map(withRecalculatedScore)
       return hydrateCatalogImages(destinations)
     })
+    .then(repairSuspiciousZones)
     .then(destinations => {
       friendDestinationsCache.set(friendUserId, { data: destinations, fetchedAt: Date.now() })
       return destinations

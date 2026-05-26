@@ -690,8 +690,8 @@ export default function WorldMap({
 
   function clearHtmlMarkers() {
     for (const entry of htmlMarkersRef.current) {
-      entry.root.unmount()
       entry.marker.remove()
+      window.setTimeout(() => entry.root.unmount(), 0)
     }
     htmlMarkersRef.current = []
   }
@@ -822,6 +822,14 @@ export default function WorldMap({
       el.setAttribute('transform', `translate(${x},${y})`)
     })
 
+    pinsGroupRef.current.querySelectorAll<SVGGElement>('g.trip-pin-root').forEach(el => {
+      const lng = parseFloat(el.dataset.lng ?? '0')
+      const lat = parseFloat(el.dataset.lat ?? '0')
+      if (!isFinite(lng) || !isFinite(lat)) return
+      const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
+      el.setAttribute('transform', `translate(${x},${y})`)
+    })
+
     // Re-build route paths every map move — geodesic samples + fresh projection.
     const project: Proj = ([lng, lat]) => {
       const { x, y } = map.project([lng, lat] as maplibregl.LngLatLike)
@@ -907,16 +915,18 @@ export default function WorldMap({
   const friendOnly = friendDestinations
     ? friendDestinations.filter(d => !shared.has(destinationNameKey(d)))
     : []
+  const isTripZone = (destination: Destination) => destination.kind === 'zone' && getValidStops(destination).length > 0
 
   const placeDests = destinations.filter(d => d.kind !== 'zone' && d.kind !== 'stop')
   const overlapsByDest: Record<string, PinTripBadge[]> = {}
   const skipStops = new Set<string>() // `${tripName}|${stopIndex}`
 
   for (const trip of destinations) {
-    if (trip.kind !== 'zone' || !trip.stops?.length) continue
+    const validStops = getValidStops(trip)
+    if (trip.kind !== 'zone' || !validStops.length) continue
     const tripColor = getDestinationColor(trip) ?? '#1B5FE8'
     let stageCounter = 0
-    trip.stops.forEach((stop, index) => {
+    trip.stops?.forEach((stop, index) => {
       const stageNumber = ++stageCounter
       if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lng)) return
       const match = placeDests.find(p => haversineMeters(p, stop) <= 50)
@@ -933,9 +943,10 @@ export default function WorldMap({
 
   const renderRouteGroup = (d: Destination, owner: 'me' | 'friend') => {
     const color = getDestinationColor(d)
-    if (!d.stops?.length || !color) return [] as JSX.Element[]
+    const validStops = getValidStops(d)
+    if (!validStops.length || !color) return [] as JSX.Element[]
     if (expandedRouteKey !== `${owner}:${d.name}` && selectedName !== d.name) return [] as JSX.Element[]
-    const stopEls = d.stops.map((stop, index) => {
+    const stopEls = d.stops?.map((stop, index) => {
       if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
       return (
         <RouteStop
@@ -952,12 +963,12 @@ export default function WorldMap({
     return [
       <RoutePath
         key={`${owner}-path:${d.name}`}
-        stops={d.stops}
+        stops={validStops}
         projection={projFnRef.current}
         color={color}
         owner={owner}
       />,
-      ...stopEls.filter((el): el is JSX.Element => el !== null),
+      ...(stopEls ?? []).filter((el): el is JSX.Element => el !== null),
     ]
   }
 
@@ -972,7 +983,7 @@ export default function WorldMap({
 
     const markerPins = [
       ...friendOnly
-        .filter(d => d.kind !== 'stop')
+        .filter(d => d.kind !== 'stop' && !isTripZone(d))
         .map(destination => ({
           key: `friend:${destination.name}`,
           destination,
@@ -983,7 +994,7 @@ export default function WorldMap({
           tripBadges: undefined as PinTripBadge[] | undefined,
         })),
       ...destinations
-        .filter(d => d.kind !== 'stop')
+        .filter(d => d.kind !== 'stop' && !isTripZone(d))
         .map(destination => ({
           key: `me:${destination.name}`,
           destination,
@@ -1001,10 +1012,19 @@ export default function WorldMap({
       element.style.width = '0'
       element.style.height = '0'
       element.style.overflow = 'visible'
-      element.style.pointerEvents = 'none'
-      const stopMapClick = (event: Event) => event.stopPropagation()
-      element.addEventListener('click', stopMapClick)
-      element.addEventListener('pointerdown', stopMapClick)
+      element.style.pointerEvents = 'auto'
+      const activateMarker = () => {
+        if (pin.destination.kind === 'zone' && pin.destination.stops?.length) {
+          expandTripRoute(pin.destination, pin.owner)
+          return
+        }
+        onSelect(pin.destination.name)
+      }
+      element.addEventListener('pointerdown', stopMarkerEvent)
+      element.addEventListener('click', (event) => {
+        stopMarkerEvent(event)
+        activateMarker()
+      })
 
       const root = createRoot(element)
       root.render(
@@ -1085,6 +1105,26 @@ export default function WorldMap({
               */}
                 {friendOnly.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'friend') : [])}
                 {destinations.flatMap(d => d.kind === 'zone' ? renderRouteGroup(d, 'me') : [])}
+                {friendOnly.filter(isTripZone).map(d => (
+                  <TripPinOverlay
+                    key={`friend:trip:${d.name}`}
+                    destination={d}
+                    projection={projFnRef.current}
+                    selected={expandedRouteKey === `friend:${d.name}`}
+                    owner="friend"
+                    onExpandTrip={expandTripRoute}
+                  />
+                ))}
+                {destinations.filter(isTripZone).map(d => (
+                  <TripPinOverlay
+                    key={`me:trip:${d.name}`}
+                    destination={d}
+                    projection={projFnRef.current}
+                    selected={d.name === selectedName || expandedRouteKey === `me:${d.name}`}
+                    owner="me"
+                    onExpandTrip={expandTripRoute}
+                  />
+                ))}
                 {friendOnly.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
                     compactMode={compactPins} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
@@ -1162,6 +1202,22 @@ interface RouteStopProps {
   onSelect: (name: string) => void
 }
 
+interface TripPinOverlayProps {
+  destination: Destination
+  projection: Proj
+  selected: boolean
+  owner: 'me' | 'friend'
+  onExpandTrip: (d: Destination, owner: 'me' | 'friend') => void
+}
+
+function stopMarkerEvent(event: { stopPropagation: () => void }) {
+  event.stopPropagation()
+}
+
+function getValidStops(destination: Destination) {
+  return destination.stops?.filter(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)) ?? []
+}
+
 const RouteStop = memo(function RouteStop({
   stop, parentName, projection, color, owner, onSelect,
 }: RouteStopProps) {
@@ -1184,6 +1240,74 @@ const RouteStop = memo(function RouteStop({
       <circle className="route-stop-dot" r={4} />
       <foreignObject className="route-stop-label-object" x="-64" y="-34" width="128" height="28" overflow="visible">
         <div className="route-stop-label-pill">{stop.name}</div>
+      </foreignObject>
+    </g>
+  )
+})
+
+const TripPinOverlay = memo(function TripPinOverlay({
+  destination, projection, selected, owner, onExpandTrip,
+}: TripPinOverlayProps) {
+  const [tripHovered, setTripHovered] = useState(false)
+  const projected = projection([destination.lng, destination.lat])
+  if (!projected) return null
+  const [cx, cy] = projected
+  const destinationTier = getDestinationTier(destination)
+  const color = getTierColor(destinationTier)
+  const stageCount = getValidStops(destination).length
+  if (!color || stageCount === 0) return null
+
+  return (
+    <g
+      className={`trip-pin-root trip-pin-root--${owner}`}
+      data-lng={destination.lng}
+      data-lat={destination.lat}
+      transform={`translate(${cx},${cy})`}
+      style={{ '--pin-color': color } as CSSProperties}
+    >
+      <rect
+        className="trip-pin-hit"
+        x={-36}
+        y={-42}
+        width={190}
+        height={102}
+        rx={32}
+        ry={32}
+        onClick={(event) => {
+          stopMarkerEvent(event)
+          onExpandTrip(destination, owner)
+        }}
+      />
+      <foreignObject
+        className="trip-pin-foreign-object"
+        x={-36}
+        y={-42}
+        width={190}
+        height={102}
+        overflow="visible"
+      >
+        <div className="trip-pin-html-shell">
+          <div className="pin-stage trip-pin-stage">
+            <div
+              className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}${(tripHovered || selected) ? ' map-pin-trip-card--revealed' : ''}`}
+              style={{ '--pin-color': color, '--pin-photo': destination.image ? `url("${destination.image}")` : 'none' } as CSSProperties}
+              onPointerEnter={() => setTripHovered(true)}
+              onPointerLeave={() => setTripHovered(false)}
+              onPointerDown={stopMarkerEvent}
+              onClick={(event) => {
+                stopMarkerEvent(event)
+                onExpandTrip(destination, owner)
+              }}
+            >
+              <span className="map-pin-trip-thumb">
+                <span className="map-pin-trip-badge">{destinationTier}</span>
+                <span className="map-pin-trip-icon" aria-hidden="true">🚗</span>
+              </span>
+              <span className="map-pin-pill-name">{destination.name}</span>
+              <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>
+            </div>
+          </div>
+        </div>
       </foreignObject>
     </g>
   )
@@ -1303,12 +1427,25 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
 const Pin = memo(function Pin({
   destination, projection, compactMode, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, shared, tripBadges,
 }: PinProps) {
-  const [tripHovered, setTripHovered] = useState(false)
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
   const [cx, cy] = projected
   const pinScale = 1
   const isCompact = compactMode
+  const usesMapLibreMarker = projection === MARKER_PROJ
+  const rootStyle: CSSProperties = usesMapLibreMarker
+    ? {
+        position: 'relative',
+        overflow: 'visible',
+      }
+    : {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        transformOrigin: 'center bottom',
+        pointerEvents: 'none',
+        transform: `translate(${cx}px, ${cy}px) scale(${pinScale})`,
+      }
 
   // ── Stop (road trip waypoint) ──────────────────────────────────────────────
   if (destination.kind === 'stop') {
@@ -1338,49 +1475,7 @@ const Pin = memo(function Pin({
   // Note: si zone sans étape → fall-through vers le pin standard (rendu identique
   // à une destination 'place'), pour éviter la petite pill discrète sans photo.
   if (destination.kind === 'zone') {
-    const validStops = destination.stops?.filter(s => s.name.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng)) ?? []
-    const stageCount = validStops.length
-
-    // Road trip avec arrêts → pill unifiée avec photo + texte
-    if (stageCount > 0) {
-      return (
-        <div
-          className={`map-pin-html-root pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}`}
-          data-lng={destination.lng}
-          data-lat={destination.lat}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            transformOrigin: 'center bottom',
-            pointerEvents: 'none',
-            transform: `translate(${cx}px, ${cy}px) scale(${pinScale})`,
-          }}
-        >
-          <div className="pin-stage" style={{ marginLeft: '-10px', marginTop: '-36px' }}>
-              <button
-                className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}${(tripHovered || selected) ? ' map-pin-trip-card--revealed' : ''}`}
-                style={{ '--pin-color': color, '--pin-photo': destination.image ? `url("${destination.image}")` : 'none' } as CSSProperties}
-                onPointerEnter={() => setTripHovered(true)}
-                onPointerLeave={() => setTripHovered(false)}
-                onFocus={() => setTripHovered(true)}
-                onBlur={() => setTripHovered(false)}
-                onClick={() => {
-                  if (onExpandTrip) onExpandTrip(destination, owner)
-                  else onZoomToZone?.(destination)
-                }}
-              >
-                <span className="map-pin-trip-thumb">
-                  <span className="map-pin-trip-badge">{destinationTier}</span>
-                  <span className="map-pin-trip-icon" aria-hidden="true">🚗</span>
-                </span>
-                <span className="map-pin-pill-name">{destination.name}</span>
-                <span className="map-pin-pill-sub">· {stageCount} arrêt{stageCount > 1 ? 's' : ''}</span>
-              </button>
-          </div>
-        </div>
-      )
-    }
+    if (getValidStops(destination).length > 0) return null
 
     // Zone sans étape → rendu identique au pin standard (fall-through)
   }
@@ -1391,19 +1486,16 @@ const Pin = memo(function Pin({
   return (
     <div className={`map-pin-html-root pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
-       style={{
-         position: 'absolute',
-         top: 0,
-         left: 0,
-         transformOrigin: 'center bottom',
-         pointerEvents: 'none',
-         transform: `translate(${cx}px, ${cy}px) scale(${pinScale})`,
-       }}>
-      <div className="pin-stage" style={{ marginLeft: '-82px', marginTop: '-148px' }}>
-          <button
+       style={rootStyle}>
+      <div className="pin-stage" style={{ marginLeft: '-82px', marginTop: '-148px', pointerEvents: 'auto' }}>
+          <div
             className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}${isCoupDeCoeur ? ' map-pin--coup-de-coeur' : ''}`}
             draggable={false}
-            onClick={() => onSelect(destination.name)}
+            onPointerDown={stopMarkerEvent}
+            onClick={(event) => {
+              stopMarkerEvent(event)
+              onSelect(destination.name)
+            }}
             style={{
               '--pin-color': color,
               '--pin-photo': destination.image ? `url("${destination.image}")` : 'none',
@@ -1439,7 +1531,7 @@ const Pin = memo(function Pin({
                 ))}
               </span>
             )}
-          </button>
+          </div>
       </div>
     </div>
   )

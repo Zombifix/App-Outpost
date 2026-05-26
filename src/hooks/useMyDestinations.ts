@@ -10,7 +10,7 @@ import {
   type DbDestinationRow,
 } from '../lib/destinationMapper'
 import { withRecalculatedScore } from '../utils'
-import { geoCentroid, isSuspiciousZone } from '../lib/geoCentroid'
+import { needsZoneGeometryRepair, repairZoneDestinationGeometry } from '../lib/zoneGeometry'
 
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
@@ -359,11 +359,7 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
   const attemptedRepairRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (!hydrated) return
-    const candidates = destinations.filter(d =>
-      d.kind === 'zone'
-      && !attemptedRepairRef.current.has(d.name)
-      && (isSuspiciousZone({ lat: d.lat, lng: d.lng }, d.extent) || !d.geojson),
-    )
+    const candidates = destinations.filter(d => !attemptedRepairRef.current.has(d.name) && needsZoneGeometryRepair(d))
     if (!candidates.length) return
 
     let cancelled = false
@@ -372,27 +368,11 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
         if (cancelled) return
         attemptedRepairRef.current.add(dest.name)
         try {
-          const q = dest.country ? `${dest.name}, ${dest.country}` : dest.name
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=geojson&polygon_geojson=1&polygon_threshold=0.01&limit=1`,
-            { headers: { 'Accept-Language': 'fr' } },
-          )
-          if (cancelled) return
-          const data = await res.json()
-          const geom = data?.features?.[0]?.geometry as GeoJSON.Geometry | undefined
-          const centroid = geoCentroid(geom)
-          if (centroid && geom) {
-            const dLat = Math.abs(centroid.lat - dest.lat)
-            const dLng = Math.abs(centroid.lng - dest.lng)
-            const meaningful = !Number.isFinite(dest.lat) || !Number.isFinite(dest.lng) || dLat > 1 || dLng > 1 || !dest.geojson
-            if (meaningful) {
-              setDestinationsState(previous => previous.map(item =>
-                item.name === dest.name
-                  ? { ...item, lat: centroid.lat, lng: centroid.lng, extent: centroid.bbox, geojson: geom }
-                  : item,
-              ))
-            }
-          }
+          const repaired = await repairZoneDestinationGeometry(dest)
+          if (cancelled || !repaired) continue
+          setDestinationsState(previous => previous.map(item => (
+            item.name === dest.name ? repaired : item
+          )))
         } catch (err) {
           console.warn('[useMyDestinations] geo repair failed for', dest.name, err)
         }

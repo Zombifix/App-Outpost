@@ -243,6 +243,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
   const [viewingFriend, setViewingFriend] = useState<{ userId: string; handle: string; displayName: string } | null>(null)
   const [compareFriend, setCompareFriend] = useState<import('./types').Friendship | null>(null)
+  const [targetedCompare, setTargetedCompare] = useState<{ friendUserId: string; destinationKey: string } | null>(null)
   const [myDestinations, setDestinations, { resetAll: resetMyDestinations, error: myDestinationsError }] = useMyDestinations(normalizeDestinations)
   // Quand on visite le carnet d'un ami : en mode fake on lit depuis _fakeFriends, sinon
   // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
@@ -264,6 +265,18 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(compareFriend.otherUser).map(withRecalculatedScore)
     return compareFriendDestsProd
   }, [compareFriend, compareFriendDestsProd])
+  const targetedCompareFriend = useMemo(
+    () => targetedCompare ? (friendships.find(item => item.otherUser === targetedCompare.friendUserId && item.status === 'accepted') ?? null) : null,
+    [friendships, targetedCompare]
+  )
+  const targetedCompareFriendUserIdProd = targetedCompareFriend && !FAKE_FRIENDS_MODE ? targetedCompareFriend.otherUser : null
+  const { destinations: targetedCompareFriendDestsProd } = useFriendDestinations(targetedCompareFriendUserIdProd)
+  const targetedCompareFriendDests = useMemo(() => {
+    if (!targetedCompareFriend) return [] as Destination[]
+    if (compareFriend?.otherUser === targetedCompareFriend.otherUser) return compareFriendDests
+    if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(targetedCompareFriend.otherUser).map(withRecalculatedScore)
+    return targetedCompareFriendDestsProd
+  }, [targetedCompareFriend, compareFriend, compareFriendDests, targetedCompareFriendDestsProd])
   // Noms partagés (insensible casse + accents) — sert au visuel.
   // On y ajoute les deux orthographes (la mienne et celle de l'ami) parce que
   // WorldMap les compare au .name brut de chaque destination.
@@ -318,13 +331,21 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const handleCompareViewingFriend = useCallback(() => {
     if (!viewingFriend) return
     const f = friendships.find(fr => fr.otherUser === viewingFriend.userId)
-    if (f) { setCompareFriend(f); setViewingFriend(null) }
+    if (f) {
+      setTargetedCompare(null)
+      setCompareFriend(f)
+      setViewingFriend(null)
+    }
   }, [viewingFriend, friendships])
-  const handleCompareFriendByUserId = useCallback((friendUserId: string) => {
+  const handleTargetedCompareFriend = useCallback((friendUserId: string, destination: Destination) => {
     const friend = friendships.find(item => item.otherUser === friendUserId && item.status === 'accepted')
     if (!friend) return
     setViewingFriend(null)
-    setCompareFriend(friend)
+    setCompareFriend(null)
+    setTargetedCompare({
+      friendUserId,
+      destinationKey: destinationNameKey(destination),
+    })
   }, [friendships])
 
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
@@ -435,6 +456,35 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     if (!selected || !compareFriend) return null
     return compareFriendDests.find(destination => destinationNameKey(destination) === destinationNameKey(selected)) ?? null
   }, [selected, compareFriend, compareFriendDests])
+  const selectedTargetedCompareDestination = useMemo(() => {
+    if (!selected || !targetedCompareFriend || !targetedCompare) return null
+    if (destinationNameKey(selected) !== targetedCompare.destinationKey) return null
+    return targetedCompareFriendDests.find(destination => destinationNameKey(destination) === targetedCompare.destinationKey) ?? null
+  }, [selected, targetedCompareFriend, targetedCompare, targetedCompareFriendDests])
+  const activeSheetCompare = useMemo(() => {
+    if (targetedCompareFriend && selectedTargetedCompareDestination) {
+      return {
+        mode: 'targeted' as const,
+        friend: targetedCompareFriend,
+        destination: selectedTargetedCompareDestination,
+      }
+    }
+    if (compareFriend && selectedCompareDestination) {
+      return {
+        mode: 'global' as const,
+        friend: compareFriend,
+        destination: selectedCompareDestination,
+      }
+    }
+    return null
+  }, [targetedCompareFriend, selectedTargetedCompareDestination, compareFriend, selectedCompareDestination])
+
+  useEffect(() => {
+    if (!targetedCompare) return
+    if (!selected || destinationNameKey(selected) !== targetedCompare.destinationKey) {
+      setTargetedCompare(null)
+    }
+  }, [selected, targetedCompare])
 
   const selectByName = (name: string) => {
     const destination = destinations.find(item => item.name === name)
@@ -743,11 +793,16 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
             onOpenAddFriend={() => { setFriendsManageOpen(false); setAddFriendOpen(true) }}
             onViewFriendCarnet={f => {
               setFriendsManageOpen(false)
+              setTargetedCompare(null)
               setViewingFriend({ userId: f.otherUser, handle: f.handle, displayName: f.displayName })
               setActiveView('map')
               setSelectedName(null)
             }}
-            onCompareFriend={f => { setFriendsManageOpen(false); setCompareFriend(f) }}
+            onCompareFriend={f => {
+              setFriendsManageOpen(false)
+              setTargetedCompare(null)
+              setCompareFriend(f)
+            }}
           />
         </Suspense>
       )}
@@ -757,12 +812,17 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
           coupDeCoeur={selected.coupDeCoeur ?? false}
           coupDeCoeurCount={coupDeCoeurCount}
           allDestinations={destinations}
-          compareWith={compareFriend && selectedCompareDestination
-            ? { friend: compareFriend, destination: selectedCompareDestination }
+          compareWith={activeSheetCompare
+            ? { friend: activeSheetCompare.friend, destination: activeSheetCompare.destination }
             : undefined}
+          compareMode={activeSheetCompare?.mode}
           onClose={() => setSelectedName(null)}
           onFocus={focusSelected}
-          onCompareFriend={handleCompareFriendByUserId}
+          onCompareFriend={friendUserId => handleTargetedCompareFriend(friendUserId, selected)}
+          onExitCompare={() => {
+            if (activeSheetCompare?.mode === 'targeted') setTargetedCompare(null)
+            else setCompareFriend(null)
+          }}
           onCoupDeCoeur={() => toggleCoupDeCoeur(selected.name)}
           onEdit={dest => setEditingDestination(dest)}
           onDelete={name => removeDestination(name)}

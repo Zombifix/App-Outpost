@@ -1285,6 +1285,7 @@ svg {
 
 /* Badge "X amis y sont allés" sur DestinationSheet */
 .friend-visitors {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1299,6 +1300,17 @@ svg {
 .friend-visitors-avatars {
   display: flex;
   flex-shrink: 0;
+}
+.friend-visitors-avatars-btn {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.friend-visitors-avatars-btn:disabled {
+  cursor: default;
+}
+.friend-visitors-avatars-btn.is-interactive {
+  cursor: pointer;
 }
 .friend-visitors-avatar {
   width: 24px;
@@ -1335,6 +1347,70 @@ svg {
 .friend-visitors-action:hover {
   background: rgba(240, 247, 255, 0.98);
   border-color: rgba(27, 95, 232, 0.32);
+}
+.friend-visitors-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: min(280px, calc(100vw - 48px));
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(214, 226, 242, 0.92);
+  box-shadow: 0 16px 32px rgba(30, 41, 69, 0.14);
+  z-index: 4;
+}
+.friend-visitors-option {
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.friend-visitors-option:hover,
+.friend-visitors-option:focus-visible {
+  background: #f4f7fb;
+}
+.friend-visitors-option-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  flex: 0 0 28px;
+}
+.friend-visitors-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.friend-visitors-option-copy strong {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.friend-visitors-option-copy small {
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
+.friend-visitors-option-tier {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  margin-left: auto;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
 }
 
 /* Badge sur le bouton Amis de la top bar (compteur demandes en attente) */
@@ -3425,6 +3501,56 @@ svg {
   width: 14px;
   height: 14px;
   color: var(--purple);
+}
+
+.sheet-compare-banner {
+  margin: 0 8px 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(27, 95, 232, 0.08), rgba(27, 95, 232, 0.03));
+  border: 1px solid rgba(27, 95, 232, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-compare-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sheet-compare-banner-copy span {
+  color: var(--purple);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sheet-compare-banner-copy strong {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.sheet-compare-banner-action {
+  min-height: 32px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(27, 95, 232, 0.16);
+  color: var(--purple);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+}
+
+.sheet-compare-banner-action:hover {
+  background: rgba(240, 247, 255, 0.98);
+  border-color: rgba(27, 95, 232, 0.28);
 }
 
 .compare-meta {

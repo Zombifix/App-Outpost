@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Destination, Friendship } from '../types'
+import type { Destination, Friendship, Tier } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
 import { getDestinationScore, getDestinationTier } from '../utils'
@@ -17,13 +17,24 @@ interface DestinationSheetProps {
     friend: Friendship
     destination: Destination
   }
+  compareMode?: 'targeted' | 'global'
   onClose: () => void
   onFocus: () => void
   onCompareFriend?: (friendUserId: string) => void
+  onExitCompare?: () => void
   onCoupDeCoeur: () => void
   onEdit: (destination: Destination) => void
   onDelete: (name: string) => void
   onOpenTrip?: (tripName: string) => void
+}
+
+interface FriendVisitor {
+  userId: string
+  displayName: string
+  handle?: string
+  bg?: string
+  fg?: string
+  tier?: Tier
 }
 
 type SnapState = 'peek' | 'full'
@@ -41,7 +52,7 @@ const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> =
 }
 
 function formatEuro(value: number) {
-  return `${Math.round(value).toLocaleString('fr-FR')} €`
+  return `${Math.round(value).toLocaleString('fr-FR')} â‚¬`
 }
 
 const INTENT_LABELS: Record<Destination['intent'], string> = {
@@ -54,12 +65,12 @@ const INTENT_LABELS: Record<Destination['intent'], string> = {
 }
 
 const INTENT_EMOJIS: Record<Destination['intent'], string> = {
-  tourisme: '🗺',
-  sorties: '🌙',
-  gastro: '🍽',
-  nature: '🌿',
-  travail: '💼',
-  'city-trip': '🏙',
+  tourisme: 'ðŸ—º',
+  sorties: 'ðŸŒ™',
+  gastro: 'ðŸ½',
+  nature: 'ðŸŒ¿',
+  travail: 'ðŸ’¼',
+  'city-trip': 'ðŸ™',
 }
 
 type ContextDetail =
@@ -67,12 +78,12 @@ type ContextDetail =
   | { kind: 'chips'; icon: string; label: string; chips: Array<{ label: string; tone: 'neutral' | 'positive' | 'negative' }> }
 
 const STANDOUT_FLOP_LABELS = new Set([
-  '💸 Budget qui pique',
-  '🚏 Transports galère',
-  '👤 La foule',
-  '🎪 Pièges à touristes',
-  '😴 Rythme épuisant',
-  '🌦️ Météo capricieuse',
+  'ðŸ’¸ Budget qui pique',
+  'ðŸš Transports galÃ¨re',
+  'ðŸ‘¤ La foule',
+  'ðŸŽª PiÃ¨ges Ã  touristes',
+  'ðŸ˜´ Rythme Ã©puisant',
+  'ðŸŒ¦ï¸ MÃ©tÃ©o capricieuse',
 ])
 
 function getDestinationContext(destination: Destination) {
@@ -125,13 +136,13 @@ function getCriteria(destination: Destination) {
     ['Sorties & Vie nocturne', destination.night, 'martini'],
     ['Culture & Histoire', destination.culture, 'temple'],
     ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualité/prix', destination.value, 'coins'],
+    ['Rapport qualitÃ©/prix', destination.value, 'coins'],
   ]
   if (typeof destination.ease === 'number') {
-    base.push(['Facilité sur place', destination.ease, 'compass'])
+    base.push(['FacilitÃ© sur place', destination.ease, 'compass'])
   }
   if (typeof destination.memorability === 'number') {
-    base.push(['Souvenir laissé', destination.memorability, 'star'])
+    base.push(['Souvenir laissÃ©', destination.memorability, 'star'])
   }
   return base
 }
@@ -266,14 +277,14 @@ function MobileSheet(props: DestinationSheetProps) {
       return
     }
 
-    // Depuis peek : fermeture plus facile (seuil bas + vélocité modérée)
+    // Depuis peek : fermeture plus facile (seuil bas + vÃ©locitÃ© modÃ©rÃ©e)
     if (snap === 'peek') {
       if (finalTop > vh * 0.68 || velocity > 0.5) {
         props.onClose()
         return
       }
       if (velocity < -0.6) { setSnap('full'); return }
-      // Ni fermeture ni ouverture → reste peek
+      // Ni fermeture ni ouverture â†’ reste peek
       return
     }
 
@@ -297,7 +308,7 @@ function MobileSheet(props: DestinationSheetProps) {
       <aside
         ref={sheetRef}
         className={`destination-sheet is-${snap}${isComparison ? ' is-comparison' : ''}${isDragging ? ' is-dragging' : ''}`}
-        aria-label={`Détail de ${props.destination.name}`}
+        aria-label={`DÃ©tail de ${props.destination.name}`}
         onClick={e => e.stopPropagation()}
         style={style}
         onPointerDown={onPointerDown}
@@ -308,7 +319,7 @@ function MobileSheet(props: DestinationSheetProps) {
         <button
           type="button"
           className="destination-sheet-handle"
-          aria-label={snap === 'peek' ? 'Agrandir' : 'Réduire'}
+          aria-label={snap === 'peek' ? 'Agrandir' : 'RÃ©duire'}
           onClick={() => setSnap(s => s === 'peek' ? 'full' : 'peek')}
         >
           <span className="destination-sheet-grabber" />
@@ -326,9 +337,11 @@ function DestinationCardContent({
   coupDeCoeur,
   coupDeCoeurCount,
   allDestinations,
+  compareMode,
   onClose,
   onFocus,
   onCompareFriend,
+  onExitCompare,
   onCoupDeCoeur,
   onEdit,
   onDelete,
@@ -337,6 +350,8 @@ function DestinationCardContent({
 }: DestinationSheetProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [visitorPickerOpen, setVisitorPickerOpen] = useState(false)
+  const visitorPickerRef = useRef<HTMLDivElement | null>(null)
   const context = getDestinationContext(destination)
   const criteria = getCriteria(destination)
   const compareCriteria = useMemo(
@@ -372,32 +387,59 @@ function DestinationCardContent({
     return Array.from(map.entries())
   }, [tripStopsHere, allDestinations])
 
-  // Amis qui ont aussi visité cette destination (events destination_added).
-  // Lit le feed déjà chargé (60 events) — pas de requête supplémentaire.
+  // Amis qui ont aussi visitÃ© cette destination (events destination_added).
+  // Lit le feed dÃ©jÃ  chargÃ© (60 events) â€” pas de requÃªte supplÃ©mentaire.
   const { events: activityEvents } = useActivityFeed(60)
   const friendVisitors = useMemo(() => {
     const targetName = destination.name.toLowerCase().trim()
-    const seen = new Map<string, { userId: string; displayName: string; handle?: string; bg?: string; fg?: string }>()
+    const seen = new Map<string, FriendVisitor>()
     for (const ev of activityEvents) {
       if (ev.kind !== 'destination_added') continue
       const evName = (typeof ev.payload?.name === 'string' ? ev.payload.name : '')
         || (typeof ev.payload?.destination_name === 'string' ? ev.payload.destination_name : '')
       if (!evName || evName.toLowerCase().trim() !== targetName) continue
       if (seen.has(ev.actor)) continue
+      const payloadTier = typeof ev.payload?.tier === 'string' && ['S', 'A', 'B', 'C', 'D'].includes(ev.payload.tier)
+        ? ev.payload.tier as Tier
+        : undefined
       seen.set(ev.actor, {
         userId: ev.actor,
         displayName: ev.actorDisplayName ?? ev.actorHandle ?? 'Un ami',
         handle: ev.actorHandle,
         bg: ev.actorAvatarBg,
         fg: ev.actorAvatarFg,
+        tier: payloadTier,
       })
     }
     return Array.from(seen.values())
   }, [activityEvents, destination.name])
   const compareableVisitor = !compareWith && friendVisitors.length === 1 ? friendVisitors[0] : null
+  const hasMultipleVisitors = !compareWith && friendVisitors.length > 1
+  const firstName = compareWith?.friend.displayName.split(' ')[0] ?? ''
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
+
+  useEffect(() => {
+    setVisitorPickerOpen(false)
+  }, [destination.name, compareWith])
+
+  useEffect(() => {
+    if (!visitorPickerOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (visitorPickerRef.current?.contains(event.target as Node)) return
+      setVisitorPickerOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setVisitorPickerOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [visitorPickerOpen])
 
   return (
     <>
@@ -475,22 +517,22 @@ function DestinationCardContent({
           {coupDeCoeur ? (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
-              aria-label="Retirer le coup de cœur"
-              title="Coup de cœur — retirer"
+              aria-label="Retirer le coup de cÅ“ur"
+              title="Coup de cÅ“ur â€” retirer"
               onClick={onCoupDeCoeur}
             >
-              <span aria-hidden="true">❤️</span>
-              Coup de cœur
+              <span aria-hidden="true">â¤ï¸</span>
+              Coup de cÅ“ur
             </button>
           ) : !coupDeCoeurDisabled && (
             <button
               className="coup-de-coeur-button destination-hero-favorite"
-              aria-label="Ajouter aux coups de cœur"
-              title="Ajouter aux coups de cœur"
+              aria-label="Ajouter aux coups de cÅ“ur"
+              title="Ajouter aux coups de cÅ“ur"
               onClick={onCoupDeCoeur}
             >
-              <span aria-hidden="true">🤍</span>
-              Coup de cœur
+              <span aria-hidden="true">ðŸ¤</span>
+              Coup de cÅ“ur
             </button>
           )}
         </div>
@@ -501,9 +543,36 @@ function DestinationCardContent({
           <h2>{destination.name}, {destination.country}</h2>
         </div>
       </div>
+      {compareWith && (
+        <section className="sheet-compare-banner" aria-label="Comparaison en cours">
+          <div className="sheet-compare-banner-copy">
+            <span>{compareMode === 'targeted' ? 'Comparaison ciblÃ©e' : 'Comparaison'}</span>
+            <strong>Comparer avec {firstName}</strong>
+          </div>
+          {onExitCompare && (
+            <button
+              type="button"
+              className="sheet-compare-banner-action"
+              onClick={onExitCompare}
+            >
+              Revenir Ã  la fiche
+            </button>
+          )}
+        </section>
+      )}
       {!compareWith && friendVisitors.length > 0 && (
-        <div className="friend-visitors" aria-label="Amis qui y sont allés">
-          <div className="friend-visitors-avatars">
+        <div className="friend-visitors" aria-label="Amis qui y sont allÃ©s" ref={visitorPickerRef}>
+          <button
+            type="button"
+            className={`friend-visitors-avatars friend-visitors-avatars-btn${hasMultipleVisitors ? ' is-interactive' : ''}`}
+            onClick={() => {
+              if (compareableVisitor && onCompareFriend) onCompareFriend(compareableVisitor.userId)
+              else if (hasMultipleVisitors) setVisitorPickerOpen(value => !value)
+            }}
+            aria-haspopup={hasMultipleVisitors ? 'menu' : undefined}
+            aria-expanded={hasMultipleVisitors ? visitorPickerOpen : undefined}
+            disabled={!compareableVisitor && !hasMultipleVisitors}
+          >
             {friendVisitors.slice(0, 3).map((v, i) => (
               <span
                 key={i}
@@ -514,13 +583,13 @@ function DestinationCardContent({
                 {v.displayName.slice(0, 1).toUpperCase()}
               </span>
             ))}
-          </div>
+          </button>
           <span className="friend-visitors-text">
             {friendVisitors.length === 1
-              ? <><strong>{friendVisitors[0].displayName}</strong> y est allé</>
+              ? <><strong>{friendVisitors[0].displayName}</strong> y est allÃ©e</>
               : friendVisitors.length <= 3
-                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} et <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> y sont allés</>
-                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont allés</>
+                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} et <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> y sont allÃ©s</>
+                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont allÃ©s</>
             }
           </span>
           {compareableVisitor && onCompareFriend && (
@@ -529,8 +598,56 @@ function DestinationCardContent({
               className="friend-visitors-action"
               onClick={() => onCompareFriend(compareableVisitor.userId)}
             >
-              Comparer cette destination
+              Comparer avec {compareableVisitor.displayName.split(' ')[0]}
             </button>
+          )}
+          {hasMultipleVisitors && (
+            <>
+              <button
+                type="button"
+                className="friend-visitors-action"
+                onClick={() => setVisitorPickerOpen(value => !value)}
+                aria-haspopup="menu"
+                aria-expanded={visitorPickerOpen}
+              >
+                Comparer avec...
+              </button>
+              {visitorPickerOpen && (
+                <div className="friend-visitors-popover" role="menu" aria-label="Choisir un ami pour comparer">
+                  {friendVisitors.map(visitor => (
+                    <button
+                      key={visitor.userId}
+                      type="button"
+                      className="friend-visitors-option"
+                      role="menuitem"
+                      onClick={() => {
+                        setVisitorPickerOpen(false)
+                        onCompareFriend?.(visitor.userId)
+                      }}
+                    >
+                      <span
+                        className="friend-visitors-option-avatar"
+                        style={{ background: visitor.bg ?? '#c7d2fe', color: visitor.fg ?? '#1e3a8a' }}
+                      >
+                        {visitor.displayName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="friend-visitors-option-copy">
+                        <strong>{visitor.displayName}</strong>
+                        <small>Comparer avec {visitor.displayName.split(' ')[0]}</small>
+                      </span>
+                      {visitor.tier && (
+                        <span
+                          className="friend-visitors-option-tier"
+                          style={{ color: TIER_COLORS[visitor.tier].label, background: `${TIER_COLORS[visitor.tier].pin}22` }}
+                        >
+                          {visitor.tier}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -597,32 +714,32 @@ function DestinationCardContent({
                   {formatCompareLabel(
                     destination.personalBudget / Math.max(destination.tripDays ?? 1, 1),
                     compareWith.destination.personalBudget / Math.max(compareWith.destination.tripDays ?? 1, 1),
-                    ' €/j'
+                    ' â‚¬/j'
                   )}
                 </span>
               )}
             </div>
           </div>
 
-          <section className="compare-sheet-card" aria-label="Compatibilité">
+          <section className="compare-sheet-card" aria-label="CompatibilitÃ©">
             <div className="compare-sheet-score">
-              <span>Compatibilité</span>
+              <span>CompatibilitÃ©</span>
               <strong>{compareCompatibility.score}%</strong>
               <em>d'accord</em>
             </div>
             <div className="compare-sheet-stats">
               <div className="compare-sheet-stat compare-sheet-stat--ok">
-                <span>✓</span>
-                {compareCompatibility.shared} critères en commun
+                <span>âœ“</span>
+                {compareCompatibility.shared} critÃ¨res en commun
               </div>
               <div className="compare-sheet-stat compare-sheet-stat--warn">
                 <span>!</span>
-                {compareCompatibility.differences} différences marquées
+                {compareCompatibility.differences} diffÃ©rences marquÃ©es
               </div>
             </div>
           </section>
 
-          <section className="compare-tag-groups" aria-label="Goûts comparés">
+          <section className="compare-tag-groups" aria-label="GoÃ»ts comparÃ©s">
             {compareTags.common.length > 0 && (
               <div className="compare-tag-group">
                 <h3>En commun ({compareTags.common.length})</h3>
@@ -654,7 +771,7 @@ function DestinationCardContent({
           </section>
         </>
       )}
-      <h3>Notes par critère</h3>
+      <h3>Notes par critÃ¨re</h3>
       {compareWith && compareCriteria.length > 0 ? (
         <div className="criteria-compare" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
           <div className="criteria-compare-head">
@@ -662,7 +779,7 @@ function DestinationCardContent({
             <span />
             <strong>Toi</strong>
             <strong>{compareWith.friend.displayName.split(' ')[0]}</strong>
-            <strong>Écart</strong>
+            <strong>Ã‰cart</strong>
           </div>
           <div className="criteria-compare-list">
             {compareCriteria.map(item => (
@@ -689,7 +806,7 @@ function DestinationCardContent({
       )}
       {tripsHereByName.length > 0 && (
         <div className="sheet-cross-links">
-          <p className="sheet-cross-links-title">Aussi étape de</p>
+          <p className="sheet-cross-links-title">Aussi Ã©tape de</p>
           <ul>
             {tripsHereByName.map(([tripName, info]) => {
               const stageLabel = info.stages.length
@@ -763,7 +880,7 @@ function RoadTripCardContent({
             Road trip
           </span>
           <span className="intent-pill destination-hero-pill">
-            {stageCount} étape{stageCount > 1 ? 's' : ''}
+            {stageCount} Ã©tape{stageCount > 1 ? 's' : ''}
           </span>
           {coupDeCoeur && (
             <button
@@ -772,7 +889,7 @@ function RoadTripCardContent({
               title="Coup de coeur - retirer"
               onClick={onCoupDeCoeur}
             >
-              <span aria-hidden="true">♥</span>
+              <span aria-hidden="true">â™¥</span>
               Coup de coeur
             </button>
           )}
@@ -787,12 +904,12 @@ function RoadTripCardContent({
         </div>
       </div>
 
-      <section className="roadtrip-score-card" aria-label="Évaluation globale du road trip">
+      <section className="roadtrip-score-card" aria-label="Ã‰valuation globale du road trip">
         <div>
-          <span>Évaluation globale</span>
+          <span>Ã‰valuation globale</span>
           <strong>{score}</strong>
         </div>
-        <p>Note le road trip comme l'expérience que tu as vraiment vécue. Les étapes racontent le trajet ; tu peux détailler une ville seulement si elle mérite sa propre fiche.</p>
+        <p>Note le road trip comme l'expÃ©rience que tu as vraiment vÃ©cue. Les Ã©tapes racontent le trajet ; tu peux dÃ©tailler une ville seulement si elle mÃ©rite sa propre fiche.</p>
       </section>
 
       {context.hasContext && (
@@ -848,9 +965,9 @@ function RoadTripCardContent({
         ))}
       </div>
 
-      <section className="roadtrip-itinerary" aria-label="Itinéraire du road trip">
+      <section className="roadtrip-itinerary" aria-label="ItinÃ©raire du road trip">
         <div className="roadtrip-section-head">
-          <h3>Itinéraire</h3>
+          <h3>ItinÃ©raire</h3>
           <span>{validStops.length} stop{validStops.length > 1 ? 's' : ''}</span>
         </div>
         {validStops.length > 0 ? (
@@ -870,7 +987,7 @@ function RoadTripCardContent({
                         Fiche existante
                       </button>
                     ) : (
-                      <em>Itinéraire</em>
+                      <em>ItinÃ©raire</em>
                     )}
                   </div>
                 </li>
@@ -878,9 +995,10 @@ function RoadTripCardContent({
             })}
           </ol>
         ) : (
-          <p className="roadtrip-empty">Ajoute des étapes pour raconter le trajet sans devoir noter chaque ville.</p>
+          <p className="roadtrip-empty">Ajoute des Ã©tapes pour raconter le trajet sans devoir noter chaque ville.</p>
         )}
       </section>
     </>
   )
 }
+

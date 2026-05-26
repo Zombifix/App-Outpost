@@ -518,21 +518,21 @@ function DestinationCardContent({
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
               aria-label="Retirer le coup de cÅ“ur"
-              title="Coup de cÅ“ur â€” retirer"
+              title="Coup de coeur - retirer"
               onClick={onCoupDeCoeur}
             >
               <span aria-hidden="true">â¤ï¸</span>
-              Coup de cÅ“ur
+              Coup de coeur
             </button>
           ) : !coupDeCoeurDisabled && (
             <button
               className="coup-de-coeur-button destination-hero-favorite"
               aria-label="Ajouter aux coups de cÅ“ur"
-              title="Ajouter aux coups de cÅ“ur"
+              title="Ajouter aux coups de coeur"
               onClick={onCoupDeCoeur}
             >
               <span aria-hidden="true">ðŸ¤</span>
-              Coup de cÅ“ur
+              Coup de coeur
             </button>
           )}
         </div>
@@ -546,8 +546,7 @@ function DestinationCardContent({
       {compareWith && (
         <section className="sheet-compare-banner" aria-label="Comparaison en cours">
           <div className="sheet-compare-banner-copy">
-            <span>{compareMode === 'targeted' ? 'Comparaison ciblÃ©e' : 'Comparaison'}</span>
-            <strong>Comparer avec {firstName}</strong>
+            <strong>Comparaison avec {firstName}</strong>
           </div>
           {onExitCompare && (
             <button
@@ -555,13 +554,13 @@ function DestinationCardContent({
               className="sheet-compare-banner-action"
               onClick={onExitCompare}
             >
-              Revenir Ã  la fiche
+              Quitter
             </button>
           )}
         </section>
       )}
       {!compareWith && friendVisitors.length > 0 && (
-        <div className="friend-visitors" aria-label="Amis qui y sont allÃ©s" ref={visitorPickerRef}>
+        <div className="friend-visitors" aria-label="Amis qui y sont alles" ref={visitorPickerRef}>
           <button
             type="button"
             className={`friend-visitors-avatars friend-visitors-avatars-btn${hasMultipleVisitors ? ' is-interactive' : ''}`}
@@ -586,10 +585,10 @@ function DestinationCardContent({
           </button>
           <span className="friend-visitors-text">
             {friendVisitors.length === 1
-              ? <><strong>{friendVisitors[0].displayName}</strong> y est allÃ©e</>
+              ? <><strong>{friendVisitors[0].displayName}</strong> y est allee</>
               : friendVisitors.length <= 3
-                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} et <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> y sont allÃ©s</>
-                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont allÃ©s</>
+                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} et <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> y sont alles</>
+                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont alles</>
             }
           </span>
           {compareableVisitor && onCompareFriend && (

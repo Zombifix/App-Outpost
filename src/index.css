@@ -670,14 +670,6 @@ svg {
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.carnet-stats::after {
-  content: '';
-  position: absolute;
-  inset: 9px;
-  border-radius: 16px;
-  border: 1px solid rgba(210, 204, 192, 0.34);
-  pointer-events: none;
-}
 
 .carnet-stats:hover {
   box-shadow:

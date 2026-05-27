@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
 import type { Destination, Friendship } from '../types'
+import { COUNTRY_TO_CONTINENT } from '../data'
 import { BrandLogo } from './BrandLogo'
 import { useActivityFeed } from '../hooks/useActivityFeed'
-import { computeTravelerProfile } from '../utils'
+import { computeTravelerProfile, type TravelerProfile } from '../utils'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
@@ -268,6 +269,11 @@ function Icon({ name }: { name: string }) {
     'user-plus': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></>,
     'chevron-down': <path d="m6 9 6 6 6-6" />,
     'chevron-up': <path d="m6 15 6-6 6 6" />,
+    pin: <><path d="M12 21s-6-5.2-6-11a6 6 0 1 1 12 0c0 5.8-6 11-6 11Z" /><circle cx="12" cy="10" r="2.5" /></>,
+    heart: <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.6 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" />,
+    star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,
+    plane: <><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" /></>,
+    sparkles: <><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z" /><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8Z" /><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8Z" /></>,
     versus: <><path d="M5 4 8 14 11 4" /><path d="m18 4-5 16" /><path d="M14 11h6" /></>,
     x: <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>,
   }
@@ -490,37 +496,36 @@ function CarnetStats({
   const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
   if (profile.total === 0) return null
 
-  const { total, confidence, signatures, continents, archetype } = profile
-  const confidenceLabel = confidence === 'full'
-    ? 'Profil affirme'
-    : confidence === 'mid'
-      ? 'Profil en lecture'
-      : 'Profil emergent'
+  const { total, confidence, continents } = profile
+  const passportSubtitle = useMemo(() => buildPassportSubtitle(destinations), [destinations])
+  const passportRows = useMemo(() => buildPassportRows(profile, destinations), [profile, destinations])
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewChange('map') } }}>
-      <span className="carnet-stats-glow carnet-stats-glow--top" aria-hidden="true" />
-      <span className="carnet-stats-glow carnet-stats-glow--bottom" aria-hidden="true" />
+      <span className="carnet-stats-paper-grain" aria-hidden="true" />
+      <span className="carnet-stats-stamp" aria-hidden="true" />
       <span className="carnet-stats-eyebrow" aria-hidden="true">Profil voyageur</span>
+      <div className="carnet-stats-ornament" aria-hidden="true">
+        <span className="carnet-stats-ornament-line" />
+        <span className="carnet-stats-ornament-icon"><Icon name="compass" /></span>
+        <span className="carnet-stats-ornament-line" />
+      </div>
 
       {/* Hero */}
       <div className="carnet-stats-hero">
-        <div className="carnet-stats-hero-main">
-          <div className="carnet-stats-total-block">
-        <span className="carnet-stats-hero-num">{total}</span>
-        <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
-          </div>
-          <div className="carnet-stats-hero-side">
-            <span className="carnet-stats-confidence">{confidenceLabel}</span>
-            {continents[0] && (
-              <span className="carnet-stats-dominant">
-                Ancrage {CONTINENT_DISPLAY[continents[0].continent]}
-              </span>
-            )}
-          </div>
+        <div className="carnet-stats-hero-stack">
+          <span className="carnet-stats-hero-num">{total}</span>
+          <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
         </div>
-        {archetype && (
+        {false && false && passportSubtitle && (
           <span className="carnet-stats-archetype">« {archetype} »</span>
         )}
+        {passportSubtitle && (
+          <span className="carnet-stats-archetype carnet-stats-archetype--clean">{passportSubtitle}</span>
+        )}
+        <div className="carnet-stats-subdividers" aria-hidden="true">
+          <span className="carnet-stats-subdivider" />
+          <span className="carnet-stats-subdivider" />
+        </div>
       </div>
 
       {confidence === 'light' && (
@@ -529,17 +534,14 @@ function CarnetStats({
         </div>
       )}
 
-      {/* Signaux dynamiques (sans titre, sans trait) */}
-      {signatures.length > 0 && (
+      {passportRows.length > 0 && (
         <ul className="carnet-stats-signals">
-          {signatures.map(sig => (
-            <li key={sig.key} className={`carnet-signal carnet-signal--${sig.key}`}>
-              <span className="carnet-signal-icon-wrap" aria-hidden="true">
-                <span className="carnet-signal-icon">{sig.icon}</span>
-              </span>
+          {passportRows.map(row => (
+            <li key={row.key} className={`carnet-signal carnet-signal--${row.key}`}>
+              <span className="carnet-signal-icon" aria-hidden="true"><Icon name={row.icon} /></span>
               <span className="carnet-signal-body">
-                <span className="carnet-signal-label">{sig.label}</span>
-                {sig.detail && <span className="carnet-signal-detail">{sig.detail}</span>}
+                <span className="carnet-signal-label">{row.label}</span>
+                {row.detail && <span className="carnet-signal-detail">{row.detail}</span>}
               </span>
             </li>
           ))}
@@ -547,9 +549,9 @@ function CarnetStats({
       )}
 
       {/* Répartition continents — inline, en bas (sans "Autre") */}
-      {continents.filter(c => c.continent !== 'Autre').length > 0 && confidence !== 'light' && (
+      {false && continents.length > 0 && confidence !== 'light' && (
         <div className="carnet-stats-continents-inline">
-          {continents.filter(c => c.continent !== 'Autre').map((c, i) => (
+          {continents.map((c, i) => (
             <span key={c.continent} className="carnet-cont-item">
               {i > 0 && <span className="carnet-cont-sep" aria-hidden="true">·</span>}
               <span className="carnet-cont-name">{CONTINENT_DISPLAY[c.continent]}</span>
@@ -559,9 +561,10 @@ function CarnetStats({
         </div>
       )}
 
-      <div className="carnet-stats-footer" aria-hidden="true">
-        <span className="carnet-stats-footer-line" />
-        <span className="carnet-stats-footer-text">Voir la carte</span>
+      <div className="carnet-stats-crest" aria-hidden="true">
+        <span className="carnet-stats-crest-line" />
+        <span className="carnet-stats-crest-star">✶</span>
+        <span className="carnet-stats-crest-line" />
       </div>
     </div>
   )
@@ -598,6 +601,99 @@ function renderShortLabel(kind: string, name: string): string {
     case 'milestone': return name ? `cap : ${name}` : 'a atteint un cap'
     default: return kind
   }
+}
+
+function normalizeArchetype(value: string): string {
+  return value
+    .replace(/^Â«\s*/, '')
+    .replace(/\s*Â»$/, '')
+    .replace(/^«\s*/, '')
+    .replace(/\s*»$/, '')
+}
+
+function signalIconName(key: string): string {
+  switch (key) {
+    case 'geo': return 'compass'
+    case 'coeur': return 'heart'
+    case 'budget': return 'star'
+    case 'year': return 'map'
+    case 'format': return 'plane'
+    case 'notes': return 'sparkles'
+    case 'companion': return 'users'
+    case 'intent': return 'map'
+    default: return 'map'
+  }
+}
+
+type PassportRow = {
+  key: string
+  icon: string
+  label: string
+  detail: string
+}
+
+function buildPassportSubtitle(destinations: Destination[]): string | null {
+  const counts = new Map<string, number>()
+  for (const destination of destinations) {
+    if (!destination.livedThere && destination.country) {
+      counts.set(destination.country, (counts.get(destination.country) ?? 0) + 1)
+    }
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
+  if (!top || top[1] < 2) return null
+  return `Recidiviste : ${top[0]}`
+}
+
+function buildPassportRows(profile: TravelerProfile, destinations: Destination[]): PassportRow[] {
+  const rows: PassportRow[] = []
+
+  const leadContinent = profile.continents[0]
+  if (leadContinent) {
+    rows.push({
+      key: 'explorer',
+      icon: 'compass',
+      label: 'Esprit explorateur',
+      detail: `${CONTINENT_DISPLAY[leadContinent.continent]} ${Math.round(leadContinent.pct)}%`,
+    })
+  }
+
+  if (profile.coupDeCoeurCount > 0) {
+    const counts = new Map<string, number>()
+    for (const destination of destinations) {
+      if (!destination.livedThere && destination.coupDeCoeur && destination.country) {
+        const continent = COUNTRY_TO_CONTINENT[destination.country] ?? 'Autre'
+        const label = CONTINENT_DISPLAY[continent]
+        counts.set(label, (counts.get(label) ?? 0) + 1)
+      }
+    }
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
+    if (top) {
+      rows.push({
+        key: 'coeur',
+        icon: 'heart',
+        label: 'Coup de coeur',
+        detail: `${top[0]} ${top[1]}/${profile.coupDeCoeurCount}`,
+      })
+    }
+  }
+
+  const countryCounts = new Map<string, number>()
+  for (const destination of destinations) {
+    if (!destination.livedThere && destination.country) {
+      countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + 1)
+    }
+  }
+  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+  if (topCountry) {
+    rows.push({
+      key: 'last-stop',
+      icon: 'pin',
+      label: 'Dernier arret',
+      detail: `${topCountry[0]} · ${topCountry[1]} voyages`,
+    })
+  }
+
+  return rows.slice(0, 3)
 }
 
 function shortTime(iso: string): string {

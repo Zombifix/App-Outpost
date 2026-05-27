@@ -714,7 +714,7 @@ svg {
   mask-repeat: no-repeat;
   -webkit-mask-position: 58% center;
   mask-position: 58% center;
-  opacity: 0.56;
+  opacity: 0.32;
   filter: saturate(0.72) contrast(0.92);
 }
 

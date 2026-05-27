@@ -198,8 +198,12 @@ function getDisplayTier(destination: Destination) {
   return getDestinationTier(destination)
 }
 
+function isRoadTripTagged(destination: Destination) {
+  return Boolean(destination.tripTypes?.includes('🚗 Road trip'))
+}
+
 function hasRenderableStops(destination: Destination) {
-  return Boolean(destination.stops?.some(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)))
+  return isRoadTripTagged(destination) && Boolean(destination.stops?.some(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)))
 }
 
 export default function DestinationSheet(props: DestinationSheetProps) {
@@ -371,7 +375,7 @@ function DestinationCardContent({
   const tripStopsHere = useMemo(() => {
     if (!allDestinations?.length) return []
     if (destination.kind === 'zone' || destination.kind === 'stop') return []
-    return findRoadtripStopsAtLocation(destination, allDestinations, destination.name)
+    return findRoadtripStopsAtLocation(destination, allDestinations.filter(isRoadTripTagged), destination.name)
   }, [destination, allDestinations])
 
   const tripsHereByName = useMemo(() => {

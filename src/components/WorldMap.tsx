@@ -48,7 +48,7 @@ function getDestinationFocusPoints(destination: Destination): Array<{ lng: numbe
     }
   }
 
-  if (destination.stops?.length) {
+  if (isRoadTripTagged(destination) && destination.stops?.length) {
     for (const stop of destination.stops) {
       if (isFiniteLngLat(stop)) points.push({ lng: stop.lng, lat: stop.lat })
     }
@@ -888,7 +888,7 @@ export default function WorldMap({
     if (d.extent) {
       const [w, s, e, n] = d.extent
       bounds = [[w, s], [e, n]]
-    } else if (d.stops?.length) {
+    } else if (isRoadTripTagged(d) && d.stops?.length) {
       const valid = d.stops.filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
       if (valid.length) {
         const lngs = valid.map(s => s.lng), lats = valid.map(s => s.lat)
@@ -909,7 +909,7 @@ export default function WorldMap({
   const friendOnly = friendDestinations
     ? friendDestinations.filter(d => !shared.has(destinationNameKey(d)))
     : []
-  const isTripZone = (destination: Destination) => destination.kind === 'zone' && getValidStops(destination).length > 0
+  const isTripZone = (destination: Destination) => destination.kind === 'zone' && isRoadTripTagged(destination) && getValidStops(destination).length > 0
 
   const placeDests = destinations.filter(d => d.kind !== 'zone' && d.kind !== 'stop')
   const overlapsByDest: Record<string, PinTripBadge[]> = {}
@@ -917,7 +917,7 @@ export default function WorldMap({
 
   for (const trip of destinations) {
     const validStops = getValidStops(trip)
-    if (trip.kind !== 'zone' || !validStops.length) continue
+    if (trip.kind !== 'zone' || !isRoadTripTagged(trip) || !validStops.length) continue
     const tripColor = getDestinationColor(trip) ?? '#1B5FE8'
     let stageCounter = 0
     trip.stops?.forEach((stop, index) => {
@@ -939,6 +939,7 @@ export default function WorldMap({
     const color = getDestinationColor(d)
     const validStops = getValidStops(d)
     if (!validStops.length || !color) return [] as JSX.Element[]
+    if (!isRoadTripTagged(d)) return [] as JSX.Element[]
     if (expandedRouteKey !== `${owner}:${d.name}` && selectedName !== d.name) return [] as JSX.Element[]
     const stopEls = d.stops?.map((stop, index) => {
       if (owner === 'me' && skipStops.has(`${d.name}|${index}`)) return null
@@ -1008,7 +1009,7 @@ export default function WorldMap({
       element.style.overflow = 'visible'
       element.style.pointerEvents = 'auto'
       const activateMarker = () => {
-        if (pin.destination.kind === 'zone' && pin.destination.stops?.length) {
+        if (pin.destination.kind === 'zone' && isRoadTripTagged(pin.destination) && pin.destination.stops?.length) {
           expandTripRoute(pin.destination, pin.owner)
           return
         }
@@ -1474,7 +1475,7 @@ const Pin = memo(function Pin({
   // Note: si zone sans étape → fall-through vers le pin standard (rendu identique
   // à une destination 'place'), pour éviter la petite pill discrète sans photo.
   if (destination.kind === 'zone') {
-    if (getValidStops(destination).length > 0) return null
+    if (isRoadTripTagged(destination) && getValidStops(destination).length > 0) return null
 
     // Zone sans étape → rendu identique au pin standard (fall-through)
   }

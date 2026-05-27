@@ -330,6 +330,12 @@ export const COUNTRY_TO_CONTINENT: Record<string, Continent> = {
   'Botswana': 'Afrique',
   'Île Maurice': 'Afrique',
   'Ile Maurice': 'Afrique',
+  'Maurice': 'Afrique',
+  'Mauritius': 'Afrique',
+  'Réunion': 'Afrique',
+  'Reunion': 'Afrique',
+  'La Réunion': 'Afrique',
+  'La Reunion': 'Afrique',
   'Seychelles': 'Afrique',
   'Cap-Vert': 'Afrique',
   // Océanie

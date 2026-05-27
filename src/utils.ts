@@ -202,7 +202,7 @@ export function computeTravelerProfile(destinations: Destination[]): TravelerPro
   const totalCountries = countries || 1
   const continents: ContinentShare[] = (Object.keys(continentCountrySets) as ContinentBucket[])
     .map(c => ({ continent: c, count: continentCountrySets[c].size, pct: (continentCountrySets[c].size / totalCountries) * 100 }))
-    .filter(c => c.count > 0 && c.pct >= 8)
+    .filter(c => c.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 3)
 

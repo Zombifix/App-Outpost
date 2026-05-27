@@ -52,7 +52,7 @@ const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> =
 }
 
 function formatEuro(value: number) {
-  return `${Math.round(value).toLocaleString('fr-FR')} â‚¬`
+  return `${Math.round(value).toLocaleString('fr-FR')} EUR`
 }
 
 const INTENT_LABELS: Record<Destination['intent'], string> = {
@@ -65,12 +65,12 @@ const INTENT_LABELS: Record<Destination['intent'], string> = {
 }
 
 const INTENT_EMOJIS: Record<Destination['intent'], string> = {
-  tourisme: 'ðŸ—º',
-  sorties: 'ðŸŒ™',
-  gastro: 'ðŸ½',
-  nature: 'ðŸŒ¿',
-  travail: 'ðŸ’¼',
-  'city-trip': 'ðŸ™',
+  tourisme: 'Map',
+  sorties: 'Night',
+  gastro: 'Food',
+  nature: 'Nature',
+  travail: 'Work',
+  'city-trip': 'City',
 }
 
 type ContextDetail =
@@ -78,12 +78,12 @@ type ContextDetail =
   | { kind: 'chips'; icon: string; label: string; chips: Array<{ label: string; tone: 'neutral' | 'positive' | 'negative' }> }
 
 const STANDOUT_FLOP_LABELS = new Set([
-  'ðŸ’¸ Budget qui pique',
-  'ðŸš Transports galÃ¨re',
-  'ðŸ‘¤ La foule',
-  'ðŸŽª PiÃ¨ges Ã  touristes',
-  'ðŸ˜´ Rythme Ã©puisant',
-  'ðŸŒ¦ï¸ MÃ©tÃ©o capricieuse',
+  'Budget qui pique',
+  'Transports galere',
+  'La foule',
+  'Pieges a touristes',
+  'Rythme epuisant',
+  'Meteo capricieuse',
 ])
 
 function getDestinationContext(destination: Destination) {
@@ -136,13 +136,13 @@ function getCriteria(destination: Destination) {
     ['Sorties & Vie nocturne', destination.night, 'martini'],
     ['Culture & Histoire', destination.culture, 'temple'],
     ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualitÃ©/prix', destination.value, 'coins'],
+    ['Rapport qualite/prix', destination.value, 'coins'],
   ]
   if (typeof destination.ease === 'number') {
-    base.push(['FacilitÃ© sur place', destination.ease, 'compass'])
+    base.push(['Facilite sur place', destination.ease, 'compass'])
   }
   if (typeof destination.memorability === 'number') {
-    base.push(['Souvenir laissÃ©', destination.memorability, 'star'])
+    base.push(['Souvenir laisse', destination.memorability, 'star'])
   }
   return base
 }
@@ -713,32 +713,32 @@ function DestinationCardContent({
                   {formatCompareLabel(
                     destination.personalBudget / Math.max(destination.tripDays ?? 1, 1),
                     compareWith.destination.personalBudget / Math.max(compareWith.destination.tripDays ?? 1, 1),
-                    ' â‚¬/j'
+                    ' EUR/j'
                   )}
                 </span>
               )}
             </div>
           </div>
 
-          <section className="compare-sheet-card" aria-label="CompatibilitÃ©">
+          <section className="compare-sheet-card" aria-label="Compatibilite">
             <div className="compare-sheet-score">
-              <span>CompatibilitÃ©</span>
+              <span>Compatibilite</span>
               <strong>{compareCompatibility.score}%</strong>
               <em>d'accord</em>
             </div>
             <div className="compare-sheet-stats">
               <div className="compare-sheet-stat compare-sheet-stat--ok">
-                <span>âœ“</span>
-                {compareCompatibility.shared} critÃ¨res en commun
+                <span>OK</span>
+                {compareCompatibility.shared} criteres en commun
               </div>
               <div className="compare-sheet-stat compare-sheet-stat--warn">
                 <span>!</span>
-                {compareCompatibility.differences} diffÃ©rences marquÃ©es
+                {compareCompatibility.differences} differences marquees
               </div>
             </div>
           </section>
 
-          <section className="compare-tag-groups" aria-label="GoÃ»ts comparÃ©s">
+          <section className="compare-tag-groups" aria-label="Gouts compares">
             {compareTags.common.length > 0 && (
               <div className="compare-tag-group">
                 <h3>En commun ({compareTags.common.length})</h3>
@@ -770,7 +770,7 @@ function DestinationCardContent({
           </section>
         </>
       )}
-      <h3>Notes par critÃ¨re</h3>
+      <h3>Notes par critere</h3>
       {compareWith && compareCriteria.length > 0 ? (
         <div className="criteria-compare" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
           <div className="criteria-compare-head">
@@ -778,7 +778,7 @@ function DestinationCardContent({
             <span />
             <strong>Toi</strong>
             <strong>{compareWith.friend.displayName.split(' ')[0]}</strong>
-            <strong>Ã‰cart</strong>
+            <strong>Ecart</strong>
           </div>
           <div className="criteria-compare-list">
             {compareCriteria.map(item => (

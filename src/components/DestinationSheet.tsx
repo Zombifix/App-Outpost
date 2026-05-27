@@ -202,6 +202,10 @@ function getDisplayTier(destination: Destination) {
   return getDestinationTier(destination)
 }
 
+function hasRenderableStops(destination: Destination) {
+  return Boolean(destination.stops?.some(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)))
+}
+
 export default function DestinationSheet(props: DestinationSheetProps) {
   const isComparison = Boolean(props.compareWith)
   const useSheetLayout = useMediaQuery(isComparison ? '(max-width: 1100px)' : '(max-width: 900px)')
@@ -483,7 +487,7 @@ function DestinationCardContent({
           <Icon name="x" />
         </button>
       </div>
-      {destination.kind === 'zone' ? (
+      {destination.kind === 'zone' && hasRenderableStops(destination) ? (
         <RoadTripCardContent
           destination={destination}
           coupDeCoeur={coupDeCoeur}
@@ -540,7 +544,7 @@ function DestinationCardContent({
       <div className="destination-title-row">
         <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
         <div>
-          <h2>{destination.name}, {destination.country}</h2>
+          <h2>{destination.name}{destination.country && destination.country !== destination.name ? `, ${destination.country}` : ''}</h2>
         </div>
       </div>
       {compareWith && (

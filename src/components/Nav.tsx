@@ -61,11 +61,10 @@ export default function Nav({
 }: NavProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const activeFilterCount = [
-    filters.topTiers,
-    filters.under300,
-    filters.recentOnly,
-    filters.duration !== 'all',
-    filters.ambiance,
+    filters.coupDeCoeur,
+    filters.thisYear,
+    filters.companions !== 'all',
+    filters.budget !== 'all',
   ].filter(Boolean).length
 
   const updateFilters = (patch: Partial<DestinationFilters>) => {
@@ -147,32 +146,36 @@ export default function Nav({
                   {activeFilterCount > 0 && (
                     <button
                       type="button"
-                      onPointerDown={() => onFiltersChange({ topTiers: false, under300: false, recentOnly: false, duration: 'all', ambiance: false })}
+                      onPointerDown={() => onFiltersChange({ coupDeCoeur: false, thisYear: false, companions: 'all', budget: 'all' })}
                     >
                       Reset
                     </button>
                   )}
                 </div>
                 <div className="filter-chip-grid">
-                  <button type="button" className={filters.topTiers ? 'is-active' : ''} onPointerDown={() => updateFilters({ topTiers: !filters.topTiers })}>
-                    Top tiers
+                  <button type="button" className={filters.coupDeCoeur ? 'is-active' : ''} onPointerDown={() => updateFilters({ coupDeCoeur: !filters.coupDeCoeur })}>
+                    ❤️ Coups de cœur
                   </button>
-                  <button type="button" className={filters.under300 ? 'is-active' : ''} onPointerDown={() => updateFilters({ under300: !filters.under300 })}>
-                    &lt; 300 €
-                  </button>
-                  <button type="button" className={filters.recentOnly ? 'is-active' : ''} onPointerDown={() => updateFilters({ recentOnly: !filters.recentOnly })}>
-                    Récent
-                  </button>
-                  <button type="button" className={filters.ambiance ? 'is-active' : ''} onPointerDown={() => updateFilters({ ambiance: !filters.ambiance })}>
-                    Ambiance
+                  <button type="button" className={filters.thisYear ? 'is-active' : ''} onPointerDown={() => updateFilters({ thisYear: !filters.thisYear })}>
+                    📅 Cette année
                   </button>
                 </div>
                 <div className="filter-duration">
-                  <span>Durée</span>
-                  <div>
-                    <button type="button" className={filters.duration === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'all' })}>Tout</button>
-                    <button type="button" className={filters.duration === 'short' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'short' })}>Court</button>
-                    <button type="button" className={filters.duration === 'long' ? 'is-active' : ''} onPointerDown={() => updateFilters({ duration: 'long' })}>Long</button>
+                  <span>Avec qui</span>
+                  <div className="filter-grid-2">
+                    <button type="button" className={filters.companions === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'all' })}>Tous</button>
+                    <button type="button" className={filters.companions === 'solo' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'solo' })}>🎒 Solo</button>
+                    <button type="button" className={filters.companions === 'amis' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'amis' })}>👯 Entre amis</button>
+                    <button type="button" className={filters.companions === 'famille' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'famille' })}>👨‍👩‍👧 En famille</button>
+                  </div>
+                </div>
+                <div className="filter-duration">
+                  <span>Budget</span>
+                  <div className="filter-grid-4">
+                    <button type="button" className={filters.budget === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: 'all' })}>Tous</button>
+                    <button type="button" className={filters.budget === '$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$' })}>$</button>
+                    <button type="button" className={filters.budget === '$$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$$' })}>$$</button>
+                    <button type="button" className={filters.budget === '$$$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$$$' })}>$$$</button>
                   </div>
                 </div>
               </div>

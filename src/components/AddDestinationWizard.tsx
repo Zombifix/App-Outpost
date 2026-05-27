@@ -23,7 +23,7 @@ export interface SaveOptions {
 }
 
 type DestKind = 'place' | 'zone' | 'stop' | 'stage'
-type WizardStep = 'search' | 'type' | 'questions' | 'profile' | 'context' | 'stops' | 'result'
+type WizardStep = 'search' | 'questions' | 'profile' | 'context' | 'result'
 
 interface PhotonResult {
   name: string
@@ -42,7 +42,7 @@ interface SuggestionItem {
   result: PhotonResult
   alreadyAdded: boolean
   displayCountry?: string
-  flag?: string
+  flagUrl?: string
   zoneTypeLabel?: string
 }
 
@@ -262,17 +262,22 @@ function normalizeCountry(s: string): string {
     .trim()
 }
 
-function getFlagEmoji(countryCode?: string): string | undefined {
+function getFlagUrl(countryCode?: string): string | undefined {
   if (!countryCode) return undefined
-  const normalized = countryCode.trim().toUpperCase()
-  if (!/^[A-Z]{2}$/.test(normalized)) return undefined
-  return String.fromCodePoint(...normalized.split('').map(char => 127397 + char.charCodeAt(0)))
+  const normalized = countryCode.trim().toLowerCase()
+  if (!/^[a-z]{2}$/.test(normalized)) return undefined
+  return `https://flagcdn.com/24x18/${normalized}.png`
+}
+
+function getKindFromPhotonResult(result: PhotonResult): DestKind {
+  if (result.osmValue && ZONE_OSM_VALUES.has(result.osmValue)) return 'zone'
+  return 'place'
 }
 
 function isPhotonDuplicate(result: PhotonResult, existingDestinations?: Destination[]): boolean {
   if (!existingDestinations?.length) return false
   return Boolean(findDuplicate(
-    { name: result.name, lat: result.lat, lng: result.lng, kind: 'place' },
+    { name: result.name, lat: result.lat, lng: result.lng, kind: getKindFromPhotonResult(result) },
     existingDestinations,
   ))
 }
@@ -282,13 +287,12 @@ function getZoneTypeLabel(result: PhotonResult): string | undefined {
     case 'island': return 'Île'
     case 'archipelago': return 'Archipel'
     case 'country': return 'Pays'
-    case 'state':
-    case 'region':
-    case 'province':
-    case 'county':
-    case 'department':
-    case 'district':
-      return 'Région'
+    case 'state': return 'État'
+    case 'region': return 'Région'
+    case 'province': return 'Province'
+    case 'county': return 'Comté'
+    case 'department': return 'Département'
+    case 'district': return 'District'
     default:
       return undefined
   }
@@ -299,7 +303,7 @@ function hasZoneGeometryCandidate(result: PhotonResult) {
   return type === 'relation' || type === 'r' || type === 'way' || type === 'w'
 }
 
-function sortSuggestions(results: PhotonResult[], query: string, kind: DestKind): PhotonResult[] {
+function sortSuggestions(results: PhotonResult[], query: string, kind: DestKind | 'mixed'): PhotonResult[] {
   const normalizedQuery = normalizeCountry(query)
   return [...results].sort((a, b) => {
     const exactA = normalizeCountry(a.name) === normalizedQuery ? 1 : 0
@@ -358,7 +362,7 @@ async function searchPhoton(
     state?: string
     lat?: number
     lng?: number
-    kindFilter?: 'place' | 'zone'
+    kindFilter?: 'place' | 'zone' | 'mixed'
   } = {},
 ): Promise<PhotonResult[]> {
   const fetchResults = async (withBias: boolean): Promise<PhotonResult[]> => {
@@ -386,7 +390,7 @@ async function searchPhoton(
     })
   }
 
-  const shouldBlendNationalAndLocal = opts.kindFilter === 'place'
+  const shouldBlendNationalAndLocal = (opts.kindFilter === 'place' || opts.kindFilter === 'mixed')
     && Boolean(opts.country)
     && Number.isFinite(opts.lat)
     && Number.isFinite(opts.lng)
@@ -403,9 +407,16 @@ async function searchPhoton(
       : all.filter(r => r.osmValue && PLACE_ADMIN_FALLBACK_VALUES.has(r.osmValue))
   } else if (opts.kindFilter === 'zone') {
     all = all.filter(r => r.osmValue && ZONE_OSM_VALUES.has(r.osmValue))
+  } else {
+    all = all.filter(r => {
+      if (!r.osmValue) return false
+      return PLACE_OSM_VALUES.has(r.osmValue)
+        || PLACE_ADMIN_FALLBACK_VALUES.has(r.osmValue)
+        || ZONE_OSM_VALUES.has(r.osmValue)
+    })
   }
 
-  const ordered = opts.kindFilter === 'zone' ? sortSuggestions(all, q, 'zone') : all
+  const ordered = opts.kindFilter ? sortSuggestions(all, q, opts.kindFilter) : all
   if (opts.state) {
     // Filtre strict : si la zone est un état/région, on n'accepte QUE des résultats
     // dans cet état (peu importe le résultat — on retourne vide si rien ne match).
@@ -515,10 +526,7 @@ const QUESTIONS = [
 
 type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'memorability' | 'vibeBoost' | 'retourBonus'
 
-const TYPE_OPTIONS: { kind: DestKind; icon: string; label: string; desc: string }[] = [
-  { kind: 'place', icon: '📍', label: 'Destination', desc: 'Une ville ou un endroit précis' },
-  { kind: 'zone', icon: '🗺️', label: 'Road trip / Zone', desc: 'Une région, un itinéraire' },
-]
+const SEARCH_EXAMPLES = ['Tokyo', 'Okinawa', 'Texas', 'Road trip Toscane']
 
 const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; label: string }> = [
   { value: 'solo', label: '🧍 Solo' },
@@ -620,7 +628,7 @@ const AUTO_IMAGE_VERSION = 5
 
 export default function AddDestinationWizard({ onClose, onAdd, initialDestination, onUpdate, existingDestinations, coupDeCoeurDestinations = [], onDuplicateFound }: WizardProps) {
   const isEditing = !!initialDestination
-  const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'type')
+  const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'search')
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<PhotonResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -751,7 +759,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   // Fermeture avec garde : demande confirmation si l'utilisateur est en plein
   // questionnaire pour éviter la perte accidentelle de réponses.
   const handleClose = () => {
-    const hasProgress = step !== 'type' && step !== 'search'
+    const hasProgress = step !== 'search'
     if (hasProgress && !window.confirm('Fermer le formulaire ? Tes réponses seront perdues.')) return
     onClose()
   }
@@ -776,21 +784,22 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     : undefined
   const quickStopSuggestions = getQuickStopSuggestions(state, stops)
   const suggestionItems = useMemo<SuggestionItem[]>(() => {
-    return sortSuggestions(suggestions, query, state.kind)
+    return sortSuggestions(suggestions, query, 'mixed')
       .map(result => {
         const displayCountry = result.country
           ? `${result.state && result.state !== result.name ? `${result.state}, ` : ''}${result.country}`
           : undefined
         return {
           result,
-          alreadyAdded: !isEditing && state.kind === 'place' && isPhotonDuplicate(result, existingDestinations),
+          alreadyAdded: !isEditing && isPhotonDuplicate(result, existingDestinations),
           displayCountry,
-          flag: getFlagEmoji(result.countryCode),
-          zoneTypeLabel: state.kind === 'zone' ? getZoneTypeLabel(result) : undefined,
+          flagUrl: getFlagUrl(result.countryCode),
+          zoneTypeLabel: getZoneTypeLabel(result),
         }
       })
+      .sort((a, b) => Number(a.alreadyAdded) - Number(b.alreadyAdded))
       .slice(0, 4)
-  }, [existingDestinations, isEditing, query, state.kind, suggestions])
+  }, [existingDestinations, isEditing, query, suggestions])
 
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
@@ -802,7 +811,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const results = await searchPhoton(query, { kindFilter: state.kind === 'zone' ? 'zone' : 'place' })
+        const results = await searchPhoton(query, { kindFilter: 'mixed' })
         setSuggestions(results)
       } catch {
         setSuggestions([])
@@ -811,14 +820,14 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       }
     }, 280)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [query, state.kind])
+  }, [query])
 
   const selectSuggestion = (r: PhotonResult) => {
     // Détection précoce du doublon : dès qu'on sait le nom + les coords, on
     // évite de faire remplir tout le questionnaire pour rien.
     if (onDuplicateFound && existingDestinations && !isEditing) {
       const dup = findDuplicate(
-        { name: r.name, lat: r.lat, lng: r.lng, kind: state.kind },
+        { name: r.name, lat: r.lat, lng: r.lng, kind: getKindFromPhotonResult(r) },
         existingDestinations,
       )
       if (dup) {
@@ -831,22 +840,24 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     setSuggestions([])
     setState(prev => ({
       ...prev,
-          name: r.name,
-          country: r.country,
-          countryCode: r.countryCode,
-          state: r.state,
-          osmValue: r.osmValue,
-          osmId: r.osmId,
-          osmType: r.osmType,
-          lat: r.lat,
+      name: r.name,
+      country: r.country,
+      countryCode: r.countryCode,
+      state: r.state,
+      osmValue: r.osmValue,
+      osmId: r.osmId,
+      osmType: r.osmType,
+      lat: r.lat,
       lng: r.lng,
       extent: r.extent,
       geojson: undefined,
+      kind: getKindFromPhotonResult(r),
     }))
+    setStops([])
     setQuestionIndex(0)
     setAnsweredKeys(new Set())
     setStep('questions')
-    if (state.kind === 'zone') {
+    if (getKindFromPhotonResult(r) === 'zone') {
       // Resolve the exact OSM selection so homonyms cannot replace the chosen island/region.
       resolveZoneGeojson(r).then(geojson => {
         setState(prev => (
@@ -856,11 +867,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         ))
       })
     }
-  }
-
-  const selectKind = (kind: DestKind) => {
-    setState(prev => ({ ...prev, kind }))
-    setStep('search')
   }
 
   const answerQuestion = (key: QuestionKey, value: number | null) => {
@@ -875,7 +881,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   }
 
   const finishQuestionnaire = (nextState: WizardState = state) => {
-    setStep(nextState.kind === 'zone' ? 'stops' : 'result')
+    void nextState
+    setStep('result')
   }
 
   const renderWizardHeading = (counterLabel?: string) => (
@@ -1046,9 +1053,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   }
 
   const activeQuestions = QUESTIONS
-  const progressSteps: WizardStep[] = state.kind === 'zone'
-    ? ['type', 'search', 'questions', 'profile', 'context', 'stops']
-    : ['type', 'search', 'questions', 'profile', 'context']
+  const progressSteps: WizardStep[] = ['search', 'questions', 'profile', 'context']
 
   const toggleTripType = (option: string) => {
     setState(prev => {
@@ -1312,48 +1317,40 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           </div>
         )}
 
-        {step === 'type' && (
-          <div className="wizard-step">
-            <h2 className="wizard-title">C'était quoi comme trip ?</h2>
-            <div className="wizard-type-grid">
-              {TYPE_OPTIONS.map(opt => (
-                <button
-                  key={opt.kind}
-                  className="wizard-type-card"
-                  onClick={() => selectKind(opt.kind)}
-                >
-                  <span className="type-icon">{opt.icon}</span>
-                  <strong>{opt.label}</strong>
-                  <small>{opt.desc}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {step === 'search' && (
           <div className="wizard-step">
-            <h2 className="wizard-title">Où es-tu allé ?</h2>
-            <p className="wizard-sub">
-              {state.kind === 'zone'
-                ? 'Tape une région, un état, un pays…'
-                : 'Tape une ville ou un endroit précis…'}
-            </p>
+            <h2 className="wizard-title">C'était quoi, ce voyage ?</h2>
+            <p className="wizard-sub">Recherche un lieu à ajouter à ton Travel Book : ville, pays, île, région, road trip ou endroit où tu as vécu.</p>
             <div className="wizard-search-box">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder={state.kind === 'zone' ? 'France, Texas, Côte d\'Azur…' : 'Paris, Tokyo, Marrakech…'}
+                placeholder="Rechercher un lieu, une région, un pays…"
                 className="wizard-input"
                 onKeyDown={e => e.key === 'Escape' && onClose()}
               />
               {loading && <span className="wizard-spinner">·</span>}
             </div>
+            <div className="wizard-search-examples" aria-label="Exemples de recherche">
+              {SEARCH_EXAMPLES.map(example => (
+                <button
+                  key={example}
+                  type="button"
+                  className="wizard-search-example"
+                  onClick={() => {
+                    setQuery(example)
+                    inputRef.current?.focus()
+                  }}
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
             {suggestions.length > 0 && (
               <ul className="wizard-suggestions">
-                {suggestionItems.map(({ result, alreadyAdded, displayCountry, flag, zoneTypeLabel }, i) => (
+                {suggestionItems.map(({ result, alreadyAdded, displayCountry, flagUrl, zoneTypeLabel }, i) => (
                   <li key={i}>
                     <button onClick={() => selectSuggestion(result)} className={alreadyAdded ? 'is-duplicate' : ''}>
                       <span className="sug-main">
@@ -1364,7 +1361,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                         </span>
                         {displayCountry && (
                           <span className="sug-country">
-                            {flag && <span className="sug-flag" aria-hidden="true">{flag}</span>}
+                            {flagUrl && <img className="sug-flag-img" src={flagUrl} alt="" aria-hidden="true" />}
                             {displayCountry}
                           </span>
                         )}
@@ -1374,13 +1371,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 ))}
               </ul>
             )}
-            <button
-              className="wizard-back"
-              style={{ marginTop: 12 }}
-              onClick={() => setStep('type')}
-            >
-              ← Changer de type
-            </button>
           </div>
         )}
 
@@ -1446,25 +1436,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 disabled={needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName}
               >
                 Continuer
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 'stops' && state.kind === 'zone' && (
-          <div className="wizard-step wizard-stops-step">
-            {renderWizardHeading('Itineraire')}
-            <h2 className="wizard-title">Quelles etaient les etapes ?</h2>
-            <p className="wizard-sub">
-              Optionnel : ajoute seulement les stops qui racontent le trajet. La note reste globale au road trip.
-            </p>
-            {renderStopsSection()}
-            <div className="wizard-step-actions">
-              <button className="wizard-back" onClick={() => setStep(isEditing ? 'context' : 'questions')}>
-                Précédent
-              </button>
-              <button className="wizard-next" onClick={() => setStep('result')}>
-                {stops.length > 0 ? 'Continuer' : 'Passer'}
               </button>
             </div>
           </div>

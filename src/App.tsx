@@ -34,11 +34,10 @@ import { FAKE_FRIENDS_MODE, findFakeFriendByHandle, getFakeFriendDestinations } 
 const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 export type DestinationFilters = {
-  topTiers: boolean
-  under300: boolean
-  recentOnly: boolean
-  duration: 'all' | 'short' | 'long'
-  ambiance: boolean
+  coupDeCoeur: boolean
+  thisYear: boolean
+  companions: 'all' | 'solo' | 'amis' | 'famille'
+  budget: 'all' | '$' | '$$' | '$$$'
 }
 
 const VALID_TIERS: Tier[] = ['S', 'A', 'B', 'C', 'D']
@@ -47,11 +46,10 @@ const VALID_KINDS: NonNullable<Destination['kind']>[] = ['place', 'zone', 'stop'
 const VALID_COMPANIONS: NonNullable<Destination['companions']>[] = ['solo', 'couple', 'amis', 'famille', 'travail']
 const VALID_OSM_TYPES: NonNullable<Destination['osmType']>[] = ['N', 'W', 'R', 'node', 'way', 'relation']
 const DEFAULT_FILTERS: DestinationFilters = {
-  topTiers: false,
-  under300: false,
-  recentOnly: false,
-  duration: 'all',
-  ambiance: false,
+  coupDeCoeur: false,
+  thisYear: false,
+  companions: 'all',
+  budget: 'all',
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -431,13 +429,19 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   const visibleDestinations = useMemo(() => {
     const currentYear = new Date().getFullYear()
     const filtered = destinations.filter(destination => {
-      const tier = getDestinationTier(destination)
-      if (filters.topTiers && tier !== 'S' && tier !== 'A') return false
-      if (filters.under300 && (!destination.personalBudget || destination.personalBudget > 300)) return false
-      if (filters.recentOnly && (!destination.tripYear || destination.tripYear < currentYear - 1)) return false
-      if (filters.duration === 'short' && (!destination.tripDays || destination.tripDays > 4)) return false
-      if (filters.duration === 'long' && (!destination.tripDays || destination.tripDays < 7)) return false
-      if (filters.ambiance && destination.standout !== 'Ambiance' && !destination.standoutTags?.some(tag => tag.includes('Ambiance'))) return false
+      if (filters.coupDeCoeur && !destination.coupDeCoeur) return false
+      if (filters.thisYear && destination.tripYear !== currentYear) return false
+      if (filters.companions !== 'all') {
+        const c = destination.companions
+        if (filters.companions === 'amis' && c !== 'amis' && c !== 'couple') return false
+        if (filters.companions !== 'amis' && c !== filters.companions) return false
+      }
+      if (filters.budget !== 'all') {
+        const b = destination.personalBudget
+        if (filters.budget === '$' && (b === undefined || b >= 300)) return false
+        if (filters.budget === '$$' && (b === undefined || b < 300 || b > 800)) return false
+        if (filters.budget === '$$$' && (b === undefined || b <= 800)) return false
+      }
       return true
     })
 

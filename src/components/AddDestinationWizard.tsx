@@ -513,6 +513,52 @@ const QUESTIONS = [
 
 type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'vibeBoost' | 'retourBonus'
 
+const QUESTION_META: Record<QuestionKey, { emoji: string; intro: string }> = {
+  food: {
+    emoji: '🍽️',
+    intro: 'On veut tout savoir : des pepites locales aux plats que tu ne recommandes pas.',
+  },
+  night: {
+    emoji: '🌙',
+    intro: 'Bars cools, restos qui vivent tard ou ambiance plus calme : raconte l energie du soir.',
+  },
+  culture: {
+    emoji: '🗺️',
+    intro: 'Musees, ruelles, monuments, activites : est-ce qu il y avait vraiment de quoi faire ?',
+  },
+  nature: {
+    emoji: '📸',
+    intro: 'Mer, montagne, skyline ou paysages : est-ce que le decor t a vraiment marque ?',
+  },
+  value: {
+    emoji: '💸',
+    intro: 'L idee ici, c est ton ressenti budget sur place, pas une verite absolue.',
+  },
+  ease: {
+    emoji: '🧩',
+    intro: 'Transports, trajets, logistique : est-ce que tout roulait ou c etait vite fatigant ?',
+  },
+  vibeBoost: {
+    emoji: '🫶',
+    intro: 'Accueil, ambiance, energie generale : comment tu t es senti(e) sur place ?',
+  },
+  retourBonus: {
+    emoji: '🔁',
+    intro: 'Pas besoin d etre rationnel : l instinct suffit. Tu te reverrais y retourner ?',
+  },
+}
+
+function stripLeadingEmojiLabel(label: string) {
+  const parts = label.split(' ')
+  const first = parts[0]
+  const hasEmojiLead = /\p{Extended_Pictographic}/u.test(first)
+  return {
+    hasEmojiLead,
+    leadingToken: hasEmojiLead ? first : '',
+    text: hasEmojiLead ? label.slice(first.length).trim() : label,
+  }
+}
+
 const SEARCH_EXAMPLES = ['Tokyo', 'Okinawa', 'Texas', 'Road trip Toscane']
 
 const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; label: string }> = [
@@ -523,44 +569,36 @@ const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; 
   { value: 'travail', label: '💻 Travail' },
 ]
 
+const ROAD_TRIP_LABEL = '🚗 Road trip'
+
 const TRIP_TYPE_OPTIONS: { id: string; label: string }[] = [
   { id: 'culture',  label: '🏛️ Musées & monuments' },
   { id: 'food',     label: '🍽️ Food tour' },
   { id: 'nature',   label: '🌿 Grand air & rando' },
-  { id: 'ville',    label: '🏙️ City break' },
-  { id: 'fete',     label: '🌙 Vie nocturne' },
   { id: 'repos',    label: '🧘 Mode lézard' },
-  { id: 'roadtrip', label: '🚗 Road trip' },
-  { id: 'bleisure', label: '💻 Bleisure' },
+  { id: 'fete',     label: '🌙 Vie nocturne' },
 ]
 
 const TRIP_TYPE_LABEL_TO_ID: Record<string, string> = Object.fromEntries(
   TRIP_TYPE_OPTIONS.map(option => [option.label, option.id])
 )
-const ROAD_TRIP_LABEL = '🚗 Road trip'
-
 function getIntentFromTripTypes(tripTypes: string[]): Intent {
   const ids = tripTypes.map(label => TRIP_TYPE_LABEL_TO_ID[label]).filter(Boolean)
   if (ids.includes('food')) return 'gastro'
   if (ids.includes('fete')) return 'sorties'
   if (ids.includes('bleisure')) return 'travail'
-  if (ids.includes('nature') || ids.includes('roadtrip')) return 'nature'
+  if (ids.includes('nature')) return 'nature'
   if (ids.includes('ville') || ids.includes('repos')) return 'city-trip'
   return 'tourisme'
 }
 
 const STANDOUT_OPTIONS = [
-  // Tops
-  '✨ L\'énergie',
   '🤤 Claques culinaires',
-  '💬 Les locaux',
   '📸 Spots de folie',
-  '⛩️ Dépaysement',
   '🧱 Architecture & ruelles',
-  // Flops
+  '🤝 Rencontres marquantes',
   '💸 Budget qui pique',
   '🚏 Transports galère',
-  '👤 La foule',
   '🎪 Pièges à touristes',
   '😴 Rythme épuisant',
   '🌦️ Météo capricieuse',
@@ -1104,7 +1142,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         const tripTypes = prev.tripTypes.filter(item => item !== option)
         return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
       }
-      if (prev.tripTypes.length >= 3) return prev
+      const selectedVibeCount = prev.tripTypes.filter(item => item !== ROAD_TRIP_LABEL).length
+      if (option !== ROAD_TRIP_LABEL && selectedVibeCount >= 3) return prev
       const tripTypes = [...prev.tripTypes, option]
       return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
     })
@@ -1121,12 +1160,16 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   const renderStayTypeFields = () => (
     <div className="wizard-context wizard-context--embedded wizard-context--tags">
-      <div className="wizard-context-group">
-        <span>Type de séjour</span>
+      <div className="wizard-context-group wizard-context-group--card">
+        <div className="wizard-context-heading">
+          <span>Type de séjour</span>
+          <p className="wizard-context-helper">Choisis jusqu'à 3 vibes pour raconter l'esprit du séjour.</p>
+        </div>
         <div className="wizard-chip-row" aria-label="Type de séjour">
           {TRIP_TYPE_OPTIONS.map(option => {
             const isSelected = state.tripTypes.includes(option.label)
-            const isDisabled = !isSelected && state.tripTypes.length >= 3
+            const selectedVibeCount = state.tripTypes.filter(item => item !== ROAD_TRIP_LABEL).length
+            const isDisabled = !isSelected && selectedVibeCount >= 3
             return (
               <button
                 key={option.id}
@@ -1140,8 +1183,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           })}
         </div>
       </div>
-      <div className="wizard-context-group">
-        <span>Ce que tu retiens du séjour</span>
+      <div className="wizard-context-group wizard-context-group--card">
+        <div className="wizard-context-heading">
+          <span>Ce que tu retiens du séjour</span>
+          <p className="wizard-context-helper">Les moments, galères ou pépites qui ressortent tout de suite.</p>
+        </div>
         <div className="wizard-chip-row" aria-label="Ce que tu retiens du séjour">
           {STANDOUT_OPTIONS.map(option => (
             <button
@@ -1158,39 +1204,45 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   )
 
   const renderTripContextFields = () => (
-    <div className="wizard-context wizard-context--embedded">
-      <div className="wizard-context-grid">
-        <label>
-          <span>Année</span>
-          <input
-            value={state.tripYear ?? ''}
-            inputMode="numeric"
-            placeholder="2024"
-            onChange={e => setState(prev => ({ ...prev, tripYear: e.target.value ? Number(e.target.value) : null }))}
-          />
-        </label>
-        <label>
-          <span>Durée</span>
-          <input
-            value={state.tripDays ?? ''}
-            inputMode="numeric"
-            placeholder="5 jours"
-            onChange={e => setState(prev => ({ ...prev, tripDays: e.target.value ? Number(e.target.value) : null }))}
-          />
-        </label>
-        <label>
-          <span>Budget perso</span>
-          <input
-            value={state.personalBudget ?? ''}
-            inputMode="numeric"
-            placeholder="450 €"
-            onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
-          />
-          <small className="wizard-field-helper">hors transport si besoin</small>
-        </label>
+    <div className="wizard-context wizard-context--embedded wizard-context--details">
+      <div className="wizard-context-block wizard-context-block--form">
+        <div className="wizard-context-heading">
+          <span>Repères du séjour</span>
+        </div>
+        <div className="wizard-context-grid">
+          <label>
+            <span>Année</span>
+            <input
+              value={state.tripYear ?? ''}
+              inputMode="numeric"
+              placeholder="2024"
+              onChange={e => setState(prev => ({ ...prev, tripYear: e.target.value ? Number(e.target.value) : null }))}
+            />
+          </label>
+          <label>
+            <span>Durée</span>
+            <input
+              value={state.tripDays ?? ''}
+              inputMode="numeric"
+              placeholder="5 jours"
+              onChange={e => setState(prev => ({ ...prev, tripDays: e.target.value ? Number(e.target.value) : null }))}
+            />
+          </label>
+          <label>
+            <span>Budget perso</span>
+            <input
+              value={state.personalBudget ?? ''}
+              inputMode="numeric"
+              placeholder="450 €"
+              onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
+            />
+          </label>
+        </div>
       </div>
-      <div className="wizard-context-group">
-        <span>Avec qui ?</span>
+      <div className="wizard-context-block">
+        <div className="wizard-context-heading">
+          <span>Avec qui ?</span>
+        </div>
         <div className="wizard-chip-row" aria-label="Avec qui">
           {COMPANION_OPTIONS.map(option => (
             <button
@@ -1203,8 +1255,10 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           ))}
         </div>
       </div>
-      <div className="wizard-context-group">
-        <span>Marqueurs du voyage</span>
+      <div className="wizard-context-block">
+        <div className="wizard-context-heading">
+          <span>Marqueurs du voyage</span>
+        </div>
         <div className="wizard-toggle-row" aria-label="Marqueurs du voyage">
           {state.kind === 'zone' && (
             <button
@@ -1365,7 +1419,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         )}
 
         {/* Progress dots — masqués en mode édition (on saute type/search) */}
-        {!isEditing && step !== 'result' && (
+        {!isEditing && step !== 'result' && step !== 'questions' && (
           <div className="wizard-progress">
             {progressSteps.map((s, i) => (
               <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < progressSteps.indexOf(step) ? 'done' : '')}`} />
@@ -1432,13 +1486,34 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'questions' && (
           <div className="wizard-step">
-            {renderWizardHeading(`${questionIndex + 1} / ${activeQuestions.length}`)}
-            <h2 className="wizard-title">{activeQuestions[questionIndex]?.question}</h2>
+            <div className="wizard-question-shell">
+              <div className="wizard-question-meta">
+                <span className="wizard-question-step">
+                  <span className="wizard-question-dots" aria-hidden="true">
+                    {progressSteps.map((s, i) => (
+                      <span key={s} className={`wizard-dot ${step === s ? 'active' : (i < progressSteps.indexOf(step) ? 'done' : '')}`} />
+                    ))}
+                  </span>
+                  <span>{state.name}</span>
+                </span>
+                <span className="wizard-question-step-count">{questionIndex + 1} / {activeQuestions.length}</span>
+              </div>
+              <div className="wizard-question-header">
+                <span className="wizard-question-title-icon" aria-hidden="true">
+                  {QUESTION_META[activeQuestions[questionIndex].key as QuestionKey].emoji}
+                </span>
+                <div className="wizard-question-copy">
+                  <h2 className="wizard-title">{stripLeadingEmojiLabel(activeQuestions[questionIndex]?.question ?? '').text}</h2>
+                  <p className="wizard-question-intro">{QUESTION_META[activeQuestions[questionIndex].key as QuestionKey].intro}</p>
+                </div>
+              </div>
+            </div>
             <div className="wizard-answers">
               {activeQuestions[questionIndex]?.answers.map((a, i) => {
                 const questionKey = activeQuestions[questionIndex].key as QuestionKey
                 const currentValue = state[questionKey as keyof WizardState]
                 const isSelected = a.value === currentValue && answeredKeys.has(questionKey) && !skippedKeys.has(questionKey)
+                const parsedLabel = stripLeadingEmojiLabel(a.label)
                 return (
                   <button
                     key={i}
@@ -1448,21 +1523,25 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                       a.value as number | null,
                     )}
                   >
-                    {a.label}
+                    <span className="wizard-answer-inner">
+                      <span className="wizard-answer-main">
+                        {parsedLabel.hasEmojiLead && <span className="wizard-answer-emoji" aria-hidden="true">{parsedLabel.leadingToken}</span>}
+                        <span className="wizard-answer-label">{parsedLabel.text}</span>
+                      </span>
+                      <span className="wizard-answer-chevron" aria-hidden="true">›</span>
+                    </span>
                   </button>
                 )
               })}
             </div>
             {activeQuestions[questionIndex] && (
               <>
-                <div className="wizard-question-actions">
+                <div className={`wizard-question-actions${questionIndex === 0 ? ' is-single-action' : ''}`}>
                   {questionIndex > 0 ? (
                     <button className="wizard-back wizard-question-nav" onClick={() => setQuestionIndex(i => i - 1)}>
                       ← Précédent
                     </button>
-                  ) : (
-                    <span className="wizard-question-nav-spacer" aria-hidden="true" />
-                  )}
+                  ) : null}
                   <button
                     className={`wizard-skip-link${skipsRemaining === 0 ? ' is-disabled' : ''}`}
                     onClick={() => skipQuestion(activeQuestions[questionIndex].key as QuestionKey)}
@@ -1486,8 +1565,16 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         {step === 'profile' && (
           <div className="wizard-step">
             {renderWizardHeading()}
-            <h2 className="wizard-title">Type de séjour</h2>
-            {renderStayTypeFields()}
+            <div className="wizard-profile-shell">
+              <div className="wizard-profile-header">
+                <span className="wizard-profile-title-icon" aria-hidden="true">🏷️</span>
+                <div className="wizard-profile-copy">
+                  <h2 className="wizard-title">Type de séjour</h2>
+                  <p className="wizard-profile-intro">Quelques tags suffisent pour capturer l'ambiance du voyage et ce que tu en retiens.</p>
+                </div>
+              </div>
+              {renderStayTypeFields()}
+            </div>
             <div className="wizard-step-actions">
               <button className="wizard-back" onClick={() => setStep('questions')}>
                 Précédent
@@ -1502,8 +1589,16 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         {step === 'context' && (
           <div className="wizard-step">
             {renderWizardHeading()}
-            <h2 className="wizard-title">Derniers détails</h2>
-            {renderTripContextFields()}
+            <div className="wizard-profile-shell">
+              <div className="wizard-profile-header">
+                <span className="wizard-profile-title-icon" aria-hidden="true">🧳</span>
+                <div className="wizard-profile-copy">
+                  <h2 className="wizard-title">Derniers détails</h2>
+                  <p className="wizard-profile-intro">On pose juste les derniers repères utiles avant d’enregistrer le voyage.</p>
+                </div>
+              </div>
+              {renderTripContextFields()}
+            </div>
             <div className="wizard-step-actions">
               <button className="wizard-back" onClick={() => setStep(isEditing ? 'result' : 'profile')}>
                 Précédent

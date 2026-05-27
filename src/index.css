@@ -2583,6 +2583,7 @@ svg {
 .map-pin-tier,
 .map-pin-heart,
 .map-pin-home,
+.map-pin-roadtrip,
 .pin-friend-badge,
 .pin-shared-badge {
   position: absolute;
@@ -2631,6 +2632,16 @@ svg {
   color: #1B5FE8;
   box-shadow:
     0 0 0 2px rgba(27, 95, 232, 0.20),
+    0 2px 6px rgba(27, 38, 66, 0.22);
+}
+
+.map-pin-roadtrip {
+  top: -4px;
+  right: -4px;
+  background: #fff;
+  color: #ef6a00;
+  box-shadow:
+    0 0 0 2px rgba(239, 106, 0, 0.18),
     0 2px 6px rgba(27, 38, 66, 0.22);
 }
 

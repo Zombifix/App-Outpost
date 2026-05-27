@@ -550,6 +550,7 @@ const TRIP_TYPE_OPTIONS: { id: string; label: string }[] = [
 const TRIP_TYPE_LABEL_TO_ID: Record<string, string> = Object.fromEntries(
   TRIP_TYPE_OPTIONS.map(option => [option.label, option.id])
 )
+const ROAD_TRIP_LABEL = '🚗 Road trip'
 
 function getIntentFromTripTypes(tripTypes: string[]): Intent {
   const ids = tripTypes.map(label => TRIP_TYPE_LABEL_TO_ID[label]).filter(Boolean)
@@ -1162,8 +1163,22 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         </div>
       </div>
       <div className="wizard-context-group">
-        <span>Coup de cœur</span>
-        <div className="wizard-toggle-row" aria-label="Coup de cœur">
+        <span>Marqueurs du voyage</span>
+        <div className="wizard-toggle-row" aria-label="Marqueurs du voyage">
+          {state.kind === 'zone' && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={state.tripTypes.includes(ROAD_TRIP_LABEL)}
+              className={`wizard-favorite-toggle wizard-roadtrip-toggle${state.tripTypes.includes(ROAD_TRIP_LABEL) ? ' is-selected' : ''}`}
+              onClick={() => toggleTripType(ROAD_TRIP_LABEL)}
+            >
+              <span className="wizard-favorite-switch" aria-hidden="true">
+                <span>🚗</span>
+              </span>
+              <span>Road trip</span>
+            </button>
+          )}
           <button
             type="button"
             role="switch"

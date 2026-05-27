@@ -602,12 +602,6 @@ function clearZoneRouteLayers(map: maplibregl.Map) {
 
 function addZoneLayer(map: maplibregl.Map, d: Destination, owner: 'me' | 'friend') {
   if (!map.isStyleLoaded()) return
-  // Si le road trip a ≥ 2 étapes valides, la route SVG suffit — on ne superpose
-  // pas de zone qui risque d'être inexacte ou mal positionnée.
-  const validStopCount = (d.stops ?? []).filter(
-    s => s.name?.trim() && Number.isFinite(s.lat) && Number.isFinite(s.lng),
-  ).length
-  if (validStopCount >= 2) return
   const color = getDestinationColor(d)
   if (!color) return
   const sid = `_z_${owner}_${d.name}`
@@ -1218,6 +1212,10 @@ function getValidStops(destination: Destination) {
   return destination.stops?.filter(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)) ?? []
 }
 
+function isRoadTripTagged(destination: Destination) {
+  return Boolean(destination.tripTypes?.includes('🚗 Road trip'))
+}
+
 const RouteStop = memo(function RouteStop({
   stop, parentName, projection, color, owner, onSelect,
 }: RouteStopProps) {
@@ -1255,7 +1253,8 @@ const TripPinOverlay = memo(function TripPinOverlay({
   const destinationTier = getDestinationTier(destination)
   const color = getTierColor(destinationTier)
   const stageCount = getValidStops(destination).length
-  if (!color || stageCount === 0) return null
+  const taggedRoadTrip = isRoadTripTagged(destination)
+  if (!color || (stageCount === 0 && !taggedRoadTrip)) return null
 
   return (
     <g
@@ -1483,6 +1482,7 @@ const Pin = memo(function Pin({
   // ── Full destination pin ───────────────────────────────────────────────────
   const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
   const isLivedThere = Boolean(destination.livedThere)
+  const isRoadTrip = isRoadTripTagged(destination)
   return (
     <div className={`map-pin-html-root pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
@@ -1510,6 +1510,9 @@ const Pin = memo(function Pin({
             )}
             {isLivedThere && (
               <span className="map-pin-home" aria-label="A vécu là-bas">🏠</span>
+            )}
+            {isRoadTrip && (
+              <span className="map-pin-roadtrip" aria-label="Road trip">🚗</span>
             )}
             <strong>
               {destination.name}

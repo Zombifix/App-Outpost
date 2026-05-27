@@ -659,7 +659,7 @@ svg {
 /* Version passeport proche de la ref */
 .carnet-stats {
   gap: 12px;
-  padding: 22px 18px 16px;
+  padding: 28px 18px 16px;
   border-radius: 20px;
   background:
     radial-gradient(circle at 18% 20%, rgba(117, 134, 167, 0.035) 0, transparent 40%),

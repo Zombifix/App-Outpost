@@ -16,6 +16,7 @@ export interface RoadTripStop {
 }
 
 export type DestinationImageSource = 'unsplash' | 'pexels' | 'wikivoyage' | 'wikipedia' | 'wikimedia' | 'fallback'
+export type MapVisibility = 'public' | 'friends' | 'private'
 
 export interface Destination {
   destinationKey?: string
@@ -72,6 +73,7 @@ export interface PublicProfile {
   avatarBg: string
   avatarFg: string
   bio?: string
+  mapVisibility: MapVisibility
 }
 
 export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'

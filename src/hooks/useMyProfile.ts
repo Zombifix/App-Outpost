@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import type { PublicProfile } from '../types'
+import type { MapVisibility, PublicProfile } from '../types'
 
 interface ProfileRow {
   user_id: string
@@ -10,6 +10,7 @@ interface ProfileRow {
   avatar_bg: string
   avatar_fg: string
   bio: string | null
+  map_visibility: MapVisibility | null
 }
 
 function rowToProfile(row: ProfileRow): PublicProfile {
@@ -20,6 +21,7 @@ function rowToProfile(row: ProfileRow): PublicProfile {
     avatarBg: row.avatar_bg,
     avatarFg: row.avatar_fg,
     bio: row.bio ?? undefined,
+    mapVisibility: row.map_visibility ?? 'friends',
   }
 }
 
@@ -45,7 +47,7 @@ export function useMyProfile() {
     setLoading(true)
     const { data } = await supabase
       .from('public_profiles')
-      .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio')
+      .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio, map_visibility')
       .eq('user_id', user.id)
       .maybeSingle()
     setProfile(data ? rowToProfile(data as ProfileRow) : null)
@@ -64,6 +66,7 @@ export function useMyProfile() {
     avatarBg?: string
     avatarFg?: string
     bio?: string
+    mapVisibility?: MapVisibility
   }): Promise<{ ok: boolean; error?: string }> => {
     if (!supabase || !user) return { ok: false, error: 'Non connecté' }
     const handle = input.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -79,11 +82,23 @@ export function useMyProfile() {
         avatar_bg: input.avatarBg ?? randomAvatarBg(handle),
         avatar_fg: input.avatarFg ?? '#ffffff',
         bio: input.bio ?? null,
+        map_visibility: input.mapVisibility ?? profile?.mapVisibility ?? 'friends',
       })
     if (error) {
       if (error.code === '23505') return { ok: false, error: 'Ce handle est déjà pris' }
       return { ok: false, error: error.message }
     }
+    await refresh()
+    return { ok: true }
+  }, [user, refresh, profile?.mapVisibility])
+
+  const updateMapVisibility = useCallback(async (mapVisibility: MapVisibility): Promise<{ ok: boolean; error?: string }> => {
+    if (!supabase || !user) return { ok: false, error: 'Non connecté' }
+    const { error } = await supabase
+      .from('public_profiles')
+      .update({ map_visibility: mapVisibility })
+      .eq('user_id', user.id)
+    if (error) return { ok: false, error: error.message }
     await refresh()
     return { ok: true }
   }, [user, refresh])
@@ -109,6 +124,7 @@ export function useMyProfile() {
     needsSetup: loaded && !!user && !profile,
     refresh,
     upsert,
+    updateMapVisibility,
     checkHandleAvailable,
   }
 }

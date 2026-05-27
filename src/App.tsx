@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import type { Destination, Intent, RoadTripStop, Tier } from './types'
+import type { Destination, Intent, MapVisibility, RoadTripStop, Tier } from './types'
 import { useMyDestinations } from './hooks/useMyDestinations'
 import { useFocusTrap } from './hooks/useFocusTrap'
 import WorldMap from './components/WorldMap'
@@ -13,7 +13,7 @@ import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
-import { getDestinationScore, getDestinationTier, withRecalculatedScore } from './utils'
+import { getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, withRecalculatedScore } from './utils'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 
@@ -174,6 +174,20 @@ function loadPublicId(): string {
   }
 }
 
+function getMapPrivacyMessage(reason: 'private' | 'friends_only' | null, handle?: string | null) {
+  const owner = handle ? `@${handle}` : 'Cette carte'
+  if (reason === 'friends_only') {
+    return {
+      title: `${owner} est visible uniquement par ses amis.`,
+      body: 'Ajoute cette personne en ami pour voir sa carte, ou retourne à ton carnet.',
+    }
+  }
+  return {
+    title: 'Cette carte est privée.',
+    body: 'Seul son propriétaire peut la consulter pour le moment.',
+  }
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -187,7 +201,7 @@ export default function App() {
 function AppInner() {
   const { user } = useAuth()
   const { incoming, refresh: refreshFriends } = useFriends()
-  const { profile, needsSetup, upsert: upsertProfile, checkHandleAvailable } = useMyProfile()
+  const { profile, needsSetup, upsert: upsertProfile, updateMapVisibility, checkHandleAvailable } = useMyProfile()
   const pendingFriendCount = incoming.length
   const [friendToast, setFriendToast] = useState<string | null>(null)
 
@@ -223,7 +237,12 @@ function AppInner() {
 
   return (
     <>
-      <AppCore pendingFriendCount={pendingFriendCount} profileHandle={profile?.handle ?? null} />
+      <AppCore
+        pendingFriendCount={pendingFriendCount}
+        profileHandle={profile?.handle ?? null}
+        profileMapVisibility={profile?.mapVisibility ?? 'friends'}
+        onMapVisibilityChange={updateMapVisibility}
+      />
       {needsSetup && (
         <ProfileSetupModal upsert={upsertProfile} checkHandleAvailable={checkHandleAvailable} />
       )}
@@ -234,7 +253,17 @@ function AppInner() {
   )
 }
 
-function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: number; profileHandle: string | null }) {
+function AppCore({
+  pendingFriendCount,
+  profileHandle,
+  profileMapVisibility,
+  onMapVisibilityChange,
+}: {
+  pendingFriendCount: number
+  profileHandle: string | null
+  profileMapVisibility: MapVisibility
+  onMapVisibilityChange: (value: MapVisibility) => Promise<{ ok: boolean; error?: string }>
+}) {
   const { user } = useAuth()
   const { friendships, sendRequestByUserId, acceptRequest } = useFriends()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
@@ -247,7 +276,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
   // friendUserId est null, donc on peut l'appeler systématiquement.
   const friendUserIdProd = !FAKE_FRIENDS_MODE && viewingFriend ? viewingFriend.userId : null
-  const { destinations: friendDestsProd } = useFriendDestinations(friendUserIdProd)
+  const { destinations: friendDestsProd, access: viewedFriendAccess } = useFriendDestinations(friendUserIdProd)
   const destinations = useMemo(() => {
     if (!viewingFriend) return myDestinations
     if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(viewingFriend.userId).map(withRecalculatedScore)
@@ -257,7 +286,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
   // Mode "comparer" : on superpose les destinations de l'ami sur ma map.
   // Hook conditionnel safe : useFriendDestinations(null) renvoie [].
   const compareFriendUserIdProd = compareFriend && !FAKE_FRIENDS_MODE ? compareFriend.otherUser : null
-  const { destinations: compareFriendDestsProd } = useFriendDestinations(compareFriendUserIdProd)
+  const { destinations: compareFriendDestsProd, access: compareFriendAccess } = useFriendDestinations(compareFriendUserIdProd)
   const compareFriendDests = useMemo(() => {
     if (!compareFriend) return [] as Destination[]
     if (FAKE_FRIENDS_MODE) return getFakeFriendDestinations(compareFriend.otherUser).map(withRecalculatedScore)
@@ -268,7 +297,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     [friendships, targetedCompare]
   )
   const targetedCompareFriendUserIdProd = targetedCompareFriend && !FAKE_FRIENDS_MODE ? targetedCompareFriend.otherUser : null
-  const { destinations: targetedCompareFriendDestsProd } = useFriendDestinations(targetedCompareFriendUserIdProd)
+  const { destinations: targetedCompareFriendDestsProd, access: targetedCompareFriendAccess } = useFriendDestinations(targetedCompareFriendUserIdProd)
   const targetedCompareFriendDests = useMemo(() => {
     if (!targetedCompareFriend) return [] as Destination[]
     if (compareFriend?.otherUser === targetedCompareFriend.otherUser) return compareFriendDests
@@ -304,6 +333,9 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     }
     return n
   }, [compareFriend, compareFriendDests, myDestinations])
+  const viewingFriendDenied = Boolean(viewingFriend && !FAKE_FRIENDS_MODE && !viewedFriendAccess.allowed && viewedFriendAccess.deniedReason)
+  const compareFriendDenied = Boolean(compareFriend && !FAKE_FRIENDS_MODE && !compareFriendAccess.allowed && compareFriendAccess.deniedReason)
+  const targetedCompareDenied = Boolean(targetedCompareFriend && !FAKE_FRIENDS_MODE && !targetedCompareFriendAccess.allowed && targetedCompareFriendAccess.deniedReason)
 
   const friendshipWithViewed = useMemo(
     () => viewingFriend ? (friendships.find(f => f.otherUser === viewingFriend.userId) ?? null) : null,
@@ -530,7 +562,7 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     setDestinations(previous => previous.map(d => {
       if (d.name !== name) return d
       if (d.coupDeCoeur) return withRecalculatedScore({ ...d, coupDeCoeur: false })
-      if (previous.filter(x => x.coupDeCoeur).length >= 2) return d
+      if (previous.filter(x => x.coupDeCoeur).length >= getMaxCoupDeCoeur(previous.length)) return d
       return withRecalculatedScore({ ...d, coupDeCoeur: true })
     }))
   }
@@ -605,8 +637,8 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
     `view-${activeView}`,
     tierListCollapsed ? 'tier-collapsed' : '',
     !(activeView === 'map' && selected) ? 'no-card' : '',
-    compareFriend && activeView === 'map' && !viewingFriend ? 'compare-active' : '',
-    selectedCompareDestination && activeView === 'map' ? 'destination-compare-open' : '',
+    compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend ? 'compare-active' : '',
+    selectedCompareDestination && !compareFriendDenied && activeView === 'map' ? 'destination-compare-open' : '',
   ].filter(Boolean).join(' ')
 
   return (
@@ -659,13 +691,13 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
         onSelect={selectByName}
         onDeselect={() => setSelectedName(null)}
         onFlyTargetConsumed={() => setFlyTarget(null)}
-        friendDestinations={compareFriend ? compareFriendDests : undefined}
-        friendInitials={compareFriend ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
-        sharedNames={compareFriend ? compareSharedNames : undefined}
+        friendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
+        friendInitials={compareFriend && !compareFriendDenied ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
+        sharedNames={compareFriend && !compareFriendDenied ? compareSharedNames : undefined}
         hidden={activeView !== 'map'}
       />
       {/* Barre flottante compare quand on superpose les pins d'un ami */}
-      {compareFriend && activeView === 'map' && !viewingFriend && (
+      {compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend && (
         <div className="compare-inline-bar" role="status">
           <div className="compare-inline-legend">
             <span className="compare-inline-item">
@@ -698,7 +730,22 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
       )}
       {/* Empty state quand on visite le carnet d'un ami qui n'a pas encore
           ajouté de destinations (ami qui débute, ou un seed sans data). */}
-      {viewingFriend && activeView === 'map' && destinations.length === 0 && (
+      {viewingFriendDenied && activeView === 'map' && (
+        <div className="empty-friend-carnet" role="status">
+          <div className="empty-friend-carnet-card">
+            <h3>{getMapPrivacyMessage(viewedFriendAccess.deniedReason, viewingFriend?.handle).title}</h3>
+            <p>{getMapPrivacyMessage(viewedFriendAccess.deniedReason, viewingFriend?.handle).body}</p>
+            <button
+              type="button"
+              className="friends-action-btn friends-action-secondary"
+              onClick={() => { setViewingFriend(null); setSelectedName(null) }}
+            >
+              ← Mon carnet
+            </button>
+          </div>
+        </div>
+      )}
+      {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
             <h3>@{viewingFriend.handle} n'a pas encore ajouté de destinations.</h3>
@@ -739,6 +786,21 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
               onClick={() => setFilters(DEFAULT_FILTERS)}
             >
               Réinitialiser les filtres
+            </button>
+          </div>
+        </div>
+      )}
+      {compareFriendDenied && activeView === 'map' && !viewingFriend && (
+        <div className="empty-friend-carnet" role="status">
+          <div className="empty-friend-carnet-card">
+            <h3>{getMapPrivacyMessage(compareFriendAccess.deniedReason, compareFriend?.handle).title}</h3>
+            <p>La comparaison ne peut pas s'afficher tant que cette carte n'est pas visible pour toi.</p>
+            <button
+              type="button"
+              className="friends-action-btn friends-action-secondary"
+              onClick={() => setCompareFriend(null)}
+            >
+              Fermer la comparaison
             </button>
           </div>
         </div>
@@ -820,7 +882,10 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
             ? { friend: activeSheetCompare.friend, destination: activeSheetCompare.destination }
             : undefined}
           compareMode={activeSheetCompare?.mode}
-          onClose={() => setSelectedName(null)}
+          onClose={() => {
+            setSelectedName(null)
+            if (targetedCompareDenied) setTargetedCompare(null)
+          }}
           onFocus={focusSelected}
           onCompareFriend={friendUserId => handleTargetedCompareFriend(friendUserId, selected)}
           onExitCompare={() => {
@@ -897,11 +962,13 @@ function AppCore({ pendingFriendCount, profileHandle }: { pendingFriendCount: nu
       )}
       {accountOpen && (
         <AccountPanel
-          publicId={publicId}
-          onPublicIdChange={setPublicId}
-          onClose={() => setAccountOpen(false)}
-          onResetCarnet={resetMyDestinations}
-          carnetCount={myDestinations.length}
+        publicId={publicId}
+        mapVisibility={profileMapVisibility}
+        onPublicIdChange={setPublicId}
+        onMapVisibilityChange={onMapVisibilityChange}
+        onClose={() => setAccountOpen(false)}
+        onResetCarnet={resetMyDestinations}
+        carnetCount={myDestinations.length}
         />
       )}
     </div>
@@ -925,7 +992,9 @@ function ExploreView(_props: { destinations: Destination[]; onSelect: (name: str
 
 interface AccountPanelProps {
   publicId: string
+  mapVisibility: MapVisibility
   onPublicIdChange: (value: string) => void
+  onMapVisibilityChange: (value: MapVisibility) => Promise<{ ok: boolean; error?: string }>
   onClose: () => void
   /** Vide toutes les destinations de l'utilisateur (Supabase + cache local). */
   onResetCarnet: () => Promise<{ error?: string }>
@@ -936,7 +1005,7 @@ interface AccountPanelProps {
 type AccountMode = 'login' | 'public'
 type PasswordAuthMode = 'signin' | 'signup'
 
-function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
+function AccountPanel({ publicId, mapVisibility, onPublicIdChange, onMapVisibilityChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
   const trapRef = useFocusTrap<HTMLDivElement>(true)
   const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut } = useAuth()
   const { profile } = useMyProfile()
@@ -950,6 +1019,8 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [savedTick, setSavedTick] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [visibilityDraft, setVisibilityDraft] = useState<MapVisibility>(mapVisibility)
+  const [visibilityBusy, setVisibilityBusy] = useState(false)
   const [confirmResetOpen, setConfirmResetOpen] = useState(false)
   const [resetBusy, setResetBusy] = useState(false)
 
@@ -970,6 +1041,10 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
       onPublicIdChange(profile.handle)
     }
   }, [profile, publicId, onPublicIdChange])
+
+  useEffect(() => {
+    setVisibilityDraft(mapVisibility)
+  }, [mapVisibility])
 
   const saveLocal = () => {
     const normalized = draftId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -1039,6 +1114,17 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
     } catch {
       console.warn('[share] clipboard unavailable, link:', shareLink)
     }
+  }
+
+  const saveVisibility = async () => {
+    setVisibilityBusy(true)
+    const result = await onMapVisibilityChange(visibilityDraft)
+    setVisibilityBusy(false)
+    if (!result.ok) {
+      setFeedback({ kind: 'err', msg: result.error ?? 'Impossible d\'enregistrer la visibilité.' })
+      return
+    }
+    setFeedback({ kind: 'ok', msg: 'Visibilité de la carte mise à jour.' })
   }
 
   return (
@@ -1200,6 +1286,30 @@ function AccountPanel({ publicId, onPublicIdChange, onClose, onResetCarnet, carn
                 {linkCopied ? 'Copié' : 'Copier le lien'}
               </button>
             </div>
+            <label>
+              Visibilité de la carte
+              <select
+                value={visibilityDraft}
+                onChange={event => setVisibilityDraft(event.target.value as MapVisibility)}
+                disabled={visibilityBusy}
+              >
+                <option value="public">Publique</option>
+                <option value="friends">Amis uniquement</option>
+                <option value="private">Privée</option>
+              </select>
+            </label>
+            <p className="account-hint">
+              Public: toute personne avec le lien peut voir ta carte. Amis uniquement: seulement tes amis. Privée: toi uniquement.
+            </p>
+            <div className="account-actions">
+              <button
+                className="add-submit account-primary"
+                onClick={saveVisibility}
+                disabled={visibilityBusy || visibilityDraft === mapVisibility}
+              >
+                {visibilityBusy ? 'Enregistrement...' : 'Enregistrer la visibilité'}
+              </button>
+            </div>
           </div>
         )}
       </aside>
@@ -1253,6 +1363,7 @@ interface DestinationCardProps {
   destination: Destination
   coupDeCoeur: boolean
   coupDeCoeurCount: number
+  totalDestinations: number
   onClose: () => void
   onFocus: () => void
   onCoupDeCoeur: () => void
@@ -1303,7 +1414,7 @@ function getDestinationContext(destination: Destination) {
   return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
 }
 
-function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, onFocus, onCoupDeCoeur, onEdit, onDelete }: DestinationCardProps) {
+function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDestinations, onClose, onFocus, onCoupDeCoeur, onEdit, onDelete }: DestinationCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const context = getDestinationContext(destination)
@@ -1318,7 +1429,8 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
     criteria.push(['Facilité sur place', destination.ease, 'compass'])
   }
 
-  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
+  const maxCoupDeCoeur = getMaxCoupDeCoeur(totalDestinations)
+  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= maxCoupDeCoeur
   const tier = getDestinationTier(destination)
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
@@ -1374,8 +1486,8 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
           <div className="destination-pill-row">
             <button
               className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
-              aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? 'Limite atteinte (2/2)' : `Coup de coeur · ${coupDeCoeurCount}/2 utilise`}
-              title={coupDeCoeur ? 'Coup de coeur · retirer' : coupDeCoeurDisabled ? '2 coups de coeur deja utilises' : `Coup de coeur · ${coupDeCoeurCount}/2 utilise`}
+              aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? `Limite atteinte (${maxCoupDeCoeur}/${maxCoupDeCoeur})` : `Coup de coeur · ${coupDeCoeurCount}/${maxCoupDeCoeur} utilise`}
+              title={coupDeCoeur ? 'Coup de coeur · retirer' : coupDeCoeurDisabled ? `${maxCoupDeCoeur} coups de coeur deja utilises` : `Coup de coeur · ${coupDeCoeurCount}/${maxCoupDeCoeur} utilise`}
               disabled={coupDeCoeurDisabled}
               onClick={onCoupDeCoeur}
             >

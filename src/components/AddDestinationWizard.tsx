@@ -3,7 +3,7 @@ import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
-import { calculateScore, scoreToTier } from '../utils'
+import { calculateScore, getMaxCoupDeCoeur, scoreToTier } from '../utils'
 import { geoCentroid } from '../lib/geoCentroid'
 import { resolveZoneGeojson } from '../lib/zoneGeometry'
 import { Icon } from './Icon'
@@ -763,7 +763,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
-  const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= 2
+  const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= getMaxCoupDeCoeur(existingDestinations?.length ?? 0)
   const initialEditSnapshot = useMemo(() => {
     if (!initialDestination) return null
     return buildEditableSnapshot({

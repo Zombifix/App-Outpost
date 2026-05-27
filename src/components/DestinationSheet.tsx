@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Destination, Friendship, Tier } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
-import { getDestinationScore, getDestinationTier } from '../utils'
+import { getDestinationScore, getDestinationTier, getMaxCoupDeCoeur } from '../utils'
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
@@ -422,7 +422,8 @@ function DestinationCardContent({
   const firstName = compareWith?.friend.displayName.split(' ')[0] ?? ''
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
-  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2
+  const maxCoupDeCoeur = getMaxCoupDeCoeur(allDestinations?.length ?? 0)
+  const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= maxCoupDeCoeur
 
   useEffect(() => {
     setVisitorPickerOpen(false)

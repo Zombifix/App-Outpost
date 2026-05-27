@@ -3,6 +3,7 @@ import type { DestinationFilters } from '../App'
 import type { Destination, Friendship } from '../types'
 import { BrandLogo } from './BrandLogo'
 import { useActivityFeed } from '../hooks/useActivityFeed'
+import { computeTravelerProfile } from '../utils'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
@@ -124,9 +125,14 @@ export default function Nav({
               {activeView === 'tier-list' && 'Tier list'}
               {activeView === 'friends' && 'Amis'}
             </h1>
-            {activeView === 'map' && (
-              <span className="topbar-title-sub">{totalDestinations} destination{totalDestinations > 1 ? 's' : ''} notée{totalDestinations > 1 ? 's' : ''}</span>
-            )}
+            {activeView === 'map' && (() => {
+              const paysCount = new Set(destinations.map(d => d.country).filter(Boolean)).size
+              const coeurCount = destinations.filter(d => d.coupDeCoeur).length
+              const bits: string[] = []
+              if (paysCount > 0) bits.push(`${paysCount} pays`)
+              if (coeurCount > 0) bits.push(`${coeurCount} ${coeurCount > 1 ? 'coups de cœur' : 'coup de cœur'}`)
+              return bits.length > 0 ? <span className="topbar-title-sub">{bits.join(' · ')}</span> : null
+            })()}
           </div>
         </div>
         <div className="top-actions">
@@ -473,7 +479,7 @@ function RowCard({ event: ev, onClick }: {
   )
 }
 
-// ─── Carte stats "Mon carnet" ──────────────────────────────────────────────────
+// ─── Fiche signalétique du voyageur ────────────────────────────────────────────
 function CarnetStats({
   destinations,
   onViewChange,
@@ -481,49 +487,67 @@ function CarnetStats({
   destinations: Destination[]
   onViewChange: (view: 'map' | 'tier-list' | 'explore' | 'friends') => void
 }) {
-  if (destinations.length === 0) return null
-  const countries = new Set(destinations.map(d => d.country)).size
-  const coeurs = destinations.filter(d => d.coupDeCoeur).length
+  const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
+  if (profile.total === 0) return null
+
+  const { total, confidence, signatures, continents, archetype } = profile
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewChange('map') } }}>
-      <img className="carnet-stats-globe" src="/carnet-globe.svg?v=7" alt="" aria-hidden="true" />
-      <img className="carnet-stats-plane" src="/carnet-plane.svg?v=4" alt="" aria-hidden="true" />
+      <span className="carnet-stats-eyebrow" aria-hidden="true">Profil voyageur</span>
 
       {/* Hero */}
       <div className="carnet-stats-hero">
-        <span className="carnet-stats-hero-num">{destinations.length}</span>
-        <span className="carnet-stats-hero-label">destination{destinations.length > 1 ? 's' : ''}</span>
-        <span className="carnet-stats-hero-sub">Vos aventures à travers le monde</span>
+        <span className="carnet-stats-hero-num">{total}</span>
+        <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
+        {archetype && (
+          <span className="carnet-stats-archetype">« {archetype} »</span>
+        )}
       </div>
 
-      {/* Bottom row */}
-      <div className="carnet-stats-bottom">
-        <div className="carnet-stats-chip">
-          <span className="carnet-stats-chip-icon carnet-stats-chip-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/><path d="m15 9-2 5-5 2 2-5Z"/>
-            </svg>
-          </span>
-          <div>
-            <span className="carnet-stats-chip-num">{countries}</span>
-            <span className="carnet-stats-chip-label">pays visités</span>
-          </div>
+      {confidence === 'light' && (
+        <div className="carnet-stats-empty">
+          Profil en construction · ajoute des destinations pour révéler ton style
         </div>
-        <div className="carnet-stats-chip">
-          <span className="carnet-stats-chip-icon carnet-stats-chip-red">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 21.593c-.525-.444-7.5-6.37-7.5-10.593 0-3.866 3.134-7 7-7 .948 0 1.85.196 2.67.548C15.29 4.572 16.5 4 18 4c3.866 0 6 2.635 6 5.5 0 4.5-7.5 11-12 12.093Z" opacity=".15"/>
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-          </span>
-          <div>
-            <span className="carnet-stats-chip-num">{coeurs}</span>
-            <span className="carnet-stats-chip-label">{coeurs > 1 ? 'coups de cœur' : 'coup de cœur'}</span>
-          </div>
+      )}
+
+      {/* Signaux dynamiques (sans titre, sans trait) */}
+      {signatures.length > 0 && (
+        <ul className="carnet-stats-signals">
+          {signatures.map(sig => (
+            <li key={sig.key} className={`carnet-signal carnet-signal--${sig.key}`}>
+              <span className="carnet-signal-icon" aria-hidden="true">{sig.icon}</span>
+              <span className="carnet-signal-body">
+                <span className="carnet-signal-label">{sig.label}</span>
+                {sig.detail && <span className="carnet-signal-detail">{sig.detail}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Répartition continents — inline, en bas */}
+      {continents.length > 0 && confidence !== 'light' && (
+        <div className="carnet-stats-continents-inline">
+          {continents.map((c, i) => (
+            <span key={c.continent} className="carnet-cont-item">
+              {i > 0 && <span className="carnet-cont-sep" aria-hidden="true">·</span>}
+              <span className="carnet-cont-name">{CONTINENT_DISPLAY[c.continent]}</span>
+              <span className="carnet-cont-pct">{Math.round(c.pct)}%</span>
+            </span>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
+}
+
+const CONTINENT_DISPLAY: Record<string, string> = {
+  Europe: 'Europe',
+  Asie: 'Asie',
+  Ameriques: 'Amériques',
+  Afrique: 'Afrique',
+  Oceanie: 'Océanie',
+  Autre: 'Autre',
 }
 
 // "Tokyo, Japon" → { dest: "Tokyo", country: "Japon" }

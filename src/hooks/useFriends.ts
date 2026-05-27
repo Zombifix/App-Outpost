@@ -2,7 +2,7 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import type { Friendship, PublicProfile } from '../types'
+import type { Friendship, MapVisibility, PublicProfile } from '../types'
 import { FAKE_FRIENDS_MODE, FAKE_FRIENDSHIPS } from './_fakeFriends'
 
 interface FriendshipRow {
@@ -164,7 +164,7 @@ function useFriendsState() {
     const safe = q.replace(/[\\%_]/g, c => `\\${c}`)
     const { data, error: err } = await supabase
       .from('public_profiles')
-      .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio')
+      .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio, map_visibility')
       .or(`handle.ilike.%${safe}%,display_name.ilike.%${safe}%`)
       .limit(8)
     if (err || !data) return []
@@ -175,6 +175,7 @@ function useFriendsState() {
       avatarBg: row.avatar_bg,
       avatarFg: row.avatar_fg,
       bio: row.bio ?? undefined,
+      mapVisibility: (row.map_visibility as MapVisibility | null) ?? 'friends',
     }))
   }, [user])
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Destination } from '../types'
+import type { Destination, MapVisibility } from '../types'
 import { getDestinationImagesForDestinations } from '../services/imageSearch'
 import {
   rowToDestination,
@@ -14,6 +14,30 @@ const MAX_FRIEND_DESTINATIONS = 200
 const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 const friendDestinationsCache = new Map<string, { data: Destination[]; fetchedAt: number }>()
 const friendDestinationsInFlight = new Map<string, Promise<Destination[]>>()
+
+interface MapAccessRow {
+  allowed: boolean
+  visibility: MapVisibility
+  reason: 'private' | 'friends_only' | null
+  is_owner: boolean
+  is_friend: boolean
+}
+
+export interface FriendMapAccess {
+  allowed: boolean
+  visibility: MapVisibility
+  deniedReason: 'private' | 'friends_only' | null
+  isOwner: boolean
+  isFriend: boolean
+}
+
+const DEFAULT_ACCESS: FriendMapAccess = {
+  allowed: false,
+  visibility: 'friends',
+  deniedReason: null,
+  isOwner: false,
+  isFriend: false,
+}
 
 function needsCatalogImage(destination: Destination) {
   return !destination.destinationKey || !destination.image || destination.imageProvider === 'fallback'
@@ -97,6 +121,21 @@ async function loadFriendDestinations(friendUserId: string, force = false): Prom
   return request
 }
 
+async function loadMapAccess(friendUserId: string): Promise<FriendMapAccess> {
+  if (!supabase) return DEFAULT_ACCESS
+  const { data, error } = await supabase.rpc('get_map_access_context', { target_user_id: friendUserId })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] as MapAccessRow | undefined : undefined
+  if (!row) return DEFAULT_ACCESS
+  return {
+    allowed: Boolean(row.allowed),
+    visibility: row.visibility ?? 'friends',
+    deniedReason: row.reason ?? null,
+    isOwner: Boolean(row.is_owner),
+    isFriend: Boolean(row.is_friend),
+  }
+}
+
 export function invalidateFriendDestinations(friendUserId?: string) {
   if (friendUserId) {
     friendDestinationsCache.delete(friendUserId)
@@ -111,6 +150,7 @@ export function invalidateFriendDestinations(friendUserId?: string) {
  */
 export function useFriendDestinations(friendUserId: string | null) {
   const [destinations, setDestinations] = useState<Destination[]>(() => friendUserId ? getFreshCachedFriendDestinations(friendUserId) ?? [] : [])
+  const [access, setAccess] = useState<FriendMapAccess>(DEFAULT_ACCESS)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestIdRef = useRef(0)
@@ -119,13 +159,7 @@ export function useFriendDestinations(friendUserId: string | null) {
     const requestId = ++requestIdRef.current
     if (!supabase || !friendUserId) {
       setDestinations([])
-      setLoading(false)
-      setError(null)
-      return
-    }
-    const cached = options?.force ? null : getFreshCachedFriendDestinations(friendUserId)
-    if (cached) {
-      setDestinations(cached)
+      setAccess(DEFAULT_ACCESS)
       setLoading(false)
       setError(null)
       return
@@ -133,6 +167,22 @@ export function useFriendDestinations(friendUserId: string | null) {
 
     setLoading(true)
     try {
+      const nextAccess = await loadMapAccess(friendUserId)
+      if (requestIdRef.current !== requestId) return
+      setAccess(nextAccess)
+      if (!nextAccess.allowed) {
+        setError(null)
+        setDestinations([])
+        return
+      }
+
+      const cached = options?.force ? null : getFreshCachedFriendDestinations(friendUserId)
+      if (cached) {
+        setDestinations(cached)
+        setError(null)
+        return
+      }
+
       const nextDestinations = await loadFriendDestinations(friendUserId, options?.force)
       if (requestIdRef.current !== requestId) return
       setError(null)
@@ -140,6 +190,7 @@ export function useFriendDestinations(friendUserId: string | null) {
     } catch (err) {
       if (requestIdRef.current !== requestId) return
       setError(err instanceof Error ? err.message : 'Impossible de charger les destinations')
+      setAccess(DEFAULT_ACCESS)
       setDestinations([])
     } finally {
       if (requestIdRef.current === requestId) setLoading(false)
@@ -150,5 +201,5 @@ export function useFriendDestinations(friendUserId: string | null) {
     void refresh()
   }, [refresh])
 
-  return { destinations, loading, error, refresh }
+  return { destinations, access, loading, error, refresh }
 }

@@ -480,7 +480,10 @@ export default function TierListPage({
   const [preview, setPreview] = useState<{ destination: Destination; ownerLabel: string; ownerColor?: string } | null>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const { accepted: realFriends } = useFriends()
-  const { destinations: realFriendDests } = useFriendDestinations(friendUserId)
+  const {
+    destinations: realFriendDests,
+    access: realFriendAccess,
+  } = useFriendDestinations(friendUserId)
 
   useEffect(() => {
     if (!comparePicker) return
@@ -498,6 +501,7 @@ export default function TierListPage({
       ? realFriendDests
       : DEMO_FRIEND_DESTINATIONS[friend.initials] ?? FRIEND_DESTINATIONS[friend.initials] ?? []
     : []
+  const compareDenied = Boolean(friend && friendUserId && !realFriendAccess.allowed && realFriendAccess.deniedReason)
   const visibleFilters = friend ? COMPARE_TIER_FILTERS : BASE_TIER_FILTERS
   const myFiltered = useMemo(() => filterDestinations(destinations, filter, friendDests), [destinations, filter, friendDests])
   const friendFiltered = useMemo(() => filterDestinations(friendDests, filter, destinations), [friendDests, filter, destinations])
@@ -641,8 +645,26 @@ export default function TierListPage({
           friend={friend}
           myDests={destinations}
           friendDests={friendDests}
-          onClose={() => setFriend(null)}
+          onClose={() => { setFriend(null); setFriendUserId(null) }}
         />
+      )}
+
+      {compareDenied && (
+        <section className="empty-friend-carnet" role="status">
+          <div className="empty-friend-carnet-card">
+            <h3>{realFriendAccess.deniedReason === 'friends_only'
+              ? 'Cette carte est visible uniquement par ses amis.'
+              : 'Cette carte est privée.'}</h3>
+            <p>La comparaison ne peut pas s'afficher tant que cette carte n'est pas visible pour toi.</p>
+            <button
+              type="button"
+              className="friends-action-btn friends-action-secondary"
+              onClick={() => { setFriend(null); setFriendUserId(null) }}
+            >
+              Fermer la comparaison
+            </button>
+          </div>
+        </section>
       )}
 
       <section className="tier-list-rows" aria-label="Classement par tier">
@@ -651,8 +673,8 @@ export default function TierListPage({
             key={tier}
             tier={tier}
             myDests={myFiltered}
-            friendDests={friendFiltered}
-            friend={friend}
+            friendDests={compareDenied ? [] : friendFiltered}
+            friend={compareDenied ? null : friend}
             sharedNames={sharedNames}
             collapsed={collapsed[tier]}
             onToggle={() => toggleCollapse(tier)}

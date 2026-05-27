@@ -547,9 +547,6 @@ function CarnetStats({
         </div>
       )}
 
-      <div className="carnet-stats-crest" aria-hidden="true">
-        <span className="carnet-stats-crest-star">✶</span>
-      </div>
     </div>
   )
 }

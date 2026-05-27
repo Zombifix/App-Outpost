@@ -659,7 +659,7 @@ svg {
 /* Version passeport proche de la ref */
 .carnet-stats {
   gap: 12px;
-  padding: 30px 18px 16px;
+  padding: 22px 18px 16px;
   border-radius: 20px;
   background:
     radial-gradient(circle at 18% 20%, rgba(117, 134, 167, 0.035) 0, transparent 40%),
@@ -691,7 +691,7 @@ svg {
 
 .carnet-stats-stamp {
   position: absolute;
-  top: 42px;
+  top: 26px;
   right: -34px;
   width: 104px;
   height: 104px;
@@ -786,7 +786,7 @@ svg {
   margin-top: 0;
   padding: 0 4px;
   font-family: "Segoe Script", "Snell Roundhand", "Brush Script MT", cursive;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 400;
   color: #3f4b63;
   line-height: 1.1;

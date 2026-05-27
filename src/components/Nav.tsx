@@ -491,14 +491,33 @@ function CarnetStats({
   if (profile.total === 0) return null
 
   const { total, confidence, signatures, continents, archetype } = profile
+  const confidenceLabel = confidence === 'full'
+    ? 'Profil affirme'
+    : confidence === 'mid'
+      ? 'Profil en lecture'
+      : 'Profil emergent'
   return (
     <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewChange('map') } }}>
+      <span className="carnet-stats-glow carnet-stats-glow--top" aria-hidden="true" />
+      <span className="carnet-stats-glow carnet-stats-glow--bottom" aria-hidden="true" />
       <span className="carnet-stats-eyebrow" aria-hidden="true">Profil voyageur</span>
 
       {/* Hero */}
       <div className="carnet-stats-hero">
+        <div className="carnet-stats-hero-main">
+          <div className="carnet-stats-total-block">
         <span className="carnet-stats-hero-num">{total}</span>
         <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
+          </div>
+          <div className="carnet-stats-hero-side">
+            <span className="carnet-stats-confidence">{confidenceLabel}</span>
+            {continents[0] && (
+              <span className="carnet-stats-dominant">
+                Ancrage {CONTINENT_DISPLAY[continents[0].continent]}
+              </span>
+            )}
+          </div>
+        </div>
         {archetype && (
           <span className="carnet-stats-archetype">« {archetype} »</span>
         )}
@@ -515,7 +534,9 @@ function CarnetStats({
         <ul className="carnet-stats-signals">
           {signatures.map(sig => (
             <li key={sig.key} className={`carnet-signal carnet-signal--${sig.key}`}>
-              <span className="carnet-signal-icon" aria-hidden="true">{sig.icon}</span>
+              <span className="carnet-signal-icon-wrap" aria-hidden="true">
+                <span className="carnet-signal-icon">{sig.icon}</span>
+              </span>
               <span className="carnet-signal-body">
                 <span className="carnet-signal-label">{sig.label}</span>
                 {sig.detail && <span className="carnet-signal-detail">{sig.detail}</span>}
@@ -525,10 +546,10 @@ function CarnetStats({
         </ul>
       )}
 
-      {/* Répartition continents — inline, en bas */}
-      {continents.length > 0 && confidence !== 'light' && (
+      {/* Répartition continents — inline, en bas (sans "Autre") */}
+      {continents.filter(c => c.continent !== 'Autre').length > 0 && confidence !== 'light' && (
         <div className="carnet-stats-continents-inline">
-          {continents.map((c, i) => (
+          {continents.filter(c => c.continent !== 'Autre').map((c, i) => (
             <span key={c.continent} className="carnet-cont-item">
               {i > 0 && <span className="carnet-cont-sep" aria-hidden="true">·</span>}
               <span className="carnet-cont-name">{CONTINENT_DISPLAY[c.continent]}</span>
@@ -537,6 +558,11 @@ function CarnetStats({
           ))}
         </div>
       )}
+
+      <div className="carnet-stats-footer" aria-hidden="true">
+        <span className="carnet-stats-footer-line" />
+        <span className="carnet-stats-footer-text">Voir la carte</span>
+      </div>
     </div>
   )
 }

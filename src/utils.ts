@@ -1,7 +1,7 @@
 import type { Destination, Tier, Intent } from './types'
 
 export type WeightedRatingKey = 'food' | 'night' | 'culture' | 'nature' | 'value'
-export type NeutralRatingKey = 'ease' | 'memorability'
+export type NeutralRatingKey = 'ease'
 export type Ratings = Record<WeightedRatingKey, number | null> & Partial<Record<NeutralRatingKey, number | null>>
 export type Weights = Record<WeightedRatingKey, number>
 
@@ -16,7 +16,7 @@ export const INTENT_WEIGHTS: Record<Intent, Weights> = {
 }
 
 const WEIGHTED_RATING_KEYS: WeightedRatingKey[] = ['food', 'night', 'culture', 'nature', 'value']
-const NEUTRAL_RATING_KEYS: NeutralRatingKey[] = ['ease', 'memorability']
+const NEUTRAL_RATING_KEYS: NeutralRatingKey[] = ['ease']
 const PRIMARY_RATING_BY_INTENT: Record<Intent, WeightedRatingKey> = {
   tourisme: 'culture',
   sorties: 'night',
@@ -100,7 +100,6 @@ export function getDestinationScore(destination: Destination): number {
     nature: destination.nature,
     value: destination.value,
     ease: destination.ease,
-    memorability: destination.memorability,
   }, destination.intent, {
     vibeBoost: destination.vibeBoost,
     retourBonus: destination.retourBonus,

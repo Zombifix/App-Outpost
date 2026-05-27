@@ -19,11 +19,11 @@ export interface DbDestinationRow {
   tier: string | null
   kind: string | null
   intent: string | null
-  food: number
-  night: number
-  culture: number
-  nature: number
-  value: number
+  food: number | null
+  night: number | null
+  culture: number | null
+  nature: number | null
+  value: number | null
   ease: number | null
   memorability: number | null
   score: number | null
@@ -194,11 +194,11 @@ export function rowToDestination(row: DbDestinationRow): Destination {
     tier,
     kind,
     intent,
-    food: row.food,
-    night: row.night,
-    culture: row.culture,
-    nature: row.nature,
-    value: row.value,
+    food: row.food ?? undefined,
+    night: row.night ?? undefined,
+    culture: row.culture ?? undefined,
+    nature: row.nature ?? undefined,
+    value: row.value ?? undefined,
     ease: row.ease ?? undefined,
     memorability: row.memorability ?? undefined,
     score: row.score ?? undefined,
@@ -250,11 +250,11 @@ export function destinationToRow(destination: Destination, userId: string): Omit
     tier: destination.tier ?? null,
     kind: destination.kind ?? null,
     intent: destination.intent,
-    food: destination.food,
-    night: destination.night,
-    culture: destination.culture,
-    nature: destination.nature,
-    value: destination.value,
+    food: destination.food ?? null,
+    night: destination.night ?? null,
+    culture: destination.culture ?? null,
+    nature: destination.nature ?? null,
+    value: destination.value ?? null,
     ease: destination.ease ?? null,
     memorability: destination.memorability ?? null,
     score: destination.score ?? null,

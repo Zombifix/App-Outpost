@@ -50,13 +50,13 @@ export interface Destination {
   tripTypes?: string[]
   standout?: string
   standoutTags?: string[]
-  food: number
-  night: number
-  culture: number
-  nature: number
-  value: number
+  food?: number
+  night?: number
+  culture?: number
+  nature?: number
+  value?: number
   ease?: number
-  memorability?: number
+  memorability?: number // legacy: conserved for rollback, no longer used by product scoring/UI
   vibeBoost?: number
   retourBonus?: number
   intent: Intent
@@ -132,11 +132,11 @@ export interface FeedItem {
 export interface NewDestinationForm {
   name: string
   intent: Intent
-  food: number
-  night: number
-  culture: number
-  nature: number
-  value: number
+  food?: number
+  night?: number
+  culture?: number
+  nature?: number
+  value?: number
   ease?: number
   memorability?: number
 }

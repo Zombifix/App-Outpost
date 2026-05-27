@@ -131,18 +131,14 @@ function getDestinationContext(destination: Destination) {
 }
 
 function getCriteria(destination: Destination) {
-  const base: Array<[string, number, string]> = [
-    ['Gastronomie', destination.food, 'utensils'],
-    ['Sorties & Vie nocturne', destination.night, 'martini'],
-    ['Culture & Histoire', destination.culture, 'temple'],
-    ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualite/prix', destination.value, 'coins'],
-  ]
+  const base: Array<[string, number, string]> = []
+  if (typeof destination.food === 'number') base.push(['Gastronomie', destination.food, 'utensils'])
+  if (typeof destination.night === 'number') base.push(['Sorties & Vie nocturne', destination.night, 'martini'])
+  if (typeof destination.culture === 'number') base.push(['Culture & Histoire', destination.culture, 'temple'])
+  if (typeof destination.nature === 'number') base.push(['Nature & Paysages', destination.nature, 'mountain'])
+  if (typeof destination.value === 'number') base.push(['Rapport qualite/prix', destination.value, 'coins'])
   if (typeof destination.ease === 'number') {
     base.push(['Facilite sur place', destination.ease, 'compass'])
-  }
-  if (typeof destination.memorability === 'number') {
-    base.push(['Souvenir laisse', destination.memorability, 'star'])
   }
   return base
 }

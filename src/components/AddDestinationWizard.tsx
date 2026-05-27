@@ -75,9 +75,8 @@ interface WizardState {
   nature: number | null
   value: number | null
   ease: number | null
-  memorability: number | null
   vibeBoost: number | null
-  retourBonus: number
+  retourBonus: number | null
   intent: Intent
   tripYear: number | null
   tripDays: number | null
@@ -101,10 +100,9 @@ function computeScore(state: WizardState): number {
     nature: state.nature,
     value: state.value,
     ease: state.ease,
-    memorability: state.memorability,
   }, state.intent, {
     vibeBoost: state.vibeBoost,
-    retourBonus: state.retourBonus,
+    retourBonus: state.retourBonus ?? 0,
   })
 }
 
@@ -120,9 +118,8 @@ function buildEditableSnapshot(state: WizardState, stops: RoadTripStop[]) {
     nature: normalizeNullableNumber(state.nature),
     value: normalizeNullableNumber(state.value),
     ease: normalizeNullableNumber(state.ease),
-    memorability: normalizeNullableNumber(state.memorability),
     vibeBoost: normalizeNullableNumber(state.vibeBoost),
-    retourBonus: state.retourBonus,
+    retourBonus: normalizeNullableNumber(state.retourBonus),
     tripYear: normalizeNullableNumber(state.tripYear),
     tripDays: normalizeNullableNumber(state.tripDays),
     companions: state.companions ?? null,
@@ -493,16 +490,6 @@ const QUESTIONS = [
     ],
   },
   {
-    key: 'memorability' as const,
-    question: '✨ Avec le recul, la destination t\'a marqué(e) ?',
-    answers: [
-      { label: '🤯 Une énorme claque, j\'y pense encore tous les jours', value: 5 },
-      { label: '❤️ Une super expérience, j\'en garde d\'excellents souvenirs', value: 4 },
-      { label: '🤷‍♀️ Sympa sur le coup, mais ça ne restera pas gravé à vie', value: 2 },
-      { label: '🗑️ Franchement oubliable / Déjà hâte de passer à autre chose', value: 1 },
-    ],
-  },
-  {
     key: 'vibeBoost' as const,
     question: '🫶 Niveau ambiance globale et accueil, c\'était comment ?',
     answers: [
@@ -524,7 +511,7 @@ const QUESTIONS = [
   },
 ]
 
-type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'memorability' | 'vibeBoost' | 'retourBonus'
+type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 'vibeBoost' | 'retourBonus'
 
 const SEARCH_EXAMPLES = ['Tokyo', 'Okinawa', 'Texas', 'Road trip Toscane']
 
@@ -656,9 +643,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           nature: initialDestination.nature,
           value: initialDestination.value,
           ease: initialDestination.ease ?? null,
-          memorability: initialDestination.memorability ?? null,
           vibeBoost: initialDestination.vibeBoost ?? null,
-          retourBonus: initialDestination.retourBonus ?? 0,
+          retourBonus: initialDestination.retourBonus ?? null,
           intent: initialDestination.intent,
           tripYear: initialDestination.tripYear ?? null,
           tripDays: initialDestination.tripDays ?? null,
@@ -675,8 +661,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           name: '', country: '', countryCode: undefined, state: undefined, osmValue: undefined, osmId: undefined, osmType: undefined, lat: 0, lng: 0,
           kind: 'place', tripName: '',
           food: null, night: null, culture: null, nature: null, value: null,
-          ease: null, memorability: null,
-          vibeBoost: null, retourBonus: 0,
+          ease: null,
+          vibeBoost: null, retourBonus: null,
           intent: 'tourisme',
           tripYear: null, tripDays: null, companions: null, personalBudget: null, tripTypes: [], standout: '', standoutTags: [],
           coupDeCoeur: false, livedThere: false, replaceCoupDeCoeurName: '',
@@ -694,13 +680,40 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     if (initialDestination.nature != null) keys.add('nature')
     if (initialDestination.value != null) keys.add('value')
     if (initialDestination.ease != null) keys.add('ease')
-    if (initialDestination.memorability != null) keys.add('memorability')
     if (initialDestination.vibeBoost != null) keys.add('vibeBoost')
-    if (initialDestination.retourBonus) keys.add('retourBonus')
+    if (initialDestination.retourBonus != null) keys.add('retourBonus')
     return keys
+  })
+  const [skippedKeys, setSkippedKeys] = useState<Set<QuestionKey>>(() => {
+    if (!initialDestination) return new Set()
+    const keys = new Set<QuestionKey>()
+    if (initialDestination.food == null) keys.add('food')
+    if (initialDestination.night == null) keys.add('night')
+    if (initialDestination.culture == null) keys.add('culture')
+    if (initialDestination.nature == null) keys.add('nature')
+    if (initialDestination.value == null) keys.add('value')
+    if (initialDestination.ease == null) keys.add('ease')
+    if (initialDestination.vibeBoost == null) keys.add('vibeBoost')
+    if (initialDestination.retourBonus == null) keys.add('retourBonus')
+    return keys
+  })
+  const [skipsUsed, setSkipsUsed] = useState(() => {
+    if (!initialDestination) return 0
+    let count = 0
+    if (initialDestination.food == null) count += 1
+    if (initialDestination.night == null) count += 1
+    if (initialDestination.culture == null) count += 1
+    if (initialDestination.nature == null) count += 1
+    if (initialDestination.value == null) count += 1
+    if (initialDestination.ease == null) count += 1
+    if (initialDestination.vibeBoost == null) count += 1
+    if (initialDestination.retourBonus == null) count += 1
+    return Math.min(2, count)
   })
   const finalScore = useMemo(() => computeScore(state), [state])
   const finalTier = scoreToTier(finalScore)
+  const ratedCriteriaCount = QUESTIONS.length - skippedKeys.size
+  const skipsRemaining = Math.max(0, 2 - skipsUsed)
   const [stops, setStops] = useState<RoadTripStop[]>(
     isEditing && initialDestination.stops?.length ? initialDestination.stops : []
   )
@@ -735,9 +748,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       nature: initialDestination.nature,
       value: initialDestination.value,
       ease: initialDestination.ease ?? null,
-      memorability: initialDestination.memorability ?? null,
       vibeBoost: initialDestination.vibeBoost ?? null,
-      retourBonus: initialDestination.retourBonus ?? 0,
+      retourBonus: initialDestination.retourBonus ?? null,
       intent: initialDestination.intent,
       tripYear: initialDestination.tripYear ?? null,
       tripDays: initialDestination.tripDays ?? null,
@@ -857,6 +869,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     setStops([])
     setQuestionIndex(0)
     setAnsweredKeys(new Set())
+    setSkippedKeys(new Set())
+    setSkipsUsed(0)
     setStep('questions')
     if (getKindFromPhotonResult(r) === 'zone') {
       // Resolve the exact OSM selection so homonyms cannot replace the chosen island/region.
@@ -873,6 +887,33 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const answerQuestion = (key: QuestionKey, value: number | null) => {
     setState(prev => ({ ...prev, [key]: value }))
     setAnsweredKeys(prev => new Set([...prev, key]))
+    setSkippedKeys(prev => {
+      if (!prev.has(key)) return prev
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+    setSkipsUsed(count => {
+      const wasSkipped = skippedKeys.has(key)
+      return wasSkipped ? Math.max(0, count - 1) : count
+    })
+
+    if (questionIndex < QUESTIONS.length - 1) {
+      setQuestionIndex(i => i + 1)
+    } else {
+      setStep('profile')
+    }
+  }
+
+  const skipQuestion = (key: QuestionKey) => {
+    if (skipsUsed >= 2 && !skippedKeys.has(key)) return
+    setState(prev => ({ ...prev, [key]: null }))
+    setAnsweredKeys(prev => new Set([...prev, key]))
+    setSkippedKeys(prev => {
+      if (prev.has(key)) return prev
+      return new Set([...prev, key])
+    })
+    setSkipsUsed(count => (skippedKeys.has(key) ? count : Math.min(2, count + 1)))
 
     if (questionIndex < QUESTIONS.length - 1) {
       setQuestionIndex(i => i + 1)
@@ -1012,15 +1053,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       osmId: s.osmId,
       osmType: s.osmType,
       countryCode: s.countryCode,
-      food: s.food || 3,
-      night: s.night || 3,
-      culture: s.culture || 3,
-      nature: s.nature || 3,
-      value: s.value || 3,
+      food: s.food ?? undefined,
+      night: s.night ?? undefined,
+      culture: s.culture ?? undefined,
+      nature: s.nature ?? undefined,
+      value: s.value ?? undefined,
       ease: s.ease ?? undefined,
-      memorability: s.memorability ?? undefined,
+      memorability: isEditing ? initialDestination.memorability : undefined,
       vibeBoost: s.vibeBoost ?? undefined,
-      retourBonus: s.retourBonus || undefined,
+      retourBonus: answeredKeys.has('retourBonus') && !skippedKeys.has('retourBonus') ? s.retourBonus : undefined,
       intent: s.intent,
       score: Math.round(score * 10) / 10,
       notes: isEditing ? (initialDestination.notes ?? 1) : 1,
@@ -1397,7 +1438,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               {activeQuestions[questionIndex]?.answers.map((a, i) => {
                 const questionKey = activeQuestions[questionIndex].key as QuestionKey
                 const currentValue = state[questionKey as keyof WizardState]
-                const isSelected = a.value === currentValue && answeredKeys.has(questionKey)
+                const isSelected = a.value === currentValue && answeredKeys.has(questionKey) && !skippedKeys.has(questionKey)
                 return (
                   <button
                     key={i}
@@ -1412,17 +1453,39 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 )
               })}
             </div>
-            {questionIndex > 0 && (
-              <button className="wizard-back" onClick={() => setQuestionIndex(i => i - 1)}>
-                ← Précédent
-              </button>
+            {activeQuestions[questionIndex] && (
+              <>
+                <div className="wizard-question-actions">
+                  {questionIndex > 0 ? (
+                    <button className="wizard-back wizard-question-nav" onClick={() => setQuestionIndex(i => i - 1)}>
+                      ← Précédent
+                    </button>
+                  ) : (
+                    <span className="wizard-question-nav-spacer" aria-hidden="true" />
+                  )}
+                  <button
+                    className={`wizard-skip-link${skipsRemaining === 0 ? ' is-disabled' : ''}`}
+                    onClick={() => skipQuestion(activeQuestions[questionIndex].key as QuestionKey)}
+                    disabled={skipsRemaining === 0}
+                    aria-disabled={skipsRemaining === 0}
+                    title={skipsRemaining === 0 ? 'Tu as déjà utilisé tes 2 passes pour ce voyage.' : undefined}
+                  >
+                    Ce critère ne s'applique pas →
+                  </button>
+                </div>
+                <p className={`wizard-skip-helper${skipsRemaining === 0 ? ' is-exhausted' : ''}`}>
+                  {skipsRemaining > 0
+                    ? `Il te reste ${skipsRemaining} passe${skipsRemaining > 1 ? 's' : ''} sur 2 pour ce voyage.`
+                    : 'Tes 2 passes ont déjà été utilisées pour ce voyage.'}
+                </p>
+              </>
             )}
           </div>
         )}
 
         {step === 'profile' && (
           <div className="wizard-step">
-            {renderWizardHeading(`${activeQuestions.length + 1} / ${activeQuestions.length + 2}`)}
+            {renderWizardHeading()}
             <h2 className="wizard-title">Type de séjour</h2>
             {renderStayTypeFields()}
             <div className="wizard-step-actions">
@@ -1438,7 +1501,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'context' && (
           <div className="wizard-step">
-            {renderWizardHeading(`${activeQuestions.length + 2} / ${activeQuestions.length + 2}`)}
+            {renderWizardHeading()}
             <h2 className="wizard-title">Derniers détails</h2>
             {renderTripContextFields()}
             <div className="wizard-step-actions">
@@ -1482,11 +1545,12 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <strong>{finalScore.toFixed(1).replace('.', ',')}</strong>
               <em>/5</em>
             </div>
+            <p className="result-rated-count">{ratedCriteriaCount}/{QUESTIONS.length} critères notés</p>
             <div className="result-axes">
-              {(['food', 'night', 'culture', 'nature', 'value', 'ease', 'memorability'] as const).map(axis => {
+              {(['food', 'night', 'culture', 'nature', 'value', 'ease'] as const).map(axis => {
                 const raw = state[axis]
-                if ((axis === 'ease' || axis === 'memorability') && raw === null) return null
-                const val = raw || 3
+                if (raw == null) return null
+                const val = raw
                 const label = {
                   food: 'Bouffe',
                   night: 'Soirées',
@@ -1494,7 +1558,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   nature: 'Cadre',
                   value: 'Prix',
                   ease: 'Facilité',
-                  memorability: 'Souvenir',
                 }[axis]
                 const icon = {
                   food: 'utensils',
@@ -1503,7 +1566,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   nature: 'mountain',
                   value: 'coins',
                   ease: 'calendar',
-                  memorability: 'heart',
                 }[axis]
                 return (
                   <div key={axis} className="result-axis">

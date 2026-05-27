@@ -6550,6 +6550,80 @@ svg {
   background: #e0e7ff;
 }
 
+.wizard-question-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0 8px;
+}
+
+.wizard-question-nav,
+.wizard-skip-link {
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 999px;
+}
+
+.wizard-question-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fb;
+  border: 1px solid #e6e9f0;
+  color: #6f7e96;
+}
+
+.wizard-question-nav:hover {
+  color: #50627e;
+  background: #f1f4fa;
+  border-color: #d7deea;
+}
+
+.wizard-question-nav-spacer {
+  min-width: 110px;
+  min-height: 42px;
+}
+
+.wizard-skip-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  background: #f7f8fb;
+  border: 1px solid #e6e9f0;
+  color: #6f7e96;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, opacity 0.12s;
+}
+.wizard-skip-link:hover {
+  color: #50627e;
+  background: #f1f4fa;
+  border-color: #d7deea;
+}
+.wizard-skip-link.is-disabled,
+.wizard-skip-link:disabled {
+  color: #a6afbf;
+  background: #f5f6f8;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.wizard-skip-helper {
+  margin: 0 0 18px;
+  color: #8b95a7;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.wizard-skip-helper.is-exhausted {
+  color: #9aa3b2;
+}
+
 .wizard-back {
   background: none;
   border: none;
@@ -6561,6 +6635,9 @@ svg {
   transition: color 0.12s;
 }
 .wizard-back:hover { color: #3b7cf4; }
+.wizard-back.wizard-question-nav:hover {
+  color: #50627e;
+}
 
 .wizard-trip-input {
   margin-bottom: 20px;
@@ -6735,6 +6812,12 @@ svg {
   font-size: 20px;
   color: #60708c;
   font-weight: 700;
+}
+
+.result-rated-count {
+  margin: -16px 0 24px;
+  color: #8b95a7;
+  font-size: var(--text-sm);
 }
 
 .result-axes {
@@ -7421,6 +7504,31 @@ svg {
   }
   .wizard-answer-btn.is-selected:hover {
     transform: translateY(-1px);
+  }
+
+  .wizard-question-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .wizard-question-nav-spacer {
+    display: none;
+  }
+
+  .wizard-question-nav,
+  .wizard-skip-link {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    padding: 12px 14px;
+    font-size: var(--text-sm);
+  }
+
+  .wizard-skip-helper {
+    margin-bottom: 16px;
+    text-align: center;
   }
 
   .wizard-search-box {

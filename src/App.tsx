@@ -114,11 +114,11 @@ function normalizeDestination(value: unknown): Destination | null {
     tier,
     kind,
     intent,
-    food: finiteNumber(value.food, 3),
-    night: finiteNumber(value.night, 3),
-    culture: finiteNumber(value.culture, 3),
-    nature: finiteNumber(value.nature, 3),
-    value: finiteNumber(value.value, 3),
+    food: value.food === undefined || value.food === null ? undefined : finiteNumber(value.food, undefined),
+    night: value.night === undefined || value.night === null ? undefined : finiteNumber(value.night, undefined),
+    culture: value.culture === undefined || value.culture === null ? undefined : finiteNumber(value.culture, undefined),
+    nature: value.nature === undefined || value.nature === null ? undefined : finiteNumber(value.nature, undefined),
+    value: value.value === undefined || value.value === null ? undefined : finiteNumber(value.value, undefined),
     ease: value.ease === undefined || value.ease === null ? undefined : finiteNumber(value.ease, undefined),
     memorability: value.memorability === undefined || value.memorability === null ? undefined : finiteNumber(value.memorability, undefined),
     vibeBoost: value.vibeBoost === undefined || value.vibeBoost === null ? undefined : finiteNumber(value.vibeBoost, undefined),
@@ -1308,18 +1308,14 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, onClose, 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const context = getDestinationContext(destination)
 
-  const criteria: Array<[string, number, string]> = [
-    ['Gastronomie', destination.food, 'utensils'],
-    ['Sorties & Vie nocturne', destination.night, 'martini'],
-    ['Culture & Histoire', destination.culture, 'temple'],
-    ['Nature & Paysages', destination.nature, 'mountain'],
-    ['Rapport qualité/prix', destination.value, 'coins'],
-  ]
+  const criteria: Array<[string, number, string]> = []
+  if (typeof destination.food === 'number') criteria.push(['Gastronomie', destination.food, 'utensils'])
+  if (typeof destination.night === 'number') criteria.push(['Sorties & Vie nocturne', destination.night, 'martini'])
+  if (typeof destination.culture === 'number') criteria.push(['Culture & Histoire', destination.culture, 'temple'])
+  if (typeof destination.nature === 'number') criteria.push(['Nature & Paysages', destination.nature, 'mountain'])
+  if (typeof destination.value === 'number') criteria.push(['Rapport qualité/prix', destination.value, 'coins'])
   if (typeof destination.ease === 'number') {
     criteria.push(['Facilité sur place', destination.ease, 'compass'])
-  }
-  if (typeof destination.memorability === 'number') {
-    criteria.push(['Souvenir laissé', destination.memorability, 'star'])
   }
 
   const coupDeCoeurDisabled = !coupDeCoeur && coupDeCoeurCount >= 2

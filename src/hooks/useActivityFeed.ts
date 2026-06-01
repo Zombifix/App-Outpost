@@ -17,6 +17,7 @@ interface EnrichedActivity extends ActivityEvent {
   actorDisplayName?: string
   actorAvatarBg?: string
   actorAvatarFg?: string
+  actorAvatarUrl?: string
 }
 
 /**
@@ -33,16 +34,17 @@ export function useActivityFeed(limit = 30) {
   const [loading, setLoading] = useState(false)
 
   const fetchProfiles = useCallback(async (actorIds: string[]) => {
-    if (!supabase || actorIds.length === 0) return new Map<string, { handle: string; displayName: string; avatarBg: string; avatarFg: string }>()
+    if (!supabase || actorIds.length === 0) return new Map<string, { handle: string; displayName: string; avatarBg: string; avatarFg: string; avatarUrl?: string }>()
     const { data } = await supabase
       .from('public_profiles')
-      .select('user_id, handle, display_name, avatar_bg, avatar_fg')
+      .select('user_id, handle, display_name, avatar_bg, avatar_fg, avatar_url')
       .in('user_id', actorIds)
-    const map = new Map<string, { handle: string; displayName: string; avatarBg: string; avatarFg: string }>()
-    for (const row of (data ?? []) as Array<{ user_id: string; handle: string; display_name: string; avatar_bg: string; avatar_fg: string }>) {
+    const map = new Map<string, { handle: string; displayName: string; avatarBg: string; avatarFg: string; avatarUrl?: string }>()
+    for (const row of (data ?? []) as Array<{ user_id: string; handle: string; display_name: string; avatar_bg: string; avatar_fg: string; avatar_url: string | null }>) {
       map.set(row.user_id, {
         handle: row.handle, displayName: row.display_name,
         avatarBg: row.avatar_bg, avatarFg: row.avatar_fg,
+        avatarUrl: row.avatar_url ?? undefined,
       })
     }
     return map
@@ -112,6 +114,7 @@ export function useActivityFeed(limit = 30) {
         actorDisplayName: profile?.displayName,
         actorAvatarBg: profile?.avatarBg,
         actorAvatarFg: profile?.avatarFg,
+        actorAvatarUrl: profile?.avatarUrl,
       }
     }))
     setLoading(false)

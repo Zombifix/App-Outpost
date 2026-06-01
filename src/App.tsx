@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { Destination, Intent, MapVisibility, RoadTripStop, Tier } from './types'
 import { useMyDestinations } from './hooks/useMyDestinations'
 import { useFocusTrap } from './hooks/useFocusTrap'
@@ -13,9 +14,10 @@ import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
-import { getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, withRecalculatedScore } from './utils'
+import { computeTravelerProfile, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, withRecalculatedScore } from './utils'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
+import { Avatar } from './components/Avatar'
 
 // Routes / panels lourds chargés à la demande pour réduire le bundle initial.
 // Le fallback est `null` parce que ces écrans apparaissent en réponse à un clic
@@ -30,6 +32,7 @@ import { FriendsProvider, useFriends } from './hooks/useFriends'
 import { useFriendDestinations } from './hooks/useFriendDestinations'
 import { useMyProfile } from './hooks/useMyProfile'
 import { FAKE_FRIENDS_MODE, findFakeFriendByHandle, getFakeFriendDestinations } from './hooks/_fakeFriends'
+import { useMediaQuery } from './hooks/useMediaQuery'
 
 const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
@@ -50,6 +53,48 @@ const DEFAULT_FILTERS: DestinationFilters = {
   thisYear: false,
   companions: 'all',
   budget: 'all',
+}
+
+type DesktopLegendMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
+type DesktopTierMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
+type DesktopControlsMode = 'bottom-left' | 'overlay-bottom'
+
+type DesktopDockState = {
+  controlsBottom: number
+  controlsLeft: number
+  controlsMode: DesktopControlsMode
+  leftDockWidth: number
+  leftDockX: number
+  legendBottom: number
+  legendHeight: number
+  legendMode: DesktopLegendMode
+  sidebarBottom: number
+  stackBottom: number
+  stackGap: number
+  stackTop: number
+  tierHeight: number
+  tierMode: DesktopTierMode
+  tierPanelWidth: number
+  tierStackTop: number
+}
+
+const DESKTOP_DOCK_DEFAULT: DesktopDockState = {
+  controlsBottom: 0,
+  controlsLeft: 0,
+  controlsMode: 'overlay-bottom',
+  leftDockWidth: 0,
+  leftDockX: 16,
+  legendBottom: 0,
+  legendHeight: 0,
+  legendMode: 'overlay-bottom',
+  sidebarBottom: 0,
+  stackBottom: 0,
+  stackGap: 16,
+  stackTop: 0,
+  tierHeight: 72,
+  tierMode: 'overlay-bottom',
+  tierPanelWidth: 0,
+  tierStackTop: 0,
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -253,6 +298,12 @@ function AppInner() {
   )
 }
 
+function MobileAvatarImg({ src, fallback }: { src: string; fallback: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <>{fallback.slice(0, 1).toUpperCase()}</>
+  return <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }} onError={() => setFailed(true)} />
+}
+
 function AppCore({
   pendingFriendCount,
   profileHandle,
@@ -265,6 +316,7 @@ function AppCore({
   onMapVisibilityChange: (value: MapVisibility) => Promise<{ ok: boolean; error?: string }>
 }) {
   const { user } = useAuth()
+  const { profile: myProfile } = useMyProfile()
   const { friendships, sendRequestByUserId, acceptRequest } = useFriends()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
@@ -391,6 +443,8 @@ function AppCore({
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [publicId, setPublicId] = useState<string>(loadPublicId)
+  const isMobileLayout = useMediaQuery('(max-width: 900px)')
+  const [desktopDock, setDesktopDock] = useState<DesktopDockState>(DESKTOP_DOCK_DEFAULT)
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -416,6 +470,125 @@ function AppCore({
   useEffect(() => {
     if (profileHandle && !publicId) setPublicId(profileHandle)
   }, [profileHandle, publicId])
+
+  useEffect(() => {
+    if (isMobileLayout || activeView !== 'map') {
+      setDesktopDock(prev => (
+        JSON.stringify(prev) === JSON.stringify(DESKTOP_DOCK_DEFAULT)
+          ? prev
+          : DESKTOP_DOCK_DEFAULT
+      ))
+      return
+    }
+
+    let frame = 0
+    const hasCompareBar = Boolean(compareFriend && !compareFriendDenied && !viewingFriend)
+
+    const measureDocking = () => {
+      const visibleRect = (selector: string) => {
+        const element = document.querySelector(selector)
+        if (!(element instanceof HTMLElement)) return null
+        const style = window.getComputedStyle(element)
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return null
+        const rect = element.getBoundingClientRect()
+        if (rect.width <= 0 || rect.height <= 0) return null
+        return rect
+      }
+
+      const sidebar = document.querySelector('.sidebar')
+      if (!(sidebar instanceof HTMLElement)) return
+
+      const sidebarRect = sidebar.getBoundingClientRect()
+      const destinationCardRect = visibleRect('.destination-card')
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      const outerMargin = 16
+      const rightMargin = 20
+      const stackGap = 16
+      const bottomMargin = 16
+      const controlsBaseOffset = 14
+      const controlsGap = 16
+      const tierHeight = tierListCollapsed ? 86 : 310
+      const legendHeight = hasCompareBar ? 215 : 175
+      const leftDockX = Math.round(sidebarRect.left)
+      const leftLimit = destinationCardRect ? destinationCardRect.left - rightMargin : viewportWidth - rightMargin
+      const availableWidth = Math.max(260, Math.round(leftLimit - leftDockX))
+      // Colonne gauche (légende + barre repliée) = largeur exacte de la nav island.
+      const leftDockWidth = Math.min(Math.round(sidebarRect.width), availableWidth)
+      // Panneau tier déplié = plus large pour afficher les colonnes S/A/B/C/D.
+      const tierPanelWidth = Math.max(leftDockWidth, Math.min(700, availableWidth))
+      const stackTop = Math.round(sidebarRect.bottom + stackGap)
+      const tierTopIfBottomLeft = Math.round(viewportHeight - bottomMargin - tierHeight)
+      const stackedLegendBottom = Math.round(stackTop + legendHeight)
+      const legendCanStayStacked = stackedLegendBottom + stackGap <= tierTopIfBottomLeft
+      const tierFitsUnderLegend = stackTop + legendHeight + stackGap + tierHeight + bottomMargin <= viewportHeight
+      const tierMode: DesktopTierMode = tierFitsUnderLegend ? 'stacked-left' : 'bottom-left'
+      const legendMode: DesktopLegendMode = legendCanStayStacked && tierMode === 'stacked-left'
+        ? 'stacked-left'
+        : 'bottom-left'
+      const tierStackTop = tierMode === 'stacked-left'
+        ? Math.round(stackTop + legendHeight + stackGap)
+        : 0
+      const legendBottom = tierMode === 'bottom-left'
+        ? Math.round(tierHeight + bottomMargin + stackGap)
+        : bottomMargin
+      const controlsBottom = Math.round(bottomMargin + controlsGap)
+      const controlsWidth = 44
+      const controlsLeft = tierMode === 'bottom-left'
+        ? Math.round(Math.min(
+            leftDockX + tierPanelWidth + controlsGap,
+            leftLimit - controlsWidth,
+          ))
+        : Math.round(leftDockX + controlsBaseOffset)
+      const stackBottom = tierMode === 'stacked-left'
+        ? Math.round(tierStackTop + tierHeight)
+        : legendMode === 'stacked-left'
+          ? Math.round(stackTop + legendHeight)
+          : 0
+
+      setDesktopDock(prev => {
+        const next: DesktopDockState = {
+          controlsBottom,
+          controlsLeft,
+          controlsMode: 'bottom-left',
+          leftDockWidth,
+          leftDockX,
+          legendBottom,
+          legendHeight,
+          legendMode,
+          sidebarBottom: Math.round(sidebarRect.bottom),
+          stackBottom,
+          stackGap,
+          stackTop,
+          tierHeight,
+          tierMode,
+          tierPanelWidth,
+          tierStackTop,
+        }
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+      })
+    }
+
+    const scheduleMeasure = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(measureDocking)
+    }
+
+    scheduleMeasure()
+    window.addEventListener('resize', scheduleMeasure)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', scheduleMeasure)
+    }
+  }, [
+    activeView,
+    compareFriend,
+    compareFriendDenied,
+    isMobileLayout,
+    selectedName,
+    tierListCollapsed,
+    viewingFriend,
+  ])
 
   // Lien partagé `?u=handle` → on charge directement le carnet de cet ami.
   // En mode fake, lookup local ; en prod, RPC find_user_by_handle + public_profiles.
@@ -639,10 +812,31 @@ function AppCore({
     !(activeView === 'map' && selected) ? 'no-card' : '',
     compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend ? 'compare-active' : '',
     selectedCompareDestination && !compareFriendDenied && activeView === 'map' ? 'destination-compare-open' : '',
+    activeView === 'map' && !isMobileLayout ? `desktop-legend-${desktopDock.legendMode}` : '',
+    activeView === 'map' && !isMobileLayout ? `desktop-tier-${desktopDock.tierMode}` : '',
+    activeView === 'map' && !isMobileLayout ? `desktop-controls-${desktopDock.controlsMode}` : '',
   ].filter(Boolean).join(' ')
 
+  const appStyle = useMemo(() => (
+    {
+      '--desktop-controls-bottom': `${desktopDock.controlsBottom}px`,
+      '--desktop-controls-left': `${desktopDock.controlsLeft}px`,
+      '--desktop-left-dock-w': `${desktopDock.leftDockWidth}px`,
+      '--desktop-left-dock-x': `${desktopDock.leftDockX}px`,
+      '--desktop-left-stack-bottom': `${desktopDock.stackBottom}px`,
+      '--desktop-left-stack-gap': `${desktopDock.stackGap}px`,
+      '--desktop-left-stack-top': `${desktopDock.stackTop}px`,
+      '--desktop-sidebar-bottom': `${desktopDock.sidebarBottom}px`,
+      '--desktop-legend-bottom': `${desktopDock.legendBottom}px`,
+      '--desktop-legend-height': `${desktopDock.legendHeight}px`,
+      '--desktop-tier-height': `${desktopDock.tierHeight}px`,
+      '--desktop-tier-panel-w': `${desktopDock.tierPanelWidth}px`,
+      '--desktop-tier-stack-top': `${desktopDock.tierStackTop}px`,
+    } as CSSProperties
+  ), [desktopDock])
+
   return (
-    <div className={appClass}>
+    <div className={appClass} style={appStyle}>
       {myDestinationsError && (
         <div
           role="status"
@@ -674,7 +868,10 @@ function AppCore({
           aria-label={accountOpen ? 'Fermer mon compte' : 'Mon compte'}
           aria-expanded={accountOpen}
         >
-          {publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />}
+          {myProfile?.avatarUrl
+            ? <MobileAvatarImg src={myProfile.avatarUrl} fallback={publicId || '·'} />
+            : publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />
+          }
         </button>
       </div>
       <BottomNav
@@ -694,11 +891,20 @@ function AppCore({
         friendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
         friendInitials={compareFriend && !compareFriendDenied ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
         sharedNames={compareFriend && !compareFriendDenied ? compareSharedNames : undefined}
+        controlsMode={desktopDock.controlsMode}
+        legendMode={desktopDock.legendMode}
         hidden={activeView !== 'map'}
       />
       {/* Barre flottante compare quand on superpose les pins d'un ami */}
       {compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend && (
-        <div className="compare-inline-bar" role="status">
+        <div
+          className={[
+            'compare-inline-bar',
+            !isMobileLayout && desktopDock.legendMode === 'stacked-left' ? 'compare-inline-bar--stacked-left' : '',
+            !isMobileLayout && desktopDock.legendMode === 'bottom-left' ? 'compare-inline-bar--bottom-left' : '',
+          ].filter(Boolean).join(' ')}
+          role="status"
+        >
           <div className="compare-inline-legend">
             <span className="compare-inline-item">
               <span className="compare-legend-dot compare-legend-dot--mine" aria-hidden="true" />
@@ -903,6 +1109,7 @@ function AppCore({
           destinations={visibleDestinations}
           collapsed={tierListCollapsed}
           coupDeCoeurCount={coupDeCoeurCount}
+          dockMode={desktopDock.tierMode}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
           onFlyTo={selectByName}
           onCompareFriend={viewingFriend ? undefined : setCompareFriend}
@@ -962,13 +1169,14 @@ function AppCore({
       )}
       {accountOpen && (
         <AccountPanel
-        publicId={publicId}
-        mapVisibility={profileMapVisibility}
-        onPublicIdChange={setPublicId}
-        onMapVisibilityChange={onMapVisibilityChange}
-        onClose={() => setAccountOpen(false)}
-        onResetCarnet={resetMyDestinations}
-        carnetCount={myDestinations.length}
+          destinations={myDestinations}
+          publicId={publicId}
+          mapVisibility={profileMapVisibility}
+          onPublicIdChange={setPublicId}
+          onMapVisibilityChange={onMapVisibilityChange}
+          onClose={() => setAccountOpen(false)}
+          onResetCarnet={resetMyDestinations}
+          carnetCount={myDestinations.length}
         />
       )}
     </div>
@@ -990,7 +1198,73 @@ function ExploreView(_props: { destinations: Destination[]; onSelect: (name: str
   )
 }
 
+const CONTINENT_DISPLAY: Record<string, string> = {
+  Europe: 'Europe',
+  Asie: 'Asie',
+  Ameriques: 'Amériques',
+  Afrique: 'Afrique',
+  Oceanie: 'Océanie',
+  Autre: 'Autre',
+}
+
+function TravelerProfileCard({ destinations }: { destinations: Destination[] }) {
+  const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
+  const { total, confidence, signatures, archetype, continents } = profile
+  const visibleContinents = continents.filter(c => c.continent !== 'Autre')
+
+  return (
+    <div className="carnet-stats account-profile-card" aria-label="Profil voyageur">
+      <span className="carnet-stats-paper-grain" aria-hidden="true" />
+      <span className="carnet-stats-stamp" aria-hidden="true" />
+      <span className="carnet-stats-eyebrow" aria-hidden="true">Profil voyageur</span>
+
+      <div className="carnet-stats-hero">
+        <div className="carnet-stats-hero-stack">
+          <span className="carnet-stats-hero-num">{total}</span>
+          <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
+        </div>
+        {archetype && (
+          <span className="carnet-stats-archetype carnet-stats-archetype--clean">{archetype}</span>
+        )}
+      </div>
+
+      {(total === 0 || confidence === 'light') && (
+        <div className="carnet-stats-empty">
+          Profil en construction · ajoute des destinations pour révéler ton style
+        </div>
+      )}
+
+      {signatures.length > 0 && (
+        <ul className="carnet-stats-signals">
+          {signatures.map(sig => (
+            <li key={sig.key} className={`carnet-signal carnet-signal--${sig.key}`}>
+              <span className="carnet-signal-icon" aria-hidden="true">{sig.icon}</span>
+              <span className="carnet-signal-body">
+                <span className="carnet-signal-label">{sig.label}</span>
+                {sig.detail && <span className="carnet-signal-detail">{sig.detail}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {visibleContinents.length > 0 && confidence !== 'light' && (
+        <div className="carnet-stats-continents-inline">
+          {visibleContinents.map((c, i) => (
+            <span key={c.continent} className="carnet-cont-item">
+              {i > 0 && <span className="carnet-cont-sep" aria-hidden="true">·</span>}
+              <span className="carnet-cont-name">{CONTINENT_DISPLAY[c.continent]}</span>
+              <span className="carnet-cont-pct">{Math.round(c.pct)}%</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface AccountPanelProps {
+  destinations: Destination[]
   publicId: string
   mapVisibility: MapVisibility
   onPublicIdChange: (value: string) => void
@@ -1002,17 +1276,17 @@ interface AccountPanelProps {
   carnetCount: number
 }
 
-type AccountMode = 'login' | 'public'
+type AccountMode = 'profile' | 'share' | 'account'
 type PasswordAuthMode = 'signin' | 'signup'
 
-function AccountPanel({ publicId, mapVisibility, onPublicIdChange, onMapVisibilityChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
+function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange, onMapVisibilityChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
   const trapRef = useFocusTrap<HTMLDivElement>(true)
   const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut } = useAuth()
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<AccountMode>(user && publicId ? 'public' : 'login')
+  const [mode, setMode] = useState<AccountMode>('profile')
   const [passwordMode, setPasswordMode] = useState<PasswordAuthMode>('signin')
   const [busy, setBusy] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
@@ -1132,7 +1406,7 @@ function AccountPanel({ publicId, mapVisibility, onPublicIdChange, onMapVisibili
       <aside className="account-panel" onClick={event => event.stopPropagation()}>
         <div className="account-panel-head">
           <div className="account-identity">
-            <div className="account-avatar">{draftId ? draftId.slice(0, 1).toUpperCase() : '·'}</div>
+            <Avatar avatarUrl={profile?.avatarUrl} initials={draftId || '·'} bg={profile?.avatarBg ?? '#e5e5e5'} fg={profile?.avatarFg ?? '#1a1a1a'} className="account-avatar" />
             <div>
               <h2>Mon compte</h2>
               <p>{user?.email ?? (draftId ? `@${draftId}` : 'Profil local')}</p>
@@ -1143,28 +1417,40 @@ function AccountPanel({ publicId, mapVisibility, onPublicIdChange, onMapVisibili
           </button>
         </div>
 
-        {user && publicId && (
-          <div className="account-tabs" role="tablist" aria-label="Paramètres du compte">
-            <button
-              role="tab"
-              aria-selected={mode === 'login'}
-              className={mode === 'login' ? 'is-active' : ''}
-              onClick={() => { setMode('login'); setFeedback(null) }}
-            >
-              Connexion
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === 'public'}
-              className={mode === 'public' ? 'is-active' : ''}
-              onClick={() => { setMode('public'); setFeedback(null) }}
-            >
-              Lien public
-            </button>
+        <div className="account-tabs" role="tablist" aria-label="Paramètres du compte">
+          <button
+            role="tab"
+            aria-selected={mode === 'profile'}
+            className={mode === 'profile' ? 'is-active' : ''}
+            onClick={() => { setMode('profile'); setFeedback(null) }}
+          >
+            Profil
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'share'}
+            className={mode === 'share' ? 'is-active' : ''}
+            onClick={() => { setMode('share'); setFeedback(null) }}
+          >
+            Partage
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'account'}
+            className={mode === 'account' ? 'is-active' : ''}
+            onClick={() => { setMode('account'); setFeedback(null) }}
+          >
+            Compte
+          </button>
+        </div>
+
+        {mode === 'profile' && (
+          <div className="account-section account-section--profile">
+            <TravelerProfileCard destinations={destinations} />
           </div>
         )}
 
-        {mode === 'login' && (
+        {mode === 'account' && (
           <div className="account-section">
             {user ? (
               <>
@@ -1251,7 +1537,7 @@ function AccountPanel({ publicId, mapVisibility, onPublicIdChange, onMapVisibili
           </div>
         )}
 
-        {mode === 'public' && (
+        {mode === 'share' && (
           <div className="account-section">
             <p className="account-hint">
               Ton pseudo sert au lien de partage et permet aux amis de retrouver ton carnet.

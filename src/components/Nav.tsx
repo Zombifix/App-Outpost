@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
 import type { Destination, Friendship } from '../types'
-import { COUNTRY_TO_CONTINENT } from '../data'
 import { BrandLogo } from './BrandLogo'
 import { useActivityFeed } from '../hooks/useActivityFeed'
-import { computeTravelerProfile, type TravelerProfile } from '../utils'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
@@ -99,10 +97,6 @@ export default function Nav({
             Explorer
           </button>
         </nav>
-
-        <CarnetStats destinations={destinations} onViewChange={onViewChange} />
-
-        <SidebarActivity onSeeAll={onOpenFriends} onFlyTo={onActivityFlyTo} />
 
       </aside>
 
@@ -485,81 +479,6 @@ function RowCard({ event: ev, onClick }: {
   )
 }
 
-// ─── Fiche signalétique du voyageur ────────────────────────────────────────────
-function CarnetStats({
-  destinations,
-  onViewChange,
-}: {
-  destinations: Destination[]
-  onViewChange: (view: 'map' | 'tier-list' | 'explore' | 'friends') => void
-}) {
-  const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
-  if (profile.total === 0) return null
-
-  const { total, confidence, signatures, archetype, continents } = profile
-  return (
-    <div className="carnet-stats" onClick={() => onViewChange('map')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewChange('map') } }}>
-      <span className="carnet-stats-paper-grain" aria-hidden="true" />
-      <span className="carnet-stats-stamp" aria-hidden="true" />
-      <span className="carnet-stats-eyebrow" aria-hidden="true">Profil voyageur</span>
-
-      {/* Hero */}
-      <div className="carnet-stats-hero">
-        <div className="carnet-stats-hero-stack">
-          <span className="carnet-stats-hero-num">{total}</span>
-          <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
-        </div>
-        {archetype && (
-          <span className="carnet-stats-archetype carnet-stats-archetype--clean">{archetype}</span>
-        )}
-      </div>
-
-      {confidence === 'light' && (
-        <div className="carnet-stats-empty">
-          Profil en construction · ajoute des destinations pour révéler ton style
-        </div>
-      )}
-
-      {signatures.length > 0 && (
-        <ul className="carnet-stats-signals">
-          {signatures.map(sig => (
-            <li key={sig.key} className={`carnet-signal carnet-signal--${sig.key}`}>
-              <span className="carnet-signal-icon" aria-hidden="true">{sig.icon}</span>
-              <span className="carnet-signal-body">
-                <span className="carnet-signal-label">{sig.label}</span>
-                {sig.detail && <span className="carnet-signal-detail">{sig.detail}</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* Répartition continents — inline, en bas (sans "Autre") */}
-      {continents.filter(c => c.continent !== 'Autre').length > 0 && confidence !== 'light' && (
-        <div className="carnet-stats-continents-inline">
-          {continents.filter(c => c.continent !== 'Autre').map((c, i) => (
-            <span key={c.continent} className="carnet-cont-item">
-              {i > 0 && <span className="carnet-cont-sep" aria-hidden="true">·</span>}
-              <span className="carnet-cont-name">{CONTINENT_DISPLAY[c.continent]}</span>
-              <span className="carnet-cont-pct">{Math.round(c.pct)}%</span>
-            </span>
-          ))}
-        </div>
-      )}
-
-    </div>
-  )
-}
-
-const CONTINENT_DISPLAY: Record<string, string> = {
-  Europe: 'Europe',
-  Asie: 'Asie',
-  Ameriques: 'Amériques',
-  Afrique: 'Afrique',
-  Oceanie: 'Océanie',
-  Autre: 'Autre',
-}
-
 // "Tokyo, Japon" → { dest: "Tokyo", country: "Japon" }
 function extractDestShort(fullName: string): string {
   const i = fullName.indexOf(',')
@@ -582,109 +501,6 @@ function renderShortLabel(kind: string, name: string): string {
     case 'milestone': return name ? `cap : ${name}` : 'a atteint un cap'
     default: return kind
   }
-}
-
-function normalizeArchetype(value: string): string {
-  return value
-    .replace(/^Â«\s*/, '')
-    .replace(/\s*Â»$/, '')
-    .replace(/^«\s*/, '')
-    .replace(/\s*»$/, '')
-}
-
-function signalIconName(key: string): string {
-  switch (key) {
-    case 'geo': return 'compass'
-    case 'coeur': return 'heart'
-    case 'budget': return 'star'
-    case 'year': return 'map'
-    case 'format': return 'plane'
-    case 'notes': return 'sparkles'
-    case 'companion': return 'users'
-    case 'intent': return 'map'
-    default: return 'map'
-  }
-}
-
-type PassportRow = {
-  key: string
-  icon: string
-  label: string
-  detail: string
-}
-
-function buildPassportSubtitle(destinations: Destination[]): string | null {
-  const counts = new Map<string, number>()
-  for (const destination of destinations) {
-    if (!destination.livedThere && destination.country) {
-      counts.set(destination.country, (counts.get(destination.country) ?? 0) + 1)
-    }
-  }
-  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
-  if (!top || top[1] < 2) return null
-  return `Recidiviste : ${top[0]}`
-}
-
-function buildPassportRows(profile: TravelerProfile, destinations: Destination[]): PassportRow[] {
-  const rows: PassportRow[] = []
-
-  const leadContinent = profile.continents[0]
-  if (leadContinent) {
-    rows.push({
-      key: 'explorer',
-      icon: 'compass',
-      label: 'Esprit explorateur',
-      detail: `${CONTINENT_DISPLAY[leadContinent.continent]} ${Math.round(leadContinent.pct)}%`,
-    })
-  }
-
-  if (profile.coupDeCoeurCount > 0) {
-    const counts = new Map<string, number>()
-    for (const destination of destinations) {
-      if (!destination.livedThere && destination.coupDeCoeur && destination.country) {
-        const continent = COUNTRY_TO_CONTINENT[destination.country] ?? 'Autre'
-        const label = CONTINENT_DISPLAY[continent]
-        counts.set(label, (counts.get(label) ?? 0) + 1)
-      }
-    }
-    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
-    if (top) {
-      rows.push({
-        key: 'coeur',
-        icon: 'heart',
-        label: 'Coup de coeur',
-        detail: `${top[0]} ${top[1]}/${profile.coupDeCoeurCount}`,
-      })
-    }
-  }
-
-  const countryCounts = new Map<string, number>()
-  for (const destination of destinations) {
-    if (!destination.livedThere && destination.country) {
-      countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + 1)
-    }
-  }
-  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]
-  if (topCountry) {
-    rows.push({
-      key: 'last-stop',
-      icon: 'pin',
-      label: 'Dernier arret',
-      detail: `${topCountry[0]} · ${topCountry[1]} voyages`,
-    })
-  }
-
-  return rows.slice(0, 3)
-}
-
-function shortTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const min = Math.floor(diff / 60000)
-  if (min < 1) return 'à l’instant'
-  if (min < 60) return `${min}m`
-  const hr = Math.floor(min / 60)
-  if (hr < 24) return `${hr}h`
-  return `${Math.floor(hr / 24)}j`
 }
 
 /** Variante "il y a 3 min" / "à l'instant" (sans double "il y a"). */

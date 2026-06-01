@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Friendship } from '../../types'
+import { Avatar } from '../Avatar'
 import { useFriends } from '../../hooks/useFriends'
 
 interface CompareWithFriendButtonProps {
@@ -59,9 +60,7 @@ export default function CompareWithFriendButton({ onPick, compact }: CompareWith
                 className="compare-picker-item"
                 onClick={() => { setOpen(false); onPick(friend) }}
               >
-                <span className="compare-picker-avatar" style={{ background: friend.avatarBg, color: friend.avatarFg }}>
-                  {friend.displayName.slice(0, 1).toUpperCase()}
-                </span>
+                <Avatar avatarUrl={friend.avatarUrl} initials={friend.displayName} bg={friend.avatarBg} fg={friend.avatarFg} className="compare-picker-avatar" />
                 <span className="compare-picker-meta">
                   <strong>{friend.displayName}</strong>
                   <small>@{friend.handle}</small>

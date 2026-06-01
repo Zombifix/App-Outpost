@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Avatar } from '../Avatar'
 import { useFriends } from '../../hooks/useFriends'
 import { useActivityFeed } from '../../hooks/useActivityFeed'
 import { useAuth } from '../../lib/auth'
@@ -201,9 +202,7 @@ function FriendRow({ friendship, onOpenProfile, primaryLabel, onPrimary, seconda
         onClick={() => onOpenProfile?.(f.otherUser)}
         title={`Profil de ${f.displayName}`}
       >
-        <span className="friends-avatar" style={{ background: f.avatarBg, color: f.avatarFg }}>
-          {f.displayName.slice(0, 1).toUpperCase()}
-        </span>
+        <Avatar avatarUrl={f.avatarUrl} initials={f.displayName} bg={f.avatarBg} fg={f.avatarFg} />
         <span className="friends-row-meta">
           <strong>{f.displayName}</strong>
           <small>@{f.handle}{statusLabel ? ` · ${statusLabel}` : ''}</small>

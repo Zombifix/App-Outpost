@@ -13,7 +13,15 @@ interface ActivityStripProps {
 
 type EnrichedEvent = ActivityEvent & {
   actorHandle?: string; actorDisplayName?: string;
-  actorAvatarBg?: string; actorAvatarFg?: string;
+  actorAvatarBg?: string; actorAvatarFg?: string; actorAvatarUrl?: string;
+}
+
+function AvatarContent({ src, fallback, bg, fg }: { src?: string; fallback: string; bg: string; fg: string }) {
+  const [failed, setFailed] = useState(false)
+  if (src && !failed) {
+    return <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }} onError={() => setFailed(true)} />
+  }
+  return <>{fallback.slice(0, 1).toUpperCase()}</>
 }
 
 /**
@@ -128,10 +136,10 @@ function ActivityCard({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity;
           type="button"
           className="friends-avatar activity-card-avatar"
           onClick={e => { e.stopPropagation(); if (ev.actor) onOpenProfile?.(ev.actor) }}
-          style={{ background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
+          style={ev.actorAvatarUrl ? undefined : { background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
           aria-label={`Profil de ${ev.actorDisplayName ?? ev.actorHandle ?? 'inconnu'}`}
         >
-          {(ev.actorDisplayName ?? ev.actorHandle ?? '?').slice(0, 1).toUpperCase()}
+          <AvatarContent src={ev.actorAvatarUrl} fallback={ev.actorDisplayName ?? ev.actorHandle ?? '?'} bg={ev.actorAvatarBg ?? '#ccc'} fg={ev.actorAvatarFg ?? '#fff'} />
         </button>
         <span className="activity-card-actor">{ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'}</span>
         <span className="activity-card-time">{relativeTime(ev.createdAt)}</span>
@@ -163,9 +171,9 @@ function ActivityRow({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity; 
         <button
           className="friends-avatar activity-row-avatar"
           onClick={() => onOpenProfile?.(ev.actor)}
-          style={{ background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
+          style={ev.actorAvatarUrl ? undefined : { background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
         >
-          {(ev.actorDisplayName ?? ev.actorHandle ?? '?').slice(0, 1).toUpperCase()}
+          <AvatarContent src={ev.actorAvatarUrl} fallback={ev.actorDisplayName ?? ev.actorHandle ?? '?'} bg={ev.actorAvatarBg ?? '#ccc'} fg={ev.actorAvatarFg ?? '#fff'} />
         </button>
         <div className="activity-row-body">
           <p>

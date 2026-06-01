@@ -51,6 +51,15 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
     return () => window.clearTimeout(t)
   }, [handle, checkHandleAvailable])
 
+  const getAvatarUrl = (handle: string): string => {
+    const provider = user?.app_metadata?.provider as string | undefined
+    if (provider === 'google') {
+      const url = (user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture) as string | undefined
+      if (url) return url
+    }
+    return `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(handle)}`
+  }
+
   const submit = async () => {
     setError(null)
     const cleanedHandle = sanitizeHandle(handle)
@@ -59,7 +68,7 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
     if (!cleanedName) { setError('Nom requis'); return }
     if (handleStatus === 'taken') { setError('Handle déjà pris'); return }
     setBusy(true)
-    const res = await upsert({ handle: cleanedHandle, displayName: cleanedName })
+    const res = await upsert({ handle: cleanedHandle, displayName: cleanedName, avatarUrl: getAvatarUrl(cleanedHandle) })
     setBusy(false)
     if (!res.ok) setError(res.error ?? 'Erreur')
   }

@@ -11,6 +11,7 @@ interface FriendshipRow {
   display_name: string
   avatar_bg: string
   avatar_fg: string
+  avatar_url: string | null
   status: Friendship['status']
   initiator: string
   created_at: string
@@ -24,6 +25,7 @@ function rowToFriendship(row: FriendshipRow, myUserId: string): Friendship {
     displayName: row.display_name,
     avatarBg: row.avatar_bg,
     avatarFg: row.avatar_fg,
+    avatarUrl: row.avatar_url ?? undefined,
     status: row.status,
     initiator: row.initiator === myUserId ? 'me' : 'them',
     createdAt: row.created_at,
@@ -164,7 +166,7 @@ function useFriendsState() {
     const safe = q.replace(/[\\%_]/g, c => `\\${c}`)
     const { data, error: err } = await supabase
       .from('public_profiles')
-      .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio, map_visibility')
+      .select('user_id, handle, display_name, avatar_bg, avatar_fg, avatar_url, bio, map_visibility')
       .or(`handle.ilike.%${safe}%,display_name.ilike.%${safe}%`)
       .limit(8)
     if (err || !data) return []
@@ -174,6 +176,7 @@ function useFriendsState() {
       displayName: row.display_name,
       avatarBg: row.avatar_bg,
       avatarFg: row.avatar_fg,
+      avatarUrl: (row.avatar_url as string | null) ?? undefined,
       bio: row.bio ?? undefined,
       mapVisibility: (row.map_visibility as MapVisibility | null) ?? 'friends',
     }))

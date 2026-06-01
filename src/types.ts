@@ -72,6 +72,7 @@ export interface PublicProfile {
   displayName: string
   avatarBg: string
   avatarFg: string
+  avatarUrl?: string
   bio?: string
   mapVisibility: MapVisibility
 }
@@ -85,6 +86,7 @@ export interface Friendship {
   displayName: string
   avatarBg: string
   avatarFg: string
+  avatarUrl?: string
   status: FriendshipStatus
   /** 'me' si c'est moi qui ai initié la demande, 'them' si c'est l'autre */
   initiator: 'me' | 'them'

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Avatar } from '../Avatar'
 import { useFriends } from '../../hooks/useFriends'
 import type { Friendship } from '../../types'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
@@ -172,9 +173,7 @@ function ManageRow({ friendship: f, onOpen, statusLabel, hint, actions }: Manage
         disabled={!onOpen}
         title={onOpen ? (hint ?? `Voir le carnet de ${f.displayName}`) : undefined}
       >
-        <span className="manage-avatar" style={{ background: f.avatarBg, color: f.avatarFg }}>
-          {f.displayName.slice(0, 1).toUpperCase()}
-        </span>
+        <Avatar avatarUrl={f.avatarUrl} initials={f.displayName} bg={f.avatarBg} fg={f.avatarFg} className="manage-avatar" />
         <span className="manage-row-meta">
           <strong>{f.displayName}</strong>
           <small>@{f.handle}{statusLabel ? ` · ${statusLabel}` : ''}</small>

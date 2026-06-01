@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Avatar } from '../Avatar'
 import { useFriends } from '../../hooks/useFriends'
 
 interface FriendsOnMapPanelProps {
@@ -50,9 +51,7 @@ export default function FriendsOnMapPanel({ onOpenProfile, onAddFriend }: Friend
             {accepted.map(f => (
               <li key={f.otherUser}>
                 <button className="panel-friends-row" onClick={() => onOpenProfile(f.otherUser)}>
-                  <span className="friends-avatar panel-friends-avatar" style={{ background: f.avatarBg, color: f.avatarFg }}>
-                    {f.displayName.slice(0, 1).toUpperCase()}
-                  </span>
+                  <Avatar avatarUrl={f.avatarUrl} initials={f.displayName} bg={f.avatarBg} fg={f.avatarFg} className="friends-avatar panel-friends-avatar" />
                   <span className="panel-friends-meta">
                     <strong>{f.displayName}</strong>
                     <small>@{f.handle}</small>

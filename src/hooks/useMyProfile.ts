@@ -9,6 +9,7 @@ interface ProfileRow {
   display_name: string
   avatar_bg: string
   avatar_fg: string
+  avatar_url: string | null
   bio: string | null
   map_visibility: MapVisibility | null
 }
@@ -20,6 +21,7 @@ function rowToProfile(row: ProfileRow): PublicProfile {
     displayName: row.display_name,
     avatarBg: row.avatar_bg,
     avatarFg: row.avatar_fg,
+    avatarUrl: row.avatar_url ?? undefined,
     bio: row.bio ?? undefined,
     mapVisibility: row.map_visibility ?? 'friends',
   }
@@ -47,7 +49,7 @@ export function useMyProfile() {
     setLoading(true)
     const { data } = await supabase
       .from('public_profiles')
-      .select('user_id, handle, display_name, avatar_bg, avatar_fg, bio, map_visibility')
+      .select('user_id, handle, display_name, avatar_bg, avatar_fg, avatar_url, bio, map_visibility')
       .eq('user_id', user.id)
       .maybeSingle()
     setProfile(data ? rowToProfile(data as ProfileRow) : null)
@@ -65,6 +67,7 @@ export function useMyProfile() {
     displayName: string
     avatarBg?: string
     avatarFg?: string
+    avatarUrl?: string
     bio?: string
     mapVisibility?: MapVisibility
   }): Promise<{ ok: boolean; error?: string }> => {
@@ -81,6 +84,7 @@ export function useMyProfile() {
         display_name: displayName,
         avatar_bg: input.avatarBg ?? randomAvatarBg(handle),
         avatar_fg: input.avatarFg ?? '#ffffff',
+        avatar_url: input.avatarUrl ?? null,
         bio: input.bio ?? null,
         map_visibility: input.mapVisibility ?? profile?.mapVisibility ?? 'friends',
       })

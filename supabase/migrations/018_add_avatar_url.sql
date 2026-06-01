@@ -6,6 +6,9 @@ alter table public_profiles
   add column if not exists avatar_url text;
 
 -- Met à jour la RPC my_friendships pour retourner avatar_url
+-- DROP obligatoire car PostgreSQL ne permet pas de changer le type de retour avec CREATE OR REPLACE
+drop function if exists my_friendships();
+
 create or replace function my_friendships()
 returns table (
   other_user uuid,

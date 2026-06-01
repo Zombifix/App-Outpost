@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { MapVisibility, PublicProfile } from '../types'
@@ -61,6 +61,27 @@ export function useMyProfile() {
     setLoaded(false)
     void refresh()
   }, [refresh])
+
+  // Auto-sync avatar_url pour les profils existants créés avant la migration.
+  // S'exécute une seule fois quand le profil se charge sans avatar_url.
+  const avatarSyncedRef = useRef(false)
+  useEffect(() => {
+    if (!supabase || !user || !profile || profile.avatarUrl || avatarSyncedRef.current) return
+    avatarSyncedRef.current = true
+    const provider = user.app_metadata?.provider as string | undefined
+    let avatarUrl: string
+    if (provider === 'google') {
+      const googleUrl = (user.user_metadata?.avatar_url ?? user.user_metadata?.picture) as string | undefined
+      avatarUrl = googleUrl ?? `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(profile.handle)}`
+    } else {
+      avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(profile.handle)}`
+    }
+    void supabase
+      .from('public_profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('user_id', user.id)
+      .then(() => refresh())
+  }, [profile, user, refresh])
 
   const upsert = useCallback(async (input: {
     handle: string

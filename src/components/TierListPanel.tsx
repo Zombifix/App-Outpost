@@ -16,26 +16,29 @@ interface TierListPanelProps {
   onCompareFriend?: (friend: Friendship) => void
   onMobileToggle?: () => void
   onViewTierList?: () => void
+  compareFriendDestinations?: Destination[]
+  compareFriendName?: string
+  compareFriendAvatarUrl?: string | null
 }
 
 const tierLabels: Record<Tier, string> = {
-  S: 'Exceptionnel',
-  A: 'Génial',
-  B: 'Correct',
-  C: 'Bof',
-  D: 'À éviter',
+  S: 'Exceptional',
+  A: 'Great',
+  B: 'Decent',
+  C: 'Meh',
+  D: 'Avoid',
 }
 
 type SortMode = 'score' | 'recent'
 
 const sortLabels: Record<SortMode, string> = {
-  score: 'Meilleures notes',
-  recent: 'Derniers voyages',
+  score: 'Top rated',
+  recent: 'Most recent',
 }
 
 const mobileSortLabels: Record<SortMode, string> = {
-  score: 'Par note',
-  recent: 'Par date',
+  score: 'By rating',
+  recent: 'By date',
 }
 
 function destinationScore(destination: Destination) {
@@ -65,6 +68,9 @@ export default function TierListPanel({
   onFlyTo,
   onCompareFriend,
   onViewTierList,
+  compareFriendDestinations,
+  compareFriendName,
+  compareFriendAvatarUrl,
 }: TierListPanelProps) {
   const tiersWithItems = TIER_ORDER.filter(t =>
     destinations.some(d => getDestinationTier(d) === t && d.kind !== 'stop')
@@ -154,7 +160,7 @@ export default function TierListPanel({
   }
 
   const sortControl = (className = '', compact = false) => (
-    <div className={`tier-sort-toggle${className ? ` ${className}` : ''}`} role="group" aria-label="Trier la tier list">
+    <div className={`tier-sort-toggle${className ? ` ${className}` : ''}`} role="group" aria-label="Sort tier list">
       {(['score', 'recent'] as SortMode[]).map(mode => (
         <button
           key={mode}
@@ -178,6 +184,12 @@ export default function TierListPanel({
     tier,
     count: destinations.filter(d => d.kind !== 'stop' && getDestinationTier(d) === tier).length,
   })).filter(item => item.count > 0)
+  const friendTierCounts = compareFriendDestinations
+    ? TIER_ORDER.map(tier => ({
+        tier,
+        count: compareFriendDestinations.filter(d => d.kind !== 'stop' && getDestinationTier(d) === tier).length,
+      })).filter(item => item.count > 0)
+    : null
   const tierCountChips = tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
     <span
       key={tier}
@@ -191,7 +203,7 @@ export default function TierListPanel({
   )
 
   const tierOptions = [
-    { value: 'all' as const, label: 'Tous' },
+    { value: 'all' as const, label: 'All' },
     ...tiersWithItems.map(tier => ({
       value: tier,
       label: tier,
@@ -207,42 +219,65 @@ export default function TierListPanel({
       : ''
 
   return (
-    <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}${dockClass}`} aria-label="Mon classement">
+    <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}${dockClass}`} aria-label="My rankings">
       {/* iOS drag handle — clickable to collapse/expand on mobile */}
       <button
         type="button"
         className="tier-board-handle"
         onClick={onCollapseToggle}
-        aria-label={collapsed ? 'Déplier' : 'Replier'}
+        aria-label={collapsed ? 'Expand' : 'Collapse'}
       >
         <span className="tier-board-handle-bar" />
         {collapsed && (
           <span className="tier-board-collapsed-hint" aria-hidden="true">
-            <span className="tier-board-collapsed-label">
-              Mon classement
+            <span className="tier-board-collapsed-row">
+              <span className="tier-board-collapsed-label">My rankings</span>
+              <span className="tier-board-collapsed-counts" aria-label="Summary by rating">
+                {tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
+                  <span
+                    key={tier}
+                    className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
+                  >
+                    <span className="tier-board-collapsed-dot" aria-hidden="true" />
+                    {count}
+                  </span>
+                )) : (
+                  <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
+                )}
+              </span>
             </span>
-            <span className="tier-board-collapsed-counts" aria-label="Récapitulatif par note">
-              {tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
-                <span
-                  key={tier}
-                  className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
-                >
-                  <span className="tier-board-collapsed-dot" aria-hidden="true" />
-                  {count}
+            {friendTierCounts && compareFriendName && (
+              <span className="tier-board-collapsed-row tier-board-collapsed-row--friend">
+                <span className="tier-board-collapsed-label tier-board-collapsed-label--friend">
+                  {compareFriendAvatarUrl && (
+                    <img src={compareFriendAvatarUrl} alt="" aria-hidden="true" className="tier-board-friend-avatar" />
+                  )}
+                  {compareFriendName}
                 </span>
-              )) : (
-                <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
-              )}
-            </span>
+                <span className="tier-board-collapsed-counts">
+                  {friendTierCounts.length > 0 ? friendTierCounts.map(({ tier, count }) => (
+                    <span
+                      key={tier}
+                      className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
+                    >
+                      <span className="tier-board-collapsed-dot" aria-hidden="true" />
+                      {count}
+                    </span>
+                  )) : (
+                    <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
+                  )}
+                </span>
+              </span>
+            )}
           </span>
         )}
       </button>
 
       <div className="tier-board-head">
         <div className="tier-board-title">
-          <h2>Mon classement <span>· {destinations.filter(d => d.kind !== 'stop').length}</span></h2>
+          <h2>My rankings <span>· {destinations.filter(d => d.kind !== 'stop').length}</span></h2>
           {collapsed && (
-            <div className="tier-board-title-counts" aria-label="Récapitulatif par note">
+            <div className="tier-board-title-counts" aria-label="Summary by rating">
               {tierCountChips}
             </div>
           )}
@@ -253,13 +288,13 @@ export default function TierListPanel({
           )}
           <button
             className="next-control-inline next-control-inline--fold"
-            aria-label={collapsed ? 'Déplier le classement' : 'Replier le classement'}
+            aria-label={collapsed ? 'Expand rankings' : 'Collapse rankings'}
             onClick={onCollapseToggle}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={collapsed ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
             </svg>
-            <span>{collapsed ? 'Déplier' : 'Replier'}</span>
+            <span>{collapsed ? 'Expand' : 'Collapse'}</span>
           </button>
         </div>
       </div>
@@ -267,7 +302,7 @@ export default function TierListPanel({
       <div className="tier-desktop-tabs" aria-label="Filtrer par tier">
         <SegmentedControl
           className="tier-desktop-tabs-list"
-          ariaLabel="Filtrer par tier"
+          ariaLabel="Filter by tier"
           role="radiogroup"
           size="sm"
           layout="hug"
@@ -282,12 +317,12 @@ export default function TierListPanel({
       {/* ── Mobile view: heading + tier pills + cards ── */}
       <div className="tier-mobile-section">
         <div className="tier-mobile-topline">
-          <h2 className="tier-mobile-title">Mon classement</h2>
+          <h2 className="tier-mobile-title">My rankings</h2>
         </div>
         <div className="tier-mobile-filter-row">
           <SegmentedControl
             className="tier-mobile-tabs"
-            ariaLabel="Filtrer par tier"
+            ariaLabel="Filter by tier"
             role="radiogroup"
             size="sm"
             layout="scrollable"
@@ -338,7 +373,7 @@ export default function TierListPanel({
       <div className="tier-rail">
         <button
           className="tier-rail-control tier-rail-control-prev"
-          aria-label="Voir les tiers precedents"
+          aria-label="See previous tiers"
           disabled={!canScrollPrev}
           onClick={() => scrollRail(-1)}
         >
@@ -409,7 +444,7 @@ export default function TierListPanel({
         </div>
         <button
           className="tier-rail-control tier-rail-control-next"
-          aria-label="Voir les tiers suivants"
+          aria-label="See next tiers"
           disabled={!canScrollNext}
           onClick={() => scrollRail(1)}
         >

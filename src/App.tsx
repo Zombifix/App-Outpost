@@ -222,16 +222,16 @@ function loadPublicId(): string {
 }
 
 function getMapPrivacyMessage(reason: 'private' | 'friends_only' | null, handle?: string | null) {
-  const owner = handle ? `@${handle}` : 'Cette carte'
+  const owner = handle ? `@${handle}` : 'This map'
   if (reason === 'friends_only') {
     return {
-      title: `${owner} est visible uniquement par ses amis.`,
-      body: 'Ajoute cette personne en ami pour voir sa carte, ou retourne à ton carnet.',
+      title: `${owner} is only visible to friends.`,
+      body: 'Add this person as a friend to see their map, or go back to your journal.',
     }
   }
   return {
-    title: 'Cette carte est privée.',
-    body: 'Seul son propriétaire peut la consulter pour le moment.',
+    title: 'This map is private.',
+    body: 'Only the owner can view it for now.',
   }
 }
 
@@ -715,9 +715,16 @@ function AppCore({
 
   const selectByName = (name: string) => {
     const destination = destinations.find(item => item.name === name)
-    if (!destination) return
-    setSelectedName(destination.name)
-    setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
+    if (destination) {
+      setSelectedName(destination.name)
+      setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
+      return
+    }
+    // Pin ami-seulement (pas dans mon carnet) : on se contente de voler vers la destination
+    const friendDest = compareFriendDests.find(item => item.name === name)
+    if (friendDest) {
+      setFlyTarget({ lat: friendDest.lat, lng: friendDest.lng, name: friendDest.name })
+    }
   }
 
   const openDestinationOnMap = (name: string) => {
@@ -943,16 +950,16 @@ function AppCore({
             </span>
             <span className="compare-inline-item">
               <span className="compare-legend-dot compare-legend-dot--shared" aria-hidden="true" />
-              {compareCommonCount} en commun
+              {compareCommonCount} in common
             </span>
           </div>
           <button
             type="button"
             className="btn btn-primary btn-pill btn-sm compare-inline-close"
             onClick={() => setCompareFriend(null)}
-            aria-label={`Quitter la comparaison avec ${compareFriend.displayName}`}
+            aria-label={`Exit comparison with ${compareFriend.displayName}`}
           >
-            <Icon name="x" /> Quitter la comparaison
+            <Icon name="x" /> Exit comparison
           </button>
         </div>
       )}
@@ -968,7 +975,7 @@ function AppCore({
               className="friends-action-btn friends-action-secondary"
               onClick={() => { setViewingFriend(null); setSelectedName(null) }}
             >
-              ← Mon carnet
+              ← My journal
             </button>
           </div>
         </div>
@@ -976,14 +983,14 @@ function AppCore({
       {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
-            <h3>@{viewingFriend.handle} n'a pas encore ajouté de destinations.</h3>
-            <p>Reviens un peu plus tard, ou retourne à ton carnet.</p>
+            <h3>@{viewingFriend.handle} hasn't added any destinations yet.</h3>
+            <p>Check back later, or go back to your journal.</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => { setViewingFriend(null); setSelectedName(null) }}
             >
-              ← Mon carnet
+              ← My journal
             </button>
           </div>
         </div>
@@ -991,14 +998,14 @@ function AppCore({
       {!viewingFriend && activeView === 'map' && myDestinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
-            <h3>Ton carnet est vide</h3>
-            <p>Ajoute ta première destination pour la voir apparaître sur la carte.</p>
+            <h3>Your journal is empty</h3>
+            <p>Add your first destination to see it appear on the map.</p>
             <button
               type="button"
               className="add-submit"
               onClick={() => setAddingDestination(true)}
             >
-              + Ajouter ma première destination
+              + Add my first destination
             </button>
           </div>
         </div>
@@ -1006,14 +1013,14 @@ function AppCore({
       {!viewingFriend && activeView === 'map' && myDestinations.length > 0 && visibleDestinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
-            <h3>Aucun résultat pour ces filtres</h3>
-            <p>Modifie ou réinitialise les filtres pour revoir tes destinations.</p>
+            <h3>No results for these filters</h3>
+            <p>Change or reset the filters to see your destinations.</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => setFilters(DEFAULT_FILTERS)}
             >
-              Réinitialiser les filtres
+              Reset filters
             </button>
           </div>
         </div>
@@ -1022,13 +1029,13 @@ function AppCore({
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
             <h3>{getMapPrivacyMessage(compareFriendAccess.deniedReason, compareFriend?.handle).title}</h3>
-            <p>La comparaison ne peut pas s'afficher tant que cette carte n'est pas visible pour toi.</p>
+            <p>The comparison cannot be shown while this map is not visible to you.</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => setCompareFriend(null)}
             >
-              Fermer la comparaison
+              Close comparison
             </button>
           </div>
         </div>
@@ -1137,6 +1144,9 @@ function AppCore({
           onCompareFriend={viewingFriend ? undefined : setCompareFriend}
           onMobileToggle={() => setTierListCollapsed(value => !value)}
           onViewTierList={() => setActiveView('tier-list')}
+          compareFriendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
+          compareFriendName={compareFriend && !compareFriendDenied ? compareFriend.displayName.split(' ')[0] : undefined}
+          compareFriendAvatarUrl={compareFriend && !compareFriendDenied ? (compareFriend.avatarUrl ?? null) : null}
         />
       )}
       {addingDestination && (
@@ -1224,11 +1234,11 @@ function ExploreView(_props: { destinations: Destination[]; onSelect: (name: str
 
 const CONTINENT_DISPLAY: Record<string, string> = {
   Europe: 'Europe',
-  Asie: 'Asie',
-  Ameriques: 'Amériques',
-  Afrique: 'Afrique',
-  Oceanie: 'Océanie',
-  Autre: 'Autre',
+  Asie: 'Asia',
+  Ameriques: 'Americas',
+  Afrique: 'Africa',
+  Oceanie: 'Oceania',
+  Autre: 'Other',
 }
 
 function LegacyTravelerProfileCard({ destinations }: { destinations: Destination[] }) {
@@ -1237,10 +1247,10 @@ function LegacyTravelerProfileCard({ destinations }: { destinations: Destination
   const visibleContinents = continents.filter(c => c.continent !== 'Autre')
 
   return (
-    <div className="carnet-stats account-profile-card" aria-label="Profil voyageur">
+    <div className="carnet-stats account-profile-card" aria-label="Traveler profile">
       <span className="carnet-stats-paper-grain" aria-hidden="true" />
       <span className="carnet-stats-stamp" aria-hidden="true" />
-      <span className="carnet-stats-eyebrow" aria-hidden="true">Profil voyageur</span>
+      <span className="carnet-stats-eyebrow" aria-hidden="true">Traveler profile</span>
 
       <div className="carnet-stats-hero">
         <div className="carnet-stats-hero-stack">
@@ -1254,7 +1264,7 @@ function LegacyTravelerProfileCard({ destinations }: { destinations: Destination
 
       {(total === 0 || confidence === 'light') && (
         <div className="carnet-stats-empty">
-          Profil en construction · ajoute des destinations pour révéler ton style
+          Profile in progress · add destinations to reveal your style
         </div>
       )}
 
@@ -1289,11 +1299,11 @@ function LegacyTravelerProfileCard({ destinations }: { destinations: Destination
 
 const ACCOUNT_CONTINENT_META: Record<ContinentBucket, { label: string; icon: string; color: string; soft: string }> = {
   Europe: { label: 'Europe', icon: '🍷', color: '#ef7b73', soft: '#fff1f1' },
-  Asie: { label: 'Asie', icon: '🏮', color: '#f7bd42', soft: '#fff7dd' },
-  Ameriques: { label: 'Amériques', icon: '🌎', color: '#45c489', soft: '#e8fbf2' },
-  Afrique: { label: 'Afrique', icon: '🌍', color: '#f0934e', soft: '#fff2e6' },
-  Oceanie: { label: 'Océanie', icon: '🌊', color: '#56a8f5', soft: '#eaf5ff' },
-  Autre: { label: 'Autre', icon: '🧭', color: '#94a3b8', soft: '#f1f5f9' },
+  Asie: { label: 'Asia', icon: '🏮', color: '#f7bd42', soft: '#fff7dd' },
+  Ameriques: { label: 'Americas', icon: '🌎', color: '#45c489', soft: '#e8fbf2' },
+  Afrique: { label: 'Africa', icon: '🌍', color: '#f0934e', soft: '#fff2e6' },
+  Oceanie: { label: 'Oceania', icon: '🌊', color: '#56a8f5', soft: '#eaf5ff' },
+  Autre: { label: 'Other', icon: '🧭', color: '#94a3b8', soft: '#f1f5f9' },
 }
 
 type AccountProfileChip = { key: string; label: string }
@@ -1316,31 +1326,31 @@ function medianValue(values: number[]): number | null {
 function buildAccountProfileTitle(profile: TravelerProfile): AccountProfileTitle {
   const text = profile.archetype ?? ''
   const lower = text.toLowerCase()
-  let title = 'Profil voyageur'
+  let title = 'Traveler profile'
 
   if (lower.includes('reconna') || lower.includes('faible') || lower.includes('retourne souvent')) {
-    title = 'Habitué fidèle'
+    title = 'Loyal regular'
   } else if (lower.includes('émotions') || lower.includes('enthousiasme') || lower.includes('objectif')) {
-    title = 'Voyageur sélectif'
+    title = 'Selective traveler'
   } else if (lower.includes('panneaux') || lower.includes('vieilles pierres') || lower.includes('culture')) {
-    title = 'Explorateur réfléchi'
+    title = 'Thoughtful explorer'
   } else if (lower.includes('budget') || lower.includes('addition') || lower.includes('raisonnable')) {
-    title = 'Confort mesuré'
+    title = 'Measured comfort'
   } else if (lower.includes('week-end') || lower.includes('48 h') || lower.includes('pont')) {
-    title = 'Nomade précis'
+    title = 'Precise nomad'
   } else if (lower.includes('nature') || lower.includes('wi-fi') || lower.includes('béton')) {
-    title = 'Curieux nature'
+    title = 'Nature curious'
   } else if (lower.includes('restos') || lower.includes('repas') || lower.includes('réservation')) {
-    title = 'Épicurien organisé'
+    title = 'Organized foodie'
   } else if (lower.includes('stats') || lower.includes('données') || lower.includes('camp')) {
-    title = 'Explorateur ouvert'
+    title = 'Open explorer'
   } else if (profile.total > 0) {
-    title = 'Voyageur sélectif'
+    title = 'Selective traveler'
   }
 
   return {
     title,
-    subtitle: text || (profile.total > 0 ? 'Le carnet commence à dessiner ton style.' : null),
+    subtitle: text || (profile.total > 0 ? 'Your journal is starting to reveal your style.' : null),
   }
 }
 
@@ -1351,18 +1361,18 @@ function buildBehaviorChips(profile: TravelerProfile): AccountProfileChip[] {
   }
 
   for (const sig of profile.signatures) {
-    if (sig.key === 'geo') add('faithful', 'Fidèle')
-    if (sig.key === 'coeur') add('selective', 'Sélectif')
-    if (sig.key === 'notes') add('thoughtful', 'Réfléchi')
-    if (sig.key === 'budget') add('comfort', 'Confort')
-    if (sig.key === 'format') add('nomad', 'Nomade')
-    if (sig.key === 'intent') add('curious', 'Curieux')
+    if (sig.key === 'geo') add('faithful', 'Loyal')
+    if (sig.key === 'coeur') add('selective', 'Selective')
+    if (sig.key === 'notes') add('thoughtful', 'Thoughtful')
+    if (sig.key === 'budget') add('comfort', 'Comfort')
+    if (sig.key === 'format') add('nomad', 'Nomad')
+    if (sig.key === 'intent') add('curious', 'Curious')
   }
 
-  if (profile.coupDeCoeurCount <= Math.max(1, Math.round(profile.travelCount * 0.12))) add('calm', 'Calme')
-  if (profile.continents.length >= 3) add('open', 'Ouvert')
-  if (profile.total >= 12) add('seasoned', 'Aguerri')
-  if (profile.total > 0 && chips.length === 0) add('living', 'Carnet vivant')
+  if (profile.coupDeCoeurCount <= Math.max(1, Math.round(profile.travelCount * 0.12))) add('calm', 'Measured')
+  if (profile.continents.length >= 3) add('open', 'Open-minded')
+  if (profile.total >= 12) add('seasoned', 'Seasoned')
+  if (profile.total > 0 && chips.length === 0) add('living', 'Active journal')
 
   return chips.slice(0, 3)
 }
@@ -1383,8 +1393,8 @@ function buildAccountProfileAchievements(destinations: Destination[], profile: T
     add({
       key: 'country',
       icon: '📍',
-      title: 'Revient sur ses pas',
-      detail: `${topCountry[0]} · ${topCountry[1]} voyages`,
+      title: 'Returns to favorites',
+      detail: `${topCountry[0]} · ${topCountry[1]} trips`,
       tone: 'red',
     })
   }
@@ -1395,8 +1405,8 @@ function buildAccountProfileAchievements(destinations: Destination[], profile: T
     add({
       key: 'score',
       icon: '⭐',
-      title: averageScore >= 3.7 ? 'Note facile' : 'Avis mesuré',
-      detail: `moy. ${averageScore.toFixed(1)} / 5`,
+      title: averageScore >= 3.7 ? 'Easy rater' : 'Measured critic',
+      detail: `avg. ${averageScore.toFixed(1)} / 5`,
       tone: 'gold',
     })
   } else {
@@ -1410,8 +1420,8 @@ function buildAccountProfileAchievements(destinations: Destination[], profile: T
       add({
         key: 'budget',
         icon: '💳',
-        title: medianBudget >= 150 ? 'Confort assumé' : 'Budget maîtrisé',
-        detail: `${Math.round(medianBudget)} € / jour`,
+        title: medianBudget >= 150 ? 'Comfort spender' : 'Budget-conscious',
+        detail: `${Math.round(medianBudget)} € / day`,
         tone: 'gold',
       })
     }
@@ -1422,7 +1432,7 @@ function buildAccountProfileAchievements(destinations: Destination[], profile: T
     add({
       key: 'heart',
       icon: '💛',
-      title: profile.coupDeCoeurCount <= 1 ? 'Coup de cœur rare' : 'Coups de cœur',
+      title: profile.coupDeCoeurCount <= 1 ? 'Rare favorite' : 'Favorites',
       detail: firstHeart?.name ?? `${profile.coupDeCoeurCount} destinations`,
       tone: 'heart',
     })
@@ -1433,7 +1443,7 @@ function buildAccountProfileAchievements(destinations: Destination[], profile: T
     add({
       key: 'continent',
       icon: ACCOUNT_CONTINENT_META[leadContinent.continent].icon,
-      title: 'Zone dominante',
+      title: 'Dominant zone',
       detail: `${ACCOUNT_CONTINENT_META[leadContinent.continent].label} · ${Math.round(leadContinent.pct)}%`,
       tone: 'teal',
     })
@@ -1452,23 +1462,23 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
   const stackSegments = visibleContinents.length > 0 ? visibleContinents : continents
 
   return (
-    <div className="account-profile-card" aria-label="Profil voyageur">
+    <div className="account-profile-card" aria-label="Traveler profile">
       {(total === 0 || confidence === 'light') && (
         <div className="account-profile-empty">
-          <strong>Profil en construction</strong>
-          <span>Ajoute des destinations pour révéler ton style.</span>
+          <strong>Profile in progress</strong>
+          <span>Add destinations to reveal your style.</span>
         </div>
       )}
 
       {total > 0 && (
         <>
-          <section className="account-profile-title-block" aria-label="Archétype voyageur">
+          <section className="account-profile-title-block" aria-label="Traveler archetype">
             <span className="account-profile-title-icon" aria-hidden="true">✦</span>
             <div>
               <h3>{profileTitle.title}</h3>
               {profileTitle.subtitle && <p>{profileTitle.subtitle}</p>}
               {behaviorChips.length > 0 && (
-                <ul className="account-profile-inline-traits" aria-label="Traits du profil voyageur">
+                <ul className="account-profile-inline-traits" aria-label="Traveler profile traits">
                   {behaviorChips.map(chip => <li key={chip.key}>{chip.label}</li>)}
                 </ul>
               )}
@@ -1476,7 +1486,7 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
           </section>
 
           {achievements.length > 0 && (
-            <section className="account-profile-achievements" aria-label="Hauts faits voyageur">
+            <section className="account-profile-achievements" aria-label="Travel highlights">
               {achievements.map(achievement => (
                 <article key={achievement.key} className={`account-profile-tag account-profile-tag--${achievement.tone ?? 'blue'}`}>
                   <span className="account-profile-tag-icon" aria-hidden="true">{achievement.icon}</span>
@@ -1495,7 +1505,7 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
         <section className="account-profile-continents" aria-label="Territoires explorés">
           <div className="account-profile-section-head">
             <h4>Territoires explorés</h4>
-            <span>{countries} pays visités</span>
+            <span>{countries} countries visited</span>
           </div>
           <div className="account-continent-stack" aria-hidden="true">
             {stackSegments.map(continent => (
@@ -1695,41 +1705,103 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
   }
 
   return (
-    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Compte" onClick={onClose}>
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Account" onClick={onClose}>
       <aside className="account-panel" onClick={event => event.stopPropagation()}>
         <div className="account-panel-head">
           <div className="account-identity">
             <Avatar avatarUrl={profile?.avatarUrl} initials={draftId || '·'} bg={profile?.avatarBg ?? '#e5e5e5'} fg={profile?.avatarFg ?? '#1a1a1a'} className="account-avatar" />
             <div>
-              <h2>Mon compte</h2>
-              <p>{user?.email ?? (draftId ? `@${draftId}` : 'Profil local')}</p>
+              <h2>My account</h2>
+              <p>{user?.email ?? (draftId ? `@${draftId}` : 'Local profile')}</p>
             </div>
           </div>
-          <button className="account-close" aria-label="Fermer le compte" onClick={onClose}>
+          <button className="account-close" aria-label="Close" onClick={onClose}>
             <Icon name="x" />
           </button>
         </div>
 
         <SegmentedControl
           className="account-tabs"
-          ariaLabel="Parametres du compte"
+          ariaLabel="Account settings"
           role="tablist"
           size="sm"
           layout="fill"
           value={mode}
           options={[
-            { value: 'profile', label: 'Profil' },
-            { value: 'share', label: 'Partage' },
-            { value: 'account', label: 'Compte' },
+            { value: 'profile', label: 'Profile' },
+            { value: 'map', label: 'Map' },
+            { value: 'account', label: 'Account' },
           ]}
           onChange={nextMode => {
             setMode(nextMode)
             setFeedback(null)
           }}
         />
+
         {mode === 'profile' && (
           <div className="account-section account-section--profile">
             <TravelerProfileCard destinations={destinations} />
+          </div>
+        )}
+
+        {mode === 'map' && (
+          <div className="account-section">
+            <p className="account-hint">
+              Choose how much detail to show on the map.
+            </p>
+            <label>Map detail</label>
+            <SegmentedControl
+              className="account-auth-tabs"
+              ariaLabel="Map detail level"
+              role="radiogroup"
+              size="sm"
+              layout="fill"
+              value={mapDetail}
+              options={[
+                { value: 'simple', label: 'Simple' },
+                { value: 'detailed', label: 'Detailed' },
+              ]}
+              onChange={v => onMapDetailChange(v as 'simple' | 'detailed')}
+            />
+            <p className="account-hint" style={{ marginTop: 6 }}>
+              <strong>Simple:</strong> major country labels only.{' '}
+              <strong>Detailed:</strong> + country borders and city names.
+            </p>
+
+            <div style={{ marginTop: 20 }}>
+              <p className="account-hint">
+                Control who can view your map when you share it.
+              </p>
+              <label>
+                Map visibility
+                <select
+                  value={visibilityDraft}
+                  onChange={event => setVisibilityDraft(event.target.value as MapVisibility)}
+                  disabled={visibilityBusy}
+                >
+                  <option value="public">Public</option>
+                  <option value="friends">Friends only</option>
+                  <option value="private">Private</option>
+                </select>
+              </label>
+              <p className="account-hint">
+                Public: anyone with the link. Friends only: only your friends. Private: only you.
+              </p>
+              <div className="account-actions">
+                <button
+                  className="add-submit account-primary"
+                  onClick={saveVisibility}
+                  disabled={visibilityBusy || visibilityDraft === mapVisibility}
+                >
+                  {visibilityBusy ? 'Saving…' : 'Save visibility'}
+                </button>
+              </div>
+              {feedback && mode === 'map' && (
+                <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
+                  {feedback.msg}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -1737,144 +1809,184 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
           <div className="account-section">
             {user ? (
               <>
-                <p className="account-hint">Connecté en tant que <strong>{user.email}</strong>.</p>
-                <button
-                  className="account-secondary account-danger"
-                  onClick={async () => { await signOut(); onClose() }}
-                >
-                  Me déconnecter
-                </button>
-                <button
-                  className="account-secondary account-reset"
-                  onClick={() => setConfirmResetOpen(true)}
-                  disabled={carnetCount === 0}
-                  title={carnetCount === 0 ? 'Ton carnet est déjà vide' : undefined}
-                >
-                  Vider mon carnet{carnetCount > 0 ? ` (${carnetCount})` : ''}
-                </button>
+                <p className="account-hint">Signed in as <strong>{user.email}</strong>.</p>
+
+                <p className="account-hint" style={{ marginTop: 16 }}>
+                  Your username is used for sharing and lets friends find your journal.
+                </p>
+                <label>
+                  Public username
+                  <input
+                    value={draftId}
+                    onChange={event => setDraftId(event.target.value)}
+                    placeholder="your-username"
+                  />
+                </label>
+                {shareLink && (
+                  <label>
+                    Share link
+                    <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
+                  </label>
+                )}
+                <div className="account-actions">
+                  <button
+                    className="add-submit account-primary"
+                    onClick={saveLocal}
+                    disabled={!draftId.trim()}
+                  >
+                    {savedTick ? 'Saved' : 'Save'}
+                  </button>
+                  <button
+                    className="account-secondary"
+                    onClick={copyShareLink}
+                    disabled={!shareLink}
+                  >
+                    {linkCopied ? 'Copied' : 'Copy link'}
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button
+                    className="account-secondary account-danger"
+                    onClick={async () => { await signOut(); onClose() }}
+                  >
+                    Sign out
+                  </button>
+                  <button
+                    className="account-secondary account-reset"
+                    onClick={() => setConfirmResetOpen(true)}
+                    disabled={carnetCount === 0}
+                    title={carnetCount === 0 ? 'Your journal is already empty' : undefined}
+                  >
+                    Clear my journal{carnetCount > 0 ? ` (${carnetCount})` : ''}
+                  </button>
+                </div>
               </>
             ) : (
               <>
-                <p className="account-hint">
-                  Synchronise tes destinations et retrouve ta carte sur tous tes appareils.
-                </p>
-                <button className="account-google" onClick={connectWithGoogle} disabled={googleBusy || busy}>
-                  <span aria-hidden="true">G</span>
-                  {googleBusy ? 'Connexion...' : 'Continuer avec Google'}
-                </button>
-                <div className="account-divider"><span>ou</span></div>
-                <SegmentedControl
-                  className="account-auth-tabs"
-                  ariaLabel="Connexion ou inscription"
-                  role="tablist"
-                  size="sm"
-                  layout="fill"
-                  value={passwordMode}
-                  options={[
-                    { value: 'signin', label: 'Connexion' },
-                    { value: 'signup', label: 'Inscription' },
-                  ]}
-                  onChange={nextMode => {
-                    setPasswordMode(nextMode)
-                    setFeedback(null)
-                  }}
-                />
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={event => setEmail(event.target.value)}
-                    placeholder="toi@email.com"
-                    autoComplete="email"
-                    autoFocus
-                  />
-                </label>
-                <label>
-                  Mot de passe
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={event => setPassword(event.target.value)}
-                    placeholder="6 caractères minimum"
-                    autoComplete={passwordMode === 'signin' ? 'current-password' : 'new-password'}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter') void submitPasswordAuth()
-                    }}
-                  />
-                </label>
-                <button className="add-submit account-primary" onClick={() => void submitPasswordAuth()} disabled={busy || googleBusy}>
-                  {busy ? 'Patiente...' : passwordMode === 'signin' ? 'Se connecter' : 'S’inscrire'}
-                </button>
-                {feedback && (
-                  <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
-                    {feedback.msg}
-                  </p>
+                {(passwordMode === 'signin' || passwordMode === 'signup') && (
+                  <>
+                    <p className="account-hint">
+                      Sync your destinations and access your map on all your devices.
+                    </p>
+                    <button className="account-google" onClick={connectWithGoogle} disabled={googleBusy || busy}>
+                      <span aria-hidden="true">G</span>
+                      {googleBusy ? 'Signing in…' : 'Continue with Google'}
+                    </button>
+                    <div className="account-divider"><span>or</span></div>
+                    <SegmentedControl
+                      className="account-auth-tabs"
+                      ariaLabel="Sign in or sign up"
+                      role="tablist"
+                      size="sm"
+                      layout="fill"
+                      value={passwordMode}
+                      options={[
+                        { value: 'signin', label: 'Sign in' },
+                        { value: 'signup', label: 'Sign up' },
+                      ]}
+                      onChange={nextMode => {
+                        setPasswordMode(nextMode as PasswordAuthMode)
+                        setFeedback(null)
+                      }}
+                    />
+                    <label>
+                      Email
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={event => setEmail(event.target.value)}
+                        placeholder="you@email.com"
+                        autoComplete="email"
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Password
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={event => setPassword(event.target.value)}
+                        placeholder="6 characters minimum"
+                        autoComplete={passwordMode === 'signin' ? 'current-password' : 'new-password'}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter') void submitPasswordAuth()
+                        }}
+                      />
+                    </label>
+                    <button className="add-submit account-primary" onClick={() => void submitPasswordAuth()} disabled={busy || googleBusy}>
+                      {busy ? 'Please wait…' : passwordMode === 'signin' ? 'Sign in' : 'Sign up'}
+                    </button>
+                    {passwordMode === 'signin' && (
+                      <button
+                        type="button"
+                        className="account-forgot-link"
+                        onClick={() => { setPasswordMode('forgot'); setFeedback(null) }}
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                    {feedback && (
+                      <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
+                        {feedback.msg}
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {passwordMode === 'forgot' && (
+                  <>
+                    <p className="account-hint">
+                      Enter your email and we'll send you a link to reset your password.
+                    </p>
+                    <label>
+                      Email
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={event => setEmail(event.target.value)}
+                        placeholder="you@email.com"
+                        autoComplete="email"
+                        autoFocus
+                        onKeyDown={event => {
+                          if (event.key === 'Enter') void submitForgotPassword()
+                        }}
+                      />
+                    </label>
+                    <button className="add-submit account-primary" onClick={() => void submitForgotPassword()} disabled={busy}>
+                      {busy ? 'Sending…' : 'Send reset link'}
+                    </button>
+                    <button
+                      type="button"
+                      className="account-forgot-link"
+                      onClick={() => { setPasswordMode('signin'); setFeedback(null) }}
+                    >
+                      ← Back to sign in
+                    </button>
+                    {feedback && (
+                      <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
+                        {feedback.msg}
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {passwordMode === 'forgot-sent' && (
+                  <>
+                    <p className="friends-feedback-ok" style={{ marginTop: 8 }}>
+                      Check your inbox — we've sent a reset link to <strong>{email}</strong>.
+                    </p>
+                    <button
+                      type="button"
+                      className="account-forgot-link"
+                      onClick={() => { setPasswordMode('signin'); setFeedback(null) }}
+                    >
+                      ← Back to sign in
+                    </button>
+                  </>
                 )}
               </>
             )}
-          </div>
-        )}
-
-        {mode === 'share' && (
-          <div className="account-section">
-            <p className="account-hint">
-              Ton pseudo sert au lien de partage et permet aux amis de retrouver ton carnet.
-            </p>
-            <label>
-              Pseudo public
-              <input
-                value={draftId}
-                onChange={event => setDraftId(event.target.value)}
-                placeholder="ton-pseudo"
-              />
-            </label>
-            {shareLink && (
-              <label>
-                Lien de partage
-                <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
-              </label>
-            )}
-            <div className="account-actions">
-              <button
-                className="add-submit account-primary"
-                onClick={saveLocal}
-                disabled={!draftId.trim()}
-              >
-                {savedTick ? 'Enregistré' : 'Enregistrer'}
-              </button>
-              <button
-                className="account-secondary"
-                onClick={copyShareLink}
-                disabled={!shareLink}
-              >
-                {linkCopied ? 'Copié' : 'Copier le lien'}
-              </button>
-            </div>
-            <label>
-              Visibilité de la carte
-              <select
-                value={visibilityDraft}
-                onChange={event => setVisibilityDraft(event.target.value as MapVisibility)}
-                disabled={visibilityBusy}
-              >
-                <option value="public">Publique</option>
-                <option value="friends">Amis uniquement</option>
-                <option value="private">Privée</option>
-              </select>
-            </label>
-            <p className="account-hint">
-              Public: toute personne avec le lien peut voir ta carte. Amis uniquement: seulement tes amis. Privée: toi uniquement.
-            </p>
-            <div className="account-actions">
-              <button
-                className="add-submit account-primary"
-                onClick={saveVisibility}
-                disabled={visibilityBusy || visibilityDraft === mapVisibility}
-              >
-                {visibilityBusy ? 'Enregistrement...' : 'Enregistrer la visibilité'}
-              </button>
-            </div>
           </div>
         )}
       </aside>
@@ -1892,12 +2004,12 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
             onClick={e => e.stopPropagation()}
           >
             <div className="duplicate-modal-body">
-              <p className="duplicate-modal-eyebrow">Action irréversible</p>
-              <h2 id="account-reset-title">Vider tout ton carnet ?</h2>
+              <p className="duplicate-modal-eyebrow">Irreversible action</p>
+              <h2 id="account-reset-title">Clear your entire journal?</h2>
               <p className="duplicate-modal-text">
-                Tu vas supprimer <strong>{carnetCount} destination{carnetCount > 1 ? 's' : ''}</strong>{' '}
-                de ton carnet, sur Supabase et sur cet appareil. Ton compte, ton pseudo et tes amis
-                ne sont pas touchés. Cette action ne peut pas être annulée.
+                You are about to delete <strong>{carnetCount} destination{carnetCount > 1 ? 's' : ''}</strong>{' '}
+                from your journal, on Supabase and on this device. Your account, username and friends
+                are not affected. This cannot be undone.
               </p>
               <div className="duplicate-modal-actions">
                 <button
@@ -1905,14 +2017,14 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                   onClick={() => setConfirmResetOpen(false)}
                   disabled={resetBusy}
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   className="duplicate-modal-primary account-reset-confirm"
                   onClick={handleConfirmReset}
                   disabled={resetBusy}
                 >
-                  {resetBusy ? 'Suppression…' : 'Oui, vider le carnet'}
+                  {resetBusy ? 'Deleting…' : 'Yes, clear journal'}
                 </button>
               </div>
             </div>

@@ -1428,17 +1428,16 @@ svg {
 .compare-stat--mine::before   { background: linear-gradient(135deg, #f25f73, #fb8b45); }
 .compare-stat--theirs::before { background: #fff; box-shadow: inset 0 0 0 1.5px #7C8DB5; }
 
-/* ─── Barre "Compare inline" — siège au-dessus de la légende des tiers ───────
-   La légende (S/A/B/C/D) et la barre de comparaison coexistent : elles
-   remplissent des rôles différents (qui vs quel tier). La barre se place
-   juste au-dessus de la légende (46px de haut + 8px gap × 2).
+/* ─── Barre "Compare inline" — au même niveau que la légende overlay ──────────
+   La légende overlay (overlay-bottom) est cachée pendant le compare pour éviter
+   le chevauchement (voir règle ci-dessous). Les légendes sidebar restent visibles.
    Note : la barre est un enfant de .travel-app (pas .map-area), donc on
    recale left avec --content-l (sidebar + gap) pour qu'elle s'aligne sur
    la map et pas sur le bord gauche de la page. */
 .compare-inline-bar {
   position: absolute;
   left: calc(var(--content-l) + 72px);
-  bottom: calc(var(--map-b-open) + 8px + 46px + 8px);
+  bottom: var(--map-b-open);
   z-index: 9;
   display: flex;
   align-items: center;
@@ -1453,7 +1452,7 @@ svg {
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .travel-app.tier-collapsed .compare-inline-bar {
-  bottom: calc(var(--map-b-closed) + 8px + 46px + 8px);
+  bottom: var(--map-b-closed);
 }
 @keyframes compare-inline-slide {
   from { opacity: 0; transform: translateY(6px); }
@@ -1496,7 +1495,9 @@ svg {
 .compare-inline-close:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .compare-inline-close svg { width: 13px; height: 13px; }
 
-/* Légende tier visible même en mode comparaison — barre et légende coexistent */
+/* En compare, cacher uniquement la légende overlay (même position que la barre).
+   Les légendes sidebar (stacked-left / bottom-left) restent visibles. */
+.compare-active .legend:not(.legend--stacked-left):not(.legend--bottom-left) { display: none; }
 
 .compare-head {
   display: flex;
@@ -5625,6 +5626,21 @@ svg {
   cursor: not-allowed;
 }
 
+.account-forgot-link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: var(--text-xs);
+  color: #5a7eb8;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.account-forgot-link:hover {
+  color: #1B5FE8;
+}
+
 @keyframes account-pop {
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -6345,8 +6361,8 @@ svg {
   /* Hint replié — indication subtile iOS */
   .tier-board-collapsed-hint {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    align-items: flex-start;
+    gap: 4px;
   }
   .tier-board-collapsed-label {
     font-size: var(--text-2xs);
@@ -12614,10 +12630,36 @@ svg {
 }
 
 /* Mon classement collapsed count — badge style */
+.tier-board-collapsed-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tier-board-collapsed-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tier-board-collapsed-row--friend {
+  opacity: 0.82;
+}
 .tier-board-collapsed-label {
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   color: rgba(20, 30, 50, 0.72);
+  white-space: nowrap;
+}
+.tier-board-collapsed-label--friend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tier-board-friend-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .tier-board-collapsed-count {

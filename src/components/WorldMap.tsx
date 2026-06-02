@@ -179,6 +179,7 @@ interface WorldMapProps {
   controlsMode?: DockMode
   legendMode?: DockMode
   hidden?: boolean
+  mapDetail?: 'simple' | 'detailed'
 }
 
 const ATLAS_PREMIUM_PALETTE = {
@@ -675,6 +676,7 @@ export default function WorldMap({
   controlsMode = 'overlay-bottom',
   legendMode = 'overlay-bottom',
   hidden,
+  mapDetail = 'simple',
 }: WorldMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<maplibregl.Map | null>(null)
@@ -715,14 +717,14 @@ export default function WorldMap({
       ? error.message
       : typeof error === 'string'
         ? error
-        : 'Initialisation WebGL impossible.'
+        : 'WebGL initialization failed.'
     const normalized = raw.replace(/\s+/g, ' ').trim()
 
-    let detail = 'L’acceleration graphique du navigateur est indisponible.'
+    let detail = 'Browser hardware acceleration is unavailable.'
     if (/EGL_NO_CONFIG|EXHAUSTED_DRIVERS|Failed to initialize WebGL|webgl/i.test(normalized)) {
-      detail = 'L’acceleration graphique du navigateur est indisponible.'
+      detail = 'Browser hardware acceleration is unavailable.'
     } else if (/context/i.test(normalized)) {
-      detail = 'Le contexte graphique n’a pas pu etre cree.'
+      detail = 'The graphics context could not be created.'
     }
 
     return source ? `${source} ${detail}` : detail
@@ -735,9 +737,9 @@ export default function WorldMap({
     const container = mapContainerRef.current
     const handleWebGlError = (event: Event) => {
       const webglEvent = event as Event & { statusMessage?: string; message?: string }
-      const detail = webglEvent.statusMessage ?? webglEvent.message ?? 'Le navigateur n’a pas pu creer de contexte WebGL.'
+      const detail = webglEvent.statusMessage ?? webglEvent.message ?? 'The browser could not create a WebGL context.'
       console.error('WorldMap WebGL context creation failed:', webglEvent)
-      setMapError(describeMapInitError(detail, 'Carte indisponible.'))
+      setMapError(describeMapInitError(detail, 'Map unavailable.'))
     }
 
     container.addEventListener('webglcontextcreationerror', handleWebGlError as EventListener)
@@ -768,7 +770,7 @@ export default function WorldMap({
       setMapError(null)
     } catch (error) {
       console.error('WorldMap failed to initialize MapLibre:', error)
-      setMapError(describeMapInitError(error, 'Carte indisponible.'))
+      setMapError(describeMapInitError(error, 'Map unavailable.'))
       container.removeEventListener('webglcontextcreationerror', handleWebGlError as EventListener)
       return
     }
@@ -797,6 +799,30 @@ export default function WorldMap({
       setMapReady(false)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toggle detail layers (city/place labels + more visible borders) when mapDetail changes.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const style = map.getStyle()
+    if (!style?.layers) return
+    const isDetailed = mapDetail === 'detailed'
+    for (const layer of style.layers) {
+      const lid = layer.id.toLowerCase()
+      if (layer.type === 'symbol' && /place|city|town|village|capital|settlement|suburb|locality|neighbourhood/.test(lid)) {
+        safeSetLayout(map, layer.id, 'visibility', isDetailed ? 'visible' : 'none')
+      }
+      if (layer.type === 'line' && /boundary|admin|border/.test(lid) && !/-bg$/.test(lid) && !/disputed|claim/.test(lid)) {
+        if (isDetailed) {
+          safeSetPaint(map, layer.id, 'line-opacity', 0.55)
+          safeSetPaint(map, layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 0, 0.5, 4, 0.9, 8, 1.4])
+        } else {
+          safeSetPaint(map, layer.id, 'line-opacity', ['interpolate', ['linear'], ['zoom'], 0, 0.2, 4, 0.28, 7, 0.18])
+          safeSetPaint(map, layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 0, 0.25, 4, 0.38, 8, 0.55])
+        }
+      }
+    }
+  }, [mapDetail, mapReady])
 
   useEffect(() => {
     if (!mapContainerRef.current) return
@@ -1139,7 +1165,7 @@ export default function WorldMap({
   return (
     <section
       className="map-area"
-      aria-label="Carte des destinations"
+      aria-label="Destination map"
       draggable={false}
       onDragStartCapture={(event) => event.preventDefault()}
     >
@@ -1162,8 +1188,8 @@ export default function WorldMap({
       {mapError && (
         <div className="map-fallback" role="status" aria-live="polite">
           <div className="map-fallback-card">
-            <h3>Carte interactive indisponible</h3>
-            <p>WebGL n&apos;a pas pu demarrer sur cet appareil ou dans cette configuration navigateur.</p>
+            <h3>Interactive map unavailable</h3>
+            <p>WebGL could not start on this device or browser configuration.</p>
             <p className="map-fallback-detail">{mapError}</p>
           </div>
         </div>
@@ -1171,7 +1197,7 @@ export default function WorldMap({
 
       {/* width/height attrs requis par Safari WebKit pour établir le viewport SVG
           et permettre le rendu des éléments <foreignObject> enfants. */}
-      <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label="Pins des destinations">
+      <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label="Destination pins">
         <g ref={pinsGroupRef}>
           {mapReady && !mapError && (
             <>
@@ -1218,11 +1244,11 @@ export default function WorldMap({
         </g>
       </svg>
 
-      {!mapError && <div className={`map-controls${controlsClass}`} aria-label="Controles de carte">
+      {!mapError && <div className={`map-controls${controlsClass}`} aria-label="Map controls">
         <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>
         <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>−</button>
         <span className="map-controls-divider" aria-hidden="true" />
-        <button aria-label="Recadrer la carte" onClick={resetZoom}>
+        <button aria-label="Reset map view" onClick={resetZoom}>
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9V4h5" /><path d="M21 9V4h-5" />

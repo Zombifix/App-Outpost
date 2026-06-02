@@ -23,6 +23,7 @@ export function Avatar({
 }: AvatarProps) {
   const [imgFailed, setImgFailed] = useState(false)
   const showImage = !!avatarUrl && !imgFailed
+  const fallbackInitial = initials.trim().charAt(0).toUpperCase() || '·'
 
   return (
     <span
@@ -40,7 +41,7 @@ export function Avatar({
           onError={() => setImgFailed(true)}
         />
       ) : (
-        initials.slice(0, 1).toUpperCase()
+        fallbackInitial
       )}
     </span>
   )

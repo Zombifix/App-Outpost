@@ -57,6 +57,36 @@ const DEFAULT_FILTERS: DestinationFilters = {
   budget: 'all',
 }
 
+const PROFILE_ACHIEVEMENT_ICONS: Record<string, string> = {
+  'note-merit': '⭐',
+  'good-public': '🌟',
+  'heart-rare': '🤍',
+  'heart-easy': '💗',
+  terrain: '📍',
+  'continent-compass': '🧭',
+  'soft-addition': '💶',
+  'budget-control': '💶',
+  'weekend-profit': '🗓️',
+  'wide-gap': '🌍',
+  'culture-sling': '🏛️',
+  'plate-priority': '🍽️',
+  'documented-trouble': '⚠️',
+  'seasoned-book': '📘',
+  'outside-comfort': '🌿',
+}
+
+function getAvatarFallbackLabel(...labels: Array<string | null | undefined>) {
+  for (const label of labels) {
+    const normalized = label?.trim()
+    if (normalized) return normalized
+  }
+  return '·'
+}
+
+function getProfileAchievementIcon(key: string, icon: string) {
+  return PROFILE_ACHIEVEMENT_ICONS[key] ?? icon
+}
+
 type DesktopLegendMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
 type DesktopTierMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
 type DesktopControlsMode = 'bottom-left' | 'overlay-bottom'
@@ -292,6 +322,7 @@ function AppInner() {
     <>
       <AppCore
         pendingFriendCount={pendingFriendCount}
+        profileDisplayName={profile?.displayName ?? null}
         profileHandle={profile?.handle ?? null}
         profileMapVisibility={profile?.mapVisibility ?? 'friends'}
         profileAvatarUrl={profile?.avatarUrl ?? null}
@@ -309,14 +340,9 @@ function AppInner() {
   )
 }
 
-function MobileAvatarImg({ src, fallback }: { src: string; fallback: string }) {
-  const [failed, setFailed] = useState(false)
-  if (failed) return <>{fallback.slice(0, 1).toUpperCase()}</>
-  return <img src={src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setFailed(true)} />
-}
-
 function AppCore({
   pendingFriendCount,
+  profileDisplayName,
   profileHandle,
   profileMapVisibility,
   profileAvatarUrl,
@@ -325,6 +351,7 @@ function AppCore({
   onMapVisibilityChange,
 }: {
   pendingFriendCount: number
+  profileDisplayName: string | null
   profileHandle: string | null
   profileMapVisibility: MapVisibility
   profileAvatarUrl: string | null
@@ -460,6 +487,7 @@ function AppCore({
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [publicId, setPublicId] = useState<string>(loadPublicId)
+  const avatarFallbackLabel = getAvatarFallbackLabel(profileDisplayName, profileHandle, publicId)
   const [mapDetail, setMapDetail] = useState<'simple' | 'detailed'>(() =>
     (localStorage.getItem('outpost-map-detail') as 'simple' | 'detailed' | null) ?? 'simple'
   )
@@ -919,10 +947,14 @@ function AppCore({
           aria-label={accountOpen ? 'Close account' : 'My account'}
           aria-expanded={accountOpen}
         >
-          {profileAvatarUrl
-            ? <MobileAvatarImg src={profileAvatarUrl} fallback={publicId || '·'} />
-            : publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />
-          }
+          <Avatar
+            avatarUrl={profileAvatarUrl}
+            initials={avatarFallbackLabel}
+            bg={profileAvatarBg}
+            fg={profileAvatarFg}
+            className="mobile-header-avatar-face"
+            ariaHidden={true}
+          />
         </button>
       </div>
       <BottomNav
@@ -1092,6 +1124,10 @@ function AppCore({
         filters={filters}
         shareCopied={shareCopied}
         publicId={publicId}
+        avatarFallbackLabel={avatarFallbackLabel}
+        profileAvatarUrl={profileAvatarUrl}
+        profileAvatarBg={profileAvatarBg}
+        profileAvatarFg={profileAvatarFg}
         canShare={!!user && !!publicId}
         accountOpen={accountOpen}
         pendingFriendCount={pendingFriendCount}
@@ -1309,7 +1345,7 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
             <section className="account-profile-achievements" aria-label="Succès voyageur">
               {achievements.map(achievement => (
                 <article key={achievement.key} className={`account-profile-tag account-profile-tag--${achievement.tone ?? 'blue'}`}>
-                  <span className="account-profile-tag-icon" aria-hidden="true">{achievement.icon}</span>
+                  <span className="account-profile-tag-icon" aria-hidden="true">{getProfileAchievementIcon(achievement.key, achievement.icon)}</span>
                   <span className="account-profile-tag-body">
                     <strong>{achievement.title}</strong>
                     <span>{achievement.detail}</span>
@@ -1403,6 +1439,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
   const [visibilityBusy, setVisibilityBusy] = useState(false)
   const [confirmResetOpen, setConfirmResetOpen] = useState(false)
   const [resetBusy, setResetBusy] = useState(false)
+  const accountAvatarFallback = getAvatarFallbackLabel(profile?.displayName, profile?.handle, publicId, draftId)
 
   const handleConfirmReset = async () => {
     setResetBusy(true)
@@ -1529,7 +1566,13 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
       <aside className="account-panel" onClick={event => event.stopPropagation()}>
         <div className="account-panel-head">
           <div className="account-identity">
-            <Avatar avatarUrl={profile?.avatarUrl} initials={draftId || '·'} bg={profile?.avatarBg ?? '#e5e5e5'} fg={profile?.avatarFg ?? '#1a1a1a'} className="account-avatar" />
+            <Avatar
+              avatarUrl={profile?.avatarUrl}
+              initials={accountAvatarFallback}
+              bg={profile?.avatarBg ?? '#e5e5e5'}
+              fg={profile?.avatarFg ?? '#1a1a1a'}
+              className="account-avatar"
+            />
             <div>
               <h2>My account</h2>
               <p>{user?.email ?? (draftId ? `@${draftId}` : 'Local profile')}</p>

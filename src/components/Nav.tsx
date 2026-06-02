@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DestinationFilters } from '../App'
 import type { Destination, Friendship } from '../types'
 import { BrandLogo } from './BrandLogo'
+import { Avatar } from './Avatar'
 import { useActivityFeed } from '../hooks/useActivityFeed'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
@@ -13,6 +14,10 @@ interface NavProps {
   filters: DestinationFilters
   shareCopied: boolean
   publicId: string
+  avatarFallbackLabel: string
+  profileAvatarUrl?: string | null
+  profileAvatarBg: string
+  profileAvatarFg: string
   canShare: boolean
   accountOpen: boolean
   pendingFriendCount: number
@@ -40,6 +45,10 @@ export default function Nav({
   filters,
   shareCopied,
   publicId,
+  avatarFallbackLabel,
+  profileAvatarUrl,
+  profileAvatarBg,
+  profileAvatarFg,
   canShare,
   accountOpen,
   pendingFriendCount,
@@ -224,10 +233,17 @@ export default function Nav({
           <button
             className={`user-badge${accountOpen ? ' is-active' : ''}`}
             onClick={onAccountClick}
-            aria-label={accountOpen ? 'Fermer mon compte' : 'Mon compte'}
+            aria-label={accountOpen ? 'Close account' : 'My account'}
             aria-expanded={accountOpen}
           >
-            {publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />}
+            <Avatar
+              avatarUrl={profileAvatarUrl}
+              initials={avatarFallbackLabel || publicId}
+              bg={profileAvatarBg}
+              fg={profileAvatarFg}
+              className="user-badge-avatar"
+              ariaHidden={true}
+            />
           </button>
         </div>
       </header>

@@ -288,6 +288,9 @@ function AppInner() {
         pendingFriendCount={pendingFriendCount}
         profileHandle={profile?.handle ?? null}
         profileMapVisibility={profile?.mapVisibility ?? 'friends'}
+        profileAvatarUrl={profile?.avatarUrl ?? null}
+        profileAvatarBg={profile?.avatarBg ?? '#e5e5e5'}
+        profileAvatarFg={profile?.avatarFg ?? '#1a1a1a'}
         onMapVisibilityChange={updateMapVisibility}
       />
       {needsSetup && (
@@ -310,15 +313,20 @@ function AppCore({
   pendingFriendCount,
   profileHandle,
   profileMapVisibility,
+  profileAvatarUrl,
+  profileAvatarBg,
+  profileAvatarFg,
   onMapVisibilityChange,
 }: {
   pendingFriendCount: number
   profileHandle: string | null
   profileMapVisibility: MapVisibility
+  profileAvatarUrl: string | null
+  profileAvatarBg: string
+  profileAvatarFg: string
   onMapVisibilityChange: (value: MapVisibility) => Promise<{ ok: boolean; error?: string }>
 }) {
   const { user } = useAuth()
-  const { profile: myProfile } = useMyProfile()
   const { friendships, sendRequestByUserId, acceptRequest } = useFriends()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
@@ -875,8 +883,8 @@ function AppCore({
           aria-label={accountOpen ? 'Fermer mon compte' : 'Mon compte'}
           aria-expanded={accountOpen}
         >
-          {myProfile?.avatarUrl
-            ? <MobileAvatarImg src={myProfile.avatarUrl} fallback={publicId || '·'} />
+          {profileAvatarUrl
+            ? <MobileAvatarImg src={profileAvatarUrl} fallback={publicId || '·'} />
             : publicId ? publicId.slice(0, 1).toUpperCase() : <Icon name="user" />
           }
         </button>

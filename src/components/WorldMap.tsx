@@ -1079,7 +1079,7 @@ export default function WorldMap({
           key: `friend:${destination.name}`,
           destination,
           owner: 'friend' as const,
-          selected: expandedRouteKey === `friend:${destination.name}`,
+          selected: destination.name === selectedName || expandedRouteKey === `friend:${destination.name}`,
           badge: friendInitials,
           badgeAvatarUrl: friendAvatarUrl,
           shared: false,
@@ -1230,7 +1230,7 @@ export default function WorldMap({
                 ))}
                 {friendOnly.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
-                    compactMode={compactPins} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
+                    compactMode={compactPins} selected={d.name === selectedName || expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
                     owner="friend" badge={friendInitials} badgeAvatarUrl={friendAvatarUrl} />
                 ))}
                 {destinations.filter(d => d.kind === 'stop').map(d => (

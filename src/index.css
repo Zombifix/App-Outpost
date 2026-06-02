@@ -1443,6 +1443,7 @@ svg {
   align-items: center;
   gap: 14px;
   height: 46px;
+  max-width: min(520px, calc(100vw - var(--content-l) - 40px));
   padding: 0 6px 0 18px;
   background: rgba(255,255,255,0.94);
   backdrop-filter: blur(18px);
@@ -1453,6 +1454,16 @@ svg {
 }
 .travel-app.tier-collapsed .compare-inline-bar {
   bottom: var(--map-b-closed);
+}
+.compare-inline-bar--stacked-left,
+.compare-inline-bar--bottom-left {
+  left: var(--desktop-left-dock-x);
+  right: auto;
+  bottom: 16px;
+  min-height: 52px;
+  height: auto;
+  padding: 8px 10px 8px 16px;
+  border-radius: 22px;
 }
 @keyframes compare-inline-slide {
   from { opacity: 0; transform: translateY(6px); }
@@ -1465,6 +1476,7 @@ svg {
 .compare-inline-legend {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 16px;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
@@ -1475,6 +1487,7 @@ svg {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   white-space: nowrap;
 }
 .compare-inline-close {
@@ -1543,6 +1556,7 @@ svg {
 .compare-picker {
   position: relative;
   display: inline-flex;
+  z-index: 2;
 }
 .compare-picker-trigger {
   display: inline-flex;
@@ -1584,13 +1598,19 @@ svg {
   top: calc(100% + 6px);
   right: 0;
   min-width: 220px;
-  background: #fff;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(236, 247, 255, 0.5));
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 32px rgba(23, 33, 58, 0.16), 0 0 0 0.5px rgba(0,0,0,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 16px 38px rgba(23, 33, 58, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(1.35);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
   list-style: none;
   margin: 0;
   padding: 6px;
-  z-index: 100;
+  z-index: 40;
 }
 .compare-picker-item {
   display: flex;
@@ -1646,7 +1666,10 @@ svg {
   border-radius: 20px;
   width: fit-content;
   max-width: 100%;
+  isolation: isolate;
+  z-index: 2;
 }
+.friend-visitors.is-popover-open { z-index: 12; }
 .friend-visitors-avatars {
   display: flex;
   flex-shrink: 0;
@@ -1702,13 +1725,19 @@ svg {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: min(250px, calc(100vw - 48px));
-  padding: 6px;
+  min-width: min(280px, calc(100vw - 48px));
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px;
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(214, 226, 242, 0.92);
-  box-shadow: 0 16px 32px rgba(30, 41, 69, 0.14);
-  z-index: 4;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(236, 247, 255, 0.52));
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 20px 42px rgba(30, 41, 69, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(1.35);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  z-index: 40;
 }
 .friend-visitors-option {
   width: 100%;
@@ -4008,6 +4037,10 @@ svg {
   box-shadow: inset 0 0 0 1px #efe4d8;
 }
 
+.compare-sheet-card--friend-only {
+  grid-template-columns: minmax(108px, 0.8fr) minmax(180px, 1.2fr);
+}
+
 .compare-sheet-score {
   display: flex;
   flex-direction: column;
@@ -4083,6 +4116,33 @@ svg {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.compare-fallback-note {
+  margin: 12px 8px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(236, 244, 255, 0.9) 0%, rgba(247, 250, 255, 0.95) 100%);
+  box-shadow: inset 0 0 0 1px rgba(110, 145, 214, 0.18);
+}
+
+.compare-fallback-note strong {
+  display: block;
+  color: #24416d;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.compare-fallback-note p,
+.compare-fallback-empty {
+  margin: 6px 0 0;
+  color: #5f6f8a;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.compare-tag-groups--friend-only .compare-tag-group {
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
 }
 
 .compare-tag-columns {
@@ -12289,6 +12349,11 @@ svg {
     min-height: 38px;
   }
 
+  .compare-inline-bar--stacked-left,
+  .compare-inline-bar--bottom-left {
+    width: min(420px, calc(100vw - var(--desktop-left-dock-x) - 32px));
+  }
+
   .travel-app.tier-collapsed .legend.legend--stacked-left,
   .travel-app .legend--stacked-left {
     top: var(--desktop-left-stack-top);
@@ -12605,13 +12670,17 @@ svg {
 /* Légende Notation — plus grande, items égaux */
 .legend--stacked-left span,
 .legend--bottom-left span {
+  min-width: 0;
   font-size: var(--text-xs);
-  padding: 9px 10px;
+  line-height: 1.25;
+  padding: 10px 12px;
   gap: 8px;
-  min-height: 38px;
+  min-height: 40px;
   align-items: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  justify-content: flex-start;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .legend--stacked-left .tier-dot,
@@ -12625,8 +12694,8 @@ svg {
 
 .legend--stacked-left,
 .legend--bottom-left {
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 16px;
 }
 
 /* Mon classement collapsed count — badge style */
@@ -13008,6 +13077,60 @@ svg {
   font-size: 15px;
   font-weight: var(--weight-semibold);
   line-height: 1.2;
+}
+
+.tier-mobile-title {
+  color: #2a3d5b;
+  font-size: 15px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.legend--stacked-left,
+.legend--bottom-left,
+.tier-board--stacked-left,
+.tier-board--bottom-left {
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255, 255, 255, 0.8), transparent 28%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.68), rgba(239, 248, 255, 0.38));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 16px 38px rgba(52, 82, 116, 0.12);
+}
+
+.tier-board {
+  padding-bottom: 18px;
+}
+
+.tier-board-head {
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 14px;
+}
+
+.tier-board-title {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tier-board-title-counts {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tier-desktop-tabs {
+  margin: 0 0 16px;
+}
+
+.tier-mobile-section {
+  padding: 4px 0 18px;
+}
+
+.tier-mobile-topline {
+  padding-bottom: 12px;
 }
 
 .tier-board-collapsed-hint {

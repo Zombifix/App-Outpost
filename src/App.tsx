@@ -60,6 +60,12 @@ const DEFAULT_FILTERS: DestinationFilters = {
 type DesktopLegendMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
 type DesktopTierMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
 type DesktopControlsMode = 'bottom-left' | 'overlay-bottom'
+type ActiveSheetCompare = {
+  mode: 'targeted' | 'global'
+  friend: import('./types').Friendship
+  mine?: Destination | null
+  theirs: Destination
+}
 
 type DesktopDockState = {
   controlsBottom: number
@@ -442,6 +448,7 @@ function AppCore({
 
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; name: string } | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>(null)
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [pendingMapFocusName, setPendingMapFocusName] = useState<string | null>(null)
   const [filters, setFilters] = useState<DestinationFilters>(DEFAULT_FILTERS)
   const [sortByScore, setSortByScore] = useState(false)
@@ -523,7 +530,7 @@ function AppCore({
       const controlsGap = 16
       const controlsHeight = 172
       const tierHeight = tierListCollapsed ? 86 : 310
-      const legendHeight = hasCompareBar ? 235 : 215
+      const legendHeight = 215
       const leftDockX = Math.round(sidebarRect.left)
       const leftLimit = destinationCardRect ? destinationCardRect.left - rightMargin : viewportWidth - rightMargin
       const availableWidth = Math.max(260, Math.round(leftLimit - leftDockX))
@@ -674,55 +681,68 @@ function AppCore({
     })
   }, [destinations, filters, sortByScore])
 
-  const selected = useMemo(
-    () => destinations.find(destination => destination.name === selectedName) ?? null,
-    [destinations, selectedName],
+  const selectedMine = useMemo(
+    () => selectedKey ? (myDestinations.find(destination => destinationNameKey(destination) === selectedKey) ?? null) : null,
+    [myDestinations, selectedKey],
   )
-
-  const selectedCompareDestination = useMemo(() => {
-    if (!selected || !compareFriend) return null
-    return compareFriendDests.find(destination => destinationNameKey(destination) === destinationNameKey(selected)) ?? null
-  }, [selected, compareFriend, compareFriendDests])
+  const selectedFriendView = useMemo(
+    () => selectedKey ? (destinations.find(destination => destinationNameKey(destination) === selectedKey) ?? null) : null,
+    [destinations, selectedKey],
+  )
+  const selectedCompareDestination = useMemo(
+    () => selectedKey && compareFriend ? (compareFriendDests.find(destination => destinationNameKey(destination) === selectedKey) ?? null) : null,
+    [selectedKey, compareFriend, compareFriendDests],
+  )
   const selectedTargetedCompareDestination = useMemo(() => {
-    if (!selected || !targetedCompareFriend || !targetedCompare) return null
-    if (destinationNameKey(selected) !== targetedCompare.destinationKey) return null
+    if (!selectedKey || !targetedCompareFriend || !targetedCompare) return null
+    if (selectedKey !== targetedCompare.destinationKey) return null
     return targetedCompareFriendDests.find(destination => destinationNameKey(destination) === targetedCompare.destinationKey) ?? null
-  }, [selected, targetedCompareFriend, targetedCompare, targetedCompareFriendDests])
-  const activeSheetCompare = useMemo(() => {
+  }, [selectedKey, targetedCompareFriend, targetedCompare, targetedCompareFriendDests])
+  const activeSheetCompare = useMemo<ActiveSheetCompare | null>(() => {
     if (targetedCompareFriend && selectedTargetedCompareDestination) {
       return {
-        mode: 'targeted' as const,
+        mode: 'targeted',
         friend: targetedCompareFriend,
-        destination: selectedTargetedCompareDestination,
+        mine: selectedMine,
+        theirs: selectedTargetedCompareDestination,
       }
     }
     if (compareFriend && selectedCompareDestination) {
       return {
-        mode: 'global' as const,
+        mode: 'global',
         friend: compareFriend,
-        destination: selectedCompareDestination,
+        mine: selectedMine,
+        theirs: selectedCompareDestination,
       }
     }
     return null
-  }, [targetedCompareFriend, selectedTargetedCompareDestination, compareFriend, selectedCompareDestination])
+  }, [targetedCompareFriend, selectedTargetedCompareDestination, compareFriend, selectedCompareDestination, selectedMine])
+  const selected = useMemo(() => {
+    if (viewingFriend) return selectedFriendView
+    if (activeSheetCompare) return activeSheetCompare.mine ?? activeSheetCompare.theirs
+    return selectedMine ?? (selectedName ? destinations.find(destination => destination.name === selectedName) ?? null : null)
+  }, [viewingFriend, selectedFriendView, activeSheetCompare, selectedMine, selectedName, destinations])
 
   useEffect(() => {
     if (!targetedCompare) return
-    if (!selected || destinationNameKey(selected) !== targetedCompare.destinationKey) {
+    if (!selectedKey || selectedKey !== targetedCompare.destinationKey) {
       setTargetedCompare(null)
     }
-  }, [selected, targetedCompare])
+  }, [selectedKey, targetedCompare])
 
   const selectByName = (name: string) => {
     const destination = destinations.find(item => item.name === name)
     if (destination) {
       setSelectedName(destination.name)
+      setSelectedKey(destinationNameKey(destination))
       setFlyTarget({ lat: destination.lat, lng: destination.lng, name: destination.name })
       return
     }
-    // Pin ami-seulement (pas dans mon carnet) : on se contente de voler vers la destination
     const friendDest = compareFriendDests.find(item => item.name === name)
+      ?? targetedCompareFriendDests.find(item => item.name === name)
     if (friendDest) {
+      setSelectedName(friendDest.name)
+      setSelectedKey(destinationNameKey(friendDest))
       setFlyTarget({ lat: friendDest.lat, lng: friendDest.lng, name: friendDest.name })
     }
   }
@@ -731,6 +751,7 @@ function AppCore({
     const destination = destinations.find(item => item.name === name)
     if (!destination) return
     setSelectedName(destination.name)
+    setSelectedKey(destinationNameKey(destination))
     setPendingMapFocusName(destination.name)
     setActiveView('map')
   }
@@ -767,7 +788,10 @@ function AppCore({
 
   const removeDestination = (name: string) => {
     setDestinations(previous => previous.filter(item => item.name !== name))
-    if (selectedName === name) setSelectedName(null)
+    if (selectedName === name) {
+      setSelectedName(null)
+      setSelectedKey(null)
+    }
   }
 
   const updateDestination = (updated: Destination, options?: SaveOptions) => {
@@ -781,6 +805,7 @@ function AppCore({
       return item.name === originalName ? merged : item
     }))
     setSelectedName(merged.name)
+    setSelectedKey(destinationNameKey(merged))
     setFlyTarget({ lat: merged.lat, lng: merged.lng, name: merged.name })
     setEditingDestination(null)
   }
@@ -802,6 +827,7 @@ function AppCore({
       normalizedDestination,
     ])
     setSelectedName(normalizedDestination.name)
+    setSelectedKey(destinationNameKey(normalizedDestination))
     setFlyTarget({ lat: normalizedDestination.lat, lng: normalizedDestination.lng, name: normalizedDestination.name })
     setAddingDestination(false)
     setActiveView('map')
@@ -911,7 +937,10 @@ function AppCore({
         flyTarget={flyTarget}
         selectedName={selected?.name}
         onSelect={selectByName}
-        onDeselect={() => setSelectedName(null)}
+        onDeselect={() => {
+          setSelectedName(null)
+          setSelectedKey(null)
+        }}
         onFlyTargetConsumed={() => setFlyTarget(null)}
         friendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
         friendInitials={compareFriend && !compareFriendDenied ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
@@ -973,7 +1002,7 @@ function AppCore({
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
-              onClick={() => { setViewingFriend(null); setSelectedName(null) }}
+              onClick={() => { setViewingFriend(null); setSelectedName(null); setSelectedKey(null) }}
             >
               ← My journal
             </button>
@@ -988,7 +1017,7 @@ function AppCore({
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
-              onClick={() => { setViewingFriend(null); setSelectedName(null) }}
+              onClick={() => { setViewingFriend(null); setSelectedName(null); setSelectedKey(null) }}
             >
               ← My journal
             </button>
@@ -1080,7 +1109,7 @@ function AppCore({
           setFlyTarget({ lat, lng, name })
         }}
         viewingFriend={viewingFriend}
-        onBackToMyCarnet={() => { setViewingFriend(null); setSelectedName(null) }}
+        onBackToMyCarnet={() => { setViewingFriend(null); setSelectedName(null); setSelectedKey(null) }}
         isAuthenticated={!!user}
         friendshipWithViewed={friendshipWithViewed}
         addFriendFeedback={addFriendFeedback}
@@ -1098,6 +1127,7 @@ function AppCore({
               setViewingFriend({ userId: f.otherUser, handle: f.handle, displayName: f.displayName })
               setActiveView('map')
               setSelectedName(null)
+              setSelectedKey(null)
             }}
             onCompareFriend={f => {
               setFriendsManageOpen(false)
@@ -1114,11 +1144,16 @@ function AppCore({
           coupDeCoeurCount={coupDeCoeurCount}
           allDestinations={destinations}
           compareWith={activeSheetCompare
-            ? { friend: activeSheetCompare.friend, destination: activeSheetCompare.destination }
+            ? {
+                friend: activeSheetCompare.friend,
+                mine: activeSheetCompare.mine,
+                theirs: activeSheetCompare.theirs,
+              }
             : undefined}
           compareMode={activeSheetCompare?.mode}
           onClose={() => {
             setSelectedName(null)
+            setSelectedKey(null)
             if (targetedCompareDenied) setTargetedCompare(null)
           }}
           onFocus={focusSelected}

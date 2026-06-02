@@ -15,7 +15,8 @@ interface DestinationSheetProps {
   allDestinations?: Destination[]
   compareWith?: {
     friend: Friendship
-    destination: Destination
+    mine?: Destination | null
+    theirs: Destination
   }
   compareMode?: 'targeted' | 'global'
   onClose: () => void
@@ -46,22 +47,22 @@ const CLOSE_RATIO = 0.85
 const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> = {
   solo: 'Solo',
   couple: 'Couple',
-  amis: 'Amis',
-  famille: 'Famille',
-  travail: 'Travail',
+  amis: 'Friends',
+  famille: 'Family',
+  travail: 'Work',
 }
 
 function formatEuro(value: number) {
-  return `${Math.round(value).toLocaleString('fr-FR')} EUR`
+  return `${Math.round(value).toLocaleString('en-US')} EUR`
 }
 
 const INTENT_LABELS: Record<Destination['intent'], string> = {
-  tourisme: 'Tourisme',
-  sorties: 'Sorties',
-  gastro: 'Gastronomie',
+  tourisme: 'Tourism',
+  sorties: 'Nightlife',
+  gastro: 'Food & Gastronomy',
   nature: 'Nature',
-  travail: 'Travail',
-  'city-trip': 'City-trip',
+  travail: 'Work',
+  'city-trip': 'City trip',
 }
 
 const INTENT_EMOJIS: Record<Destination['intent'], string> = {
@@ -94,17 +95,17 @@ function getDestinationContext(destination: Destination) {
     meta.push({ icon: 'calendar', label: String(destination.tripYear) })
   }
   if (destination.tripDays) {
-    meta.push({ icon: 'clock', label: `${destination.tripDays} jour${destination.tripDays > 1 ? 's' : ''}` })
+    meta.push({ icon: 'clock', label: `${destination.tripDays} day${destination.tripDays > 1 ? 's' : ''}` })
   }
   if (destination.personalBudget) {
     const perDay = destination.tripDays ? destination.personalBudget / destination.tripDays : destination.personalBudget
     meta.push({
       icon: 'coins',
-      label: destination.tripDays ? `~${formatEuro(perDay)}/jour` : `~${formatEuro(destination.personalBudget)}`,
+      label: destination.tripDays ? `~${formatEuro(perDay)}/day` : `~${formatEuro(destination.personalBudget)}`,
     })
   }
   if (destination.companions) {
-    details.push({ kind: 'text', icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })
+    details.push({ kind: 'text', icon: 'users', label: 'With', value: COMPANION_LABELS[destination.companions] })
   }
   if (destination.tripTypes?.length) {
     details.push({
@@ -119,7 +120,7 @@ function getDestinationContext(destination: Destination) {
     details.push({
       kind: 'chips',
       icon: 'sparkles',
-      label: 'Retenu',
+      label: 'Highlights',
       chips: standoutValues.map(label => ({
         label,
         tone: STANDOUT_FLOP_LABELS.has(label) ? ('negative' as const) : ('positive' as const),
@@ -132,13 +133,13 @@ function getDestinationContext(destination: Destination) {
 
 function getCriteria(destination: Destination) {
   const base: Array<[string, number, string]> = []
-  if (typeof destination.food === 'number') base.push(['Gastronomie', destination.food, 'utensils'])
-  if (typeof destination.night === 'number') base.push(['Sorties & Vie nocturne', destination.night, 'martini'])
-  if (typeof destination.culture === 'number') base.push(['Culture & Histoire', destination.culture, 'temple'])
-  if (typeof destination.nature === 'number') base.push(['Nature & Paysages', destination.nature, 'mountain'])
-  if (typeof destination.value === 'number') base.push(['Rapport qualite/prix', destination.value, 'coins'])
+  if (typeof destination.food === 'number') base.push(['Food & Gastronomy', destination.food, 'utensils'])
+  if (typeof destination.night === 'number') base.push(['Nightlife', destination.night, 'martini'])
+  if (typeof destination.culture === 'number') base.push(['Culture & History', destination.culture, 'temple'])
+  if (typeof destination.nature === 'number') base.push(['Nature & Scenery', destination.nature, 'mountain'])
+  if (typeof destination.value === 'number') base.push(['Value for money', destination.value, 'coins'])
   if (typeof destination.ease === 'number') {
-    base.push(['Facilite sur place', destination.ease, 'compass'])
+    base.push(['Ease on-site', destination.ease, 'compass'])
   }
   return base
 }
@@ -288,7 +289,7 @@ function MobileSheet(props: DestinationSheetProps) {
         return
       }
       if (velocity < -0.6) { setSnap('full'); return }
-      // Ni fermeture ni ouverture â†’ reste peek
+      // Ni fermeture ni ouverture â†' reste peek
       return
     }
 
@@ -312,7 +313,7 @@ function MobileSheet(props: DestinationSheetProps) {
       <aside
         ref={sheetRef}
         className={`destination-sheet is-${snap}${isComparison ? ' is-comparison' : ''}${isDragging ? ' is-dragging' : ''}`}
-        aria-label={`DÃ©tail de ${props.destination.name}`}
+        aria-label={`Details: ${props.destination.name}`}
         onClick={e => e.stopPropagation()}
         style={style}
         onPointerDown={onPointerDown}
@@ -323,7 +324,7 @@ function MobileSheet(props: DestinationSheetProps) {
         <button
           type="button"
           className="destination-sheet-handle"
-          aria-label={snap === 'peek' ? 'Agrandir' : 'RÃ©duire'}
+          aria-label={snap === 'peek' ? 'Expand' : 'Collapse'}
           onClick={() => setSnap(s => s === 'peek' ? 'full' : 'peek')}
         >
           <span className="destination-sheet-grabber" />
@@ -356,15 +357,19 @@ function DestinationCardContent({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [visitorPickerOpen, setVisitorPickerOpen] = useState(false)
   const visitorPickerRef = useRef<HTMLDivElement | null>(null)
+  const mineDestination = compareWith?.mine ?? null
+  const compareDestination = compareWith?.theirs ?? null
+  const isFriendOnlyComparison = Boolean(compareWith && !mineDestination && compareDestination)
+  const canEditOwnDestination = !isFriendOnlyComparison
   const context = getDestinationContext(destination)
   const criteria = getCriteria(destination)
   const compareCriteria = useMemo(
-    () => compareWith ? getComparableCriteria(destination, compareWith.destination) : [],
-    [compareWith, destination]
+    () => mineDestination && compareDestination ? getComparableCriteria(mineDestination, compareDestination) : [],
+    [mineDestination, compareDestination]
   )
   const compareTags = useMemo(
-    () => compareWith ? getCompareTags(destination, compareWith.destination) : { common: [], mineOnly: [], theirsOnly: [] },
-    [compareWith, destination]
+    () => mineDestination && compareDestination ? getCompareTags(mineDestination, compareDestination) : { common: [], mineOnly: [], theirsOnly: [] },
+    [mineDestination, compareDestination]
   )
   const compareCompatibility = useMemo(
     () => getCompareCompatibility(compareCriteria),
@@ -392,7 +397,7 @@ function DestinationCardContent({
   }, [tripStopsHere, allDestinations])
 
   // Amis qui ont aussi visitÃ© cette destination (events destination_added).
-  // Lit le feed dÃ©jÃ  chargÃ© (60 events) â€” pas de requÃªte supplÃ©mentaire.
+  // Lit le feed dÃ©jÃ  chargÃ© (60 events) â€" pas de requÃªte supplÃ©mentaire.
   const { events: activityEvents } = useActivityFeed(60)
   const friendVisitors = useMemo(() => {
     const targetName = destination.name.toLowerCase().trim()
@@ -408,7 +413,7 @@ function DestinationCardContent({
         : undefined
       seen.set(ev.actor, {
         userId: ev.actor,
-        displayName: ev.actorDisplayName ?? ev.actorHandle ?? 'Un ami',
+        displayName: ev.actorDisplayName ?? ev.actorHandle ?? 'A friend',
         handle: ev.actorHandle,
         bg: ev.actorAvatarBg,
         fg: ev.actorAvatarFg,
@@ -461,29 +466,33 @@ function DestinationCardContent({
           <div className="card-kebab-menu">
             <button onClick={() => { closeMenu(); onFocus() }}>
               <Icon name="map" />
-              Centrer sur la carte
+              Focus on map
             </button>
-            <button onClick={() => { closeMenu(); onEdit(destination) }}>
-              <Icon name="edit" />
-              Modifier
-            </button>
-            <button className="danger" onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" />
-              Supprimer
-            </button>
+            {canEditOwnDestination && (
+              <button onClick={() => { closeMenu(); onEdit(destination) }}>
+                <Icon name="edit" />
+                Edit
+              </button>
+            )}
+            {canEditOwnDestination && (
+              <button className="danger" onClick={() => setConfirmDelete(true)}>
+                <Icon name="trash" />
+                Delete
+              </button>
+            )}
           </div>
         )}
         {menuOpen && confirmDelete && (
           <div className="card-kebab-menu card-delete-confirm">
-            <p>Supprimer <strong>{destination.name}</strong> ?</p>
+            <p>Delete <strong>{destination.name}</strong>?</p>
             <div className="confirm-actions">
-              <button onClick={closeMenu}>Annuler</button>
-              <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+              <button onClick={closeMenu}>Cancel</button>
+              <button className="danger" onClick={() => onDelete(destination.name)}>Confirm</button>
             </div>
           </div>
         )}
       </div>
-      <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
+      <button className="floating-close" aria-label="Close details" onClick={onClose}>
         <Icon name="x" />
       </button>
     </div>
@@ -497,6 +506,7 @@ function DestinationCardContent({
           coupDeCoeur={coupDeCoeur}
           coupDeCoeurDisabled={coupDeCoeurDisabled}
           coupDeCoeurCount={coupDeCoeurCount}
+          canEditOwnDestination={canEditOwnDestination}
           context={context}
           criteria={criteria}
           allDestinations={allDestinations}
@@ -515,7 +525,7 @@ function DestinationCardContent({
           {compareWith && (
             <span className="intent-pill destination-hero-pill">
               <Icon name="users" />
-              Toi + {compareWith.friend.displayName.split(' ')[0]}
+              You + {compareWith.friend.displayName.split(' ')[0]}
             </span>
           )}
           {destination.intent && (
@@ -524,25 +534,25 @@ function DestinationCardContent({
               {INTENT_LABELS[destination.intent]}
             </span>
           )}
-          {coupDeCoeur ? (
+          {canEditOwnDestination && coupDeCoeur ? (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
-              aria-label="Retirer le coup de cÅ“ur"
-              title="Coup de coeur - retirer"
+              aria-label="Remove from favorites"
+              title="Favorite — remove"
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Coup de coeur
+              Favorite
             </button>
-          ) : !coupDeCoeurDisabled && (
+          ) : canEditOwnDestination && !coupDeCoeurDisabled && (
             <button
               className="coup-de-coeur-button destination-hero-favorite"
-              aria-label="Ajouter aux coups de cÅ“ur"
-              title="Ajouter aux coups de coeur"
+              aria-label="Add to favorites"
+              title="Add to favorites"
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Coup de coeur
+              Favorite
             </button>
           )}
         </div>
@@ -554,9 +564,12 @@ function DestinationCardContent({
         </div>
       </div>
       {compareWith && (
-        <section className="sheet-compare-banner" aria-label="Comparaison en cours">
+        <section className="sheet-compare-banner" aria-label="Comparison in progress">
           <div className="sheet-compare-banner-copy">
-            <strong>Comparaison avec {firstName}</strong>
+            <strong>Comparing with {firstName}</strong>
+            {isFriendOnlyComparison && (
+              <small>You have not visited or rated this destination yet.</small>
+            )}
           </div>
           {onExitCompare && (
             <button
@@ -564,13 +577,26 @@ function DestinationCardContent({
               className="sheet-compare-banner-action"
               onClick={onExitCompare}
             >
-              Quitter
+              Exit
             </button>
           )}
         </section>
       )}
+      {isFriendOnlyComparison && compareDestination && (
+        <section className="compare-fallback-note" aria-label="Your travel status">
+          <strong>Not in your journal yet</strong>
+          <p>
+            {compareWith?.friend.displayName.split(' ')[0]} has been to {compareDestination.name}.
+            You have not visited or rated this destination yet.
+          </p>
+        </section>
+      )}
       {!compareWith && friendVisitors.length > 0 && (
-        <div className="friend-visitors" aria-label="Amis qui y sont alles" ref={visitorPickerRef}>
+        <div
+          className={`friend-visitors${visitorPickerOpen ? ' is-popover-open' : ''}`}
+          aria-label="Friends who've been there"
+          ref={visitorPickerRef}
+        >
           <button
             type="button"
             className={`friend-visitors-avatars friend-visitors-avatars-btn${hasMultipleVisitors ? ' is-interactive' : ''}`}
@@ -595,10 +621,10 @@ function DestinationCardContent({
           </button>
           <span className="friend-visitors-text">
             {friendVisitors.length === 1
-              ? <><strong>{friendVisitors[0].displayName}</strong> y est allee</>
+              ? <><strong>{friendVisitors[0].displayName}</strong> has been there</>
               : friendVisitors.length <= 3
-                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} et <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> y sont alles</>
-                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} et {friendVisitors.length - 2} autre{friendVisitors.length - 2 > 1 ? 's' : ''} y sont alles</>
+                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} and <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> have been there</>
+                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} and {friendVisitors.length - 2} other{friendVisitors.length - 2 > 1 ? 's' : ''} have been there</>
             }
           </span>
           {compareableVisitor && onCompareFriend && (
@@ -607,7 +633,7 @@ function DestinationCardContent({
               className="friend-visitors-action"
               onClick={() => onCompareFriend(compareableVisitor.userId)}
             >
-              Comparer avec {compareableVisitor.displayName.split(' ')[0]}
+              Compare with {compareableVisitor.displayName.split(' ')[0]}
             </button>
           )}
           {hasMultipleVisitors && (
@@ -619,10 +645,10 @@ function DestinationCardContent({
                 aria-haspopup="menu"
                 aria-expanded={visitorPickerOpen}
               >
-                Comparer avec...
+                Compare with…
               </button>
               {visitorPickerOpen && (
-                <div className="friend-visitors-popover" role="menu" aria-label="Choisir un ami pour comparer">
+                <div className="friend-visitors-popover" role="menu" aria-label="Choose a friend to compare">
                   {friendVisitors.map(visitor => (
                     <button
                       key={visitor.userId}
@@ -642,7 +668,7 @@ function DestinationCardContent({
                       </span>
                       <span className="friend-visitors-option-copy">
                         <strong>{visitor.displayName}</strong>
-                        <small>Comparer avec {visitor.displayName.split(' ')[0]}</small>
+                        <small>Compare with {visitor.displayName.split(' ')[0]}</small>
                       </span>
                       {visitor.tier && (
                         <span
@@ -703,92 +729,158 @@ function DestinationCardContent({
       )}
       {compareWith && (
         <>
-          <div className="compare-meta" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
+          <div className="compare-meta" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
             <div className="compare-meta-list">
-              {destination.tripYear && compareWith.destination.tripYear && (
+              {mineDestination?.tripYear && compareDestination?.tripYear && (
                 <span className="compare-meta-item">
                   <Icon name="calendar" />
-                  {destination.tripYear} / {compareWith.destination.tripYear}
+                  {mineDestination.tripYear} / {compareDestination.tripYear}
                 </span>
               )}
-              {destination.tripDays && compareWith.destination.tripDays && (
+              {mineDestination?.tripDays && compareDestination?.tripDays && (
                 <span className="compare-meta-item">
                   <Icon name="clock" />
-                  {destination.tripDays} j / {compareWith.destination.tripDays} j
+                  {mineDestination.tripDays}d / {compareDestination.tripDays}d
                 </span>
               )}
-              {destination.personalBudget && compareWith.destination.personalBudget && (
+              {mineDestination?.personalBudget && compareDestination?.personalBudget && (
                 <span className="compare-meta-item">
                   <Icon name="coins" />
                   {formatCompareLabel(
-                    destination.personalBudget / Math.max(destination.tripDays ?? 1, 1),
-                    compareWith.destination.personalBudget / Math.max(compareWith.destination.tripDays ?? 1, 1),
-                    ' EUR/j'
+                    mineDestination.personalBudget / Math.max(mineDestination.tripDays ?? 1, 1),
+                    compareDestination.personalBudget / Math.max(compareDestination.tripDays ?? 1, 1),
+                    ' EUR/d'
                   )}
                 </span>
+              )}
+              {isFriendOnlyComparison && (
+                <>
+                  {compareDestination?.tripYear && (
+                    <span className="compare-meta-item">
+                      <Icon name="calendar" />
+                      {compareWith.friend.displayName.split(' ')[0]}: {compareDestination.tripYear}
+                    </span>
+                  )}
+                  {compareDestination?.tripDays && (
+                    <span className="compare-meta-item">
+                      <Icon name="clock" />
+                      {compareWith.friend.displayName.split(' ')[0]}: {compareDestination.tripDays}d
+                    </span>
+                  )}
+                  {compareDestination?.personalBudget && (
+                    <span className="compare-meta-item">
+                      <Icon name="coins" />
+                      {compareWith.friend.displayName.split(' ')[0]}: {Math.round(compareDestination.personalBudget).toLocaleString('fr-FR')} EUR
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          <section className="compare-sheet-card" aria-label="Compatibilite">
-            <div className="compare-sheet-score">
-              <span>Compatibilite</span>
-              <strong>{compareCompatibility.score}%</strong>
-              <em>d'accord</em>
-            </div>
-            <div className="compare-sheet-stats">
-              <div className="compare-sheet-stat compare-sheet-stat--ok">
-                <span>OK</span>
-                {compareCompatibility.shared} criteres en commun
+          {mineDestination && compareDestination ? (
+            <section className="compare-sheet-card" aria-label="Compatibility">
+              <div className="compare-sheet-score">
+                <span>Compatibility</span>
+                <strong>{compareCompatibility.score}%</strong>
+                <em>match</em>
               </div>
-              <div className="compare-sheet-stat compare-sheet-stat--warn">
-                <span>!</span>
-                {compareCompatibility.differences} differences marquees
-              </div>
-            </div>
-          </section>
-
-          <section className="compare-tag-groups" aria-label="Gouts compares">
-            {compareTags.common.length > 0 && (
-              <div className="compare-tag-group">
-                <h3>En commun ({compareTags.common.length})</h3>
-                <div className="compare-tag-list">
-                  {compareTags.common.map(tag => <span key={tag} className="compare-tag compare-tag--common">{tag}</span>)}
+              <div className="compare-sheet-stats">
+                <div className="compare-sheet-stat compare-sheet-stat--ok">
+                  <span>OK</span>
+                  {compareCompatibility.shared} shared criteria
+                </div>
+                <div className="compare-sheet-stat compare-sheet-stat--warn">
+                  <span>!</span>
+                  {compareCompatibility.differences} notable differences
                 </div>
               </div>
-            )}
-            {(compareTags.mineOnly.length > 0 || compareTags.theirsOnly.length > 0) && (
-              <div className={`compare-tag-columns${compareTags.mineOnly.length === 0 || compareTags.theirsOnly.length === 0 ? ' is-single' : ''}`}>
-                {compareTags.mineOnly.length > 0 && (
-                  <div className="compare-tag-column">
-                    <h3>Toi seulement ({compareTags.mineOnly.length})</h3>
-                    <div className="compare-tag-list">
-                      {compareTags.mineOnly.map(tag => <span key={tag} className="compare-tag compare-tag--mine">{tag}</span>)}
-                    </div>
-                  </div>
-                )}
-                {compareTags.theirsOnly.length > 0 && (
-                  <div className="compare-tag-column">
-                    <h3>{compareWith.friend.displayName.split(' ')[0]} seulement ({compareTags.theirsOnly.length})</h3>
-                    <div className="compare-tag-list">
-                      {compareTags.theirsOnly.map(tag => <span key={tag} className="compare-tag compare-tag--theirs">{tag}</span>)}
-                    </div>
-                  </div>
-                )}
+            </section>
+          ) : (
+            <section className="compare-sheet-card compare-sheet-card--friend-only" aria-label={`${compareWith.friend.displayName} rating`}>
+              <div className="compare-sheet-score">
+                <span>{compareWith.friend.displayName.split(' ')[0]}'s rating</span>
+                <strong>{formatScore(compareDestination ?? destination)}</strong>
+                <em>{getDisplayTier(compareDestination ?? destination)}</em>
               </div>
-            )}
-          </section>
+              <div className="compare-sheet-stats">
+                <div className="compare-sheet-stat compare-sheet-stat--ok">
+                  <span>FYI</span>
+                  Friend data is available for this destination.
+                </div>
+                <div className="compare-sheet-stat compare-sheet-stat--warn">
+                  <span>!</span>
+                  Add it to your journal to compare your experience side by side.
+                </div>
+              </div>
+            </section>
+          )}
+
+          {(mineDestination && compareDestination) ? (
+            <section className="compare-tag-groups" aria-label="Compared highlights">
+              {compareTags.common.length > 0 && (
+                <div className="compare-tag-group">
+                  <h3>In common ({compareTags.common.length})</h3>
+                  <div className="compare-tag-list">
+                    {compareTags.common.map(tag => <span key={tag} className="compare-tag compare-tag--common">{tag}</span>)}
+                  </div>
+                </div>
+              )}
+              {(compareTags.mineOnly.length > 0 || compareTags.theirsOnly.length > 0) && (
+                <div className={`compare-tag-columns${compareTags.mineOnly.length === 0 || compareTags.theirsOnly.length === 0 ? ' is-single' : ''}`}>
+                  {compareTags.mineOnly.length > 0 && (
+                    <div className="compare-tag-column">
+                      <h3>Yours only ({compareTags.mineOnly.length})</h3>
+                      <div className="compare-tag-list">
+                        {compareTags.mineOnly.map(tag => <span key={tag} className="compare-tag compare-tag--mine">{tag}</span>)}
+                      </div>
+                    </div>
+                  )}
+                  {compareTags.theirsOnly.length > 0 && (
+                    <div className="compare-tag-column">
+                      <h3>{compareWith.friend.displayName.split(' ')[0]} only ({compareTags.theirsOnly.length})</h3>
+                      <div className="compare-tag-list">
+                        {compareTags.theirsOnly.map(tag => <span key={tag} className="compare-tag compare-tag--theirs">{tag}</span>)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          ) : context.hasContext ? (
+            <section className="compare-tag-groups compare-tag-groups--friend-only" aria-label={`${compareWith.friend.displayName} trip details`}>
+              <div className="compare-tag-group">
+                <h3>{compareWith.friend.displayName.split(' ')[0]}'s trip details</h3>
+                <div className="compare-tag-list">
+                  {context.details.flatMap(item => (
+                    item.kind === 'text'
+                      ? [<span key={`${item.label}-${item.value}`} className="compare-tag compare-tag--theirs">{item.label}: {item.value}</span>]
+                      : item.chips.map(chip => (
+                        <span key={`${item.label}-${chip.label}`} className="compare-tag compare-tag--theirs">
+                          {chip.label}
+                        </span>
+                      ))
+                  ))}
+                  {context.details.length === 0 && context.meta.map(item => (
+                    <span key={`${item.icon}-${item.label}`} className="compare-tag compare-tag--theirs">
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : null}
         </>
       )}
-      <h3>Notes par critere</h3>
+      <h3>Ratings by criterion</h3>
       {compareWith && compareCriteria.length > 0 ? (
-        <div className="criteria-compare" aria-label={`Comparaison avec ${compareWith.friend.displayName}`}>
+        <div className="criteria-compare" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
           <div className="criteria-compare-head">
             <span />
             <span />
-            <strong>Toi</strong>
+            <strong>You</strong>
             <strong>{compareWith.friend.displayName.split(' ')[0]}</strong>
-            <strong>Ecart</strong>
+            <strong>Gap</strong>
           </div>
           <div className="criteria-compare-list">
             {compareCriteria.map(item => (
@@ -813,14 +905,21 @@ function DestinationCardContent({
           ))}
         </div>
       )}
+      {compareWith && criteria.length === 0 && (
+        <p className="compare-fallback-empty">
+          {isFriendOnlyComparison
+            ? `${compareWith.friend.displayName.split(' ')[0]} has not added detailed criterion ratings for this destination yet.`
+            : 'One of the two profiles is missing detailed criterion ratings for this destination.'}
+        </p>
+      )}
       {tripsHereByName.length > 0 && (
         <div className="sheet-cross-links">
-          <p className="sheet-cross-links-title">Aussi Ã©tape de</p>
+          <p className="sheet-cross-links-title">Also a stop in</p>
           <ul>
             {tripsHereByName.map(([tripName, info]) => {
               const stageLabel = info.stages.length
                 ? `stop #${info.stages.join(', #')}`
-                : 'itineraire'
+                : 'itinerary'
               return (
                 <li key={tripName}>
                   <span className="trip-dot" style={{ '--trip-color': info.color } as CSSProperties} />
@@ -854,6 +953,7 @@ interface RoadTripCardContentProps {
   coupDeCoeur: boolean
   coupDeCoeurDisabled: boolean
   coupDeCoeurCount: number
+  canEditOwnDestination?: boolean
   context: ReturnType<typeof getDestinationContext>
   criteria: ReturnType<typeof getCriteria>
   allDestinations?: Destination[]
@@ -867,6 +967,7 @@ function RoadTripCardContent({
   coupDeCoeur,
   coupDeCoeurDisabled,
   coupDeCoeurCount,
+  canEditOwnDestination = true,
   context,
   criteria,
   allDestinations,
@@ -892,17 +993,17 @@ function RoadTripCardContent({
             Road trip
           </span>
           <span className="intent-pill destination-hero-pill">
-            {stageCount} Ã©tape{stageCount > 1 ? 's' : ''}
+            {stageCount} stop{stageCount > 1 ? 's' : ''}
           </span>
-          {coupDeCoeur && (
+          {canEditOwnDestination && coupDeCoeur && (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
-              aria-label="Retirer le coup de coeur"
-              title="Coup de coeur - retirer"
+              aria-label="Remove from favorites"
+              title="Favorite — remove"
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Coup de coeur
+              Favorite
             </button>
           )}
         </div>
@@ -912,16 +1013,16 @@ function RoadTripCardContent({
         {displayTier && <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>}
         <div>
           <h2>{destination.name}</h2>
-          <p className="roadtrip-title-sub">Experience globale du voyage</p>
+          <p className="roadtrip-title-sub">Overall trip experience</p>
         </div>
       </div>
 
-      <section className="roadtrip-score-card" aria-label="Ã‰valuation globale du road trip">
+      <section className="roadtrip-score-card" aria-label="Overall road trip rating">
         <div>
-          <span>Ã‰valuation globale</span>
+          <span>Overall rating</span>
           <strong>{score}</strong>
         </div>
-        <p>Note le road trip comme l'expÃ©rience que tu as vraiment vÃ©cue. Les Ã©tapes racontent le trajet ; tu peux dÃ©tailler une ville seulement si elle mÃ©rite sa propre fiche.</p>
+        <p>Rate the road trip as the experience you actually lived. Stops tell the story of the route; detail a city only if it deserves its own entry.</p>
       </section>
 
       {context.hasContext && (
@@ -966,7 +1067,7 @@ function RoadTripCardContent({
         </div>
       )}
 
-      <h3>Notes globales</h3>
+      <h3>Overall ratings</h3>
       <div className="criteria-list">
         {criteria.map(([label, value, icon]) => (
           <div className="criterion" key={label}>
@@ -977,9 +1078,9 @@ function RoadTripCardContent({
         ))}
       </div>
 
-      <section className="roadtrip-itinerary" aria-label="ItinÃ©raire du road trip">
+      <section className="roadtrip-itinerary" aria-label="Road trip itinerary">
         <div className="roadtrip-section-head">
-          <h3>ItinÃ©raire</h3>
+          <h3>Itinerary</h3>
           <span>{validStops.length} stop{validStops.length > 1 ? 's' : ''}</span>
         </div>
         {validStops.length > 0 ? (
@@ -992,14 +1093,14 @@ function RoadTripCardContent({
                   <div className="roadtrip-step-body">
                     <div>
                       <strong>{stop.name}</strong>
-                      <span>Stop du trajet</span>
+                      <span>Route stop</span>
                     </div>
                     {linkedDestination && linkedDestination.name !== destination.name ? (
                       <button type="button" onClick={() => onOpenDestination?.(linkedDestination.name)}>
-                        Fiche existante
+                        See entry
                       </button>
                     ) : (
-                      <em>ItinÃ©raire</em>
+                      <em>Itinerary</em>
                     )}
                   </div>
                 </li>
@@ -1007,10 +1108,9 @@ function RoadTripCardContent({
             })}
           </ol>
         ) : (
-          <p className="roadtrip-empty">Ajoute des Ã©tapes pour raconter le trajet sans devoir noter chaque ville.</p>
+          <p className="roadtrip-empty">Add stops to tell the story of the route without having to rate each city.</p>
         )}
       </section>
     </>
   )
 }
-

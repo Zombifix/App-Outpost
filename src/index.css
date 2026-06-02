@@ -12308,8 +12308,7 @@ svg {
   font-weight: 500;
   line-height: 1.2;
   letter-spacing: -0.01em;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 255, 0.96));
+  background: #ffffff;
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 12px 12px;
@@ -14129,17 +14128,17 @@ svg {
 }
 
 .account-profile-tag-icon {
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   align-self: center;
   flex-shrink: 0;
-  border-radius: 17px;
+  border-radius: 14px;
   background: #f3f8ff;
   border: 1px solid rgba(199, 218, 242, 0.86);
   box-shadow: none;
-  font-size: 25px;
+  font-size: 22px;
   line-height: 1;
   overflow: hidden;
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;

@@ -1394,6 +1394,7 @@ svg {
   width: 18px;
   height: 18px;
   border-radius: var(--radius-pill);
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1427,17 +1428,17 @@ svg {
 .compare-stat--mine::before   { background: linear-gradient(135deg, #f25f73, #fb8b45); }
 .compare-stat--theirs::before { background: #fff; box-shadow: inset 0 0 0 1.5px #7C8DB5; }
 
-/* ─── Barre "Compare inline" — vit à la place de la légende des tiers ───────
-   Quand un ami est sélectionné pour la comparaison, on cache la légende
-   (S/A/B/C/D) via .compare-active .legend, et on positionne cette barre
-   exactement au même endroit pour ne pas voler de place ailleurs.
+/* ─── Barre "Compare inline" — siège au-dessus de la légende des tiers ───────
+   La légende (S/A/B/C/D) et la barre de comparaison coexistent : elles
+   remplissent des rôles différents (qui vs quel tier). La barre se place
+   juste au-dessus de la légende (46px de haut + 8px gap × 2).
    Note : la barre est un enfant de .travel-app (pas .map-area), donc on
    recale left avec --content-l (sidebar + gap) pour qu'elle s'aligne sur
    la map et pas sur le bord gauche de la page. */
 .compare-inline-bar {
   position: absolute;
   left: calc(var(--content-l) + 72px);
-  bottom: var(--map-b-open);
+  bottom: calc(var(--map-b-open) + 8px + 46px + 8px);
   z-index: 9;
   display: flex;
   align-items: center;
@@ -1452,7 +1453,7 @@ svg {
   transition: bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .travel-app.tier-collapsed .compare-inline-bar {
-  bottom: var(--map-b-closed);
+  bottom: calc(var(--map-b-closed) + 8px + 46px + 8px);
 }
 @keyframes compare-inline-slide {
   from { opacity: 0; transform: translateY(6px); }
@@ -1495,8 +1496,7 @@ svg {
 .compare-inline-close:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .compare-inline-close svg { width: 13px; height: 13px; }
 
-/* Quand un compare est actif, on cache la légende tier (même position) */
-.compare-active .legend { display: none; }
+/* Légende tier visible même en mode comparaison — barre et légende coexistent */
 
 .compare-head {
   display: flex;
@@ -6026,20 +6026,20 @@ svg {
   .top-actions { display: none; }
 
   .compare-inline-bar {
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: none;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
+    left: 50%;
+    right: auto;
+    width: fit-content;
+    max-width: calc(100% - 48px);
+    bottom: calc(var(--tier-collapsed-h) + 60px + env(safe-area-inset-bottom, 0px) + 8px);
     padding: 6px;
     gap: 8px;
     height: auto;
     min-height: 46px;
-    transform: none;
+    transform: translateX(-50%);
   }
 
   .travel-app.tier-collapsed .compare-inline-bar {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
+    bottom: calc(var(--tier-collapsed-h) + 60px + env(safe-area-inset-bottom, 0px) + 8px);
   }
 
   .compare-inline-legend {
@@ -9203,6 +9203,21 @@ svg {
   background: #7C8DB5;
   color: #fff;
   font-style: normal;
+}
+/* Mode photo : badge circulaire avec avatar */
+.pin-friend-badge:has(img) {
+  width: 22px;
+  padding: 0;
+  overflow: hidden;
+  background: none;
+  border-color: #7C8DB5;
+}
+.pin-friend-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 /* Partagé — top-right, vert */
@@ -13025,86 +13040,208 @@ svg {
     left: 10px;
     right: 10px;
     bottom: 10px;
-    height: calc(60px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 6px env(safe-area-inset-bottom, 0px);
     border: 1px solid rgba(255, 255, 255, 0.72);
-    border-radius: var(--radius-2xl);
-    background: rgba(248, 250, 255, 0.92);
-    backdrop-filter: blur(24px) saturate(1.7);
-    -webkit-backdrop-filter: blur(24px) saturate(1.7);
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 26%, rgba(240, 246, 255, 0) 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.14)),
+      rgba(242, 247, 255, 0.72);
+    backdrop-filter: blur(28px) saturate(1.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
     box-shadow:
-      0 2px 0 rgba(255, 255, 255, 0.7) inset,
-      0 12px 30px rgba(20, 36, 70, 0.16),
-      0 2px 6px rgba(20, 36, 70, 0.06);
+      0 1px 0 rgba(255, 255, 255, 0.76) inset,
+      0 -8px 18px rgba(255, 255, 255, 0.14) inset,
+      0 14px 28px rgba(20, 36, 70, 0.14),
+      0 3px 8px rgba(20, 36, 70, 0.05);
     align-items: stretch;
+    gap: 2px;
+    overflow: hidden;
     z-index: 31;
   }
 
   .bottom-nav-item,
   .bottom-nav-item.is-active {
-    padding: 9px 0 8px;
+    min-height: 54px;
+    padding: 8px 0 7px;
     font-size: var(--text-2xs);
     font-weight: var(--weight-semibold);
     letter-spacing: 0.01em;
-    color: #8e9cb8;
+    color: rgba(84, 102, 134, 0.72);
     flex: 1 1 0;
-    gap: 3px;
+    gap: 4px;
     background: transparent;
     border-color: transparent;
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    border-radius: 22px;
+    transition:
+      color 140ms ease,
+      background 140ms ease,
+      transform 140ms ease,
+      box-shadow 140ms ease;
   }
 
   .bottom-nav-item.is-active {
-    color: var(--purple);
+    color: #1e4fb8;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(226, 238, 255, 0.26));
+    border-color: rgba(255, 255, 255, 0.36);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      0 10px 18px rgba(71, 114, 184, 0.10);
   }
 
   .bottom-nav-item svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     margin-bottom: 0;
+    stroke-width: 2.15;
+  }
+
+  .bottom-nav-item-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+
+  .bottom-nav-item.is-active .bottom-nav-item-icon {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(226, 238, 255, 0.36));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.84),
+      0 6px 12px rgba(71, 114, 184, 0.10);
+  }
+
+  .bottom-nav-item-label {
+    font-size: 11px;
+    line-height: 1;
   }
 
   .bottom-nav-add {
-    padding: 0 0 6px;
+    min-height: 54px;
+    padding: 0 0 7px;
     flex: 1 1 0;
     position: relative;
-    gap: 2px;
+    gap: 4px;
     background: transparent;
     border-color: transparent;
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     align-items: center;
+    justify-content: center;
   }
 
   .bottom-nav-add-icon {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    min-height: 46px;
     border-radius: 50%;
-    background: linear-gradient(150deg, #4F90FF, #1B5FE8);
+    background:
+      radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.34), transparent 30%),
+      linear-gradient(155deg, #5b9cff, #1b5fe8);
     box-shadow:
-      0 2px 0 rgba(255, 255, 255, 0.32) inset,
-      0 6px 14px rgba(27, 95, 232, 0.42),
-      0 1px 3px rgba(27, 95, 232, 0.2);
-    margin-top: -10px;
+      0 1px 0 rgba(255, 255, 255, 0.44) inset,
+      0 10px 20px rgba(27, 95, 232, 0.28),
+      0 2px 5px rgba(27, 95, 232, 0.16);
+    margin-top: -8px;
     flex-shrink: 0;
+    position: relative;
+  }
+
+  .bottom-nav-add-icon::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+    background: radial-gradient(circle, rgba(116, 160, 255, 0.24), rgba(116, 160, 255, 0));
+    z-index: -1;
   }
 
   .bottom-nav-add-icon svg {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2.6;
+    width: 19px;
+    height: 19px;
+    stroke-width: 2.55;
   }
 
-  .bottom-nav-add span:last-child {
-    font-size: var(--text-2xs);
+  .bottom-nav-add-label {
+    font-size: 11px;
     font-weight: var(--weight-semibold);
-    color: var(--purple);
-    margin-top: 0;
+    color: #1b56d2;
+    line-height: 1;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .bottom-nav-badge {
+    top: 5px;
+    right: calc(50% - 20px);
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: linear-gradient(180deg, #ff7d8b, #ff5d6c);
+    box-shadow:
+      0 6px 14px rgba(255, 93, 108, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+
+  .tier-board {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.14)),
+      rgba(243, 247, 255, 0.72);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.64) inset,
+      0 10px 24px rgba(30, 50, 90, 0.11),
+      0 2px 6px rgba(30, 50, 90, 0.04);
+    overflow: visible;
+  }
+
+  .tier-board::after {
+    content: '';
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: -20px;
+    height: 34px;
+    border-radius: 0 0 24px 24px;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(248, 251, 255, 0.66) 0%, rgba(243, 248, 255, 0.46) 42%, rgba(243, 248, 255, 0.14) 76%, rgba(243, 248, 255, 0) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 8px 18px rgba(30, 50, 90, 0.06);
+    opacity: 0.96;
+    z-index: 0;
+  }
+
+  .tier-board.is-collapsed::after {
+    left: 26px;
+    right: 26px;
+    bottom: -16px;
+    height: 24px;
+    border-radius: 0 0 22px 22px;
+    background:
+      linear-gradient(180deg, rgba(248, 251, 255, 0.6) 0%, rgba(244, 248, 255, 0.34) 58%, rgba(244, 248, 255, 0) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 6px 14px rgba(30, 50, 90, 0.04);
+  }
+
+  .tier-mobile-section {
+    padding: 4px 0 16px;
+  }
+
+  .tier-mobile-strip {
+    padding-bottom: 10px;
   }
 }
 

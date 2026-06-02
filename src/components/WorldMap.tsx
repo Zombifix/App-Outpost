@@ -174,6 +174,7 @@ interface WorldMapProps {
   onFlyTargetConsumed: () => void
   friendDestinations?: Destination[]
   friendInitials?: string
+  friendAvatarUrl?: string | null
   sharedNames?: Set<string>
   controlsMode?: DockMode
   legendMode?: DockMode
@@ -670,7 +671,7 @@ function syncZoneRouteLayers(
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WorldMap({
   destinations, flyTarget, selectedName, onSelect, onDeselect, onFlyTargetConsumed,
-  friendDestinations, friendInitials, sharedNames,
+  friendDestinations, friendInitials, friendAvatarUrl, sharedNames,
   controlsMode = 'overlay-bottom',
   legendMode = 'overlay-bottom',
   hidden,
@@ -1054,6 +1055,7 @@ export default function WorldMap({
           owner: 'friend' as const,
           selected: expandedRouteKey === `friend:${destination.name}`,
           badge: friendInitials,
+          badgeAvatarUrl: friendAvatarUrl,
           shared: false,
           tripBadges: undefined as PinTripBadge[] | undefined,
         })),
@@ -1065,6 +1067,7 @@ export default function WorldMap({
           owner: 'me' as const,
           selected: destination.name === selectedName || expandedRouteKey === `me:${destination.name}`,
           badge: undefined,
+          badgeAvatarUrl: undefined as string | null | undefined,
           shared: shared.has(destinationNameKey(destination)),
           tripBadges: overlapsByDest[destination.name],
         })),
@@ -1102,6 +1105,7 @@ export default function WorldMap({
           onExpandTrip={expandTripRoute}
           owner={pin.owner}
           badge={pin.badge}
+          badgeAvatarUrl={pin.badgeAvatarUrl}
           shared={pin.shared}
           tripBadges={pin.tripBadges}
         />,
@@ -1201,7 +1205,7 @@ export default function WorldMap({
                 {friendOnly.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
                     compactMode={compactPins} selected={expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
-                    owner="friend" badge={friendInitials} />
+                    owner="friend" badge={friendInitials} badgeAvatarUrl={friendAvatarUrl} />
                 ))}
                 {destinations.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
@@ -1263,6 +1267,7 @@ interface PinProps {
   onExpandTrip?: (d: Destination, owner: 'me' | 'friend') => void
   owner?: 'me' | 'friend'
   badge?: string
+  badgeAvatarUrl?: string | null
   shared?: boolean
   tripBadges?: PinTripBadge[]
 }
@@ -1504,7 +1509,7 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
 })
 
 const Pin = memo(function Pin({
-  destination, projection, compactMode, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, shared, tripBadges,
+  destination, projection, compactMode, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, badgeAvatarUrl, shared, tripBadges,
 }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
@@ -1598,7 +1603,13 @@ const Pin = memo(function Pin({
               {destination.name}
               {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}
             </strong>
-            {owner === 'friend' && badge && <em className="pin-friend-badge">{badge}</em>}
+            {owner === 'friend' && badge && (
+              <em className="pin-friend-badge">
+                {badgeAvatarUrl
+                  ? <img src={badgeAvatarUrl} alt="" aria-hidden="true" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; if (e.currentTarget.parentElement) e.currentTarget.parentElement.textContent = badge }} />
+                  : badge}
+              </em>
+            )}
             {shared && <em className="pin-shared-badge" aria-label="Destination en commun">2x</em>}
             {tripBadges && tripBadges.length > 0 && (
               <span className="pin-trip-badges" aria-hidden="true">

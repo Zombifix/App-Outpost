@@ -453,6 +453,9 @@ function AppCore({
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [publicId, setPublicId] = useState<string>(loadPublicId)
+  const [mapDetail, setMapDetail] = useState<'simple' | 'detailed'>(() =>
+    (localStorage.getItem('outpost-map-detail') as 'simple' | 'detailed' | null) ?? 'simple'
+  )
   const isMobileLayout = useMediaQuery('(max-width: 900px)')
   const [desktopDock, setDesktopDock] = useState<DesktopDockState>(DESKTOP_DOCK_DEFAULT)
 
@@ -872,7 +875,7 @@ function AppCore({
             maxWidth: 'min(92vw, 480px)',
           }}
         >
-          Sync en échec : {myDestinationsError}. Tes changements restent en local.
+          Sync failed: {myDestinationsError}. Your changes are saved locally.
         </div>
       )}
       <div className="mobile-header">
@@ -880,7 +883,7 @@ function AppCore({
         <button
           className={`mobile-header-avatar${accountOpen ? ' is-active' : ''}`}
           onClick={() => setAccountOpen(v => !v)}
-          aria-label={accountOpen ? 'Fermer mon compte' : 'Mon compte'}
+          aria-label={accountOpen ? 'Close account' : 'My account'}
           aria-expanded={accountOpen}
         >
           {profileAvatarUrl
@@ -905,10 +908,12 @@ function AppCore({
         onFlyTargetConsumed={() => setFlyTarget(null)}
         friendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
         friendInitials={compareFriend && !compareFriendDenied ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
+        friendAvatarUrl={compareFriend && !compareFriendDenied ? (compareFriend.avatarUrl ?? null) : null}
         sharedNames={compareFriend && !compareFriendDenied ? compareSharedNames : undefined}
         controlsMode={desktopDock.controlsMode}
         legendMode={desktopDock.legendMode}
         hidden={activeView !== 'map'}
+        mapDetail={mapDetail}
       />
       {/* Barre flottante compare quand on superpose les pins d'un ami */}
       {compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend && (
@@ -926,12 +931,14 @@ function AppCore({
               Toi
             </span>
             <span className="compare-inline-item">
-              <span
+              <Avatar
                 className="compare-legend-dot compare-legend-dot--theirs"
-                aria-hidden="true"
-              >
-                {compareFriend.displayName.slice(0, 1).toUpperCase()}
-              </span>
+                avatarUrl={compareFriend.avatarUrl}
+                initials={compareFriend.displayName.slice(0, 1)}
+                bg={compareFriend.avatarBg}
+                fg={compareFriend.avatarFg}
+                ariaHidden={true}
+              />
               {compareFriend.displayName.split(' ')[0]}
             </span>
             <span className="compare-inline-item">
@@ -1187,8 +1194,10 @@ function AppCore({
           destinations={myDestinations}
           publicId={publicId}
           mapVisibility={profileMapVisibility}
+          mapDetail={mapDetail}
           onPublicIdChange={setPublicId}
           onMapVisibilityChange={onMapVisibilityChange}
+          onMapDetailChange={v => { setMapDetail(v); localStorage.setItem('outpost-map-detail', v) }}
           onClose={() => setAccountOpen(false)}
           onResetCarnet={resetMyDestinations}
           carnetCount={myDestinations.length}
@@ -1200,13 +1209,13 @@ function AppCore({
 
 function ExploreView(_props: { destinations: Destination[]; onSelect: (name: string) => void }) {
   return (
-    <main className="explore-page explore-page--soon" aria-label="Explorer — bientôt disponible">
+    <main className="explore-page explore-page--soon" aria-label="Explore — coming soon">
       <section className="explore-soon">
-        <span className="explore-soon__chip">Bientôt disponible</span>
-        <h2 className="explore-soon__title">L'explorateur arrive bientôt</h2>
+        <span className="explore-soon__chip">Coming soon</span>
+        <h2 className="explore-soon__title">The explorer is coming soon</h2>
         <p className="explore-soon__text">
-          Cette section te proposera des destinations sur mesure à partir de ton carnet, de tes notes
-          et de celles de tes amis. On y travaille — rendez-vous très vite.
+          This section will suggest destinations tailored to your journal, your ratings,
+          and those of your friends. We're working on it — see you soon.
         </p>
       </section>
     </main>
@@ -1534,21 +1543,21 @@ interface AccountPanelProps {
   destinations: Destination[]
   publicId: string
   mapVisibility: MapVisibility
+  mapDetail: 'simple' | 'detailed'
   onPublicIdChange: (value: string) => void
   onMapVisibilityChange: (value: MapVisibility) => Promise<{ ok: boolean; error?: string }>
+  onMapDetailChange: (value: 'simple' | 'detailed') => void
   onClose: () => void
-  /** Vide toutes les destinations de l'utilisateur (Supabase + cache local). */
   onResetCarnet: () => Promise<{ error?: string }>
-  /** Nombre actuel de destinations, pour adapter le message de confirmation. */
   carnetCount: number
 }
 
-type AccountMode = 'profile' | 'share' | 'account'
-type PasswordAuthMode = 'signin' | 'signup'
+type AccountMode = 'profile' | 'map' | 'account'
+type PasswordAuthMode = 'signin' | 'signup' | 'forgot' | 'forgot-sent'
 
-function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange, onMapVisibilityChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
+function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPublicIdChange, onMapVisibilityChange, onMapDetailChange, onClose, onResetCarnet, carnetCount }: AccountPanelProps) {
   const trapRef = useFocusTrap<HTMLDivElement>(true)
-  const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut } = useAuth()
+  const { user, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut } = useAuth()
   const { profile } = useMyProfile()
   const [draftId, setDraftId] = useState(publicId || profile?.handle || '')
   const [email, setEmail] = useState('')
@@ -1598,11 +1607,11 @@ function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange,
   const submitPasswordAuth = async () => {
     const cleaned = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
-      setFeedback({ kind: 'err', msg: 'Email invalide' })
+      setFeedback({ kind: 'err', msg: 'Invalid email' })
       return
     }
     if (password.length < 6) {
-      setFeedback({ kind: 'err', msg: 'Mot de passe trop court : utilise au moins 6 caractères.' })
+      setFeedback({ kind: 'err', msg: 'Password too short: use at least 6 characters.' })
       return
     }
 
@@ -1618,7 +1627,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange,
     if (res.needsConfirmation) {
       setFeedback({
         kind: 'ok',
-        msg: 'Compte créé. Vérifie ta boîte mail pour confirmer ton adresse, puis reviens te connecter.',
+        msg: 'Account created. Check your inbox to confirm your email, then sign in.',
       })
       if (import.meta.env.DEV) {
         console.info('[auth] Supabase awaiting email confirmation. Disable "Confirm email" in Supabase to skip SMTP during dev.')
@@ -1626,8 +1635,25 @@ function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange,
       return
     }
     setFeedback({ kind: 'ok', msg: passwordMode === 'signin'
-      ? 'Connexion réussie.'
-      : 'Compte créé. Tu peux utiliser ce mot de passe pour revenir.' })
+      ? 'Signed in.'
+      : 'Account created. You can use this password to return.' })
+  }
+
+  const submitForgotPassword = async () => {
+    const cleaned = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
+      setFeedback({ kind: 'err', msg: 'Invalid email' })
+      return
+    }
+    setBusy(true)
+    const res = await resetPassword(cleaned)
+    setBusy(false)
+    if (res.error) {
+      setFeedback({ kind: 'err', msg: res.error })
+      return
+    }
+    setPasswordMode('forgot-sent')
+    setFeedback(null)
   }
 
   const connectWithGoogle = async () => {
@@ -1662,10 +1688,10 @@ function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange,
     const result = await onMapVisibilityChange(visibilityDraft)
     setVisibilityBusy(false)
     if (!result.ok) {
-      setFeedback({ kind: 'err', msg: result.error ?? 'Impossible d\'enregistrer la visibilité.' })
+      setFeedback({ kind: 'err', msg: result.error ?? 'Could not save visibility.' })
       return
     }
-    setFeedback({ kind: 'ok', msg: 'Visibilité de la carte mise à jour.' })
+    setFeedback({ kind: 'ok', msg: 'Map visibility updated.' })
   }
 
   return (

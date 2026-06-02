@@ -4,11 +4,13 @@ import type { Destination, Friendship, Tier } from '../types'
 import { TIER_COLORS, TIER_ORDER } from '../data'
 import { getDestinationScore, getDestinationTier } from '../utils'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
+import { SegmentedControl } from './SegmentedControl'
 
 interface TierListPanelProps {
   destinations: Destination[]
   collapsed: boolean
   coupDeCoeurCount: number
+  dockMode?: 'stacked-left' | 'bottom-left' | 'overlay-bottom'
   onCollapseToggle: () => void
   onFlyTo: (name: string) => void
   onCompareFriend?: (friend: Friendship) => void
@@ -58,6 +60,7 @@ export default function TierListPanel({
   destinations,
   collapsed,
   coupDeCoeurCount,
+  dockMode = 'overlay-bottom',
   onCollapseToggle,
   onFlyTo,
   onCompareFriend,
@@ -171,9 +174,40 @@ export default function TierListPanel({
     if (mobileTier === 'all') return true
     return getDestinationTier(d) === mobileTier
   }).sort((a, b) => compareDestinations(a, b, sortMode))
+  const tierCounts = TIER_ORDER.map(tier => ({
+    tier,
+    count: destinations.filter(d => d.kind !== 'stop' && getDestinationTier(d) === tier).length,
+  })).filter(item => item.count > 0)
+  const tierCountChips = tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
+    <span
+      key={tier}
+      className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
+    >
+      <span className="tier-board-collapsed-dot" aria-hidden="true" />
+      {count}
+    </span>
+  )) : (
+    <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
+  )
+
+  const tierOptions = [
+    { value: 'all' as const, label: 'Tous' },
+    ...tiersWithItems.map(tier => ({
+      value: tier,
+      label: tier,
+      accentColor: TIER_COLORS[tier].pin,
+      ariaLabel: tierLabels[tier],
+    })),
+  ]
+
+  const dockClass = dockMode === 'stacked-left'
+    ? ' tier-board--stacked-left'
+    : dockMode === 'bottom-left'
+      ? ' tier-board--bottom-left'
+      : ''
 
   return (
-    <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}`} aria-label="Ma tier list">
+    <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}${dockClass}`} aria-label="Mon classement">
       {/* iOS drag handle — clickable to collapse/expand on mobile */}
       <button
         type="button"
@@ -185,10 +219,20 @@ export default function TierListPanel({
         {collapsed && (
           <span className="tier-board-collapsed-hint" aria-hidden="true">
             <span className="tier-board-collapsed-label">
-              Ma tier list
+              Mon classement
             </span>
-            <span className="tier-board-collapsed-count">
-              {destinations.filter(d => d.kind !== 'stop').length}
+            <span className="tier-board-collapsed-counts" aria-label="Récapitulatif par note">
+              {tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
+                <span
+                  key={tier}
+                  className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
+                >
+                  <span className="tier-board-collapsed-dot" aria-hidden="true" />
+                  {count}
+                </span>
+              )) : (
+                <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
+              )}
             </span>
           </span>
         )}
@@ -196,7 +240,12 @@ export default function TierListPanel({
 
       <div className="tier-board-head">
         <div className="tier-board-title">
-          <h2>Ma tier list <span>({destinations.filter(d => d.kind !== 'stop').length} destinations)</span></h2>
+          <h2>Mon classement <span>· {destinations.filter(d => d.kind !== 'stop').length}</span></h2>
+          {collapsed && (
+            <div className="tier-board-title-counts" aria-label="Récapitulatif par note">
+              {tierCountChips}
+            </div>
+          )}
         </div>
         <div className="tier-board-actions">
           {onCompareFriend && (
@@ -204,7 +253,7 @@ export default function TierListPanel({
           )}
           <button
             className="next-control-inline next-control-inline--fold"
-            aria-label={collapsed ? 'Déplier la tier list' : 'Replier la tier list'}
+            aria-label={collapsed ? 'Déplier le classement' : 'Replier le classement'}
             onClick={onCollapseToggle}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -216,59 +265,37 @@ export default function TierListPanel({
       </div>
 
       <div className="tier-desktop-tabs" aria-label="Filtrer par tier">
-        <div className="tier-desktop-tabs-list">
-          <button
-            type="button"
-            className={`tier-pill tier-pill-all${mobileTier === 'all' ? ' is-active' : ''}`}
-            onClick={() => setMobileTier('all')}
-          >
-            Tous
-          </button>
-          {tiersWithItems.map(tier => {
-            const colors = TIER_COLORS[tier]
-            return (
-              <button
-                key={tier}
-                type="button"
-                className={`tier-pill tier-pill-${tier.toLowerCase()}${mobileTier === tier ? ' is-active' : ''}`}
-                onClick={() => setMobileTier(tier)}
-                style={{ '--tier-color': colors.label, '--tier-bg': `${colors.pin}1F`, '--tier-pin': colors.pin } as CSSProperties}
-              >
-                {tier}
-              </button>
-            )
-          })}
-        </div>
+        <SegmentedControl
+          className="tier-desktop-tabs-list"
+          ariaLabel="Filtrer par tier"
+          role="radiogroup"
+          size="sm"
+          layout="hug"
+          tone="tinted"
+          value={mobileTier}
+          options={tierOptions}
+          onChange={setMobileTier}
+        />
         {sortControl('tier-sort-toggle-desktop')}
       </div>
 
       {/* ── Mobile view: heading + tier pills + cards ── */}
       <div className="tier-mobile-section">
         <div className="tier-mobile-topline">
-          <h2 className="tier-mobile-title">Ma tier list</h2>
+          <h2 className="tier-mobile-title">Mon classement</h2>
         </div>
         <div className="tier-mobile-filter-row">
-          <div className="tier-mobile-tabs">
-            <button
-              className={`tier-pill tier-pill-all${mobileTier === 'all' ? ' is-active' : ''}`}
-              onClick={() => setMobileTier('all')}
-            >
-              Tous
-            </button>
-            {tiersWithItems.map(tier => {
-              const colors = TIER_COLORS[tier]
-              return (
-                <button
-                  key={tier}
-                  className={`tier-pill tier-pill-${tier.toLowerCase()}${mobileTier === tier ? ' is-active' : ''}`}
-                  onClick={() => setMobileTier(tier)}
-                  style={{ '--tier-color': colors.label, '--tier-bg': `${colors.pin}1F`, '--tier-pin': colors.pin } as CSSProperties}
-                >
-                  {tier}
-                </button>
-              )
-            })}
-          </div>
+          <SegmentedControl
+            className="tier-mobile-tabs"
+            ariaLabel="Filtrer par tier"
+            role="radiogroup"
+            size="sm"
+            layout="scrollable"
+            tone="tinted"
+            value={mobileTier}
+            options={tierOptions}
+            onChange={setMobileTier}
+          />
           {sortControl('tier-sort-toggle-mobile', true)}
         </div>
         <div className="tier-mobile-strip">

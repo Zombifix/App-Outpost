@@ -3,6 +3,7 @@ import type { PublicProfile } from '../../types'
 import { useFriends } from '../../hooks/useFriends'
 import { useAuth } from '../../lib/auth'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { SegmentedControl } from '../SegmentedControl'
 
 type Tab = 'email' | 'handle' | 'link'
 
@@ -149,11 +150,23 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
           Trouve quelqu'un par pseudo, invite-le par email, ou partage ton lien personnel.
         </p>
 
-        <div className="friends-tabs" role="tablist">
-          <TabBtn active={tab === 'handle'} onClick={() => { setTab('handle'); setFeedback(null) }}>@ Pseudo</TabBtn>
-          <TabBtn active={tab === 'email'} onClick={() => { setTab('email'); setFeedback(null) }}>Email</TabBtn>
-          <TabBtn active={tab === 'link'} onClick={() => { setTab('link'); setFeedback(null) }}>Lien</TabBtn>
-        </div>
+        <SegmentedControl
+          className="friends-tabs"
+          ariaLabel="Ajouter un ami"
+          role="tablist"
+          size="sm"
+          layout="fill"
+          value={tab}
+          options={[
+            { value: 'handle', label: '@ Pseudo' },
+            { value: 'email', label: 'Email' },
+            { value: 'link', label: 'Lien' },
+          ]}
+          onChange={nextTab => {
+            setTab(nextTab)
+            setFeedback(null)
+          }}
+        />
 
         {tab === 'handle' && (
           <div className="friends-tab-pane">
@@ -260,14 +273,6 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
         )}
       </aside>
     </div>
-  )
-}
-
-function TabBtn({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button role="tab" aria-selected={active} className={`friends-tab${active ? ' is-active' : ''}`} onClick={onClick}>
-      {children}
-    </button>
   )
 }
 

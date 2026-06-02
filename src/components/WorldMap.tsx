@@ -163,6 +163,8 @@ function fitMapToDestinations(
 }
 
 interface FlyTarget { lat: number; lng: number; name: string }
+type DockMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
+
 interface WorldMapProps {
   destinations: Destination[]
   flyTarget: FlyTarget | null
@@ -173,6 +175,8 @@ interface WorldMapProps {
   friendDestinations?: Destination[]
   friendInitials?: string
   sharedNames?: Set<string>
+  controlsMode?: DockMode
+  legendMode?: DockMode
   hidden?: boolean
 }
 
@@ -666,7 +670,10 @@ function syncZoneRouteLayers(
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WorldMap({
   destinations, flyTarget, selectedName, onSelect, onDeselect, onFlyTargetConsumed,
-  friendDestinations, friendInitials, sharedNames, hidden,
+  friendDestinations, friendInitials, sharedNames,
+  controlsMode = 'overlay-bottom',
+  legendMode = 'overlay-bottom',
+  hidden,
 }: WorldMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<maplibregl.Map | null>(null)
@@ -681,6 +688,17 @@ export default function WorldMap({
   const [compactPins, setCompactPins] = useState(true)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
+  const controlsClass = controlsMode === 'stacked-left'
+    ? ' map-controls--stacked-left'
+    : controlsMode === 'bottom-left'
+      ? ' map-controls--bottom-left'
+      : ''
+  const legendClass = legendMode === 'stacked-left'
+    ? ' legend--stacked-left'
+    : legendMode === 'bottom-left'
+      ? ' legend--bottom-left'
+      : ''
+  const showLegendLabel = legendMode === 'stacked-left' || legendMode === 'bottom-left'
 
   function clearHtmlMarkers() {
     for (const entry of htmlMarkersRef.current) {
@@ -1136,7 +1154,7 @@ export default function WorldMap({
         </g>
       </svg>
 
-      <div className="map-controls" aria-label="Controles de carte">
+      <div className={`map-controls${controlsClass}`} aria-label="Controles de carte">
         <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>
         <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>−</button>
         <span className="map-controls-divider" aria-hidden="true" />
@@ -1149,7 +1167,8 @@ export default function WorldMap({
         </button>
       </div>
 
-      <div className="legend">
+      <div className={`legend${legendClass}`}>
+        {showLegendLabel && <p className="legend-label">Notation</p>}
         {[['S','Exceptionnel'],['A','Génial'],['B','Correct'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
           <span key={tier}>
             <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>

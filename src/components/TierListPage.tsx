@@ -11,6 +11,7 @@ import { useFriends } from '../hooks/useFriends'
 import { useFriendDestinations } from '../hooks/useFriendDestinations'
 import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
 import { getDestinationScore, getDestinationTier } from '../utils'
+import { SegmentedControl } from './SegmentedControl'
 
 interface TierListPageProps {
   destinations: Destination[]
@@ -563,18 +564,22 @@ export default function TierListPage({
       </header>
 
       <div className="tier-list-filter-row">
-        <div className="tier-list-filters" role="group" aria-label="Filtrer la tier list">
-          {visibleFilters.map(filterItem => (
-            <button
-              key={filterItem}
-              className={`tier-filter-pill ${filter === filterItem ? 'is-active' : ''}`}
-              onClick={() => setFilter(filterItem)}
-            >
-              <span aria-hidden="true">{TIER_FILTER_ICON[filterItem]}</span>
-              {TIER_FILTER_LABEL[filterItem]}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          className="tier-list-filters"
+          ariaLabel="Filtrer la tier list"
+          role="radiogroup"
+          size="sm"
+          layout="scrollable"
+          tone="tinted"
+          value={filter}
+          options={visibleFilters.map(filterItem => ({
+            value: filterItem,
+            label: TIER_FILTER_LABEL[filterItem],
+            icon: <span>{TIER_FILTER_ICON[filterItem]}</span>,
+            accentColor: filterItem === 'favorites' ? '#E14F70' : filterItem === 'disagreements' ? '#F28C28' : '#1B5FE8',
+          }))}
+          onChange={setFilter}
+        />
 
         <div className="tier-list-actions" ref={pickerRef}>
           <button

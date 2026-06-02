@@ -65,12 +65,12 @@ const INTENT_LABELS: Record<Destination['intent'], string> = {
 }
 
 const INTENT_EMOJIS: Record<Destination['intent'], string> = {
-  tourisme: 'Map',
-  sorties: 'Night',
-  gastro: 'Food',
-  nature: 'Nature',
-  travail: 'Work',
-  'city-trip': 'City',
+  tourisme: '🗺️',
+  sorties: '🌙',
+  gastro: '🍽️',
+  nature: '🌿',
+  travail: '💼',
+  'city-trip': '🏙️',
 }
 
 type ContextDetail =
@@ -446,48 +446,51 @@ function DestinationCardContent({
     }
   }, [visitorPickerOpen])
 
+  const cardActions = (
+    <div className="destination-card-actions">
+      <div className="floating-kebab-wrap">
+        <button
+          className={`card-kebab${menuOpen ? ' is-open' : ''}`}
+          aria-label="Options"
+          aria-expanded={menuOpen}
+          onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
+        >
+          <Icon name="more-vertical" />
+        </button>
+        {menuOpen && !confirmDelete && (
+          <div className="card-kebab-menu">
+            <button onClick={() => { closeMenu(); onFocus() }}>
+              <Icon name="map" />
+              Centrer sur la carte
+            </button>
+            <button onClick={() => { closeMenu(); onEdit(destination) }}>
+              <Icon name="edit" />
+              Modifier
+            </button>
+            <button className="danger" onClick={() => setConfirmDelete(true)}>
+              <Icon name="trash" />
+              Supprimer
+            </button>
+          </div>
+        )}
+        {menuOpen && confirmDelete && (
+          <div className="card-kebab-menu card-delete-confirm">
+            <p>Supprimer <strong>{destination.name}</strong> ?</p>
+            <div className="confirm-actions">
+              <button onClick={closeMenu}>Annuler</button>
+              <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
+        <Icon name="x" />
+      </button>
+    </div>
+  )
+
   return (
     <>
-      <div className="destination-card-actions">
-        <div className="floating-kebab-wrap">
-          <button
-            className={`card-kebab${menuOpen ? ' is-open' : ''}`}
-            aria-label="Options"
-            aria-expanded={menuOpen}
-            onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
-          >
-            <Icon name="more-vertical" />
-          </button>
-          {menuOpen && !confirmDelete && (
-            <div className="card-kebab-menu">
-              <button onClick={() => { closeMenu(); onFocus() }}>
-                <Icon name="map" />
-                Centrer sur la carte
-              </button>
-              <button onClick={() => { closeMenu(); onEdit(destination) }}>
-                <Icon name="edit" />
-                Modifier
-              </button>
-              <button className="danger" onClick={() => setConfirmDelete(true)}>
-                <Icon name="trash" />
-                Supprimer
-              </button>
-            </div>
-          )}
-          {menuOpen && confirmDelete && (
-            <div className="card-kebab-menu card-delete-confirm">
-              <p>Supprimer <strong>{destination.name}</strong> ?</p>
-              <div className="confirm-actions">
-                <button onClick={closeMenu}>Annuler</button>
-                <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
-              </div>
-            </div>
-          )}
-        </div>
-        <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
-          <Icon name="x" />
-        </button>
-      </div>
       {destination.kind === 'zone' && hasRenderableStops(destination) ? (
         <RoadTripCardContent
           destination={destination}
@@ -499,6 +502,7 @@ function DestinationCardContent({
           allDestinations={allDestinations}
           onCoupDeCoeur={onCoupDeCoeur}
           onOpenDestination={onOpenTrip}
+          cardActions={cardActions}
         />
       ) : (
         <>
@@ -506,6 +510,7 @@ function DestinationCardContent({
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
+        {cardActions}
         <div className="destination-hero-pills">
           {compareWith && (
             <span className="intent-pill destination-hero-pill">
@@ -526,7 +531,7 @@ function DestinationCardContent({
               title="Coup de coeur - retirer"
               onClick={onCoupDeCoeur}
             >
-              <span aria-hidden="true">â¤ï¸</span>
+              <Icon name="heart" />
               Coup de coeur
             </button>
           ) : !coupDeCoeurDisabled && (
@@ -536,7 +541,7 @@ function DestinationCardContent({
               title="Ajouter aux coups de coeur"
               onClick={onCoupDeCoeur}
             >
-              <span aria-hidden="true">ðŸ¤</span>
+              <Icon name="heart" />
               Coup de coeur
             </button>
           )}
@@ -854,6 +859,7 @@ interface RoadTripCardContentProps {
   allDestinations?: Destination[]
   onCoupDeCoeur: () => void
   onOpenDestination?: (name: string) => void
+  cardActions: JSX.Element
 }
 
 function RoadTripCardContent({
@@ -866,6 +872,7 @@ function RoadTripCardContent({
   allDestinations,
   onCoupDeCoeur,
   onOpenDestination,
+  cardActions,
 }: RoadTripCardContentProps) {
   const validStops = destination.stops?.filter(stop => stop.name.trim() && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)) ?? []
   const stageCount = validStops.length
@@ -878,6 +885,7 @@ function RoadTripCardContent({
         className="destination-hero roadtrip-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
+        {cardActions}
         <div className="destination-hero-pills">
           <span className="intent-pill destination-hero-pill">
             <Icon name="map" />
@@ -893,7 +901,7 @@ function RoadTripCardContent({
               title="Coup de coeur - retirer"
               onClick={onCoupDeCoeur}
             >
-              <span aria-hidden="true">â™¥</span>
+              <Icon name="heart" />
               Coup de coeur
             </button>
           )}

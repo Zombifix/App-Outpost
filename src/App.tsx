@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Destination, Intent, MapVisibility, RoadTripStop, Tier } from './types'
+import type { ContinentBucket, TravelerProfile } from './utils'
 import { useMyDestinations } from './hooks/useMyDestinations'
 import { useFocusTrap } from './hooks/useFocusTrap'
 import WorldMap from './components/WorldMap'
@@ -18,6 +19,7 @@ import { computeTravelerProfile, getDestinationScore, getDestinationTier, getMax
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 import { Avatar } from './components/Avatar'
+import { SegmentedControl } from './components/SegmentedControl'
 
 // Routes / panels lourds chargés à la demande pour réduire le bundle initial.
 // Le fallback est `null` parce que ces écrans apparaissent en réponse à un clic
@@ -89,7 +91,7 @@ const DESKTOP_DOCK_DEFAULT: DesktopDockState = {
   legendMode: 'overlay-bottom',
   sidebarBottom: 0,
   stackBottom: 0,
-  stackGap: 16,
+  stackGap: 24,
   stackTop: 0,
   tierHeight: 72,
   tierMode: 'overlay-bottom',
@@ -504,12 +506,13 @@ function AppCore({
       const viewportHeight = window.innerHeight
       const outerMargin = 16
       const rightMargin = 20
-      const stackGap = 16
+      const stackGap = 24
       const bottomMargin = 16
       const controlsBaseOffset = 14
       const controlsGap = 16
+      const controlsHeight = 172
       const tierHeight = tierListCollapsed ? 86 : 310
-      const legendHeight = hasCompareBar ? 215 : 175
+      const legendHeight = hasCompareBar ? 235 : 215
       const leftDockX = Math.round(sidebarRect.left)
       const leftLimit = destinationCardRect ? destinationCardRect.left - rightMargin : viewportWidth - rightMargin
       const availableWidth = Math.max(260, Math.round(leftLimit - leftDockX))
@@ -532,14 +535,18 @@ function AppCore({
       const legendBottom = tierMode === 'bottom-left'
         ? Math.round(tierHeight + bottomMargin + stackGap)
         : bottomMargin
-      const controlsBottom = Math.round(bottomMargin + controlsGap)
+      const controlsTopUnderTier = tierMode === 'stacked-left'
+        ? tierStackTop + tierHeight + 58
+        : viewportHeight - bottomMargin - controlsGap - controlsHeight
+      const controlsBottom = Math.max(
+        bottomMargin,
+        Math.round(viewportHeight - controlsTopUnderTier - controlsHeight),
+      )
       const controlsWidth = 44
-      const controlsLeft = tierMode === 'bottom-left'
-        ? Math.round(Math.min(
-            leftDockX + tierPanelWidth + controlsGap,
-            leftLimit - controlsWidth,
-          ))
-        : Math.round(leftDockX + controlsBaseOffset)
+      const controlsLeft = Math.round(Math.min(
+        leftDockX + 16,
+        leftLimit - controlsWidth,
+      ))
       const stackBottom = tierMode === 'stacked-left'
         ? Math.round(tierStackTop + tierHeight)
         : legendMode === 'stacked-left'
@@ -1207,7 +1214,7 @@ const CONTINENT_DISPLAY: Record<string, string> = {
   Autre: 'Autre',
 }
 
-function TravelerProfileCard({ destinations }: { destinations: Destination[] }) {
+function LegacyTravelerProfileCard({ destinations }: { destinations: Destination[] }) {
   const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
   const { total, confidence, signatures, archetype, continents } = profile
   const visibleContinents = continents.filter(c => c.continent !== 'Autre')
@@ -1258,6 +1265,258 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
             </span>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+const ACCOUNT_CONTINENT_META: Record<ContinentBucket, { label: string; icon: string; color: string; soft: string }> = {
+  Europe: { label: 'Europe', icon: '🍷', color: '#ef7b73', soft: '#fff1f1' },
+  Asie: { label: 'Asie', icon: '🏮', color: '#f7bd42', soft: '#fff7dd' },
+  Ameriques: { label: 'Amériques', icon: '🌎', color: '#45c489', soft: '#e8fbf2' },
+  Afrique: { label: 'Afrique', icon: '🌍', color: '#f0934e', soft: '#fff2e6' },
+  Oceanie: { label: 'Océanie', icon: '🌊', color: '#56a8f5', soft: '#eaf5ff' },
+  Autre: { label: 'Autre', icon: '🧭', color: '#94a3b8', soft: '#f1f5f9' },
+}
+
+type AccountProfileChip = { key: string; label: string }
+type AccountProfileTitle = { title: string; subtitle: string | null }
+type AccountProfileAchievement = {
+  key: string
+  icon: string
+  title: string
+  detail: string
+  tone?: 'red' | 'gold' | 'heart' | 'teal' | 'blue'
+}
+
+function medianValue(values: number[]): number | null {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b)
+  if (sorted.length === 0) return null
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+}
+
+function buildAccountProfileTitle(profile: TravelerProfile): AccountProfileTitle {
+  const text = profile.archetype ?? ''
+  const lower = text.toLowerCase()
+  let title = 'Profil voyageur'
+
+  if (lower.includes('reconna') || lower.includes('faible') || lower.includes('retourne souvent')) {
+    title = 'Habitué fidèle'
+  } else if (lower.includes('émotions') || lower.includes('enthousiasme') || lower.includes('objectif')) {
+    title = 'Voyageur sélectif'
+  } else if (lower.includes('panneaux') || lower.includes('vieilles pierres') || lower.includes('culture')) {
+    title = 'Explorateur réfléchi'
+  } else if (lower.includes('budget') || lower.includes('addition') || lower.includes('raisonnable')) {
+    title = 'Confort mesuré'
+  } else if (lower.includes('week-end') || lower.includes('48 h') || lower.includes('pont')) {
+    title = 'Nomade précis'
+  } else if (lower.includes('nature') || lower.includes('wi-fi') || lower.includes('béton')) {
+    title = 'Curieux nature'
+  } else if (lower.includes('restos') || lower.includes('repas') || lower.includes('réservation')) {
+    title = 'Épicurien organisé'
+  } else if (lower.includes('stats') || lower.includes('données') || lower.includes('camp')) {
+    title = 'Explorateur ouvert'
+  } else if (profile.total > 0) {
+    title = 'Voyageur sélectif'
+  }
+
+  return {
+    title,
+    subtitle: text || (profile.total > 0 ? 'Le carnet commence à dessiner ton style.' : null),
+  }
+}
+
+function buildBehaviorChips(profile: TravelerProfile): AccountProfileChip[] {
+  const chips: AccountProfileChip[] = []
+  const add = (key: string, label: string) => {
+    if (chips.length < 3 && !chips.some(chip => chip.label === label)) chips.push({ key, label })
+  }
+
+  for (const sig of profile.signatures) {
+    if (sig.key === 'geo') add('faithful', 'Fidèle')
+    if (sig.key === 'coeur') add('selective', 'Sélectif')
+    if (sig.key === 'notes') add('thoughtful', 'Réfléchi')
+    if (sig.key === 'budget') add('comfort', 'Confort')
+    if (sig.key === 'format') add('nomad', 'Nomade')
+    if (sig.key === 'intent') add('curious', 'Curieux')
+  }
+
+  if (profile.coupDeCoeurCount <= Math.max(1, Math.round(profile.travelCount * 0.12))) add('calm', 'Calme')
+  if (profile.continents.length >= 3) add('open', 'Ouvert')
+  if (profile.total >= 12) add('seasoned', 'Aguerri')
+  if (profile.total > 0 && chips.length === 0) add('living', 'Carnet vivant')
+
+  return chips.slice(0, 3)
+}
+
+function buildAccountProfileAchievements(destinations: Destination[], profile: TravelerProfile): AccountProfileAchievement[] {
+  const travels = destinations.filter(destination => !destination.livedThere)
+  const achievements: AccountProfileAchievement[] = []
+  const add = (achievement: AccountProfileAchievement) => {
+    if (!achievements.some(item => item.key === achievement.key)) achievements.push(achievement)
+  }
+
+  const countryCounts = new Map<string, number>()
+  travels.forEach(destination => {
+    if (destination.country) countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + 1)
+  })
+  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+  if (topCountry && topCountry[1] >= 2) {
+    add({
+      key: 'country',
+      icon: '📍',
+      title: 'Revient sur ses pas',
+      detail: `${topCountry[0]} · ${topCountry[1]} voyages`,
+      tone: 'red',
+    })
+  }
+
+  const scores = travels.map(destination => destination.score ?? getDestinationScore(destination)).filter(Number.isFinite)
+  const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null
+  if (averageScore !== null && scores.length >= 3) {
+    add({
+      key: 'score',
+      icon: '⭐',
+      title: averageScore >= 3.7 ? 'Note facile' : 'Avis mesuré',
+      detail: `moy. ${averageScore.toFixed(1)} / 5`,
+      tone: 'gold',
+    })
+  } else {
+    const budgets = travels
+      .map(destination => destination.personalBudget && destination.tripDays && destination.tripDays > 0
+        ? destination.personalBudget / destination.tripDays
+        : null)
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    const medianBudget = medianValue(budgets)
+    if (medianBudget !== null) {
+      add({
+        key: 'budget',
+        icon: '💳',
+        title: medianBudget >= 150 ? 'Confort assumé' : 'Budget maîtrisé',
+        detail: `${Math.round(medianBudget)} € / jour`,
+        tone: 'gold',
+      })
+    }
+  }
+
+  const firstHeart = travels.find(destination => destination.coupDeCoeur)
+  if (profile.coupDeCoeurCount > 0) {
+    add({
+      key: 'heart',
+      icon: '💛',
+      title: profile.coupDeCoeurCount <= 1 ? 'Coup de cœur rare' : 'Coups de cœur',
+      detail: firstHeart?.name ?? `${profile.coupDeCoeurCount} destinations`,
+      tone: 'heart',
+    })
+  }
+
+  const leadContinent = profile.continents.find(continent => continent.continent !== 'Autre') ?? profile.continents[0]
+  if (leadContinent) {
+    add({
+      key: 'continent',
+      icon: ACCOUNT_CONTINENT_META[leadContinent.continent].icon,
+      title: 'Zone dominante',
+      detail: `${ACCOUNT_CONTINENT_META[leadContinent.continent].label} · ${Math.round(leadContinent.pct)}%`,
+      tone: 'teal',
+    })
+  }
+
+  return achievements.slice(0, 4)
+}
+
+function TravelerProfileCard({ destinations }: { destinations: Destination[] }) {
+  const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
+  const { total, confidence, continents, countries } = profile
+  const profileTitle = useMemo(() => buildAccountProfileTitle(profile), [profile])
+  const behaviorChips = useMemo(() => buildBehaviorChips(profile), [profile])
+  const achievements = useMemo(() => buildAccountProfileAchievements(destinations, profile), [destinations, profile])
+  const visibleContinents = continents.filter(continent => continent.continent !== 'Autre')
+  const stackSegments = visibleContinents.length > 0 ? visibleContinents : continents
+
+  return (
+    <div className="account-profile-card" aria-label="Profil voyageur">
+      {(total === 0 || confidence === 'light') && (
+        <div className="account-profile-empty">
+          <strong>Profil en construction</strong>
+          <span>Ajoute des destinations pour révéler ton style.</span>
+        </div>
+      )}
+
+      {total > 0 && (
+        <>
+          <section className="account-profile-title-block" aria-label="Archétype voyageur">
+            <span className="account-profile-title-icon" aria-hidden="true">✦</span>
+            <div>
+              <h3>{profileTitle.title}</h3>
+              {profileTitle.subtitle && <p>{profileTitle.subtitle}</p>}
+              {behaviorChips.length > 0 && (
+                <ul className="account-profile-inline-traits" aria-label="Traits du profil voyageur">
+                  {behaviorChips.map(chip => <li key={chip.key}>{chip.label}</li>)}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          {achievements.length > 0 && (
+            <section className="account-profile-achievements" aria-label="Hauts faits voyageur">
+              {achievements.map(achievement => (
+                <article key={achievement.key} className={`account-profile-tag account-profile-tag--${achievement.tone ?? 'blue'}`}>
+                  <span className="account-profile-tag-icon" aria-hidden="true">{achievement.icon}</span>
+                  <span className="account-profile-tag-body">
+                    <strong>{achievement.title}</strong>
+                    <span>{achievement.detail}</span>
+                  </span>
+                </article>
+              ))}
+            </section>
+          )}
+        </>
+      )}
+
+      {stackSegments.length > 0 && confidence !== 'light' && (
+        <section className="account-profile-continents" aria-label="Territoires explorés">
+          <div className="account-profile-section-head">
+            <h4>Territoires explorés</h4>
+            <span>{countries} pays visités</span>
+          </div>
+          <div className="account-continent-stack" aria-hidden="true">
+            {stackSegments.map(continent => (
+              <span
+                key={continent.continent}
+                className="account-continent-stack-segment"
+                style={{
+                  '--continent-color': ACCOUNT_CONTINENT_META[continent.continent].color,
+                  width: `${Math.max(8, Math.round(continent.pct))}%`,
+                } as CSSProperties}
+              />
+            ))}
+          </div>
+          <div className="account-continent-list">
+            {stackSegments.map(continent => {
+              const meta = ACCOUNT_CONTINENT_META[continent.continent]
+              return (
+                <div key={continent.continent} className="account-continent-row">
+                  <span
+                    className="account-continent-icon"
+                    style={{
+                      '--continent-color': meta.color,
+                      '--continent-soft': meta.soft,
+                    } as CSSProperties}
+                    aria-hidden="true"
+                  >
+                    {meta.icon}
+                  </span>
+                  <strong>{meta.label}</strong>
+                  <span className="account-continent-meter" aria-hidden="true">
+                    <span style={{ width: `${Math.max(8, Math.round(continent.pct))}%`, background: meta.color }} />
+                  </span>
+                  <span className="account-continent-pct">{Math.round(continent.pct)}%</span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
       )}
     </div>
   )
@@ -1417,33 +1676,23 @@ function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange,
           </button>
         </div>
 
-        <div className="account-tabs" role="tablist" aria-label="Paramètres du compte">
-          <button
-            role="tab"
-            aria-selected={mode === 'profile'}
-            className={mode === 'profile' ? 'is-active' : ''}
-            onClick={() => { setMode('profile'); setFeedback(null) }}
-          >
-            Profil
-          </button>
-          <button
-            role="tab"
-            aria-selected={mode === 'share'}
-            className={mode === 'share' ? 'is-active' : ''}
-            onClick={() => { setMode('share'); setFeedback(null) }}
-          >
-            Partage
-          </button>
-          <button
-            role="tab"
-            aria-selected={mode === 'account'}
-            className={mode === 'account' ? 'is-active' : ''}
-            onClick={() => { setMode('account'); setFeedback(null) }}
-          >
-            Compte
-          </button>
-        </div>
-
+        <SegmentedControl
+          className="account-tabs"
+          ariaLabel="Parametres du compte"
+          role="tablist"
+          size="sm"
+          layout="fill"
+          value={mode}
+          options={[
+            { value: 'profile', label: 'Profil' },
+            { value: 'share', label: 'Partage' },
+            { value: 'account', label: 'Compte' },
+          ]}
+          onChange={nextMode => {
+            setMode(nextMode)
+            setFeedback(null)
+          }}
+        />
         {mode === 'profile' && (
           <div className="account-section account-section--profile">
             <TravelerProfileCard destinations={destinations} />
@@ -1480,26 +1729,22 @@ function AccountPanel({ destinations, publicId, mapVisibility, onPublicIdChange,
                   {googleBusy ? 'Connexion...' : 'Continuer avec Google'}
                 </button>
                 <div className="account-divider"><span>ou</span></div>
-                <div className="account-auth-tabs" role="tablist" aria-label="Connexion ou inscription">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={passwordMode === 'signin'}
-                    className={passwordMode === 'signin' ? 'is-active' : ''}
-                    onClick={() => { setPasswordMode('signin'); setFeedback(null) }}
-                  >
-                    Connexion
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={passwordMode === 'signup'}
-                    className={passwordMode === 'signup' ? 'is-active' : ''}
-                    onClick={() => { setPasswordMode('signup'); setFeedback(null) }}
-                  >
-                    Inscription
-                  </button>
-                </div>
+                <SegmentedControl
+                  className="account-auth-tabs"
+                  ariaLabel="Connexion ou inscription"
+                  role="tablist"
+                  size="sm"
+                  layout="fill"
+                  value={passwordMode}
+                  options={[
+                    { value: 'signin', label: 'Connexion' },
+                    { value: 'signup', label: 'Inscription' },
+                  ]}
+                  onChange={nextMode => {
+                    setPasswordMode(nextMode)
+                    setFeedback(null)
+                  }}
+                />
                 <label>
                   Email
                   <input
@@ -1723,44 +1968,46 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
 
   return (
     <aside className="destination-card" aria-label={`Detail de ${destination.name}`}>
-      <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
-        <Icon name="x" />
-      </button>
-      <div className="floating-kebab-wrap">
-        <button
-          className={`card-kebab${menuOpen ? ' is-open' : ''}`}
-          aria-label="Options"
-          aria-expanded={menuOpen}
-          onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
-        >
-          <Icon name="more-vertical" />
-        </button>
-        {menuOpen && !confirmDelete && (
-          <div className="card-kebab-menu">
-            <button onClick={() => { closeMenu(); onEdit(destination) }}>
-              <Icon name="edit" />
-              Modifier
-            </button>
-            <button className="danger" onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" />
-              Supprimer
-            </button>
-          </div>
-        )}
-        {menuOpen && confirmDelete && (
-          <div className="card-kebab-menu card-delete-confirm">
-            <p>Supprimer <strong>{destination.name}</strong> ?</p>
-            <div className="confirm-actions">
-              <button onClick={closeMenu}>Annuler</button>
-              <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
-            </div>
-          </div>
-        )}
-      </div>
       <div
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
+        <div className="destination-card-actions">
+          <div className="floating-kebab-wrap">
+            <button
+              className={`card-kebab${menuOpen ? ' is-open' : ''}`}
+              aria-label="Options"
+              aria-expanded={menuOpen}
+              onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
+            >
+              <Icon name="more-vertical" />
+            </button>
+            {menuOpen && !confirmDelete && (
+              <div className="card-kebab-menu">
+                <button onClick={() => { closeMenu(); onEdit(destination) }}>
+                  <Icon name="edit" />
+                  Modifier
+                </button>
+                <button className="danger" onClick={() => setConfirmDelete(true)}>
+                  <Icon name="trash" />
+                  Supprimer
+                </button>
+              </div>
+            )}
+            {menuOpen && confirmDelete && (
+              <div className="card-kebab-menu card-delete-confirm">
+                <p>Supprimer <strong>{destination.name}</strong> ?</p>
+                <div className="confirm-actions">
+                  <button onClick={closeMenu}>Annuler</button>
+                  <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+                </div>
+              </div>
+            )}
+          </div>
+          <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
+            <Icon name="x" />
+          </button>
+        </div>
         {destination.intent && (
           <span className="intent-pill destination-hero-pill">{destination.intent}</span>
         )}

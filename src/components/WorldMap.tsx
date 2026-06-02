@@ -710,7 +710,20 @@ export default function WorldMap({
   }
 
   function describeMapInitError(error: unknown, source?: string) {
-    const detail = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Initialisation WebGL impossible.'
+    const raw = error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'Initialisation WebGL impossible.'
+    const normalized = raw.replace(/\s+/g, ' ').trim()
+
+    let detail = 'L’acceleration graphique du navigateur est indisponible.'
+    if (/EGL_NO_CONFIG|EXHAUSTED_DRIVERS|Failed to initialize WebGL|webgl/i.test(normalized)) {
+      detail = 'L’acceleration graphique du navigateur est indisponible.'
+    } else if (/context/i.test(normalized)) {
+      detail = 'Le contexte graphique n’a pas pu etre cree.'
+    }
+
     return source ? `${source} ${detail}` : detail
   }
 

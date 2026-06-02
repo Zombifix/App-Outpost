@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Destination, Intent, MapVisibility, RoadTripStop, Tier } from './types'
-import type { ContinentBucket, TravelerProfile } from './utils'
+import type { ContinentBucket } from './utils'
 import { useMyDestinations } from './hooks/useMyDestinations'
 import { useFocusTrap } from './hooks/useFocusTrap'
 import WorldMap from './components/WorldMap'
@@ -1232,71 +1232,6 @@ function ExploreView(_props: { destinations: Destination[]; onSelect: (name: str
   )
 }
 
-const CONTINENT_DISPLAY: Record<string, string> = {
-  Europe: 'Europe',
-  Asie: 'Asia',
-  Ameriques: 'Americas',
-  Afrique: 'Africa',
-  Oceanie: 'Oceania',
-  Autre: 'Other',
-}
-
-function LegacyTravelerProfileCard({ destinations }: { destinations: Destination[] }) {
-  const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
-  const { total, confidence, signatures, archetype, continents } = profile
-  const visibleContinents = continents.filter(c => c.continent !== 'Autre')
-
-  return (
-    <div className="carnet-stats account-profile-card" aria-label="Traveler profile">
-      <span className="carnet-stats-paper-grain" aria-hidden="true" />
-      <span className="carnet-stats-stamp" aria-hidden="true" />
-      <span className="carnet-stats-eyebrow" aria-hidden="true">Traveler profile</span>
-
-      <div className="carnet-stats-hero">
-        <div className="carnet-stats-hero-stack">
-          <span className="carnet-stats-hero-num">{total}</span>
-          <span className="carnet-stats-hero-label">destination{total > 1 ? 's' : ''}</span>
-        </div>
-        {archetype && (
-          <span className="carnet-stats-archetype carnet-stats-archetype--clean">{archetype}</span>
-        )}
-      </div>
-
-      {(total === 0 || confidence === 'light') && (
-        <div className="carnet-stats-empty">
-          Profile in progress · add destinations to reveal your style
-        </div>
-      )}
-
-      {signatures.length > 0 && (
-        <ul className="carnet-stats-signals">
-          {signatures.map(sig => (
-            <li key={sig.key} className={`carnet-signal carnet-signal--${sig.key}`}>
-              <span className="carnet-signal-icon" aria-hidden="true">{sig.icon}</span>
-              <span className="carnet-signal-body">
-                <span className="carnet-signal-label">{sig.label}</span>
-                {sig.detail && <span className="carnet-signal-detail">{sig.detail}</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {visibleContinents.length > 0 && confidence !== 'light' && (
-        <div className="carnet-stats-continents-inline">
-          {visibleContinents.map((c, i) => (
-            <span key={c.continent} className="carnet-cont-item">
-              {i > 0 && <span className="carnet-cont-sep" aria-hidden="true">·</span>}
-              <span className="carnet-cont-name">{CONTINENT_DISPLAY[c.continent]}</span>
-              <span className="carnet-cont-pct">{Math.round(c.pct)}%</span>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 const ACCOUNT_CONTINENT_META: Record<ContinentBucket, { label: string; icon: string; color: string; soft: string }> = {
   Europe: { label: 'Europe', icon: '🍷', color: '#ef7b73', soft: '#fff1f1' },
   Asie: { label: 'Asia', icon: '🏮', color: '#f7bd42', soft: '#fff7dd' },
@@ -1306,187 +1241,37 @@ const ACCOUNT_CONTINENT_META: Record<ContinentBucket, { label: string; icon: str
   Autre: { label: 'Other', icon: '🧭', color: '#94a3b8', soft: '#f1f5f9' },
 }
 
-type AccountProfileChip = { key: string; label: string }
-type AccountProfileTitle = { title: string; subtitle: string | null }
-type AccountProfileAchievement = {
-  key: string
-  icon: string
-  title: string
-  detail: string
-  tone?: 'red' | 'gold' | 'heart' | 'teal' | 'blue'
-}
-
-function medianValue(values: number[]): number | null {
-  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b)
-  if (sorted.length === 0) return null
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
-}
-
-function buildAccountProfileTitle(profile: TravelerProfile): AccountProfileTitle {
-  const text = profile.archetype ?? ''
-  const lower = text.toLowerCase()
-  let title = 'Traveler profile'
-
-  if (lower.includes('reconna') || lower.includes('faible') || lower.includes('retourne souvent')) {
-    title = 'Loyal regular'
-  } else if (lower.includes('émotions') || lower.includes('enthousiasme') || lower.includes('objectif')) {
-    title = 'Selective traveler'
-  } else if (lower.includes('panneaux') || lower.includes('vieilles pierres') || lower.includes('culture')) {
-    title = 'Thoughtful explorer'
-  } else if (lower.includes('budget') || lower.includes('addition') || lower.includes('raisonnable')) {
-    title = 'Measured comfort'
-  } else if (lower.includes('week-end') || lower.includes('48 h') || lower.includes('pont')) {
-    title = 'Precise nomad'
-  } else if (lower.includes('nature') || lower.includes('wi-fi') || lower.includes('béton')) {
-    title = 'Nature curious'
-  } else if (lower.includes('restos') || lower.includes('repas') || lower.includes('réservation')) {
-    title = 'Organized foodie'
-  } else if (lower.includes('stats') || lower.includes('données') || lower.includes('camp')) {
-    title = 'Open explorer'
-  } else if (profile.total > 0) {
-    title = 'Selective traveler'
-  }
-
-  return {
-    title,
-    subtitle: text || (profile.total > 0 ? 'Your journal is starting to reveal your style.' : null),
-  }
-}
-
-function buildBehaviorChips(profile: TravelerProfile): AccountProfileChip[] {
-  const chips: AccountProfileChip[] = []
-  const add = (key: string, label: string) => {
-    if (chips.length < 3 && !chips.some(chip => chip.label === label)) chips.push({ key, label })
-  }
-
-  for (const sig of profile.signatures) {
-    if (sig.key === 'geo') add('faithful', 'Loyal')
-    if (sig.key === 'coeur') add('selective', 'Selective')
-    if (sig.key === 'notes') add('thoughtful', 'Thoughtful')
-    if (sig.key === 'budget') add('comfort', 'Comfort')
-    if (sig.key === 'format') add('nomad', 'Nomad')
-    if (sig.key === 'intent') add('curious', 'Curious')
-  }
-
-  if (profile.coupDeCoeurCount <= Math.max(1, Math.round(profile.travelCount * 0.12))) add('calm', 'Measured')
-  if (profile.continents.length >= 3) add('open', 'Open-minded')
-  if (profile.total >= 12) add('seasoned', 'Seasoned')
-  if (profile.total > 0 && chips.length === 0) add('living', 'Active journal')
-
-  return chips.slice(0, 3)
-}
-
-function buildAccountProfileAchievements(destinations: Destination[], profile: TravelerProfile): AccountProfileAchievement[] {
-  const travels = destinations.filter(destination => !destination.livedThere)
-  const achievements: AccountProfileAchievement[] = []
-  const add = (achievement: AccountProfileAchievement) => {
-    if (!achievements.some(item => item.key === achievement.key)) achievements.push(achievement)
-  }
-
-  const countryCounts = new Map<string, number>()
-  travels.forEach(destination => {
-    if (destination.country) countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + 1)
-  })
-  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]
-  if (topCountry && topCountry[1] >= 2) {
-    add({
-      key: 'country',
-      icon: '📍',
-      title: 'Returns to favorites',
-      detail: `${topCountry[0]} · ${topCountry[1]} trips`,
-      tone: 'red',
-    })
-  }
-
-  const scores = travels.map(destination => destination.score ?? getDestinationScore(destination)).filter(Number.isFinite)
-  const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null
-  if (averageScore !== null && scores.length >= 3) {
-    add({
-      key: 'score',
-      icon: '⭐',
-      title: averageScore >= 3.7 ? 'Easy rater' : 'Measured critic',
-      detail: `avg. ${averageScore.toFixed(1)} / 5`,
-      tone: 'gold',
-    })
-  } else {
-    const budgets = travels
-      .map(destination => destination.personalBudget && destination.tripDays && destination.tripDays > 0
-        ? destination.personalBudget / destination.tripDays
-        : null)
-      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-    const medianBudget = medianValue(budgets)
-    if (medianBudget !== null) {
-      add({
-        key: 'budget',
-        icon: '💳',
-        title: medianBudget >= 150 ? 'Comfort spender' : 'Budget-conscious',
-        detail: `${Math.round(medianBudget)} € / day`,
-        tone: 'gold',
-      })
-    }
-  }
-
-  const firstHeart = travels.find(destination => destination.coupDeCoeur)
-  if (profile.coupDeCoeurCount > 0) {
-    add({
-      key: 'heart',
-      icon: '💛',
-      title: profile.coupDeCoeurCount <= 1 ? 'Rare favorite' : 'Favorites',
-      detail: firstHeart?.name ?? `${profile.coupDeCoeurCount} destinations`,
-      tone: 'heart',
-    })
-  }
-
-  const leadContinent = profile.continents.find(continent => continent.continent !== 'Autre') ?? profile.continents[0]
-  if (leadContinent) {
-    add({
-      key: 'continent',
-      icon: ACCOUNT_CONTINENT_META[leadContinent.continent].icon,
-      title: 'Dominant zone',
-      detail: `${ACCOUNT_CONTINENT_META[leadContinent.continent].label} · ${Math.round(leadContinent.pct)}%`,
-      tone: 'teal',
-    })
-  }
-
-  return achievements.slice(0, 4)
-}
-
 function TravelerProfileCard({ destinations }: { destinations: Destination[] }) {
   const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
-  const { total, confidence, continents, countries } = profile
-  const profileTitle = useMemo(() => buildAccountProfileTitle(profile), [profile])
-  const behaviorChips = useMemo(() => buildBehaviorChips(profile), [profile])
-  const achievements = useMemo(() => buildAccountProfileAchievements(destinations, profile), [destinations, profile])
-  const visibleContinents = continents.filter(continent => continent.continent !== 'Autre')
-  const stackSegments = visibleContinents.length > 0 ? visibleContinents : continents
+  const { total, confidence, countries, title, subtitle, behaviorTags, achievements, territories } = profile
+  const stackSegments = territories
 
   return (
-    <div className="account-profile-card" aria-label="Traveler profile">
-      {(total === 0 || confidence === 'light') && (
+    <div className="account-profile-card" aria-label="Profil voyageur">
+      {total === 0 && (
         <div className="account-profile-empty">
-          <strong>Profile in progress</strong>
-          <span>Add destinations to reveal your style.</span>
+          <strong>Profil en rodage</strong>
+          <span>Ajoute des destinations pour laisser le carnet commencer à parler.</span>
         </div>
       )}
 
       {total > 0 && (
         <>
-          <section className="account-profile-title-block" aria-label="Traveler archetype">
+          <section className="account-profile-title-block" aria-label="Archétype voyageur">
             <span className="account-profile-title-icon" aria-hidden="true">✦</span>
             <div>
-              <h3>{profileTitle.title}</h3>
-              {profileTitle.subtitle && <p>{profileTitle.subtitle}</p>}
-              {behaviorChips.length > 0 && (
-                <ul className="account-profile-inline-traits" aria-label="Traveler profile traits">
-                  {behaviorChips.map(chip => <li key={chip.key}>{chip.label}</li>)}
+              <h3>{title}</h3>
+              {subtitle && <p>{subtitle}</p>}
+              {behaviorTags.length > 0 && (
+                <ul className="account-profile-inline-traits" aria-label="Traits du profil voyageur">
+                  {behaviorTags.map(tag => <li key={tag.key}>{tag.label}</li>)}
                 </ul>
               )}
             </div>
           </section>
 
           {achievements.length > 0 && (
-            <section className="account-profile-achievements" aria-label="Travel highlights">
+            <section className="account-profile-achievements" aria-label="Succès voyageur">
               {achievements.map(achievement => (
                 <article key={achievement.key} className={`account-profile-tag account-profile-tag--${achievement.tone ?? 'blue'}`}>
                   <span className="account-profile-tag-icon" aria-hidden="true">{achievement.icon}</span>
@@ -1501,29 +1286,29 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
         </>
       )}
 
-      {stackSegments.length > 0 && confidence !== 'light' && (
-        <section className="account-profile-continents" aria-label="Territoires explorés">
+      {stackSegments.length > 0 && confidence !== 'empty' && confidence !== 'low' && confidence !== 'light' && (
+        <section className="account-profile-continents" aria-label="Boussole du carnet">
           <div className="account-profile-section-head">
-            <h4>Territoires explorés</h4>
-            <span>{countries} countries visited</span>
+            <h4>Boussole du carnet</h4>
+            <span>{countries} pays visités</span>
           </div>
           <div className="account-continent-stack" aria-hidden="true">
-            {stackSegments.map(continent => (
+            {stackSegments.map(territory => (
               <span
-                key={continent.continent}
+                key={territory.key}
                 className="account-continent-stack-segment"
                 style={{
-                  '--continent-color': ACCOUNT_CONTINENT_META[continent.continent].color,
-                  width: `${Math.max(8, Math.round(continent.pct))}%`,
+                  '--continent-color': ACCOUNT_CONTINENT_META[territory.key].color,
+                  width: `${Math.max(8, Math.round(territory.pct))}%`,
                 } as CSSProperties}
               />
             ))}
           </div>
           <div className="account-continent-list">
-            {stackSegments.map(continent => {
-              const meta = ACCOUNT_CONTINENT_META[continent.continent]
+            {stackSegments.map(territory => {
+              const meta = ACCOUNT_CONTINENT_META[territory.key]
               return (
-                <div key={continent.continent} className="account-continent-row">
+                <div key={territory.key} className="account-continent-row">
                   <span
                     className="account-continent-icon"
                     style={{
@@ -1534,11 +1319,11 @@ function TravelerProfileCard({ destinations }: { destinations: Destination[] }) 
                   >
                     {meta.icon}
                   </span>
-                  <strong>{meta.label}</strong>
+                  <strong>{territory.label}</strong>
                   <span className="account-continent-meter" aria-hidden="true">
-                    <span style={{ width: `${Math.max(8, Math.round(continent.pct))}%`, background: meta.color }} />
+                    <span style={{ width: `${Math.max(8, Math.round(territory.pct))}%`, background: meta.color }} />
                   </span>
-                  <span className="account-continent-pct">{Math.round(continent.pct)}%</span>
+                  <span className="account-continent-pct">{Math.round(territory.pct)}%</span>
                 </div>
               )
             })}

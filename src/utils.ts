@@ -133,8 +133,72 @@ export function withRecalculatedScore(destination: Destination): Destination {
 // ─── Profil voyageur (Fiche signalétique) ─────────────────────────────────────
 // Stats descriptives, sans IA, avec seuils explicites pour ne rien forcer.
 
-export type ProfileConfidence = 'empty' | 'light' | 'mid' | 'full'
+export type ProfileConfidence = 'empty' | 'low' | 'medium-low' | 'medium' | 'high' | 'light' | 'mid' | 'full'
 export type ContinentBucket = Continent | 'Autre'
+type ArchetypeKey = 'faithful' | 'selective' | 'thoughtful' | 'comfort' | 'nomad' | 'nature' | 'epicurean' | 'open'
+type UsedSignal =
+  | 'countryRepeat'
+  | 'continentDominance'
+  | 'lowScores'
+  | 'highScores'
+  | 'lowFavorites'
+  | 'highFavorites'
+  | 'budgetHigh'
+  | 'budgetLow'
+  | 'shortTrips'
+  | 'foodPattern'
+  | 'culturePattern'
+  | 'naturePattern'
+  | 'negativeTags'
+  | 'diversity'
+  | 'workPattern'
+
+type NormalizedTripType = 'culture' | 'food' | 'nature' | 'rest' | 'nightlife' | 'roadtrip' | 'work' | 'city'
+type NormalizedStandout =
+  | 'culinary'
+  | 'scenery'
+  | 'architecture'
+  | 'locals'
+  | 'budgetPain'
+  | 'transportPain'
+  | 'touristTrap'
+  | 'exhausting'
+  | 'weather'
+
+export type DestinationRegionTag =
+  | 'Îles britanniques'
+  | 'Europe du Nord'
+  | 'Méditerranée'
+  | 'Balkans'
+  | "Europe de l'Est"
+  | "Europe de l'Ouest"
+  | 'Amérique du Nord'
+  | 'Amérique latine'
+  | 'Asie urbaine'
+  | 'Asie nature'
+  | 'Maghreb'
+  | 'Moyen-Orient'
+  | 'Ailleurs'
+
+export type DestinationVibeTag =
+  | 'grande ville'
+  | 'ville moyenne'
+  | 'capitale'
+  | 'bord de mer'
+  | 'montagne'
+  | 'campagne'
+  | 'île'
+  | 'nature'
+  | 'patrimoine'
+  | 'fête'
+  | 'repos'
+  | 'cher'
+  | 'accessible'
+  | 'touristique'
+  | 'alternatif'
+
+export type TripPace = 'slow' | 'balanced' | 'dense' | 'exhausting'
+export type ProfileTripIntent = 'culture' | 'food' | 'nature' | 'nightlife' | 'rest' | 'work' | 'mixed'
 
 export interface TravelerSignature {
   key: 'geo' | 'year' | 'coeur' | 'format' | 'budget' | 'notes' | 'companion' | 'intent'
@@ -149,16 +213,91 @@ export interface ContinentShare {
   pct: number
 }
 
+export interface TravelerBehaviorTag {
+  key: string
+  label: string
+}
+
+export interface TravelerAchievement {
+  key: string
+  icon: string
+  title: string
+  detail: string
+  tone?: 'red' | 'gold' | 'heart' | 'teal' | 'blue'
+}
+
+export interface TravelerTerritory {
+  key: ContinentBucket
+  label: string
+  count: number
+  pct: number
+}
+
+export interface TravelerProfileStats {
+  destinationCount: number
+  travelCount: number
+  uniqueCountryCount: number
+  mainCountry: string | null
+  mainCountryRepeat: number
+  mainCountryRatio: number
+  continentCount: number
+  mainContinent: ContinentBucket | null
+  mainContinentRatio: number
+  tripDaysMedian: number | null
+  shortTripRatio: number
+  longTripRatio: number
+  personalBudgetMedian: number | null
+  scoreAverage: number | null
+  scoreCount: number
+  scoreVariance: number | null
+  favoriteCount: number
+  favoriteRatio: number
+  workTripRatio: number
+  museumTripTypeRatio: number
+  foodTourRatio: number
+  natureTripTypeRatio: number
+  lazyModeRatio: number
+  nightlifeRatio: number
+  architectureStandoutRatio: number
+  culinaryStandoutRatio: number
+  outdoorStandoutRatio: number
+  negativeStandoutTagsRatio: number
+  positiveStandoutTagsRatio: number
+  logisticsPainRatio: number
+  budgetPainRatio: number
+  diverseTripTypesScore: number
+  tripIntent: ProfileTripIntent
+  tripPace: TripPace
+  regionTags: DestinationRegionTag[]
+  vibeTags: DestinationVibeTag[]
+}
+
 export interface TravelerProfile {
-  total: number              // tous les pins (livedThere inclus)
-  travelCount: number        // hors livedThere
+  total: number
+  travelCount: number
   countries: number
   coupDeCoeurCount: number
   confidence: ProfileConfidence
-  /** Verdict auto-généré, null si données insuffisantes */
+  title: string
+  subtitle: string | null
+  behaviorTags: TravelerBehaviorTag[]
+  achievements: TravelerAchievement[]
+  territories: TravelerTerritory[]
+  /** Verdict auto-généré, conservé pour les composants legacy. */
   archetype: string | null
   signatures: TravelerSignature[]
   continents: ContinentShare[]
+  debug: {
+    stats: TravelerProfileStats
+    archetypeScores: Record<ArchetypeKey, number>
+    usedSignals: Record<UsedSignal, boolean>
+    derivedTags: {
+      regionTags: DestinationRegionTag[]
+      vibeTags: DestinationVibeTag[]
+      tripPace: TripPace
+      tripIntent: ProfileTripIntent
+    }
+  }
 }
 
 function continentOf(country: string): ContinentBucket {
@@ -185,7 +324,7 @@ function topEntry<K extends string>(counts: Record<K, number>): { key: K, count:
   return { key: (topKey ?? ('' as K)), count: topCount, total, second: secondCount }
 }
 
-export function computeTravelerProfile(destinations: Destination[]): TravelerProfile {
+function legacyComputeTravelerProfile(destinations: Destination[]): Omit<TravelerProfile, 'title' | 'subtitle' | 'behaviorTags' | 'achievements' | 'territories' | 'debug'> {
   const total = destinations.length
   const travels = destinations.filter(d => !d.livedThere)
   const travelCount = travels.length
@@ -520,5 +659,529 @@ export function computeTravelerProfile(destinations: Destination[]): TravelerPro
     archetype,
     signatures: [slot1, slot2, slot3].filter((s): s is TravelerSignature => s !== null),
     continents,
+  }
+}
+
+function average(values: number[]): number | null {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+}
+
+function variance(values: number[]): number | null {
+  const avg = average(values)
+  if (avg === null || values.length < 2) return null
+  return values.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / values.length
+}
+
+function clamp100(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function ratioScore(value: number, min: number, max: number): number {
+  if (value <= min) return 0
+  if (value >= max) return 100
+  return ((value - min) / (max - min)) * 100
+}
+
+function countScore(count: number, min: number, max: number): number {
+  if (count <= min) return 0
+  if (count >= max) return 100
+  return ((count - min) / (max - min)) * 100
+}
+
+function addUnique<T extends string>(items: T[], item: T) {
+  if (!items.includes(item)) items.push(item)
+}
+
+function stripEmojiLabel(label: string): string {
+  return label
+    .replace(/^[^\p{L}\p{N}]+/u, '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+}
+
+function isWorkTrip(destination: Destination): boolean {
+  return destination.intent === 'travail' || destination.companions === 'travail'
+}
+
+function normalizeTripTypes(destination: Destination): NormalizedTripType[] {
+  const types: NormalizedTripType[] = []
+  for (const raw of destination.tripTypes ?? []) {
+    const label = stripEmojiLabel(raw)
+    if (label.includes('musee') || label.includes('monument') || label.includes('culture')) addUnique(types, 'culture')
+    if (label.includes('food') || label.includes('gastro')) addUnique(types, 'food')
+    if (label.includes('grand air') || label.includes('rando') || label.includes('nature')) addUnique(types, 'nature')
+    if (label.includes('lezard') || label.includes('repos')) addUnique(types, 'rest')
+    if (label.includes('nuit') || label.includes('fete') || label.includes('bar')) addUnique(types, 'nightlife')
+    if (label.includes('road trip')) addUnique(types, 'roadtrip')
+    if (label.includes('bleisure') || label.includes('boulot') || label.includes('travail')) addUnique(types, 'work')
+    if (label.includes('city')) addUnique(types, 'city')
+  }
+  const hasExplicitTypes = types.length > 0
+  if (destination.intent === 'tourisme' && !hasExplicitTypes) addUnique(types, 'culture')
+  if (destination.intent === 'gastro') addUnique(types, 'food')
+  if (destination.intent === 'nature') addUnique(types, 'nature')
+  if (destination.intent === 'sorties') addUnique(types, 'nightlife')
+  if (destination.intent === 'travail') addUnique(types, 'work')
+  if (destination.intent === 'city-trip') addUnique(types, 'city')
+  return types
+}
+
+function normalizeStandoutTags(destination: Destination): NormalizedStandout[] {
+  const tags: NormalizedStandout[] = []
+  const values = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
+  for (const raw of values) {
+    const label = stripEmojiLabel(raw)
+    if (label.includes('culinaire') || label.includes('bouffe') || label.includes('food')) addUnique(tags, 'culinary')
+    if (label.includes('spot') || label.includes('paysage') || label.includes('folie')) addUnique(tags, 'scenery')
+    if (label.includes('architecture') || label.includes('ruelle')) addUnique(tags, 'architecture')
+    if (label.includes('rencontre') || label.includes('locaux')) addUnique(tags, 'locals')
+    if (label.includes('budget') || label.includes('cher')) addUnique(tags, 'budgetPain')
+    if (label.includes('transport')) addUnique(tags, 'transportPain')
+    if (label.includes('touriste') || label.includes('piege')) addUnique(tags, 'touristTrap')
+    if (label.includes('rythme') || label.includes('fatig')) addUnique(tags, 'exhausting')
+    if (label.includes('meteo')) addUnique(tags, 'weather')
+  }
+  return tags
+}
+
+function regionTagsFor(destination: Destination): DestinationRegionTag[] {
+  const country = destination.country
+  const tags: DestinationRegionTag[] = []
+  if (['Royaume-Uni', 'Angleterre', 'Écosse', 'Ecosse', 'Irlande'].includes(country)) addUnique(tags, 'Îles britanniques')
+  if (['Danemark', 'Suède', 'Suede', 'Norvège', 'Norvege', 'Finlande', 'Islande', 'Estonie', 'Lettonie', 'Lituanie'].includes(country)) addUnique(tags, 'Europe du Nord')
+  if (['Espagne', 'Portugal', 'Italie', 'Grèce', 'Grece', 'Malte', 'Chypre', 'Monaco'].includes(country)) addUnique(tags, 'Méditerranée')
+  if (['Croatie', 'Slovénie', 'Slovenie', 'Bosnie-Herzégovine', 'Monténégro', 'Montenegro', 'Serbie', 'Albanie', 'Bulgarie', 'Roumanie', 'Kosovo', 'Macédoine du Nord', 'Macedoine du Nord'].includes(country)) addUnique(tags, 'Balkans')
+  if (['Pologne', 'Ukraine', 'Moldavie', 'Hongrie', 'Slovaquie', 'Russie', 'Biélorussie', 'Bielorussie'].includes(country)) addUnique(tags, "Europe de l'Est")
+  if (['France', 'Allemagne', 'Pays-Bas', 'Belgique', 'Luxembourg', 'Suisse', 'Autriche', 'République tchèque', 'Republique tcheque', 'Tchéquie', 'Tcheque'].includes(country)) addUnique(tags, "Europe de l'Ouest")
+  if (['États-Unis', 'Etats-Unis', 'Canada'].includes(country)) addUnique(tags, 'Amérique du Nord')
+  if (['Mexique', 'Brésil', 'Bresil', 'Argentine', 'Chili', 'Colombie', 'Pérou', 'Perou'].includes(country)) addUnique(tags, 'Amérique latine')
+  if (['Japon', 'Chine', 'Corée du Sud', 'Coree du Sud', 'Taïwan', 'Taiwan', 'Hong Kong', 'Singapour'].includes(country)) addUnique(tags, 'Asie urbaine')
+  if (['Indonésie', 'Indonesie', 'Thaïlande', 'Thailande', 'Vietnam', 'Népal', 'Nepal', 'Sri Lanka'].includes(country)) addUnique(tags, 'Asie nature')
+  if (['Maroc', 'Algérie', 'Algerie', 'Tunisie'].includes(country)) addUnique(tags, 'Maghreb')
+  if (['Émirats arabes unis', 'Emirats arabes unis', 'Qatar', 'Israël', 'Israel', 'Jordanie', 'Turquie'].includes(country)) addUnique(tags, 'Moyen-Orient')
+  if (tags.length === 0) addUnique(tags, 'Ailleurs')
+  return tags
+}
+
+function vibeTagsFor(destination: Destination, tripTypes: NormalizedTripType[], standouts: NormalizedStandout[]): DestinationVibeTag[] {
+  const tags: DestinationVibeTag[] = []
+  const name = destination.name.toLowerCase()
+  const country = destination.country
+  if (destination.kind === 'zone') addUnique(tags, 'campagne')
+  if (['paris', 'tokyo', 'new york', 'mexico', 'bangkok', 'dubai', 'dubaï', 'londres', 'shanghai', 'rio de janeiro'].some(city => name.includes(city))) addUnique(tags, 'grande ville')
+  if (['lisbonne', 'kyoto', 'vancouver', 'barcelone', 'auckland', 'le cap'].some(city => name.includes(city))) addUnique(tags, 'ville moyenne')
+  if (['paris', 'tokyo', 'lisbonne', 'bangkok', 'mexico', 'londres', 'berlin', 'madrid', 'rome'].some(city => name.includes(city))) addUnique(tags, 'capitale')
+  if (['Portugal', 'Espagne', 'Italie', 'Grèce', 'Grece', 'Indonésie', 'Indonesie', 'Thaïlande', 'Thailande', 'Brésil', 'Bresil', 'Afrique du Sud'].includes(country)) addUnique(tags, 'bord de mer')
+  if (['Suisse', 'Autriche', 'Népal', 'Nepal', 'Nouvelle-Zelande', 'Nouvelle-Zélande', 'Canada'].includes(country) || name.includes('alpes')) addUnique(tags, 'montagne')
+  if (['Islande', 'Malte', 'Chypre'].includes(country) || ['bali', 'santorin', 'auckland'].some(place => name.includes(place))) addUnique(tags, 'île')
+  if (tripTypes.includes('nature') || standouts.includes('scenery')) addUnique(tags, 'nature')
+  if (tripTypes.includes('culture') || standouts.includes('architecture')) addUnique(tags, 'patrimoine')
+  if (tripTypes.includes('nightlife')) addUnique(tags, 'fête')
+  if (tripTypes.includes('rest')) addUnique(tags, 'repos')
+  if (standouts.includes('budgetPain') || (destination.value !== undefined && destination.value <= 2)) addUnique(tags, 'cher')
+  if (destination.value !== undefined && destination.value >= 4) addUnique(tags, 'accessible')
+  if (standouts.includes('touristTrap')) addUnique(tags, 'touristique')
+  if (standouts.includes('locals')) addUnique(tags, 'alternatif')
+  return tags
+}
+
+function computeConfidence(destinationCount: number): ProfileConfidence {
+  if (destinationCount <= 0) return 'empty'
+  if (destinationCount <= 2) return 'low'
+  if (destinationCount <= 5) return 'medium-low'
+  if (destinationCount <= 10) return 'medium'
+  return 'high'
+}
+
+function confidenceLimits(confidence: ProfileConfidence): { maxTags: number; maxAchievements: number } {
+  if (confidence === 'empty') return { maxTags: 0, maxAchievements: 0 }
+  if (confidence === 'low' || confidence === 'light') return { maxTags: 1, maxAchievements: 1 }
+  if (confidence === 'medium-low' || confidence === 'mid') return { maxTags: 2, maxAchievements: 2 }
+  if (confidence === 'medium') return { maxTags: 3, maxAchievements: 3 }
+  return { maxTags: 3, maxAchievements: 4 }
+}
+
+function computeContinents(destinations: Destination[]): ContinentShare[] {
+  const continentCountrySets: Record<ContinentBucket, Set<string>> = {
+    Europe: new Set(),
+    Asie: new Set(),
+    Ameriques: new Set(),
+    Afrique: new Set(),
+    Oceanie: new Set(),
+    Autre: new Set(),
+  }
+  for (const destination of destinations) {
+    if (destination.country) continentCountrySets[continentOf(destination.country)].add(destination.country)
+  }
+  const totalCountries = Math.max(1, new Set(destinations.map(destination => destination.country).filter(Boolean)).size)
+  return (Object.keys(continentCountrySets) as ContinentBucket[])
+    .map(continent => ({ continent, count: continentCountrySets[continent].size, pct: (continentCountrySets[continent].size / totalCountries) * 100 }))
+    .filter(continent => continent.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+}
+
+export function computeProfileStats(destinations: Destination[], continents = computeContinents(destinations)): TravelerProfileStats {
+  const travels = destinations.filter(destination => !destination.livedThere)
+  const effectiveTravels = travels.filter(destination => !isWorkTrip(destination))
+  const denominator = Math.max(1, travels.length)
+  const effectiveDenominator = Math.max(1, effectiveTravels.length)
+  const countryCounts = new Map<string, number>()
+  for (const destination of effectiveTravels) {
+    if (destination.country) countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + 1)
+  }
+  const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+  const mainCountry = topCountry?.[0] ?? null
+  const mainCountryRepeat = topCountry?.[1] ?? 0
+
+  const dayValues = travels.map(destination => destination.tripDays).filter((value): value is number => typeof value === 'number' && value > 0)
+  const shortTripCount = dayValues.filter(value => value <= 3).length
+  const longTripCount = dayValues.filter(value => value > 10).length
+  const nonWorkBudgetValues = travels
+    .filter(destination => !isWorkTrip(destination))
+    .map(destination => destination.personalBudget && destination.tripDays && destination.tripDays > 0 ? destination.personalBudget / destination.tripDays : null)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0)
+  const scoreValues = travels.map(destination => destination.score ?? getDestinationScore(destination)).filter(value => Number.isFinite(value) && value > 0)
+  const favoriteCount = travels.filter(destination => destination.coupDeCoeur).length
+
+  const tripTypeCounts: Record<NormalizedTripType, number> = { culture: 0, food: 0, nature: 0, rest: 0, nightlife: 0, roadtrip: 0, work: 0, city: 0 }
+  const standoutCounts: Record<NormalizedStandout, number> = {
+    culinary: 0,
+    scenery: 0,
+    architecture: 0,
+    locals: 0,
+    budgetPain: 0,
+    transportPain: 0,
+    touristTrap: 0,
+    exhausting: 0,
+    weather: 0,
+  }
+  const regionTags: DestinationRegionTag[] = []
+  const vibeTags: DestinationVibeTag[] = []
+  let exhaustingSignals = 0
+
+  for (const destination of travels) {
+    const tripTypes = normalizeTripTypes(destination)
+    const standouts = normalizeStandoutTags(destination)
+    for (const type of tripTypes) tripTypeCounts[type] += 1
+    for (const standout of standouts) standoutCounts[standout] += 1
+    for (const tag of regionTagsFor(destination)) addUnique(regionTags, tag)
+    for (const tag of vibeTagsFor(destination, tripTypes, standouts)) addUnique(vibeTags, tag)
+    if (standouts.includes('exhausting') || (destination.stops?.length ?? 0) >= 5) exhaustingSignals += 1
+  }
+
+  const distinctTripTypes = Object.values(tripTypeCounts).filter(count => count > 0).length
+  const mainTripType = (Object.entries(tripTypeCounts) as [NormalizedTripType, number][]).sort((a, b) => b[1] - a[1])[0]
+  const tripIntent: ProfileTripIntent = (() => {
+    if (!mainTripType || mainTripType[1] === 0 || distinctTripTypes >= 4) return 'mixed'
+    if (mainTripType[0] === 'culture' || mainTripType[0] === 'city') return 'culture'
+    if (mainTripType[0] === 'food') return 'food'
+    if (mainTripType[0] === 'nature') return 'nature'
+    if (mainTripType[0] === 'nightlife') return 'nightlife'
+    if (mainTripType[0] === 'rest') return 'rest'
+    if (mainTripType[0] === 'work') return 'work'
+    return 'mixed'
+  })()
+  const tripPace: TripPace = (() => {
+    const medDays = dayValues.length >= 3 ? median(dayValues) : null
+    if (exhaustingSignals / denominator >= 0.25) return 'exhausting'
+    if (medDays !== null && medDays <= 3) return 'dense'
+    if (medDays !== null && medDays > 10) return 'slow'
+    return 'balanced'
+  })()
+  const scoreAverage = scoreValues.length >= 3 ? average(scoreValues) : null
+
+  return {
+    destinationCount: destinations.length,
+    travelCount: travels.length,
+    uniqueCountryCount: new Set(destinations.map(destination => destination.country).filter(Boolean)).size,
+    mainCountry,
+    mainCountryRepeat,
+    mainCountryRatio: mainCountryRepeat / effectiveDenominator,
+    continentCount: continents.length,
+    mainContinent: continents[0]?.continent ?? null,
+    mainContinentRatio: (continents[0]?.pct ?? 0) / 100,
+    tripDaysMedian: dayValues.length >= 3 ? median(dayValues) : null,
+    shortTripRatio: dayValues.length ? shortTripCount / dayValues.length : 0,
+    longTripRatio: dayValues.length ? longTripCount / dayValues.length : 0,
+    personalBudgetMedian: nonWorkBudgetValues.length >= 3 ? median(nonWorkBudgetValues) : null,
+    scoreAverage,
+    scoreCount: scoreValues.length,
+    scoreVariance: variance(scoreValues),
+    favoriteCount,
+    favoriteRatio: travels.length ? favoriteCount / travels.length : 0,
+    workTripRatio: travels.filter(isWorkTrip).length / denominator,
+    museumTripTypeRatio: tripTypeCounts.culture / denominator,
+    foodTourRatio: tripTypeCounts.food / denominator,
+    natureTripTypeRatio: tripTypeCounts.nature / denominator,
+    lazyModeRatio: tripTypeCounts.rest / denominator,
+    nightlifeRatio: tripTypeCounts.nightlife / denominator,
+    architectureStandoutRatio: standoutCounts.architecture / denominator,
+    culinaryStandoutRatio: standoutCounts.culinary / denominator,
+    outdoorStandoutRatio: standoutCounts.scenery / denominator,
+    negativeStandoutTagsRatio: (standoutCounts.budgetPain + standoutCounts.transportPain + standoutCounts.touristTrap + standoutCounts.exhausting + standoutCounts.weather) / denominator,
+    positiveStandoutTagsRatio: (standoutCounts.culinary + standoutCounts.scenery + standoutCounts.architecture + standoutCounts.locals) / denominator,
+    logisticsPainRatio: (standoutCounts.transportPain + standoutCounts.exhausting + standoutCounts.weather) / denominator,
+    budgetPainRatio: standoutCounts.budgetPain / denominator,
+    diverseTripTypesScore: clamp100(ratioScore(distinctTripTypes / 6, 0.2, 0.7)),
+    tripIntent,
+    tripPace,
+    regionTags,
+    vibeTags,
+  }
+}
+
+export function computeArchetypeScores(stats: TravelerProfileStats): Record<ArchetypeKey, number> {
+  const highScoreAverage = stats.scoreAverage !== null && stats.scoreAverage >= 4.1 ? 55 : 0
+  const lowOrMediumScore = stats.scoreAverage !== null && stats.scoreAverage < 3.7 ? ratioScore(3.7 - stats.scoreAverage, 0, 1.2) : 0
+  const scoreReliability = ratioScore(stats.scoreCount, 2, 7)
+  const noDominantPattern = stats.mainCountryRatio < 0.25 && stats.mainContinentRatio < 0.55 ? 45 : 0
+  return {
+    faithful: clamp100(countScore(stats.mainCountryRepeat, 1, 5) * 0.35 + ratioScore(stats.mainCountryRatio, 0.2, 0.45) * 0.45 + (stats.mainContinentRatio >= 0.65 ? 12 : 0) - stats.workTripRatio * 25 - (stats.continentCount >= 3 ? 15 : 0)),
+    selective: clamp100(lowOrMediumScore * 0.42 + (stats.favoriteRatio <= 0.2 && stats.travelCount >= 6 ? 24 : 0) + ratioScore(stats.negativeStandoutTagsRatio, 0.15, 0.45) * 0.24 + scoreReliability * 0.12),
+    thoughtful: clamp100(ratioScore(stats.museumTripTypeRatio, 0.12, 0.45) * 0.45 + ratioScore(stats.architectureStandoutRatio, 0.08, 0.30) * 0.30 + (stats.tripIntent === 'culture' ? 18 : 0) + (stats.tripDaysMedian !== null && stats.tripDaysMedian >= 5 ? 8 : 0)),
+    comfort: clamp100((stats.personalBudgetMedian !== null ? ratioScore(stats.personalBudgetMedian, 90, 190) * 0.35 : 0) + ratioScore(stats.foodTourRatio + stats.lazyModeRatio, 0.18, 0.55) * 0.28 + (1 - Math.min(1, stats.logisticsPainRatio / 0.35)) * 18 + highScoreAverage * 0.18 - stats.workTripRatio * 22 - ratioScore(stats.budgetPainRatio, 0.05, 0.35) * 0.25),
+    nomad: clamp100(ratioScore(stats.shortTripRatio, 0.25, 0.65) * 0.42 + countScore(stats.destinationCount, 5, 14) * 0.22 + (stats.tripDaysMedian !== null && stats.tripDaysMedian <= 3 ? 24 : 0) + (stats.mainContinent === 'Europe' && stats.mainContinentRatio >= 0.55 ? 12 : 0) - ratioScore(stats.longTripRatio, 0.15, 0.45) * 0.35),
+    nature: clamp100(ratioScore(stats.natureTripTypeRatio, 0.12, 0.45) * 0.48 + ratioScore(stats.outdoorStandoutRatio, 0.08, 0.30) * 0.30 + (stats.vibeTags.includes('nature') || stats.vibeTags.includes('montagne') || stats.vibeTags.includes('île') ? 15 : 0) + (stats.continentCount >= 2 ? 8 : 0)),
+    epicurean: clamp100(ratioScore(stats.foodTourRatio, 0.12, 0.45) * 0.52 + ratioScore(stats.culinaryStandoutRatio, 0.08, 0.30) * 0.34 + (stats.personalBudgetMedian !== null && stats.personalBudgetMedian >= 110 ? 8 : 0) + (stats.tripIntent === 'food' ? 12 : 0)),
+    open: clamp100(countScore(stats.continentCount, 1, 4) * 0.32 + noDominantPattern + stats.diverseTripTypesScore * 0.28 + (stats.regionTags.length >= 4 ? 12 : 0)),
+  }
+}
+
+function blankUsedSignals(): Record<UsedSignal, boolean> {
+  return {
+    countryRepeat: false,
+    continentDominance: false,
+    lowScores: false,
+    highScores: false,
+    lowFavorites: false,
+    highFavorites: false,
+    budgetHigh: false,
+    budgetLow: false,
+    shortTrips: false,
+    foodPattern: false,
+    culturePattern: false,
+    naturePattern: false,
+    negativeTags: false,
+    diversity: false,
+    workPattern: false,
+  }
+}
+
+function titleForKey(key: ArchetypeKey, confidence: ProfileConfidence): string {
+  const soft = confidence === 'medium-low'
+  const titles: Record<ArchetypeKey, [string, string]> = {
+    faithful: ['A ses habitudes', 'Habitué fidèle'],
+    selective: ['Sélectif tranquille', 'Voyageur sélectif'],
+    thoughtful: ['Curieux posé', 'Explorateur réfléchi'],
+    comfort: ['Confort tranquille', 'Confort mesuré'],
+    nomad: ['Week-endiste efficace', 'Nomade précis'],
+    nature: ['Curieux dehors', 'Curieux nature'],
+    epicurean: ['Bon vivant organisé', 'Épicurien organisé'],
+    open: ['Profil ouvert', 'Explorateur ouvert'],
+  }
+  return soft ? titles[key][0] : titles[key][1]
+}
+
+function selectProfileTitle(scores: Record<ArchetypeKey, number>, confidence: ProfileConfidence, stats: TravelerProfileStats): { title: string; key: ArchetypeKey | null } {
+  if (confidence === 'empty' || confidence === 'low') return { title: 'Profil en rodage', key: null }
+  const sorted = (Object.entries(scores) as [ArchetypeKey, number][]).sort((a, b) => b[1] - a[1])
+  const [topKey, topScore] = sorted[0]
+  const secondScore = sorted[1]?.[1] ?? 0
+  if (
+    scores.selective >= 45
+    && stats.scoreCount >= 4
+    && stats.scoreAverage !== null
+    && stats.scoreAverage < 3.7
+    && stats.negativeStandoutTagsRatio >= 0.35
+  ) {
+    return { title: titleForKey('selective', confidence), key: 'selective' }
+  }
+  if (topScore < 35 || topScore - secondScore < 12) return { title: titleForKey('open', confidence), key: 'open' }
+  if (topKey === 'selective' && (stats.scoreCount < 4 || stats.destinationCount < 6) && stats.negativeStandoutTagsRatio < 0.35) return { title: titleForKey('open', confidence), key: 'open' }
+  return { title: titleForKey(topKey, confidence), key: topKey }
+}
+
+function markSignalsUsedByTitle(key: ArchetypeKey | null, usedSignals: Record<UsedSignal, boolean>) {
+  if (key === 'faithful') usedSignals.countryRepeat = true
+  if (key === 'selective') {
+    usedSignals.lowScores = true
+    usedSignals.lowFavorites = true
+    usedSignals.negativeTags = true
+  }
+  if (key === 'thoughtful') usedSignals.culturePattern = true
+  if (key === 'comfort') usedSignals.budgetHigh = true
+  if (key === 'nomad') usedSignals.shortTrips = true
+  if (key === 'nature') usedSignals.naturePattern = true
+  if (key === 'epicurean') usedSignals.foodPattern = true
+  if (key === 'open') usedSignals.diversity = true
+}
+
+function selectSubtitle(titleKey: ArchetypeKey | null, stats: TravelerProfileStats, usedSignals: Record<UsedSignal, boolean>, confidence: ProfileConfidence): string | null {
+  if (confidence === 'empty') return null
+  if (confidence === 'low') return 'Le carnet commence à parler, mais pas encore à balancer.'
+  switch (titleKey) {
+    case 'faithful':
+      usedSignals.countryRepeat = true
+      return stats.mainCountry && stats.mainCountryRepeat >= 3 ? `${stats.mainCountry} commence à reconnaître son visage.` : 'A ses repères, mais les appelle encore découvertes.'
+    case 'selective':
+      if (stats.negativeStandoutTagsRatio >= 0.35) {
+        usedSignals.negativeTags = true
+        return 'Aime voyager, mais garde toujours une ligne pour les détails qui coincent.'
+      }
+      if (stats.favoriteRatio <= 0.2) {
+        usedSignals.lowFavorites = true
+        return 'Le coup de cœur existe. Il faut juste le mériter.'
+      }
+      usedSignals.lowScores = true
+      return 'Peut aimer un endroit sans lui offrir cinq étoiles.'
+    case 'thoughtful':
+      usedSignals.culturePattern = true
+      return stats.architectureStandoutRatio >= 0.25 ? 'Regarde les façades comme si elles allaient parler.' : 'Cherche le contexte avant la carte postale.'
+    case 'comfort':
+      usedSignals.budgetHigh = true
+      return stats.personalBudgetMedian !== null && stats.personalBudgetMedian >= 150 ? 'Ne cherche pas le luxe, juste les bons choix qui coûtent un peu.' : "Sait voyager simple, mais préfère quand c'est agréable."
+    case 'nomad':
+      usedSignals.shortTrips = true
+      if (stats.mainContinent === 'Europe' && stats.mainContinentRatio >= 0.55) {
+        usedSignals.continentDominance = true
+        return "Transforme l'Europe en planning de week-end."
+      }
+      return 'Ne part pas longtemps, mais part souvent.'
+    case 'nature':
+      usedSignals.naturePattern = true
+      return stats.vibeTags.includes('montagne') || stats.vibeTags.includes('nature') ? 'Aime quand la carte devient un peu verte.' : 'Cherche l’air frais, même quand ce n’était pas prévu.'
+    case 'epicurean':
+      usedSignals.foodPattern = true
+      return stats.culinaryStandoutRatio >= 0.25 ? 'A compris que la culture locale arrive souvent dans l’assiette.' : "Appelle ça spontané, avait quand même repéré trois restos."
+    case 'open':
+      usedSignals.diversity = true
+      return stats.continentCount >= 3 ? 'Explore large, quitte à brouiller les pistes.' : 'Refuse de laisser les stats choisir un camp.'
+    default:
+      return 'Les données ont encore besoin de sortir un peu.'
+  }
+}
+
+function buildBehaviorTags(scores: Record<ArchetypeKey, number>, stats: TravelerProfileStats, titleKey: ArchetypeKey | null, usedSignals: Record<UsedSignal, boolean>, max: number): TravelerBehaviorTag[] {
+  if (stats.destinationCount <= 2) {
+    return stats.destinationCount > 0 && max > 0 ? [{ key: 'living', label: 'Carnet vivant' }] : []
+  }
+  const tags: TravelerBehaviorTag[] = []
+  const add = (key: string, label: string, condition: boolean, blocked = false) => {
+    if (condition && !blocked && tags.length < max && !tags.some(tag => tag.key === key)) tags.push({ key, label })
+  }
+  add('faithful', 'Fidèle', scores.faithful >= 45, titleKey === 'faithful' || usedSignals.countryRepeat)
+  add('selective', 'Sélectif', scores.selective >= 45, titleKey === 'selective' || usedSignals.lowScores || usedSignals.lowFavorites)
+  add('comfort', 'Confort', scores.comfort >= 45, titleKey === 'comfort' || usedSignals.budgetHigh)
+  add('culture', 'Culture', scores.thoughtful >= 45, titleKey === 'thoughtful' || usedSignals.culturePattern)
+  add('nomad', 'Nomade', scores.nomad >= 45, titleKey === 'nomad' || usedSignals.shortTrips)
+  add('nature', 'Nature', scores.nature >= 45, titleKey === 'nature' || usedSignals.naturePattern)
+  add('food', 'Food-first', scores.epicurean >= 45, titleKey === 'epicurean' || usedSignals.foodPattern)
+  add('open', 'Ouvert', scores.open >= 45 || stats.continentCount >= 3, titleKey === 'open' || usedSignals.diversity)
+  add('seasoned', 'Aguerri', stats.destinationCount >= 12)
+  add('weekend', 'Week-endiste', stats.shortTripRatio >= 0.5 && stats.destinationCount >= 5, titleKey === 'nomad' || usedSignals.shortTrips)
+  add('demanding', 'Dent dure', stats.scoreCount >= 4 && stats.scoreAverage !== null && stats.scoreAverage < 3.4, titleKey === 'selective' || usedSignals.lowScores)
+  add('generous', 'Bon public', stats.scoreCount >= 4 && stats.scoreAverage !== null && stats.scoreAverage >= 4.1, usedSignals.highScores)
+  if (stats.destinationCount >= 1 && tags.length === 0 && max > 0) tags.push({ key: 'living', label: 'Carnet vivant' })
+  return tags.slice(0, max)
+}
+
+function continentLabel(continent: ContinentBucket | null): string {
+  const labels: Record<ContinentBucket, string> = {
+    Europe: 'européenne',
+    Asie: 'asiatique',
+    Ameriques: 'américaine',
+    Afrique: 'africaine',
+    Oceanie: 'océanienne',
+    Autre: 'ailleurs',
+  }
+  return continent ? labels[continent] : 'du carnet'
+}
+
+function buildAchievements(stats: TravelerProfileStats, titleKey: ArchetypeKey | null, usedSignals: Record<UsedSignal, boolean>, max: number): TravelerAchievement[] {
+  if (stats.destinationCount <= 2) return []
+  const achievements: TravelerAchievement[] = []
+  const add = (achievement: TravelerAchievement, condition: boolean, blocked = false) => {
+    if (condition && !blocked && achievements.length < max && !achievements.some(item => item.key === achievement.key)) achievements.push(achievement)
+  }
+  add({ key: 'note-merit', icon: '☆', title: 'La note se mérite', detail: `${stats.scoreAverage?.toFixed(1) ?? '-'} / 5 en moyenne`, tone: 'gold' }, stats.scoreCount >= 4 && stats.scoreAverage !== null && stats.scoreAverage < 3.5, titleKey === 'selective' || usedSignals.lowScores)
+  add({ key: 'good-public', icon: '★', title: 'Bon public, mais pas naïf', detail: `${stats.scoreAverage?.toFixed(1) ?? '-'} / 5 en moyenne`, tone: 'gold' }, stats.scoreCount >= 4 && stats.scoreAverage !== null && stats.scoreAverage >= 4.1, usedSignals.highScores)
+  add({ key: 'heart-rare', icon: '♡', title: 'Cœur rare', detail: `${stats.favoriteCount}/${stats.travelCount} coups de cœur`, tone: 'heart' }, stats.favoriteCount > 0 && ((stats.favoriteCount === 1 && stats.destinationCount >= 6) || (stats.favoriteRatio <= 0.15 && stats.destinationCount >= 8)), titleKey === 'selective' || usedSignals.lowFavorites)
+  add({ key: 'heart-easy', icon: '♥', title: 'Cœur facile', detail: `${Math.round(stats.favoriteRatio * 100)}% du carnet`, tone: 'heart' }, stats.favoriteRatio >= 0.45 && stats.destinationCount >= 6, usedSignals.highFavorites)
+  add({ key: 'terrain', icon: '⌖', title: 'Terrain connu', detail: stats.mainCountry ? `${stats.mainCountry} · ${stats.mainCountryRepeat} voyages` : 'Même boussole', tone: 'red' }, stats.mainCountryRepeat >= 3, titleKey === 'faithful' || usedSignals.countryRepeat)
+  add({ key: 'continent-compass', icon: '◇', title: `Boussole ${continentLabel(stats.mainContinent)}`, detail: `${Math.round(stats.mainContinentRatio * 100)}% des pays`, tone: 'teal' }, stats.mainContinentRatio >= 0.65 && stats.uniqueCountryCount >= 4, usedSignals.continentDominance)
+  add({ key: 'soft-addition', icon: '€', title: 'Addition souple', detail: `~${Math.round(stats.personalBudgetMedian ?? 0)} € / jour`, tone: 'gold' }, stats.personalBudgetMedian !== null && stats.personalBudgetMedian >= 150 && stats.workTripRatio < 0.4, titleKey === 'comfort' || usedSignals.budgetHigh)
+  add({ key: 'budget-control', icon: '€', title: 'Budget sous contrôle', detail: `~${Math.round(stats.personalBudgetMedian ?? 0)} € / jour`, tone: 'gold' }, stats.personalBudgetMedian !== null && stats.personalBudgetMedian < 100 && stats.destinationCount >= 4, usedSignals.budgetLow)
+  add({ key: 'weekend-profit', icon: '↗', title: 'Week-end rentable', detail: `${Math.round(stats.shortTripRatio * 100)}% de formats courts`, tone: 'blue' }, stats.shortTripRatio >= 0.55 && stats.destinationCount >= 5, titleKey === 'nomad' || usedSignals.shortTrips)
+  add({ key: 'wide-gap', icon: '⌁', title: 'Grand écart', detail: `${stats.continentCount} territoires en jeu`, tone: 'teal' }, stats.continentCount >= 3, titleKey === 'open' || usedSignals.diversity)
+  add({ key: 'culture-sling', icon: '⌑', title: 'Culture en bandoulière', detail: 'Patrimoine souvent au programme', tone: 'blue' }, stats.museumTripTypeRatio >= 0.35 || stats.architectureStandoutRatio >= 0.25, titleKey === 'thoughtful' || usedSignals.culturePattern)
+  add({ key: 'plate-priority', icon: '◌', title: 'Assiette prioritaire', detail: 'Les bonnes adresses comptent', tone: 'gold' }, stats.foodTourRatio >= 0.35 || stats.culinaryStandoutRatio >= 0.25, titleKey === 'epicurean' || usedSignals.foodPattern)
+  add({ key: 'documented-trouble', icon: '!', title: 'Galères documentées', detail: 'Les petits pièges ne passent pas inaperçus', tone: 'red' }, stats.negativeStandoutTagsRatio >= 0.35 && stats.destinationCount >= 5, usedSignals.negativeTags)
+  add({ key: 'seasoned-book', icon: '□', title: 'Carnet aguerri', detail: `${stats.destinationCount} destinations`, tone: 'blue' }, stats.destinationCount >= 12)
+  add({ key: 'outside-comfort', icon: '△', title: 'Hors des sentiers confortables', detail: 'Le grand air gagne souvent', tone: 'teal' }, stats.natureTripTypeRatio >= 0.35 && stats.personalBudgetMedian !== null && stats.personalBudgetMedian < 120, titleKey === 'nature' || usedSignals.naturePattern)
+  return achievements
+}
+
+function buildTerritories(continents: ContinentShare[]): TravelerTerritory[] {
+  return continents.slice(0, 3).map(continent => ({
+    key: continent.continent,
+    label: continent.continent === 'Autre' ? 'Ailleurs' : continent.continent === 'Ameriques' ? 'Amériques' : continent.continent === 'Oceanie' ? 'Océanie' : continent.continent,
+    count: continent.count,
+    pct: continent.pct,
+  }))
+}
+
+function buildLegacySignatures(stats: TravelerProfileStats, tags: TravelerBehaviorTag[]): TravelerSignature[] {
+  return tags.slice(0, 3).map(tag => {
+    if (tag.key === 'faithful') return { key: 'geo', icon: '⌖', label: 'Revient souvent sur ses pas', detail: stats.mainCountry ? `${stats.mainCountry} · ${stats.mainCountryRepeat} voyages` : undefined }
+    if (tag.key === 'comfort') return { key: 'budget', icon: '€', label: 'Le confort reste dans la conversation', detail: stats.personalBudgetMedian ? `~${Math.round(stats.personalBudgetMedian)} €/j` : undefined }
+    if (tag.key === 'nomad' || tag.key === 'weekend') return { key: 'format', icon: '↗', label: 'Passe vite, juge quand même', detail: stats.tripDaysMedian ? `~${Math.round(stats.tripDaysMedian)} j` : undefined }
+    if (tag.key === 'selective' || tag.key === 'demanding') return { key: 'notes', icon: '☆', label: 'Ne valide pas pour faire plaisir', detail: stats.scoreAverage ? `moy. ${stats.scoreAverage.toFixed(1)}/5` : undefined }
+    if (tag.key === 'food' || tag.key === 'culture' || tag.key === 'nature') return { key: 'intent', icon: '◇', label: tag.label, detail: stats.tripIntent }
+    return { key: 'coeur', icon: '♡', label: tag.label }
+  })
+}
+
+export function computeTravelerProfile(destinations: Destination[]): TravelerProfile {
+  const continents = computeContinents(destinations)
+  const stats = computeProfileStats(destinations, continents)
+  const confidence = computeConfidence(stats.destinationCount)
+  const archetypeScores = computeArchetypeScores(stats)
+  const selected = selectProfileTitle(archetypeScores, confidence, stats)
+  const usedSignals = blankUsedSignals()
+  markSignalsUsedByTitle(selected.key, usedSignals)
+  const subtitle = selectSubtitle(selected.key, stats, usedSignals, confidence)
+  const limits = confidenceLimits(confidence)
+  const behaviorTags = buildBehaviorTags(archetypeScores, stats, selected.key, usedSignals, limits.maxTags)
+  const achievements = buildAchievements(stats, selected.key, usedSignals, limits.maxAchievements)
+  const territories = buildTerritories(continents)
+
+  return {
+    total: stats.destinationCount,
+    travelCount: stats.travelCount,
+    countries: stats.uniqueCountryCount,
+    coupDeCoeurCount: stats.favoriteCount,
+    confidence,
+    title: selected.title,
+    subtitle,
+    behaviorTags,
+    achievements,
+    territories,
+    archetype: subtitle,
+    signatures: buildLegacySignatures(stats, behaviorTags),
+    continents,
+    debug: {
+      stats,
+      archetypeScores,
+      usedSignals,
+      derivedTags: {
+        regionTags: stats.regionTags,
+        vibeTags: stats.vibeTags,
+        tripPace: stats.tripPace,
+        tripIntent: stats.tripIntent,
+      },
+    },
   }
 }

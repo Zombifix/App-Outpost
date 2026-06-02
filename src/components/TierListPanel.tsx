@@ -180,6 +180,7 @@ export default function TierListPanel({
     if (mobileTier === 'all') return true
     return getDestinationTier(d) === mobileTier
   }).sort((a, b) => compareDestinations(a, b, sortMode))
+  const rankedDestinationsCount = destinations.filter(d => d.kind !== 'stop').length
   const tierCounts = TIER_ORDER.map(tier => ({
     tier,
     count: destinations.filter(d => d.kind !== 'stop' && getDestinationTier(d) === tier).length,
@@ -275,7 +276,7 @@ export default function TierListPanel({
 
       <div className="tier-board-head">
         <div className="tier-board-title">
-          <h2>My rankings <span>· {destinations.filter(d => d.kind !== 'stop').length}</span></h2>
+          <h2>My rankings <span>· {rankedDestinationsCount}</span></h2>
           {collapsed && (
             <div className="tier-board-title-counts" aria-label="Summary by rating">
               {tierCountChips}
@@ -317,7 +318,15 @@ export default function TierListPanel({
       {/* ── Mobile view: heading + tier pills + cards ── */}
       <div className="tier-mobile-section">
         <div className="tier-mobile-topline">
-          <h2 className="tier-mobile-title">My rankings</h2>
+          <div className="tier-mobile-title-row">
+            <h2 className="tier-mobile-title">My rankings</h2>
+            <span className="tier-mobile-total-badge" aria-label={`${rankedDestinationsCount} ranked destinations`}>
+              {rankedDestinationsCount}
+            </span>
+          </div>
+          <div className="tier-mobile-summary" aria-label="Summary by rating">
+            {tierCountChips}
+          </div>
         </div>
         <div className="tier-mobile-filter-row">
           <SegmentedControl
@@ -343,7 +352,6 @@ export default function TierListPanel({
                 key={destination.name}
                 className={`mini-destination${isCoupDeCoeur ? ' is-coup-de-coeur' : ''}`}
                 style={{
-                  backgroundImage: destination.image ? `url(${destination.image})` : undefined,
                   '--tier-pin': colors?.pin,
                 } as CSSProperties}
               >
@@ -352,17 +360,19 @@ export default function TierListPanel({
                   onClick={() => onFlyTo(destination.name)}
                   aria-label={`Voir ${destination.name} sur la carte`}
                 >
-                  <span>{destination.name}</span>
-                  <em>{destination.country}</em>
-                </button>
-                <span className="mini-tier-badge" aria-hidden="true" style={{ background: colors.pin } as CSSProperties}>
-                  {destinationTier}
-                </span>
-                {isCoupDeCoeur && (
-                  <span className="mini-heart-badge is-active" aria-label="Coup de coeur">
-                    <HeartIcon filled />
+                  <span className="mini-tier-badge" aria-hidden="true" style={{ background: colors.pin } as CSSProperties}>
+                    {destinationTier}
                   </span>
-                )}
+                  <span className="tier-mobile-destination-copy">
+                    <strong>{destination.name}</strong>
+                    <em>{destination.country}</em>
+                  </span>
+                  {isCoupDeCoeur && (
+                    <span className="mini-heart-badge is-active" aria-label="Coup de coeur">
+                      <HeartIcon filled />
+                    </span>
+                  )}
+                </button>
               </article>
             )
           })}

@@ -2698,6 +2698,16 @@ svg {
   font-weight: var(--weight-bold);
 }
 
+.user-badge-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
 .user-badge.is-active {
   color: var(--ink);
   background: white;
@@ -6005,6 +6015,10 @@ svg {
     --tier-h: 180px;
     --topbar-h: 42px;
     --topbar-t: 10px;
+    --mobile-nav-offset: 10px;
+    --mobile-nav-height: 64px;
+    --mobile-nav-gap: 14px;
+    --mobile-tier-clearance: calc(var(--mobile-nav-offset) + var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-gap));
   }
 
   body { overflow: auto; }
@@ -6082,6 +6096,16 @@ svg {
     pointer-events: all;
     cursor: pointer;
     transition: background 120ms ease, transform 100ms ease;
+  }
+
+  .mobile-header-avatar-face {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    overflow: hidden;
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
   }
 
   .mobile-header-avatar:active {
@@ -6719,7 +6743,7 @@ svg {
   /* Map controls — en bas à gauche, au-dessus du sheet */
   .map-controls {
     top: auto !important;
-    bottom: calc(330px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(var(--mobile-tier-clearance) + 170px) !important;
     left: auto !important;
     right: 14px !important;
     z-index: 35;
@@ -6727,7 +6751,7 @@ svg {
   /* Quand sheet replié, le bouton remonte au-dessus du panel replié */
   .tier-board.is-collapsed ~ .map-area .map-controls,
   .travel-app:has(.tier-board.is-collapsed) .map-controls {
-    bottom: calc(172px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(var(--mobile-tier-clearance) + 16px) !important;
   }
   .map-controls button {
     background: rgba(255, 255, 255, 0.92);
@@ -12327,14 +12351,14 @@ svg {
     width: var(--desktop-left-dock-w);
     height: auto;
     min-height: 0;
-    padding: 12px;
+    padding: 14px;
     border-radius: 22px;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-rows: min-content;
     align-items: start;
     align-content: start;
-    white-space: normal;
+    gap: 8px;
   }
 
   .legend--stacked-left .legend-label,
@@ -12346,7 +12370,12 @@ svg {
   .legend--stacked-left span,
   .legend--bottom-left span {
     height: auto;
-    min-height: 38px;
+    min-height: 42px;
+  }
+
+  .legend--stacked-left span:has(.tier-d),
+  .legend--bottom-left span:has(.tier-d) {
+    grid-column: 1 / -1;
   }
 
   .compare-inline-bar--stacked-left,
@@ -12369,17 +12398,18 @@ svg {
   .tier-board--stacked-left {
     top: var(--desktop-tier-stack-top);
     bottom: auto;
-    width: var(--desktop-tier-panel-w);
+    width: var(--desktop-left-dock-w);
   }
 
   .tier-board--bottom-left {
     bottom: 16px;
-    width: var(--desktop-tier-panel-w);
+    width: var(--desktop-left-dock-w);
   }
 
   .tier-board--stacked-left.is-collapsed,
   .tier-board--bottom-left.is-collapsed {
     width: var(--desktop-left-dock-w);
+    height: 84px;
   }
 }
 
@@ -12672,13 +12702,13 @@ svg {
 .legend--bottom-left span {
   min-width: 0;
   font-size: var(--text-xs);
-  line-height: 1.25;
-  padding: 10px 12px;
-  gap: 8px;
+  line-height: 1.15;
+  padding: 0 11px;
+  gap: 7px;
   min-height: 40px;
   align-items: center;
   justify-content: flex-start;
-  white-space: normal;
+  white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
 }
@@ -12689,13 +12719,15 @@ svg {
   height: 22px;
   min-width: 22px;
   font-size: var(--text-xs);
+  line-height: 1;
+  text-align: center;
   flex-shrink: 0;
 }
 
 .legend--stacked-left,
 .legend--bottom-left {
-  gap: 10px;
-  padding: 16px;
+  gap: 6px;
+  padding: 12px;
 }
 
 /* Mon classement collapsed count — badge style */
@@ -12754,7 +12786,7 @@ svg {
 
 .legend-label {
   grid-column: 1 / -1;
-  margin: 0 0 10px;
+  margin: 0 0 6px;
 }
 
 .tier-board h2 {
@@ -13202,10 +13234,10 @@ svg {
 /* Navbar mobile — iso main branch floating pill */
 @media (max-width: 900px) {
   .bottom-nav {
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    left: var(--mobile-nav-offset);
+    right: var(--mobile-nav-offset);
+    bottom: var(--mobile-nav-offset);
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     padding: 4px 6px env(safe-area-inset-bottom, 0px);
     border: 1px solid rgba(255, 255, 255, 0.72);
     border-radius: 28px;
@@ -13218,10 +13250,10 @@ svg {
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.76) inset,
       0 -8px 18px rgba(255, 255, 255, 0.14) inset,
-      0 14px 28px rgba(20, 36, 70, 0.14),
+      0 12px 24px rgba(20, 36, 70, 0.13),
       0 3px 8px rgba(20, 36, 70, 0.05);
     align-items: stretch;
-    gap: 2px;
+    gap: 3px;
     overflow: hidden;
     z-index: 31;
   }
@@ -13229,7 +13261,7 @@ svg {
   .bottom-nav-item,
   .bottom-nav-item.is-active {
     min-height: 54px;
-    padding: 8px 0 7px;
+    padding: 8px 0 6px;
     font-size: var(--text-2xs);
     font-weight: var(--weight-semibold);
     letter-spacing: 0.01em;
@@ -13289,10 +13321,10 @@ svg {
 
   .bottom-nav-add {
     min-height: 54px;
-    padding: 0 0 7px;
+    padding: 2px 0 6px;
     flex: 1 1 0;
     position: relative;
-    gap: 4px;
+    gap: 3px;
     background: transparent;
     border-color: transparent;
     box-shadow: none;
@@ -13303,19 +13335,20 @@ svg {
   }
 
   .bottom-nav-add-icon {
-    width: 46px;
-    height: 46px;
-    min-width: 46px;
-    min-height: 46px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     background:
-      radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.34), transparent 30%),
+      radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.32), transparent 28%),
       linear-gradient(155deg, #5b9cff, #1b5fe8);
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.44) inset,
-      0 10px 20px rgba(27, 95, 232, 0.28),
-      0 2px 5px rgba(27, 95, 232, 0.16);
-    margin-top: -8px;
+      0 1px 0 rgba(255, 255, 255, 0.42) inset,
+      0 8px 16px rgba(27, 95, 232, 0.24),
+      0 2px 4px rgba(27, 95, 232, 0.14);
+    margin-top: -6px;
     flex-shrink: 0;
     position: relative;
   }
@@ -13323,9 +13356,9 @@ svg {
   .bottom-nav-add-icon::after {
     content: '';
     position: absolute;
-    inset: -5px;
+    inset: -4px;
     border-radius: inherit;
-    background: radial-gradient(circle, rgba(116, 160, 255, 0.24), rgba(116, 160, 255, 0));
+    background: radial-gradient(circle, rgba(116, 160, 255, 0.18), rgba(116, 160, 255, 0) 72%);
     z-index: -1;
   }
 
@@ -13358,16 +13391,20 @@ svg {
   }
 
   .tier-board {
-    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    left: var(--mobile-nav-offset);
+    right: var(--mobile-nav-offset);
+    bottom: var(--mobile-tier-clearance);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.14)),
-      rgba(243, 247, 255, 0.72);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.14) 32%, rgba(240, 246, 255, 0.06)),
+      rgba(243, 247, 255, 0.7);
     border-color: rgba(255, 255, 255, 0.7);
     box-shadow:
-      0 1px 0 rgba(255,255,255,0.64) inset,
-      0 10px 24px rgba(30, 50, 90, 0.11),
+      0 1px 0 rgba(255,255,255,0.66) inset,
+      0 10px 22px rgba(30, 50, 90, 0.1),
       0 2px 6px rgba(30, 50, 90, 0.04);
     overflow: visible;
+    backdrop-filter: blur(28px) saturate(1.55);
+    -webkit-backdrop-filter: blur(28px) saturate(1.55);
   }
 
   .tier-board::after {
@@ -13375,38 +13412,238 @@ svg {
     position: absolute;
     left: 22px;
     right: 22px;
-    bottom: -20px;
-    height: 34px;
+    bottom: -10px;
+    height: 16px;
     border-radius: 0 0 24px 24px;
     pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(248, 251, 255, 0.66) 0%, rgba(243, 248, 255, 0.46) 42%, rgba(243, 248, 255, 0.14) 76%, rgba(243, 248, 255, 0) 100%);
+      linear-gradient(180deg, rgba(248, 251, 255, 0.48) 0%, rgba(243, 248, 255, 0.18) 58%, rgba(243, 248, 255, 0) 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.32),
-      0 8px 18px rgba(30, 50, 90, 0.06);
-    opacity: 0.96;
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 4px 10px rgba(30, 50, 90, 0.03);
+    opacity: 0.72;
     z-index: 0;
   }
 
   .tier-board.is-collapsed::after {
     left: 26px;
     right: 26px;
-    bottom: -16px;
-    height: 24px;
+    bottom: -8px;
+    height: 10px;
     border-radius: 0 0 22px 22px;
     background:
-      linear-gradient(180deg, rgba(248, 251, 255, 0.6) 0%, rgba(244, 248, 255, 0.34) 58%, rgba(244, 248, 255, 0) 100%);
+      linear-gradient(180deg, rgba(248, 251, 255, 0.42) 0%, rgba(244, 248, 255, 0.16) 58%, rgba(244, 248, 255, 0) 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.24),
-      0 6px 14px rgba(30, 50, 90, 0.04);
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 3px 8px rgba(30, 50, 90, 0.025);
   }
 
   .tier-mobile-section {
-    padding: 4px 0 16px;
+    padding: 2px 0 12px;
+  }
+
+  .tier-mobile-topline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px 10px;
+  }
+
+  .tier-mobile-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .tier-mobile-title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tier-mobile-total-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(225, 236, 255, 0.24)),
+      rgba(243, 247, 255, 0.56);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 5px 12px rgba(71, 114, 184, 0.08);
+    color: #2951a2;
+    font-size: 12px;
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+
+  .tier-mobile-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tier-mobile-summary .tier-board-collapsed-count {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .tier-mobile-filter-row {
+    gap: 8px;
+    padding: 0 10px 10px;
+  }
+
+  .tier-sort-toggle-mobile {
+    min-height: 28px;
+    padding: 2px;
+  }
+
+  .tier-sort-toggle-mobile button {
+    min-height: 23px;
+    padding: 0 7px;
+    font-size: 10px;
+  }
+
+  .tier-mobile-tabs {
+    gap: 4px;
+  }
+
+  .tier-pill {
+    min-width: 36px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
   .tier-mobile-strip {
-    padding-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 12px 2px;
+    overflow: visible;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .tier-mobile-strip .mini-destination {
+    position: relative;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    width: auto;
+    height: auto;
+    border-radius: 18px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(228, 238, 255, 0.22)),
+      rgba(244, 248, 255, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.84),
+      0 8px 18px rgba(46, 76, 122, 0.08);
+    overflow: hidden;
+  }
+
+  .tier-mobile-strip .mini-destination.is-coup-de-coeur {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.84),
+      0 8px 18px rgba(46, 76, 122, 0.08),
+      0 0 0 1px color-mix(in srgb, var(--tier-pin, #ff3b5c) 18%, rgba(255, 255, 255, 0.56));
+  }
+
+  .tier-mobile-strip .mini-destination-main {
+    position: relative;
+    inset: auto;
+    min-height: 54px;
+    padding: 9px 12px;
+    background: transparent;
+    color: #173056;
+    text-align: left;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tier-mobile-destination-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tier-mobile-destination-copy strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #173056;
+    font-size: 12px;
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+  }
+
+  .tier-mobile-destination-copy em {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(42, 61, 91, 0.66);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: var(--weight-medium);
+    line-height: 1.2;
+  }
+
+  .mini-tier-badge {
+    position: static;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: var(--weight-extrabold);
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.92);
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--tier-pin, #4f90ff) 24%, transparent);
+    z-index: auto;
+    pointer-events: none;
+    flex: 0 0 auto;
+  }
+
+  .mini-heart-badge {
+    position: static;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    padding: 0;
+    box-shadow: 0 3px 8px rgba(46, 76, 122, 0.08);
+    z-index: auto;
+    pointer-events: none;
+    flex: 0 0 auto;
+  }
+
+  .mini-heart-badge svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .tier-mobile-strip {
+    padding-bottom: 2px;
   }
 }
 
@@ -13648,8 +13885,8 @@ svg {
 /* 3. Espacement cohérent — padding interne légende + tier collapsed */
 .legend--stacked-left,
 .legend--bottom-left {
-  padding: 14px 12px;
-  gap: 8px;
+  padding: 12px;
+  gap: 6px;
 }
 
 /* 4. Contrôles carte (+ / - / centre) — repositionner à droite du dock
@@ -13666,14 +13903,25 @@ svg {
 /* Account profile rescue: modern traveler profile inside Mon compte. */
 .account-section--profile {
   padding-top: 0;
-  padding-bottom: 10px;
+  padding-bottom: 6px;
 }
 
 .account-profile-card {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.account-section--profile .account-profile-card,
+.account-profile-card.carnet-stats {
+  isolation: auto;
+  overflow: visible;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -13687,8 +13935,8 @@ svg {
   grid-template-columns: 40px minmax(0, 1fr);
   align-items: start;
   gap: 17px;
-  min-height: 118px;
-  padding: 17px 24px;
+  min-height: 124px;
+  padding: 19px 24px;
   overflow: hidden;
   border-radius: 18px;
   color: #fff;
@@ -13816,32 +14064,38 @@ svg {
 .account-profile-achievements {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .account-profile-tag {
-  min-height: 76px;
+  min-height: 100px;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr);
-  align-items: center;
-  gap: 11px;
-  padding: 11px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(199, 218, 242, 0.82);
-  box-shadow: none;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 251, 255, 0.7));
+  border: 1px solid rgba(199, 218, 242, 0.64);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 18px rgba(56, 88, 138, 0.06);
+  backdrop-filter: blur(10px);
 }
 
 .account-profile-tag-icon {
-  width: 38px;
-  height: 38px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  align-self: center;
+  flex-shrink: 0;
+  border-radius: 17px;
   background: #f3f8ff;
   border: 1px solid rgba(199, 218, 242, 0.86);
   box-shadow: none;
-  font-size: 18px;
+  font-size: 25px;
+  line-height: 1;
+  overflow: hidden;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
 }
 
 .account-profile-tag--red .account-profile-tag-icon {
@@ -13867,34 +14121,45 @@ svg {
 .account-profile-tag-body {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  align-content: start;
+  gap: 7px;
+  padding-top: 1px;
 }
 
 .account-profile-tag-body strong {
   color: #17213a;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: var(--weight-bold);
-  line-height: 1.08;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .account-profile-tag-body span {
-  color: #60708c;
-  font-size: 11px;
+  color: #52627c;
+  font-size: 11.5px;
   font-weight: var(--weight-semibold);
-  line-height: 1.25;
+  line-height: 1.34;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(243, 247, 253, 0.96);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .account-profile-continents {
   display: grid;
-  gap: 12px;
-  padding: 15px;
-  margin-bottom: 2px;
+  gap: 13px;
+  padding: 16px 15px;
+  margin-bottom: 0;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(199, 218, 242, 0.82);
@@ -14005,8 +14270,36 @@ svg {
     grid-template-columns: 1fr;
   }
 
+  .account-profile-tag {
+    min-height: 92px;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 11px;
+    padding: 12px;
+  }
+
+  .account-profile-tag-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+  }
+
+  .account-profile-tag-body strong {
+    font-size: 12.5px;
+  }
+
+  .account-profile-tag-body span {
+    font-size: 11px;
+    line-height: 1.28;
+  }
+
   .account-continent-row {
     grid-template-columns: 34px minmax(70px, 1fr) minmax(64px, 1fr) 34px;
     gap: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .account-profile-achievements {
+    gap: 10px;
   }
 }

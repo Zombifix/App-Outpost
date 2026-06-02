@@ -12,6 +12,7 @@ import { useFriendDestinations } from '../hooks/useFriendDestinations'
 import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
 import { getDestinationScore, getDestinationTier } from '../utils'
 import { SegmentedControl } from './SegmentedControl'
+import { t } from '../i18n'
 
 interface TierListPageProps {
   destinations: Destination[]
@@ -24,14 +25,14 @@ const BASE_TIER_FILTERS: TierListFilter[] = ['all', 'recent', 'favorites', 'frie
 const COMPARE_TIER_FILTERS: TierListFilter[] = ['all', 'shared', 'disagreements', 'favorites']
 
 const TIER_FILTER_LABEL: Record<TierListFilter, string> = {
-  all: 'Toutes',
-  recent: 'Recents',
-  favorites: 'Coups de coeur',
-  friends: 'Entre amis',
-  solo: 'Solo',
-  top: 'Top S/A',
-  shared: 'Vues tous les deux',
-  disagreements: 'Avis opposes',
+  all: t('All', 'Toutes'),
+  recent: t('Recent', 'Récents'),
+  favorites: t('Favorites', 'Coups de cœur'),
+  friends: t('With friends', 'Entre amis'),
+  solo: t('Solo', 'Solo'),
+  top: t('Top S/A', 'Top S/A'),
+  shared: t('Both seen', 'Vus tous les deux'),
+  disagreements: t('Disagreements', 'Avis opposés'),
 }
 
 const TIER_FILTER_ICON: Record<TierListFilter, string> = {
@@ -46,12 +47,12 @@ const TIER_FILTER_ICON: Record<TierListFilter, string> = {
 }
 
 const INTENT_LABEL: Record<Intent, string> = {
-  tourisme: 'Tourisme',
-  sorties: 'Sorties',
-  gastro: 'Gastronomie',
-  nature: 'Nature',
-  travail: 'Travail',
-  'city-trip': 'City-trip',
+  tourisme: t('Tourism', 'Tourisme'),
+  sorties: t('Nightlife', 'Sorties'),
+  gastro: t('Food & Gastronomy', 'Gastronomie'),
+  nature: t('Nature', 'Nature'),
+  travail: t('Work', 'Travail'),
+  'city-trip': t('City trip', 'City-trip'),
 }
 
 const INTENT_EMOJI: Record<Intent, string> = {
@@ -66,9 +67,9 @@ const INTENT_EMOJI: Record<Intent, string> = {
 const COMPANION_LABEL: Record<NonNullable<Destination['companions']>, string> = {
   solo: 'Solo',
   couple: 'Couple',
-  amis: 'Amis',
-  famille: 'Famille',
-  travail: 'Travail',
+  amis: t('Friends', 'Amis'),
+  famille: t('Family', 'Famille'),
+  travail: 'Work',
 }
 
 const COMPANION_EMOJI: Record<NonNullable<Destination['companions']>, string> = {
@@ -139,19 +140,19 @@ const DEMO_FRIEND_DESTINATIONS: Record<string, Destination[]> = {
 }
 
 const TIER_DESCRIPTIONS: Record<Tier, string> = {
-  S: 'Des expériences rares, marquantes, qui restent en mémoire.',
-  A: 'De très belles expériences, que j\'ai vraiment adorées.',
-  B: 'Des expériences agréables, sans être particulièrement marquantes.',
-  C: 'Des expériences mitigées, pas mauvaises, mais pas mémorables.',
-  D: 'Des expériences décevantes, que je ne referais pas.',
+  S: t('Rare, defining experiences that stay with you.', 'Des expériences rares, marquantes, qui restent en mémoire.'),
+  A: t('Really great experiences I truly loved.', "De très belles expériences, que j'ai vraiment adorées."),
+  B: t('Pleasant experiences, nothing exceptional.', 'Des expériences agréables, sans être particulièrement marquantes.'),
+  C: t('Mixed experiences — not bad, but not memorable.', 'Des expériences mitigées, pas mauvaises, mais pas mémorables.'),
+  D: t('Disappointing experiences I would not repeat.', 'Des expériences décevantes, que je ne referais pas.'),
 }
 
 const TIER_LABEL: Record<Tier, string> = {
-  S: 'Exceptionnel',
-  A: 'Génial',
-  B: 'Correct',
-  C: 'Bof',
-  D: 'À éviter',
+  S: t('Exceptional', 'Exceptionnel'),
+  A: t('Great', 'Génial'),
+  B: t('Decent', 'Correct'),
+  C: t('Meh', 'Bof'),
+  D: t('Avoid', 'À éviter'),
 }
 
 function filterDestinations(list: Destination[], filter: TierListFilter, compareList: Destination[] = []): Destination[] {
@@ -209,7 +210,7 @@ function DestCard({
       className={`dest-card ${isCoupDeCoeur ? 'is-coup-de-coeur' : ''}`}
       style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
     >
-      {isShared && <span className="dest-card-shared-badge">En commun</span>}
+      {isShared && <span className="dest-card-shared-badge">t('In common', 'En commun')</span>}
       <button
         type="button"
         className="dest-card-main"
@@ -221,7 +222,7 @@ function DestCard({
           <span className="dest-card-country">{destination.country}</span>
           <div className="dest-card-chips">
             <span className="dest-chip dest-chip--intent">{intentEmoji} {intentLabel}</span>
-            {isCoupDeCoeur && <span className="dest-chip dest-chip--favorite">❤️ Coup de coeur</span>}
+            {isCoupDeCoeur && <span className="dest-chip dest-chip--favorite">❤️ Favorite</span>}
           </div>
         </div>
       </button>
@@ -264,16 +265,16 @@ function ComparisonBanner({
   const friendIntent = getDominantIntent(friendDests)
   const budgetLead = myBudget !== null && friendBudget !== null
     ? myBudget < friendBudget
-      ? 'tu voyages plus leger'
+      ? 'you travel lighter'
       : myBudget > friendBudget
-        ? `${friendFirstName} voyage plus leger`
-        : 'budget similaire'
-    : 'budget a completer'
+        ? `${friendFirstName} travels lighter`
+        : 'similar budget'
+    : 'budget incomplete'
   const verdict = alignmentScore >= 70
-    ? 'Profils proches'
+    ? 'Similar profiles'
     : gapCount > sameCount
-      ? 'Vrais partis pris'
-      : 'Compatibles'
+      ? 'Strong opinions'
+      : 'Compatible'
 
   return (
     <div className="comparison-banner">
@@ -284,19 +285,19 @@ function ComparisonBanner({
         {friend.initials}
       </div>
       <div className="comparison-banner-info">
-        <strong>Comparatif avec {friend.name}</strong>
+        <strong>Comparison with {friend.name}</strong>
         <span className="comparison-smart-summary">✨ {verdict} · {budgetLead}</span>
       </div>
-      <div className="comparison-insights" aria-label="Comparatif de style">
-        <ComparisonInsight icon="💸" label="Depenses" value={`${formatEuroAverage(myBudget).replace(' €', '')} / ${formatEuroAverage(friendBudget)}`} />
-        <ComparisonInsight icon="⏱" label="Sejours" value={`${formatDayAverage(myDays)} vs ${formatDayAverage(friendDays)}`} />
+      <div className="comparison-insights" aria-label="Style comparison">
+        <ComparisonInsight icon="💸" label="Spending" value={`${formatEuroAverage(myBudget).replace(' €', '')} / ${formatEuroAverage(friendBudget)}`} />
+        <ComparisonInsight icon="⏱" label="Trips" value={`${formatDayAverage(myDays)} vs ${formatDayAverage(friendDays)}`} />
         <ComparisonInsight icon="🧭" label="Styles" value={`${myIntent} vs ${friendIntent}`} />
-        <ComparisonInsight icon="🤝" label="Accord" value={`${alignmentScore}% · ${commonCount} communs`} />
+        <ComparisonInsight icon="🤝" label="Match" value={`${alignmentScore}% · ${commonCount} shared`} />
         {widestGap && (
-          <ComparisonInsight icon="⚡" label="Ecart" value={`${widestGap.my.name} · ${getDestinationTier(widestGap.my)}/${getDestinationTier(widestGap.theirs)}`} />
+          <ComparisonInsight icon="⚡" label="Gap" value={`${widestGap.my.name} · ${getDestinationTier(widestGap.my)}/${getDestinationTier(widestGap.theirs)}`} />
         )}
       </div>
-      <button className="comparison-banner-close" onClick={onClose} aria-label="Fermer la comparaison">×</button>
+      <button className="comparison-banner-close" onClick={onClose} aria-label="Close comparison">×</button>
     </div>
   )
 }
@@ -337,10 +338,10 @@ function DestinationPreview({
         </span>
       </div>
       <div className="tier-destination-preview-body">
-        <button className="tier-destination-preview-close" onClick={onClose} aria-label="Fermer l'apercu">×</button>
+        <button className="tier-destination-preview-close" onClick={onClose} aria-label="Close preview">×</button>
         <div className="tier-preview-heading">
           <span className={`tier-orb tier-${tier.toLowerCase()}`}>{tier}</span>
-          {destination.coupDeCoeur && <span className="tier-preview-favorite">♥ Coup de coeur</span>}
+          {destination.coupDeCoeur && <span className="tier-preview-favorite">♥ Favorite</span>}
         </div>
         <h3>{destination.name}, {destination.country}</h3>
         {destination.summary && <p>{destination.summary}</p>}
@@ -354,12 +355,12 @@ function DestinationPreview({
         </dl>
         {destination.standout && (
           <div className="tier-preview-note">
-            <span>✨ Marquant</span>
+            <span>✨ Highlight</span>
             <strong>{destination.standout}</strong>
           </div>
         )}
         <button className="tier-preview-map-button" onClick={() => onOpenMap(destination.name)}>
-          Voir sur la carte
+          See on map
         </button>
       </div>
     </aside>
@@ -424,8 +425,8 @@ function TierRow({
           <div className="tier-row-col tier-row-col-me">
             {friend && (
               <p className="tier-row-col-label tier-row-col-label-me">
-                <span className="tier-row-owner-avatar">Moi</span>
-                <strong>Mon classement</strong>
+                <span className="tier-row-owner-avatar">Me</span>
+                <strong>My rankings</strong>
               </p>
             )}
             <div className="tier-list-row-strip">
@@ -437,7 +438,7 @@ function TierRow({
                   onSelect={onSelectMine}
                 />
               ))}
-              {mine.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
+              {mine.length === 0 && <span className="tier-list-empty">{t('No destinations', 'Aucune destination')}</span>}
             </div>
           </div>
 
@@ -458,7 +459,7 @@ function TierRow({
                       onSelect={onSelectFriend}
                     />
                   ))}
-                  {theirs.length === 0 && <span className="tier-list-empty">Aucune destination</span>}
+                  {theirs.length === 0 && <span className="tier-list-empty">No destinations</span>}
                 </div>
               </div>
             </>
@@ -545,7 +546,7 @@ export default function TierListPage({
               <path d="M2.5 8h11M8 2.5c-1.5 2-2.5 3.5-2.5 5.5s1 3.5 2.5 5.5M8 2.5c1.5 2 2.5 3.5 2.5 5.5s-1 3.5-2.5 5.5" stroke="currentColor" strokeWidth="1.3" opacity=".6" />
             </svg>
             <strong>{paysCount}</strong>
-            <span>pays</span>
+            <span>{t('countries', 'pays')}</span>
           </div>
           <div className="tier-stat">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -557,7 +558,7 @@ export default function TierListPage({
           {topTiers.length > 0 && (
             <div className="tier-stat tier-stat--top">
               <span style={{ color: TIER_COLORS.S.pin }}>★</span>
-              <span>Top : <strong>{topTiers.map(d => d.name).join(', ')}</strong></span>
+              <span>Top: <strong>{topTiers.map(d => d.name).join(', ')}</strong></span>
             </div>
           )}
         </div>
@@ -566,7 +567,7 @@ export default function TierListPage({
       <div className="tier-list-filter-row">
         <SegmentedControl
           className="tier-list-filters"
-          ariaLabel="Filtrer la tier list"
+          ariaLabel={t('Filter tier list', 'Filtrer la tier list')}
           role="radiogroup"
           size="sm"
           layout="scrollable"
@@ -591,19 +592,19 @@ export default function TierListPage({
               <circle cx="10.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
               <path d="M1 13c0-2.21 2.015-4 4.5-4s4.5 1.79 4.5 4M10.5 9c2.485 0 4.5 1.79 4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
-            {friend ? `${friend.name.split(' ')[0]} ×` : 'Comparer'}
+            {friend ? `${friend.name.split(' ')[0]} ×` : t('Compare', 'Comparer')}
           </button>
 
           {comparePicker && (
             <div className="friend-picker">
               {friend && (
                 <button className="friend-picker-clear" onClick={() => { setFriend(null); setFriendUserId(null); setComparePicker(false) }}>
-                  Desactiver la comparaison
+                  Disable comparison
                 </button>
               )}
               {realFriends.length === 0 && (
                 <p className="friends-muted" style={{ padding: '8px 12px' }}>
-                  Amis demo locaux pour tester la comparaison.
+                  Local demo friends for testing comparison.
                 </p>
               )}
               {realFriends.map(realFriend => {
@@ -658,21 +659,21 @@ export default function TierListPage({
         <section className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
             <h3>{realFriendAccess.deniedReason === 'friends_only'
-              ? 'Cette carte est visible uniquement par ses amis.'
-              : 'Cette carte est privée.'}</h3>
-            <p>La comparaison ne peut pas s'afficher tant que cette carte n'est pas visible pour toi.</p>
+              ? 'This map is visible to friends only.'
+              : 'This map is private.'}</h3>
+            <p>The comparison cannot be shown while this map is not visible to you.</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => { setFriend(null); setFriendUserId(null) }}
             >
-              Fermer la comparaison
+              Close comparison
             </button>
           </div>
         </section>
       )}
 
-      <section className="tier-list-rows" aria-label="Classement par tier">
+      <section className="tier-list-rows" aria-label="{t('Rankings by tier', 'Classement par tier')}">
         {TIER_ORDER.map(tier => (
           <TierRow
             key={tier}
@@ -708,14 +709,14 @@ function getAverage(values: Array<number | undefined>): number | null {
 }
 
 function formatEuroAverage(value: number | null) {
-  if (value === null) return 'n/r'
+  if (value === null) return 'n/a'
   return `${Math.round(value)} €`
 }
 
 function formatDayAverage(value: number | null) {
-  if (value === null) return 'n/r'
+  if (value === null) return 'n/a'
   const rounded = Math.round(value * 10) / 10
-  return `${String(rounded).replace('.', ',')} j`
+  return `${rounded}d`
 }
 
 function getDominantIntent(destinations: Destination[]) {
@@ -729,13 +730,13 @@ function getDominantIntent(destinations: Destination[]) {
 
 function getPreviewStats(destination: Destination) {
   const stats: Array<{ icon: string; label: string; value: string }> = []
-  if (destination.personalBudget) stats.push({ icon: '💸', label: 'Depense', value: `${Math.round(destination.personalBudget)} €` })
-  if (destination.tripDays) stats.push({ icon: '⏱', label: 'Duree', value: `${destination.tripDays} j` })
-  if (destination.tripYear) stats.push({ icon: '🗓', label: 'Voyage', value: String(destination.tripYear) })
-  if (destination.companions) stats.push({ icon: COMPANION_EMOJI[destination.companions], label: 'Avec', value: COMPANION_LABEL[destination.companions] })
+  if (destination.personalBudget) stats.push({ icon: '💸', label: 'Spent', value: `${Math.round(destination.personalBudget)} €` })
+  if (destination.tripDays) stats.push({ icon: '⏱', label: 'Duration', value: `${destination.tripDays}d` })
+  if (destination.tripYear) stats.push({ icon: '🗓', label: 'Year', value: String(destination.tripYear) })
+  if (destination.companions) stats.push({ icon: COMPANION_EMOJI[destination.companions], label: 'With', value: COMPANION_LABEL[destination.companions] })
   stats.push({ icon: INTENT_EMOJI[destination.intent], label: 'Style', value: INTENT_LABEL[destination.intent] })
-  stats.push({ icon: '⭐', label: 'Score', value: getDestinationScore(destination).toFixed(1).replace('.', ',') })
-  if (destination.value !== undefined) stats.push({ icon: '💶', label: 'Valeur', value: `${destination.value.toFixed(1).replace('.', ',')}/5` })
+  stats.push({ icon: '⭐', label: 'Score', value: getDestinationScore(destination).toFixed(1) })
+  if (destination.value !== undefined) stats.push({ icon: '💶', label: 'Value', value: `${destination.value.toFixed(1)}/5` })
   return stats
 }
 

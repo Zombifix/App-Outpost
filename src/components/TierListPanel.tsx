@@ -5,6 +5,7 @@ import { TIER_COLORS, TIER_ORDER } from '../data'
 import { getDestinationScore, getDestinationTier } from '../utils'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
 import { SegmentedControl } from './SegmentedControl'
+import { t } from '../i18n'
 
 interface TierListPanelProps {
   destinations: Destination[]
@@ -22,23 +23,23 @@ interface TierListPanelProps {
 }
 
 const tierLabels: Record<Tier, string> = {
-  S: 'Exceptional',
-  A: 'Great',
-  B: 'Decent',
-  C: 'Meh',
-  D: 'Avoid',
+  S: t('Exceptional', 'Exceptionnel'),
+  A: t('Great', 'Génial'),
+  B: t('Decent', 'Correct'),
+  C: t('Meh', 'Bof'),
+  D: t('Avoid', 'À éviter'),
 }
 
 type SortMode = 'score' | 'recent'
 
 const sortLabels: Record<SortMode, string> = {
-  score: 'Top rated',
-  recent: 'Most recent',
+  score: t('Top rated', 'Meilleures notes'),
+  recent: t('Most recent', 'Derniers voyages'),
 }
 
 const mobileSortLabels: Record<SortMode, string> = {
-  score: 'By rating',
-  recent: 'By date',
+  score: t('By rating', 'Par note'),
+  recent: t('By date', 'Par date'),
 }
 
 function destinationScore(destination: Destination) {
@@ -72,8 +73,8 @@ export default function TierListPanel({
   compareFriendName,
   compareFriendAvatarUrl,
 }: TierListPanelProps) {
-  const tiersWithItems = TIER_ORDER.filter(t =>
-    destinations.some(d => getDestinationTier(d) === t && d.kind !== 'stop')
+  const tiersWithItems = TIER_ORDER.filter(tier =>
+    destinations.some(d => getDestinationTier(d) === tier && d.kind !== 'stop')
   )
   const [mobileTier, setMobileTier] = useState<Tier | 'all'>('all')
   const [sortMode, setSortMode] = useState<SortMode>('score')
@@ -204,7 +205,7 @@ export default function TierListPanel({
   )
 
   const tierOptions = [
-    { value: 'all' as const, label: 'All' },
+    { value: 'all' as const, label: t('All', 'Tous') },
     ...tiersWithItems.map(tier => ({
       value: tier,
       label: tier,
@@ -220,19 +221,19 @@ export default function TierListPanel({
       : ''
 
   return (
-    <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}${dockClass}`} aria-label="My rankings">
+    <section className={`tier-board ${collapsed ? 'is-collapsed' : ''}${dockClass}`} aria-label={t('My rankings', 'Mon classement')}>
       {/* iOS drag handle — clickable to collapse/expand on mobile */}
       <button
         type="button"
         className="tier-board-handle"
         onClick={onCollapseToggle}
-        aria-label={collapsed ? 'Expand' : 'Collapse'}
+        aria-label={collapsed ? t('Expand', 'Déplier') : t('Collapse', 'Replier')}
       >
         <span className="tier-board-handle-bar" />
         {collapsed && (
           <span className="tier-board-collapsed-hint" aria-hidden="true">
             <span className="tier-board-collapsed-row">
-              <span className="tier-board-collapsed-label">My rankings</span>
+              <span className="tier-board-collapsed-label">{t('My rankings', 'Mon classement')}</span>
               <span className="tier-board-collapsed-counts" aria-label="Summary by rating">
                 {tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
                   <span
@@ -276,7 +277,7 @@ export default function TierListPanel({
 
       <div className="tier-board-head">
         <div className="tier-board-title">
-          <h2>My rankings <span>· {rankedDestinationsCount}</span></h2>
+          <h2>{t('My rankings', 'Mon classement')} <span>· {rankedDestinationsCount}</span></h2>
           {collapsed && (
             <div className="tier-board-title-counts" aria-label="Summary by rating">
               {tierCountChips}
@@ -289,13 +290,13 @@ export default function TierListPanel({
           )}
           <button
             className="next-control-inline next-control-inline--fold"
-            aria-label={collapsed ? 'Expand rankings' : 'Collapse rankings'}
+            aria-label={collapsed ? t('Expand rankings', 'Déplier le classement') : t('Collapse rankings', 'Replier le classement')}
             onClick={onCollapseToggle}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={collapsed ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
             </svg>
-            <span>{collapsed ? 'Expand' : 'Collapse'}</span>
+            <span>{collapsed ? t('Expand', 'Déplier') : t('Collapse', 'Replier')}</span>
           </button>
         </div>
       </div>
@@ -303,7 +304,7 @@ export default function TierListPanel({
       <div className="tier-desktop-tabs" aria-label="Filtrer par tier">
         <SegmentedControl
           className="tier-desktop-tabs-list"
-          ariaLabel="Filter by tier"
+          ariaLabel={t('Filter by tier', 'Filtrer par tier')}
           role="radiogroup"
           size="sm"
           layout="hug"
@@ -319,7 +320,7 @@ export default function TierListPanel({
       <div className="tier-mobile-section">
         <div className="tier-mobile-topline">
           <div className="tier-mobile-title-row">
-            <h2 className="tier-mobile-title">My rankings</h2>
+            <h2 className="tier-mobile-title">{t('My rankings', 'Mon classement')}</h2>
             <span className="tier-mobile-total-badge" aria-label={`${rankedDestinationsCount} ranked destinations`}>
               {rankedDestinationsCount}
             </span>
@@ -383,7 +384,7 @@ export default function TierListPanel({
       <div className="tier-rail">
         <button
           className="tier-rail-control tier-rail-control-prev"
-          aria-label="See previous tiers"
+          aria-label={t('See previous tiers', 'Voir les tiers précédents')}
           disabled={!canScrollPrev}
           onClick={() => scrollRail(-1)}
         >
@@ -454,7 +455,7 @@ export default function TierListPanel({
         </div>
         <button
           className="tier-rail-control tier-rail-control-next"
-          aria-label="See next tiers"
+          aria-label={t('See next tiers', 'Voir les tiers suivants')}
           disabled={!canScrollNext}
           onClick={() => scrollRail(1)}
         >

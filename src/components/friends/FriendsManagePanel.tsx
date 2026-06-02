@@ -3,6 +3,7 @@ import { Avatar } from '../Avatar'
 import { useFriends } from '../../hooks/useFriends'
 import type { Friendship } from '../../types'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { t } from '../../i18n'
 
 interface FriendsManagePanelProps {
   onClose: () => void
@@ -24,52 +25,52 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
   const trapRef = useFocusTrap<HTMLDivElement>(true)
 
   return (
-    <div ref={trapRef} className="manage-overlay" role="dialog" aria-modal="true" aria-label="Gestion des amis" onClick={onClose}>
+    <div ref={trapRef} className="manage-overlay" role="dialog" aria-modal="true" aria-label={t('Manage friends', 'Gestion des amis')} onClick={onClose}>
       <aside className="manage-panel" onClick={e => e.stopPropagation()}>
         <header className="manage-head">
           <div className="manage-title">
-            <h2>Amis</h2>
+            <h2>{t('Friends', 'Amis')}</h2>
             <span className="manage-count">{accepted.length}</span>
           </div>
           <button
             type="button"
             className="manage-add"
             onClick={onOpenAddFriend}
-            aria-label="Ajouter un ami"
+            aria-label={t('Add a friend', 'Ajouter un ami')}
           >
             <PlusIcon />
-            <span>Ajouter</span>
+            <span>{t('Add', 'Ajouter')}</span>
           </button>
           <button
             type="button"
             className="manage-close"
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('Close', 'Fermer')}
           >
             <CloseIcon />
           </button>
         </header>
 
         {error && <p className="friends-feedback-err" style={{ margin: 0 }}>{error}</p>}
-        {loading && <p className="friends-muted">Chargement…</p>}
+        {loading && <p className="friends-muted">{t('Loading…', 'Chargement…')}</p>}
 
         <div className="manage-body">
           {isEmpty && !loading && (
-            <EmptyState label="Personne pour l'instant. Ajoute quelqu'un par pseudo, email ou lien." />
+            <EmptyState label={t('No one yet. Add someone by username, email, or link.', 'Personne pour l\'instant. Ajoute quelqu\'un par pseudo, email ou lien.')} />
           )}
 
           {incoming.length > 0 && (
-            <RowGroup label={`Reçues · ${incoming.length}`}>
+            <RowGroup label={`${t('Received', 'Reçues')} · ${incoming.length}`}>
               {incoming.map(f => (
                 <ManageRow
                   key={f.otherUser}
                   friendship={f}
                   actions={
                     <>
-                      <IconButton tone="accept" title="Accepter" onClick={() => acceptRequest(f.otherUser)}>
+                      <IconButton tone="accept" title={t('Accept', 'Accepter')} onClick={() => acceptRequest(f.otherUser)}>
                         <CheckIcon />
                       </IconButton>
-                      <IconButton tone="reject" title="Refuser" onClick={() => removeFriendship(f.otherUser)}>
+                      <IconButton tone="reject" title={t('Decline', 'Refuser')} onClick={() => removeFriendship(f.otherUser)}>
                         <CloseIcon />
                       </IconButton>
                     </>
@@ -80,14 +81,14 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
           )}
 
           {outgoing.length > 0 && (
-            <RowGroup label={`Envoyées · ${outgoing.length}`}>
+            <RowGroup label={`${t('Sent', 'Envoyées')} · ${outgoing.length}`}>
               {outgoing.map(f => (
                 <ManageRow
                   key={f.otherUser}
                   friendship={f}
-                  statusLabel="En attente"
+                  statusLabel={t('Pending', 'En attente')}
                   actions={
-                    <IconButton tone="neutral" title="Annuler" onClick={() => removeFriendship(f.otherUser)}>
+                    <IconButton tone="neutral" title={t('Cancel', 'Annuler')} onClick={() => removeFriendship(f.otherUser)}>
                       <CloseIcon />
                     </IconButton>
                   }
@@ -97,7 +98,7 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
           )}
 
           {accepted.length > 0 && (
-            <RowGroup label={`Mes amis · ${accepted.length}`}>
+            <RowGroup label={`${t('My friends', 'Mes amis')} · ${accepted.length}`}>
               {accepted.map(f => {
                 const isConfirming = confirmingRemove === f.otherUser
                 return (
@@ -105,17 +106,17 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
                     key={f.otherUser}
                     friendship={f}
                     onOpen={isConfirming ? undefined : () => onViewFriendCarnet(f)}
-                    hint="Voir sa carte"
-                    statusLabel={isConfirming ? `Retirer ${f.displayName} ?` : undefined}
+                    hint={t('View their map', 'Voir sa carte')}
+                    statusLabel={isConfirming ? `${t('Remove', 'Retirer')} ${f.displayName}?` : undefined}
                     actions={isConfirming ? (
                       <>
-                        <IconButton tone="reject" title="Confirmer le retrait" onClick={() => {
+                        <IconButton tone="reject" title={t('Confirm removal', 'Confirmer le retrait')} onClick={() => {
                           setConfirmingRemove(null)
                           void removeFriendship(f.otherUser)
                         }}>
                           <CheckIcon />
                         </IconButton>
-                        <IconButton tone="neutral" title="Annuler" onClick={() => setConfirmingRemove(null)}>
+                        <IconButton tone="neutral" title={t('Cancel', 'Annuler')} onClick={() => setConfirmingRemove(null)}>
                           <CloseIcon />
                         </IconButton>
                       </>
@@ -124,7 +125,7 @@ export default function FriendsManagePanel({ onClose, onOpenAddFriend, onViewFri
                         <CompareButton onClick={() => onCompareFriend(f)} />
                         <IconButton
                           tone="neutral"
-                          title="Retirer"
+                          title={t('Remove', 'Retirer')}
                           onClick={() => setConfirmingRemove(f.otherUser)}
                         >
                           <CloseIcon />
@@ -171,7 +172,7 @@ function ManageRow({ friendship: f, onOpen, statusLabel, hint, actions }: Manage
         className="manage-row-identity"
         onClick={onOpen}
         disabled={!onOpen}
-        title={onOpen ? (hint ?? `Voir le carnet de ${f.displayName}`) : undefined}
+        title={onOpen ? (hint ?? t(`View ${f.displayName}'s journal`, `Voir le carnet de ${f.displayName}`)) : undefined}
       >
         <Avatar avatarUrl={f.avatarUrl} initials={f.displayName} bg={f.avatarBg} fg={f.avatarFg} className="manage-avatar" />
         <span className="manage-row-meta">
@@ -189,12 +190,12 @@ function CompareButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       className="manage-compare-btn"
-      aria-label="Comparer nos cartes"
-      title="Comparer nos cartes"
+      aria-label={t('Compare our maps', 'Comparer nos cartes')}
+      title={t('Compare our maps', 'Comparer nos cartes')}
       onClick={onClick}
     >
       <CompareIcon />
-      <span>Comparer</span>
+      <span>{t('Compare', 'Comparer')}</span>
     </button>
   )
 }

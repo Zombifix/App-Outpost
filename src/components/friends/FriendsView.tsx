@@ -5,6 +5,7 @@ import { useActivityFeed } from '../../hooks/useActivityFeed'
 import { useAuth } from '../../lib/auth'
 import { supabaseConfigured } from '../../lib/supabase'
 import { FAKE_FRIENDS_MODE } from '../../hooks/_fakeFriends'
+import { t } from '../../i18n'
 import AddFriendModal from './AddFriendModal'
 import ActivityStrip from './ActivityStrip'
 import type { Friendship } from '../../types'
@@ -34,8 +35,8 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
     }
     return (
       <main className="friends-view friends-view--unconfigured">
-        <h2>Amis</h2>
-        <p>Cette fonctionnalité n'est pas encore disponible.</p>
+        <h2>{t('Friends', 'Amis')}</h2>
+        <p>{t('This feature is not available yet.', 'Cette fonctionnalité n\'est pas encore disponible.')}</p>
       </main>
     )
   }
@@ -43,8 +44,8 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
   if (!user && !FAKE_FRIENDS_MODE) {
     return (
       <main className="friends-view friends-view--signin">
-        <h2>Connecte-toi pour voir tes amis</h2>
-        <p>Ouvre le menu "Compte" en haut à droite pour te connecter par email.</p>
+        <h2>{t('Sign in to see your friends', 'Connecte-toi pour voir tes amis')}</h2>
+        <p>{t('Open the "Account" menu in the top right to sign in.', 'Ouvre le menu "Compte" en haut à droite pour te connecter.')}</p>
       </main>
     )
   }
@@ -52,58 +53,58 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
   const isEmpty = accepted.length === 0 && incoming.length === 0 && outgoing.length === 0
 
   return (
-    <main className="friends-view" aria-label="Mes amis">
+    <main className="friends-view" aria-label={t('My friends', 'Mes amis')}>
       <header className="friends-header">
         <div className="friends-header-text">
-          <h1>Amis</h1>
+          <h1>{t('Friends', 'Amis')}</h1>
           <p className="friends-header-stats">
-            <span><strong>{accepted.length}</strong> ami{accepted.length > 1 ? 's' : ''}</span>
+            <span><strong>{accepted.length}</strong> {t(accepted.length > 1 ? 'friends' : 'friend', accepted.length > 1 ? 'amis' : 'ami')}</span>
             <span aria-hidden="true"> · </span>
-            <span><strong>{incoming.length}</strong> demande{incoming.length > 1 ? 's' : ''} en attente</span>
+            <span><strong>{incoming.length}</strong> {t(`pending ${incoming.length > 1 ? 'requests' : 'request'}`, `demande${incoming.length > 1 ? 's' : ''} en attente`)}</span>
             <span aria-hidden="true"> · </span>
-            <span><strong>{sharedCount}</strong> destination{sharedCount > 1 ? 's' : ''} partagée{sharedCount > 1 ? 's' : ''} ce mois</span>
+            <span><strong>{sharedCount}</strong> {t(`${sharedCount > 1 ? 'destinations' : 'destination'} shared this month`, `destination${sharedCount > 1 ? 's' : ''} partagée${sharedCount > 1 ? 's' : ''} ce mois`)}</span>
           </p>
         </div>
         <button className="friends-action-btn friends-action-secondary" onClick={() => setAddOpen(true)}>
-          + Ajouter un ami
+          + {t('Add a friend', 'Ajouter un ami')}
         </button>
       </header>
 
       {error && <p className="friends-feedback-err">{error}</p>}
-      {loading && <p className="friends-muted">Chargement…</p>}
+      {loading && <p className="friends-muted">{t('Loading…', 'Chargement…')}</p>}
 
       {isEmpty && !loading && (
         <section className="friends-empty">
-          <h3>Personne pour l'instant</h3>
-          <p>Invite quelqu'un par email, ajoute-le par pseudo ou partage ton lien.</p>
-          <button className="add-submit" onClick={() => setAddOpen(true)}>+ Ajouter mon premier ami</button>
+          <h3>{t('No one yet', 'Personne pour l\'instant')}</h3>
+          <p>{t('Invite someone by email, add them by username, or share your link.', 'Invite quelqu\'un par email, ajoute-le par pseudo ou partage ton lien.')}</p>
+          <button className="add-submit" onClick={() => setAddOpen(true)}>+ {t('Add my first friend', 'Ajouter mon premier ami')}</button>
         </section>
       )}
 
       {!isEmpty && (
         <div className="friends-layout">
           <section className="friends-feed">
-            <SectionHead title="Activité récente" />
+            <SectionHead title={t('Recent activity', 'Activité récente')} />
             {accepted.length > 0 ? (
               <ActivityStrip variant="full" onFlyTo={onFlyTo} onOpenProfile={onOpenProfile} />
             ) : (
-              <p className="friends-muted">Ajoute des amis pour voir leurs voyages ici.</p>
+              <p className="friends-muted">{t('Add friends to see their trips here.', 'Ajoute des amis pour voir leurs voyages ici.')}</p>
             )}
           </section>
 
-          <aside className="friends-aside" aria-label="Mes amis et demandes">
+          <aside className="friends-aside" aria-label={t('My friends and requests', 'Mes amis et demandes')}>
             {incoming.length > 0 && (
               <section className="friends-section">
-                <SectionHead title="Demandes reçues" count={incoming.length} tone="accent" />
+                <SectionHead title={t('Received requests', 'Demandes reçues')} count={incoming.length} tone="accent" />
                 <div className="friends-list">
                   {incoming.map(f => (
                     <FriendRow
                       key={f.otherUser}
                       friendship={f}
                       onOpenProfile={onOpenProfile}
-                      primaryLabel="Accepter"
+                      primaryLabel={t('Accept', 'Accepter')}
                       onPrimary={() => acceptRequest(f.otherUser)}
-                      secondaryLabel="Refuser"
+                      secondaryLabel={t('Decline', 'Refuser')}
                       onSecondary={() => removeFriendship(f.otherUser)}
                       accent
                       compact
@@ -115,15 +116,15 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
 
             {outgoing.length > 0 && (
               <section className="friends-section">
-                <SectionHead title="Demandes envoyées" count={outgoing.length} />
+                <SectionHead title={t('Sent requests', 'Demandes envoyées')} count={outgoing.length} />
                 <div className="friends-list">
                   {outgoing.map(f => (
                     <FriendRow
                       key={f.otherUser}
                       friendship={f}
                       onOpenProfile={onOpenProfile}
-                      statusLabel="En attente"
-                      secondaryLabel="Annuler"
+                      statusLabel={t('Pending', 'En attente')}
+                      secondaryLabel={t('Cancel', 'Annuler')}
                       onSecondary={() => removeFriendship(f.otherUser)}
                       compact
                     />
@@ -134,7 +135,7 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
 
             {accepted.length > 0 && (
               <section className="friends-section">
-                <SectionHead title="Mes amis" count={accepted.length} />
+                <SectionHead title={t('My friends', 'Mes amis')} count={accepted.length} />
                 <div className="friends-list">
                   {accepted.map(f => {
                     const isConfirming = confirmingRemove === f.otherUser
@@ -143,12 +144,12 @@ export default function FriendsView({ onOpenProfile, onFlyTo }: FriendsViewProps
                         key={f.otherUser}
                         friendship={f}
                         onOpenProfile={onOpenProfile}
-                        primaryLabel={isConfirming ? 'Confirmer' : undefined}
+                        primaryLabel={isConfirming ? t('Confirm', 'Confirmer') : undefined}
                         onPrimary={isConfirming ? () => {
                           setConfirmingRemove(null)
                           void removeFriendship(f.otherUser)
                         } : undefined}
-                        secondaryLabel={isConfirming ? 'Annuler' : 'Retirer'}
+                        secondaryLabel={isConfirming ? t('Cancel', 'Annuler') : t('Remove', 'Retirer')}
                         onSecondary={() => setConfirmingRemove(isConfirming ? null : f.otherUser)}
                         compact
                       />
@@ -200,7 +201,7 @@ function FriendRow({ friendship, onOpenProfile, primaryLabel, onPrimary, seconda
       <button
         className="friends-row-identity"
         onClick={() => onOpenProfile?.(f.otherUser)}
-        title={`Profil de ${f.displayName}`}
+        title={t(`${f.displayName}'s profile`, `Profil de ${f.displayName}`)}
       >
         <Avatar avatarUrl={f.avatarUrl} initials={f.displayName} bg={f.avatarBg} fg={f.avatarFg} />
         <span className="friends-row-meta">

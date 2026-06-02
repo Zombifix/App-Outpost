@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Avatar } from '../Avatar'
 import { useFriends } from '../../hooks/useFriends'
+import { t } from '../../i18n'
 
 interface FriendsOnMapPanelProps {
   onOpenProfile: (userId: string) => void
@@ -28,9 +29,9 @@ export default function FriendsOnMapPanel({ onOpenProfile, onAddFriend }: Friend
         </button>
         {!collapsed && (
           <>
-            <h4>Amis</h4>
-            <p className="friends-muted">Personne pour l'instant.</p>
-            <button className="add-submit" onClick={onAddFriend}>+ Ajouter un ami</button>
+            <h4>{t('Friends', 'Amis')}</h4>
+            <p className="friends-muted">{t('No one yet.', 'Personne pour l\'instant.')}</p>
+            <button className="add-submit" onClick={onAddFriend}>+ {t('Add a friend', 'Ajouter un ami')}</button>
           </>
         )}
       </aside>
@@ -38,10 +39,10 @@ export default function FriendsOnMapPanel({ onOpenProfile, onAddFriend }: Friend
   }
 
   return (
-    <aside className="panel-friends-on-map" aria-label="Amis sur la carte">
+    <aside className="panel-friends-on-map" aria-label={t('Friends on map', 'Amis sur la carte')}>
       <header className="panel-friends-header">
-        <h4>Amis</h4>
-        <button className="panel-friends-collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? 'Déplier' : 'Replier'}>
+        <h4>{t('Friends', 'Amis')}</h4>
+        <button className="panel-friends-collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? t('Expand', 'Déplier') : t('Collapse', 'Replier')}>
           {collapsed ? '▴' : '▾'}
         </button>
       </header>
@@ -60,7 +61,7 @@ export default function FriendsOnMapPanel({ onOpenProfile, onAddFriend }: Friend
               </li>
             ))}
           </ul>
-          <button className="panel-friends-add" onClick={onAddFriend}>+ Ajouter un ami</button>
+          <button className="panel-friends-add" onClick={onAddFriend}>+ {t('Add a friend', 'Ajouter un ami')}</button>
         </>
       )}
     </aside>

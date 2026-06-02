@@ -4,6 +4,7 @@ import { useFriends } from '../../hooks/useFriends'
 import { useAuth } from '../../lib/auth'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { SegmentedControl } from '../SegmentedControl'
+import { t } from '../../i18n'
 
 type Tab = 'email' | 'handle' | 'link'
 
@@ -60,39 +61,38 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
     const res = await sendRequestByUserId(profile.userId)
     if (res.ok) {
       setSentTo(prev => new Set(prev).add(profile.userId))
-      setFeedback({ kind: 'ok', msg: `Demande envoyée à @${profile.handle}` })
+      setFeedback({ kind: 'ok', msg: t(`Request sent to @${profile.handle}`, `Demande envoyée à @${profile.handle}`) })
     } else {
-      setFeedback({ kind: 'err', msg: res.error ?? 'Erreur inconnue' })
+      setFeedback({ kind: 'err', msg: res.error ?? t('Unknown error', 'Erreur inconnue') })
     }
   }
 
   const sendEmail = async () => {
     const cleaned = email.trim().toLowerCase()
     if (!cleaned || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
-      setFeedback({ kind: 'err', msg: 'Email invalide' })
+      setFeedback({ kind: 'err', msg: 'Invalid email' })
       return
     }
     setEmailBusy(true)
     const inv = await createEmailInvite(cleaned)
     if (inv.error || !inv.token) {
-      setFeedback({ kind: 'err', msg: inv.error ?? 'Erreur invitation' })
+      setFeedback({ kind: 'err', msg: inv.error ?? t('Invite error', 'Erreur invitation') })
       setEmailBusy(false)
       return
     }
     const link = buildInviteLink(inv.token)
     setEmailInviteLink(link)
     setEmailBusy(false)
-    setFeedback({ kind: 'ok', msg: `Lien prêt pour ${cleaned}. Copie-le et envoie-le depuis ton app de messagerie.` })
+    setFeedback({ kind: 'ok', msg: `Link ready for ${cleaned}. Copy it and send it from your messaging app.` })
   }
 
   const generateInviteLink = async () => {
     if (inviteToken) return
     setInviteBusy(true)
-    // Un token d'invitation générique sans email cible — créé pour partage libre
     const inv = await createEmailInvite(`invite+${Date.now()}@outpost.local`)
     setInviteBusy(false)
     if (inv.token) setInviteToken(inv.token)
-    else setFeedback({ kind: 'err', msg: inv.error ?? 'Impossible de créer le lien' })
+    else setFeedback({ kind: 'err', msg: inv.error ?? 'Could not create link' })
   }
 
   const shareLink = useMemo(() => {
@@ -107,7 +107,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
       setLinkCopied(true)
       window.setTimeout(() => setLinkCopied(false), 1800)
     } catch {
-      setFeedback({ kind: 'err', msg: 'Copie impossible — sélectionne le lien manuellement.' })
+      setFeedback({ kind: 'err', msg: 'Could not copy — select the link manually.' })
     }
   }
 
@@ -118,7 +118,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
       setLinkCopied(true)
       window.setTimeout(() => setLinkCopied(false), 1800)
     } catch {
-      setFeedback({ kind: 'err', msg: 'Copie impossible — sélectionne le lien manuellement.' })
+      setFeedback({ kind: 'err', msg: 'Could not copy — select the link manually.' })
     }
   }
 
@@ -126,7 +126,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
     if (!shareLink) return
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Rejoins-moi sur Outpost', url: shareLink })
+        await navigator.share({ title: 'Join me on Outpost', url: shareLink })
       } else {
         await copyLink()
       }
@@ -136,31 +136,31 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
   const trapRef = useFocusTrap<HTMLDivElement>(true)
 
   return (
-    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Ajouter un ami" onClick={onClose}>
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label={t('Add a friend', 'Ajouter un ami')} onClick={onClose}>
       <aside
         className="account-panel friends-add-panel"
         onClick={e => e.stopPropagation()}
       >
-        <button className="floating-close" aria-label="Fermer" onClick={onClose}>
+        <button className="floating-close" aria-label={t('Close', 'Fermer')} onClick={onClose}>
           <CloseIcon />
         </button>
 
-        <h2>Ajouter un ami</h2>
+        <h2>{t('Add a friend', 'Ajouter un ami')}</h2>
         <p className="account-hint">
-          Trouve quelqu'un par pseudo, invite-le par email, ou partage ton lien personnel.
+          {t('Find someone by username, invite them by email, or share your personal link.', 'Trouve quelqu\'un par pseudo, invite-le par email, ou partage ton lien personnel.')}
         </p>
 
         <SegmentedControl
           className="friends-tabs"
-          ariaLabel="Ajouter un ami"
+          ariaLabel={t('Add a friend', 'Ajouter un ami')}
           role="tablist"
           size="sm"
           layout="fill"
           value={tab}
           options={[
-            { value: 'handle', label: '@ Pseudo' },
+            { value: 'handle', label: t('@ Username', '@ Pseudo') },
             { value: 'email', label: 'Email' },
-            { value: 'link', label: 'Lien' },
+            { value: 'link', label: t('Link', 'Lien') },
           ]}
           onChange={nextTab => {
             setTab(nextTab)
@@ -171,7 +171,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
         {tab === 'handle' && (
           <div className="friends-tab-pane">
             <label>
-              Pseudo ou nom
+              {t('Username or name', 'Pseudo ou nom')}
               <input
                 value={handleQuery}
                 onChange={e => setHandleQuery(e.target.value)}
@@ -180,9 +180,9 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
               />
             </label>
             <div className="friends-results">
-              {searching && <p className="friends-muted">Recherche…</p>}
+              {searching && <p className="friends-muted">{t('Searching…', 'Recherche…')}</p>}
               {!searching && handleQuery.trim().length >= 2 && results.length === 0 && (
-                <p className="friends-muted">Aucun profil trouvé pour « {handleQuery} ».</p>
+                <p className="friends-muted">{t('No profile found for', 'Aucun profil trouvé pour')} "{handleQuery}".</p>
               )}
               {results.map(p => (
                 <div className="friends-result-row" key={p.userId}>
@@ -199,8 +199,8 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
                     onClick={() => sendHandle(p)}
                   >
                     {sentTo.has(p.userId)
-                      ? 'Envoyé ✓'
-                      : pendingActions.has(`user:${p.userId}`) ? 'Envoi…' : 'Demander'}
+                      ? t('Sent ✓', 'Envoyé ✓')
+                      : pendingActions.has(`user:${p.userId}`) ? t('Sending…', 'Envoi…') : t('Add', 'Demander')}
                   </button>
                 </div>
               ))}
@@ -211,26 +211,26 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
         {tab === 'email' && (
           <div className="friends-tab-pane">
             <label>
-              Email de l'ami
+              {t("Friend's email", "Email de l'ami")}
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="ami@email.com"
+                placeholder="friend@email.com"
                 autoFocus
               />
             </label>
             <p className="friends-muted">
-              Génère un lien pour cette personne, puis envoie-le depuis ton app de messagerie.
+              {t('Generate a link for this person, then send it from your messaging app.', 'Génère un lien pour cette personne, puis envoie-le depuis ton app de messagerie.')}
             </p>
             <button className="add-submit friends-primary-action" onClick={sendEmail} disabled={emailBusy}>
-              {emailBusy ? 'Création…' : 'Créer le lien'}
+              {emailBusy ? t('Creating…', 'Création…') : t('Create link', 'Créer le lien')}
             </button>
             {emailInviteLink && (
               <div className="friends-share-box">
                 <input readOnly value={emailInviteLink} onClick={e => (e.target as HTMLInputElement).select()} />
                 <button className="friends-secondary-action" onClick={copyEmailLink}>
-                  {linkCopied ? 'Copié' : 'Copier'}
+                  {linkCopied ? t('Copied', 'Copié') : t('Copy', 'Copier')}
                 </button>
               </div>
             )}
@@ -240,25 +240,25 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
         {tab === 'link' && (
           <div className="friends-tab-pane">
             <p className="friends-muted">
-              Partage ce lien à qui tu veux ; toute personne qui se connecte avec deviendra ami avec toi.
+              {t('Share this link with anyone; whoever signs in with it will become your friend.', 'Partage ce lien à qui tu veux ; toute personne qui se connecte avec deviendra ami avec toi.')}
             </p>
             {!inviteToken && (
               <button className="add-submit friends-primary-action" onClick={generateInviteLink} disabled={inviteBusy}>
-                {inviteBusy ? 'Création…' : 'Générer mon lien d\'invitation'}
+                {inviteBusy ? t('Creating…', 'Création…') : t("Generate my invite link", "Générer mon lien d'invitation")}
               </button>
             )}
             {inviteToken && (
               <>
                 <label>
-                  Ton lien
+                  {t('Your link', 'Ton lien')}
                   <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
                 </label>
                 <div className="friends-link-actions">
                   <button className="add-submit friends-primary-action" onClick={copyLink}>
-                    {linkCopied ? 'Copié ✓' : 'Copier'}
+                    {linkCopied ? t('Copied ✓', 'Copié ✓') : t('Copy', 'Copier')}
                   </button>
                   <button className="friends-secondary-action" onClick={nativeShare}>
-                    Partager
+                    {t('Share', 'Partager')}
                   </button>
                 </div>
               </>

@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
+import { t } from '../i18n'
 
 interface Props {
   children: ReactNode
@@ -49,9 +50,9 @@ export default class ErrorBoundary extends Component<Props, State> {
           color: '#2a2a2a',
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 22 }}>Oups, quelque chose s'est cassé</h1>
+        <h1 style={{ margin: 0, fontSize: 22 }}>{t('Something went wrong', 'Oups, quelque chose s\'est cassé')}</h1>
         <p style={{ margin: 0, maxWidth: 420, opacity: 0.8 }}>
-          Recharge la page pour repartir. Tes données restent en sécurité dans ton navigateur.
+          {t('Reload the page to continue. Your data remains safely stored in your browser.', 'Recharge la page pour repartir. Tes données restent en sécurité dans ton navigateur.')}
         </p>
         {this.state.message && (
           <code style={{
@@ -80,7 +81,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             cursor: 'pointer',
           }}
         >
-          Recharger
+          {t('Reload', 'Recharger')}
         </button>
       </div>
     )

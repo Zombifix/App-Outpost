@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { Destination } from '../types'
 import { Icon } from './Icon'
+import { t } from '../i18n'
 
 interface DuplicateFoundModalProps {
   existing: Destination
@@ -50,24 +51,24 @@ export default function DuplicateFoundModal({
 
         <div className="duplicate-modal-body">
           <p className="duplicate-modal-eyebrow">
-            {isRoadtrip ? 'Roadtrip déjà enregistré' : 'Déjà dans ta liste'}
+            {isRoadtrip ? t('Roadtrip already saved', 'Roadtrip déjà enregistré') : t('Already in your list', 'Déjà dans ta liste')}
           </p>
           <h2 id="duplicate-modal-title">
-            Tu as déjà <strong>{existing.name}</strong>
+            {t('You already have', 'Tu as déjà')} <strong>{existing.name}</strong>
           </h2>
           <p className="duplicate-modal-text">
             {sameName
-              ? `Pas besoin d'un doublon — tu peux mettre à jour ta fiche existante (notes, photo, souvenir).`
-              : `Tu avais enregistré « ${existing.name} » au même endroit. Met à jour cette fiche plutôt que d'en créer une seconde.`}
+              ? t('No need for a duplicate — you can update your existing entry (notes, photo, memory).', 'Pas besoin d\'un doublon — tu peux mettre à jour ta fiche existante (notes, photo, souvenir).')
+              : t(`You already saved "${existing.name}" at the same location. Update that entry instead.`, `Tu avais enregistré « ${existing.name} » au même endroit. Met à jour cette fiche.`)}
           </p>
 
           <div className="duplicate-modal-actions">
             <button className="duplicate-modal-secondary" onClick={onCancel}>
-              Annuler
+              {t('Cancel', 'Annuler')}
             </button>
             <button className="duplicate-modal-primary" onClick={onMerge}>
               <Icon name="edit" />
-              Mettre à jour
+              {t('Update', 'Mettre à jour')}
             </button>
           </div>
         </div>

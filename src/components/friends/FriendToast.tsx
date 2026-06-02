@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { t } from '../../i18n'
 
 interface FriendToastProps {
   message: string
@@ -22,7 +23,7 @@ export default function FriendToast({ message, onDismiss, duration = 4500 }: Fri
     <div className="friend-toast" role="status" aria-live="polite">
       <span className="friend-toast-icon">👥</span>
       <span className="friend-toast-msg">{message}</span>
-      <button className="friend-toast-close" onClick={onDismiss} aria-label="Fermer">×</button>
+      <button className="friend-toast-close" onClick={onDismiss} aria-label={t('Close', 'Fermer')}>×</button>
     </div>
   )
 }

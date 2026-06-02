@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { useMyProfile } from '../../hooks/useMyProfile'
 import { useAuth } from '../../lib/auth'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { t } from '../../i18n'
 
 type ProfileHook = ReturnType<typeof useMyProfile>
 
@@ -64,27 +65,27 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
     setError(null)
     const cleanedHandle = sanitizeHandle(handle)
     const cleanedName = displayName.trim()
-    if (cleanedHandle.length < 2) { setError('Handle trop court (min 2)'); return }
-    if (!cleanedName) { setError('Nom requis'); return }
-    if (handleStatus === 'taken') { setError('Handle déjà pris'); return }
+    if (cleanedHandle.length < 2) { setError(t('Username too short (min 2)', 'Handle trop court (min 2)')); return }
+    if (!cleanedName) { setError(t('Name required', 'Nom requis')); return }
+    if (handleStatus === 'taken') { setError(t('Username already taken', 'Handle déjà pris')); return }
     setBusy(true)
     const res = await upsert({ handle: cleanedHandle, displayName: cleanedName, avatarUrl: getAvatarUrl(cleanedHandle) })
     setBusy(false)
-    if (!res.ok) setError(res.error ?? 'Erreur')
+    if (!res.ok) setError(res.error ?? t('Error', 'Erreur'))
   }
 
   const trapRef = useFocusTrap<HTMLDivElement>(true)
 
   return (
-    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Créer ton profil">
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label={t('Create your profile', 'Créer ton profil')}>
       <aside className="account-panel friends-add-panel" style={{ maxWidth: 460 }}>
-        <h2 style={{ marginTop: 4 }}>Bienvenue sur Outpost</h2>
+        <h2 style={{ marginTop: 4 }}>{t('Welcome to Outpost', 'Bienvenue sur Outpost')}</h2>
         <p className="account-hint">
-          Choisis un pseudo (handle) et un nom affiché. C'est ce que tes amis verront pour te trouver et comparer leurs tier lists avec la tienne.
+          {t("Choose a username and a display name. That's what your friends will see to find you.", "Choisis un pseudo et un nom affiché. C'est ce que tes amis verront pour te trouver.")}
         </p>
 
         <label>
-          Pseudo
+          {t('Username', 'Pseudo')}
           <div className="profile-setup-handle-wrap">
             <span className="profile-setup-handle-prefix">@</span>
             <input
@@ -99,7 +100,7 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
         <HandleHint status={handleStatus} value={sanitizeHandle(handle)} />
 
         <label>
-          Nom affiché
+          {t('Display name', 'Nom affiché')}
           <input
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
@@ -116,7 +117,7 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
           disabled={busy || handleStatus === 'taken' || handleStatus === 'invalid' || handleStatus === 'checking'}
           style={{ marginTop: 12 }}
         >
-          {busy ? 'Création…' : 'Créer mon profil'}
+          {busy ? t('Creating…', 'Création…') : t('Create my profile', 'Créer mon profil')}
         </button>
 
         <button
@@ -126,7 +127,7 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
             color: '#9ca3af', fontSize: 12, cursor: 'pointer', textDecoration: 'underline',
           }}
         >
-          Me déconnecter
+          {t('Sign out', 'Me déconnecter')}
         </button>
       </aside>
     </div>
@@ -134,11 +135,11 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
 }
 
 function HandleHint({ status, value }: { status: string; value: string }) {
-  if (status === 'idle') return <p className="friends-muted">Minimum 2 caractères, lettres / chiffres / tirets.</p>
-  if (status === 'invalid') return <p className="friends-feedback-err">Handle trop court.</p>
-  if (status === 'checking') return <p className="friends-muted">Vérification…</p>
-  if (status === 'taken') return <p className="friends-feedback-err">@{value} est déjà pris.</p>
-  if (status === 'free') return <p className="friends-feedback-ok">@{value} est disponible ✓</p>
+  if (status === 'idle') return <p className="friends-muted">{t('Min 2 characters, letters / numbers / dashes.', 'Minimum 2 caractères, lettres / chiffres / tirets.')}</p>
+  if (status === 'invalid') return <p className="friends-feedback-err">{t('Username too short.', 'Handle trop court.')}</p>
+  if (status === 'checking') return <p className="friends-muted">{t('Checking…', 'Vérification…')}</p>
+  if (status === 'taken') return <p className="friends-feedback-err">@{value} {t('is already taken.', 'est déjà pris.')}</p>
+  if (status === 'free') return <p className="friends-feedback-ok">@{value} {t('is available ✓', 'est disponible ✓')}</p>
   return null
 }
 

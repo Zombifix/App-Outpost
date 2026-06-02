@@ -4,6 +4,7 @@ import type { Destination, Friendship } from '../types'
 import { BrandLogo } from './BrandLogo'
 import { Avatar } from './Avatar'
 import { useActivityFeed } from '../hooks/useActivityFeed'
+import { t } from '../i18n'
 
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
 
@@ -83,7 +84,7 @@ export default function Nav({
   return (
     <>
       <aside className="sidebar">
-        <button className="brand" onClick={() => onViewChange('map')} aria-label="Accueil">
+        <button className="brand" onClick={() => onViewChange('map')} aria-label={t('Home', 'Accueil')}>
           <BrandLogo />
         </button>
 
@@ -92,10 +93,10 @@ export default function Nav({
           <span>Destination</span>
         </button>
 
-        <nav className="side-menu" aria-label="Navigation principale">
+        <nav className="side-menu" aria-label={t('Main navigation', 'Navigation principale')}>
           <button className={activeView === 'map' ? 'active' : ''} onClick={() => onViewChange('map')}>
             <Icon name="map" />
-            Mon carnet
+            {t('My journal', 'Mon carnet')}
           </button>
           <button className={activeView === 'tier-list' ? 'active' : ''} onClick={() => onViewChange('tier-list')}>
             <Icon name="sliders" />
@@ -103,38 +104,38 @@ export default function Nav({
           </button>
           <button className={activeView === 'explore' ? 'active' : ''} onClick={() => onViewChange('explore')}>
             <Icon name="compass" />
-            Explorer
+            {t('Explore', 'Explorer')}
           </button>
         </nav>
 
       </aside>
 
       <header className="topbar">
-        <div className="topbar-title" aria-label="Titre de la page">
+        <div className="topbar-title" aria-label="Page title">
           {viewingFriend && activeView === 'map' && onBackToMyCarnet && (
             <button
               type="button"
               className="page-title-back"
               onClick={onBackToMyCarnet}
-              aria-label="Retour à mon carnet"
+              aria-label={t('Back to my journal', 'Retour à mon carnet')}
             >
               <Icon name="arrow-left" />
-              <span>Mon carnet</span>
+              <span>{t('My journal', 'Mon carnet')}</span>
             </button>
           )}
           <div className="topbar-title-text">
             <h1>
-              {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · carnet de voyage` : 'Mon carnet de voyages')}
-              {activeView === 'explore' && 'Explorer · Suggestions IA'}
+              {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · ${t('travel journal', 'carnet de voyage')}` : t('My travel journal', 'Mon carnet de voyages'))}
+              {activeView === 'explore' && t('Explore · AI Suggestions', 'Explorer · Suggestions IA')}
               {activeView === 'tier-list' && 'Tier list'}
-              {activeView === 'friends' && 'Amis'}
+              {activeView === 'friends' && t('Friends', 'Amis')}
             </h1>
             {activeView === 'map' && (() => {
-              const paysCount = new Set(destinations.map(d => d.country).filter(Boolean)).size
-              const coeurCount = destinations.filter(d => d.coupDeCoeur).length
+              const countryCount = new Set(destinations.map(d => d.country).filter(Boolean)).size
+              const favCount = destinations.filter(d => d.coupDeCoeur).length
               const bits: string[] = []
-              if (paysCount > 0) bits.push(`${paysCount} pays`)
-              if (coeurCount > 0) bits.push(`${coeurCount} ${coeurCount > 1 ? 'coups de cœur' : 'coup de cœur'}`)
+              if (countryCount > 0) bits.push(`${countryCount} ${t(countryCount > 1 ? 'countries' : 'country', 'pays')}`)
+              if (favCount > 0) bits.push(`${favCount} ${t(favCount > 1 ? 'favorites' : 'favorite', favCount > 1 ? 'coups de cœur' : 'coup de cœur')}`)
               return bits.length > 0 ? <span className="topbar-title-sub">{bits.join(' · ')}</span> : null
             })()}
           </div>
@@ -147,12 +148,12 @@ export default function Nav({
               aria-expanded={filtersOpen}
             >
               <Icon name="sliders" />
-              Filtres{activeFilterCount ? ` (${activeFilterCount})` : ''}
+              {t('Filters', 'Filtres')}{activeFilterCount ? ` (${activeFilterCount})` : ''}
             </button>
             {filtersOpen && (
               <div className="filter-popover">
                 <div className="filter-popover-head">
-                  <strong>Filtres</strong>
+                  <strong>{t('Filters', 'Filtres')}</strong>
                   {activeFilterCount > 0 && (
                     <button
                       type="button"
@@ -164,25 +165,25 @@ export default function Nav({
                 </div>
                 <div className="filter-chip-grid">
                   <button type="button" className={filters.coupDeCoeur ? 'is-active' : ''} onPointerDown={() => updateFilters({ coupDeCoeur: !filters.coupDeCoeur })}>
-                    ❤️ Coups de cœur
+                    ❤️ {t('Favorites', 'Coups de cœur')}
                   </button>
                   <button type="button" className={filters.thisYear ? 'is-active' : ''} onPointerDown={() => updateFilters({ thisYear: !filters.thisYear })}>
-                    📅 Cette année
+                    📅 {t('This year', 'Cette année')}
                   </button>
                 </div>
                 <div className="filter-duration">
-                  <span>Avec qui</span>
+                  <span>{t('With', 'Avec qui')}</span>
                   <div className="filter-grid-2">
-                    <button type="button" className={filters.companions === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'all' })}>Tous</button>
+                    <button type="button" className={filters.companions === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'all' })}>{t('All', 'Tous')}</button>
                     <button type="button" className={filters.companions === 'solo' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'solo' })}>🎒 Solo</button>
-                    <button type="button" className={filters.companions === 'amis' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'amis' })}>👯 Entre amis</button>
-                    <button type="button" className={filters.companions === 'famille' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'famille' })}>👨‍👩‍👧 En famille</button>
+                    <button type="button" className={filters.companions === 'amis' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'amis' })}>👯 {t('With friends', 'Entre amis')}</button>
+                    <button type="button" className={filters.companions === 'famille' ? 'is-active' : ''} onPointerDown={() => updateFilters({ companions: 'famille' })}>👨‍👩‍👧 {t('With family', 'En famille')}</button>
                   </div>
                 </div>
                 <div className="filter-duration">
                   <span>Budget</span>
                   <div className="filter-grid-4">
-                    <button type="button" className={filters.budget === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: 'all' })}>Tous</button>
+                    <button type="button" className={filters.budget === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: 'all' })}>{t('All', 'Tous')}</button>
                     <button type="button" className={filters.budget === '$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$' })}>$</button>
                     <button type="button" className={filters.budget === '$$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$$' })}>$$</button>
                     <button type="button" className={filters.budget === '$$$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$$$' })}>$$$</button>
@@ -191,11 +192,11 @@ export default function Nav({
               </div>
             )}
           </div>
-          <button onClick={onOpenFriends} aria-label="Amis">
+          <button onClick={onOpenFriends} aria-label={t('Friends', 'Amis')}>
             <Icon name="users" />
-            Amis
+            {t('Friends', 'Amis')}
             {pendingFriendCount > 0 && (
-              <span className="top-action-badge" aria-label={`${pendingFriendCount} demandes en attente`}>
+              <span className="top-action-badge" aria-label={`${pendingFriendCount} ${t('pending requests', 'demandes en attente')}`}>
                 {pendingFriendCount}
               </span>
             )}
@@ -204,11 +205,11 @@ export default function Nav({
             friendshipWithViewed?.status === 'accepted' ? (
               <button className="btn btn-primary btn-pill btn-sm share share-compare" onClick={onCompareViewingFriend}>
                 <Icon name="versus" />
-                Comparer
+                {t('Compare', 'Comparer')}
               </button>
             ) : addFriendFeedback !== 'idle' ? (
               <span className="share-feedback">
-                {addFriendFeedback === 'accepted' ? 'Ami ✓' : 'Demande envoyée ✓'}
+                {addFriendFeedback === 'accepted' ? t('Friend ✓', 'Ami ✓') : t('Request sent ✓', 'Demande envoyée ✓')}
               </span>
             ) : (
               <button
@@ -218,22 +219,22 @@ export default function Nav({
               >
                 <Icon name="user-plus" />
                 {friendshipWithViewed?.status === 'pending' && friendshipWithViewed.initiator === 'me'
-                  ? 'Demande envoyée'
+                  ? t('Request sent', 'Demande envoyée')
                   : friendshipWithViewed?.status === 'pending' && friendshipWithViewed.initiator === 'them'
-                    ? '+ Accepter'
-                    : '+ Ajouter en ami'}
+                    ? t('+ Accept', '+ Accepter')
+                    : t('+ Add friend', '+ Ajouter en ami')}
               </button>
             )
           ) : !viewingFriend ? (
             <button className="btn btn-primary btn-pill btn-sm share" onClick={onShare}>
               <Icon name="share" />
-              {shareCopied ? 'Lien copié' : 'Partager'}
+              {shareCopied ? t('Link copied', 'Lien copié') : t('Share', 'Partager')}
             </button>
           ) : null}
           <button
             className={`user-badge${accountOpen ? ' is-active' : ''}`}
             onClick={onAccountClick}
-            aria-label={accountOpen ? 'Close account' : 'My account'}
+            aria-label={accountOpen ? t('Close account', 'Fermer mon compte') : t('My account', 'Mon compte')}
             aria-expanded={accountOpen}
           >
             <Avatar
@@ -346,14 +347,14 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
 
   if (events.length === 0) {
     return (
-      <section className="sidebar-activity is-empty" aria-label="Activité récente">
+      <section className="sidebar-activity is-empty" aria-label="Recent activity">
         <header className="sidebar-activity-head">
           <h4>
             <span className="sidebar-activity-live" aria-hidden="true" />
-            Activité récente
+            {t('Recent activity', 'Activité récente')}
           </h4>
         </header>
-        <p className="sidebar-activity-sub">Aucune activité pour l'instant.</p>
+        <p className="sidebar-activity-sub">{t('No activity yet.', 'Aucune activité pour l\'instant.')}</p>
       </section>
     )
   }
@@ -389,10 +390,10 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
       <header className="sidebar-activity-head">
         <h4>
           <span className="sidebar-activity-live" aria-hidden="true" />
-          Activité récente
+          {t('Recent activity', 'Activité récente')}
         </h4>
       </header>
-      <p className="sidebar-activity-sub">Dernières destinations ajoutées</p>
+      <p className="sidebar-activity-sub">{t('Latest destinations added', 'Dernières destinations ajoutées')}</p>
 
       {hero && (
         <HeroCard
@@ -419,7 +420,7 @@ function HeroCard({ event: ev, onClick, isPulse }: {
   onClick: () => void
   isPulse: boolean
 }) {
-  const actor = ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'
+  const actor = ev.actorDisplayName ?? ev.actorHandle ?? t('Anonymous', 'Anonyme')
   const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
     || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
     || ''
@@ -467,7 +468,7 @@ function RowCard({ event: ev, onClick }: {
   event: ReturnType<typeof useActivityFeed>['events'][number]
   onClick: () => void
 }) {
-  const actor = ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'
+  const actor = ev.actorDisplayName ?? ev.actorHandle ?? t('Anonymous', 'Anonyme')
   const name = (typeof ev.payload?.name === 'string' && ev.payload.name)
     || (typeof ev.payload?.destination_name === 'string' && ev.payload.destination_name)
     || ''
@@ -507,26 +508,25 @@ function extractCountry(fullName: string): string {
 
 function renderShortLabel(kind: string, name: string): string {
   switch (kind) {
-    case 'destination_added': return name ? `+ ${name}` : 'nouvelle destination'
-    case 'tier_changed': return name ? `déplace ${name}` : 'déplacement de tier'
-    case 'coup_de_coeur_set': return name ? `❤ ${name}` : 'coup de cœur'
-    case 'roadtrip_created': return name ? `roadtrip ${name}` : 'nouveau roadtrip'
-    case 'roadtrip_stop_added': return name ? `étape ${name}` : 'nouvelle étape'
-    case 'friendship_accepted': return 'nouvel ami'
-    case 'mutual_destination': return name ? `partage ${name}` : 'destination partagée'
-    case 'milestone': return name ? `cap : ${name}` : 'a atteint un cap'
+    case 'destination_added': return name ? `+ ${name}` : t('new destination', 'nouvelle destination')
+    case 'tier_changed': return name ? `${t('moved', 'déplace')} ${name}` : t('tier change', 'déplacement de tier')
+    case 'coup_de_coeur_set': return name ? `❤ ${name}` : t('favorite', 'coup de cœur')
+    case 'roadtrip_created': return name ? `roadtrip ${name}` : t('new roadtrip', 'nouveau roadtrip')
+    case 'roadtrip_stop_added': return name ? `${t('stop', 'étape')} ${name}` : t('new stop', 'nouvelle étape')
+    case 'friendship_accepted': return t('new friend', 'nouvel ami')
+    case 'mutual_destination': return name ? `${t('shared', 'partage')} ${name}` : t('shared destination', 'destination partagée')
+    case 'milestone': return name ? `${t('milestone:', 'cap :')} ${name}` : t('reached a milestone', 'a atteint un cap')
     default: return kind
   }
 }
 
-/** Variante "il y a 3 min" / "à l'instant" (sans double "il y a"). */
 function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
-  if (min < 1) return 'à l’instant'
-  if (min < 60) return `il y a ${min} min`
+  if (min < 1) return t('just now', 'à l\'instant')
+  if (min < 60) return t(`${min}m ago`, `il y a ${min} min`)
   const hr = Math.floor(min / 60)
-  if (hr < 24) return `il y a ${hr} h`
+  if (hr < 24) return t(`${hr}h ago`, `il y a ${hr} h`)
   const day = Math.floor(hr / 24)
-  return `il y a ${day} j`
+  return t(`${day}d ago`, `il y a ${day} j`)
 }

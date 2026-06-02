@@ -35,6 +35,7 @@ import { useFriendDestinations } from './hooks/useFriendDestinations'
 import { useMyProfile } from './hooks/useMyProfile'
 import { FAKE_FRIENDS_MODE, findFakeFriendByHandle, getFakeFriendDestinations } from './hooks/_fakeFriends'
 import { useMediaQuery } from './hooks/useMediaQuery'
+import { t, lang, setLang } from './i18n'
 
 const PUBLIC_ID_KEY = 'outpost-public-id'
 type View = 'map' | 'tier-list' | 'explore' | 'friends'
@@ -106,6 +107,7 @@ type DesktopDockState = {
   legendBottom: number
   legendHeight: number
   legendMode: DesktopLegendMode
+  legendStackTop: number
   sidebarBottom: number
   stackBottom: number
   stackGap: number
@@ -125,6 +127,7 @@ const DESKTOP_DOCK_DEFAULT: DesktopDockState = {
   legendBottom: 0,
   legendHeight: 0,
   legendMode: 'overlay-bottom',
+  legendStackTop: 0,
   sidebarBottom: 0,
   stackBottom: 0,
   stackGap: 24,
@@ -568,21 +571,26 @@ function AppCore({
       const tierPanelWidth = Math.max(leftDockWidth, Math.min(700, availableWidth))
       const stackTop = Math.round(sidebarRect.bottom + stackGap)
       const tierTopIfBottomLeft = Math.round(viewportHeight - bottomMargin - tierHeight)
+      // Order: My rankings (tier) first, Notation (legend) second.
+      const allFitStacked = stackTop + tierHeight + stackGap + legendHeight + bottomMargin <= viewportHeight
+      const tierMode: DesktopTierMode = allFitStacked ? 'stacked-left' : 'bottom-left'
       const stackedLegendBottom = Math.round(stackTop + legendHeight)
       const legendCanStayStacked = stackedLegendBottom + stackGap <= tierTopIfBottomLeft
-      const tierFitsUnderLegend = stackTop + legendHeight + stackGap + tierHeight + bottomMargin <= viewportHeight
-      const tierMode: DesktopTierMode = tierFitsUnderLegend ? 'stacked-left' : 'bottom-left'
       const legendMode: DesktopLegendMode = legendCanStayStacked && tierMode === 'stacked-left'
         ? 'stacked-left'
         : 'bottom-left'
+      // Tier is positioned first (at stackTop), legend goes below it.
       const tierStackTop = tierMode === 'stacked-left'
-        ? Math.round(stackTop + legendHeight + stackGap)
+        ? Math.round(stackTop)
         : 0
+      const legendStackTop = tierMode === 'stacked-left'
+        ? Math.round(stackTop + tierHeight + stackGap)
+        : Math.round(stackTop)
       const legendBottom = tierMode === 'bottom-left'
         ? Math.round(tierHeight + bottomMargin + stackGap)
         : bottomMargin
       const controlsTopUnderTier = tierMode === 'stacked-left'
-        ? tierStackTop + tierHeight + 58
+        ? legendStackTop + legendHeight + 58
         : viewportHeight - bottomMargin - controlsGap - controlsHeight
       const controlsBottom = Math.max(
         bottomMargin,
@@ -594,7 +602,7 @@ function AppCore({
         leftLimit - controlsWidth,
       ))
       const stackBottom = tierMode === 'stacked-left'
-        ? Math.round(tierStackTop + tierHeight)
+        ? Math.round(legendStackTop + legendHeight)
         : legendMode === 'stacked-left'
           ? Math.round(stackTop + legendHeight)
           : 0
@@ -609,6 +617,7 @@ function AppCore({
           legendBottom,
           legendHeight,
           legendMode,
+          legendStackTop,
           sidebarBottom: Math.round(sidebarRect.bottom),
           stackBottom,
           stackGap,
@@ -890,7 +899,7 @@ function AppCore({
     tierListCollapsed ? 'tier-collapsed' : '',
     !(activeView === 'map' && selected) ? 'no-card' : '',
     compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend ? 'compare-active' : '',
-    selectedCompareDestination && !compareFriendDenied && activeView === 'map' ? 'destination-compare-open' : '',
+    activeSheetCompare && activeView === 'map' ? 'destination-compare-open' : '',
     activeView === 'map' && !isMobileLayout ? `desktop-legend-${desktopDock.legendMode}` : '',
     activeView === 'map' && !isMobileLayout ? `desktop-tier-${desktopDock.tierMode}` : '',
     activeView === 'map' && !isMobileLayout ? `desktop-controls-${desktopDock.controlsMode}` : '',
@@ -908,6 +917,7 @@ function AppCore({
       '--desktop-sidebar-bottom': `${desktopDock.sidebarBottom}px`,
       '--desktop-legend-bottom': `${desktopDock.legendBottom}px`,
       '--desktop-legend-height': `${desktopDock.legendHeight}px`,
+      '--desktop-legend-stack-top': `${desktopDock.legendStackTop}px`,
       '--desktop-tier-height': `${desktopDock.tierHeight}px`,
       '--desktop-tier-panel-w': `${desktopDock.tierPanelWidth}px`,
       '--desktop-tier-stack-top': `${desktopDock.tierStackTop}px`,
@@ -936,7 +946,7 @@ function AppCore({
             maxWidth: 'min(92vw, 480px)',
           }}
         >
-          Sync failed: {myDestinationsError}. Your changes are saved locally.
+          t('Sync failed: ', 'Sync en échec : ') + {myDestinationsError}. Your changes are saved locally.
         </div>
       )}
       <div className="mobile-header">
@@ -944,7 +954,7 @@ function AppCore({
         <button
           className={`mobile-header-avatar${accountOpen ? ' is-active' : ''}`}
           onClick={() => setAccountOpen(v => !v)}
-          aria-label={accountOpen ? 'Close account' : 'My account'}
+          aria-label={accountOpen ? t('Close account', 'Fermer mon compte') : t('My account', 'Mon compte')}
           aria-expanded={accountOpen}
         >
           <Avatar
@@ -1011,16 +1021,16 @@ function AppCore({
             </span>
             <span className="compare-inline-item">
               <span className="compare-legend-dot compare-legend-dot--shared" aria-hidden="true" />
-              {compareCommonCount} in common
+              {compareCommonCount} {t('in common', 'en commun')}
             </span>
           </div>
           <button
             type="button"
             className="btn btn-primary btn-pill btn-sm compare-inline-close"
             onClick={() => setCompareFriend(null)}
-            aria-label={`Exit comparison with ${compareFriend.displayName}`}
+            aria-label={`${t('Exit comparison with', 'Quitter la comparaison avec')} ${compareFriend.displayName}`}
           >
-            <Icon name="x" /> Exit comparison
+            <Icon name="x" /> {t('Exit comparison', 'Quitter la comparaison')}
           </button>
         </div>
       )}
@@ -1036,7 +1046,7 @@ function AppCore({
               className="friends-action-btn friends-action-secondary"
               onClick={() => { setViewingFriend(null); setSelectedName(null); setSelectedKey(null) }}
             >
-              ← My journal
+              {t('← My journal', '← Mon carnet')}
             </button>
           </div>
         </div>
@@ -1044,14 +1054,14 @@ function AppCore({
       {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
-            <h3>@{viewingFriend.handle} hasn't added any destinations yet.</h3>
-            <p>Check back later, or go back to your journal.</p>
+            <h3>@{viewingFriend.handle} {t("hasn't added any destinations yet.", "n'a pas encore ajouté de destinations.")}</h3>
+            <p>{t('Check back later, or go back to your journal.', 'Reviens plus tard, ou retourne à ton carnet.')}</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => { setViewingFriend(null); setSelectedName(null); setSelectedKey(null) }}
             >
-              ← My journal
+              {t('← My journal', '← Mon carnet')}
             </button>
           </div>
         </div>
@@ -1059,14 +1069,14 @@ function AppCore({
       {!viewingFriend && activeView === 'map' && myDestinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
-            <h3>Your journal is empty</h3>
-            <p>Add your first destination to see it appear on the map.</p>
+            <h3>{t('Your journal is empty', 'Ton carnet est vide')}</h3>
+            <p>{t('Add your first destination to see it appear on the map.', 'Ajoute ta première destination pour la voir apparaître sur la carte.')}</p>
             <button
               type="button"
               className="add-submit"
               onClick={() => setAddingDestination(true)}
             >
-              + Add my first destination
+              + {t('Add my first destination', 'Ajouter ma première destination')}
             </button>
           </div>
         </div>
@@ -1074,14 +1084,14 @@ function AppCore({
       {!viewingFriend && activeView === 'map' && myDestinations.length > 0 && visibleDestinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
-            <h3>No results for these filters</h3>
-            <p>Change or reset the filters to see your destinations.</p>
+            <h3>{t('No results for these filters', 'Aucun résultat pour ces filtres')}</h3>
+            <p>{t('Change or reset the filters to see your destinations.', 'Modifie ou réinitialise les filtres pour revoir tes destinations.')}</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => setFilters(DEFAULT_FILTERS)}
             >
-              Reset filters
+              {t('Reset filters', 'Réinitialiser les filtres')}
             </button>
           </div>
         </div>
@@ -1090,13 +1100,13 @@ function AppCore({
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
             <h3>{getMapPrivacyMessage(compareFriendAccess.deniedReason, compareFriend?.handle).title}</h3>
-            <p>The comparison cannot be shown while this map is not visible to you.</p>
+            <p>{t('The comparison cannot be shown while this map is not visible to you.', 'La comparaison ne peut pas s\'afficher tant que cette carte n\'est pas visible pour toi.')}</p>
             <button
               type="button"
               className="friends-action-btn friends-action-secondary"
               onClick={() => setCompareFriend(null)}
             >
-              Close comparison
+              {t('Close comparison', 'Fermer la comparaison')}
             </button>
           </div>
         </div>
@@ -1290,13 +1300,15 @@ function AppCore({
 
 function ExploreView(_props: { destinations: Destination[]; onSelect: (name: string) => void }) {
   return (
-    <main className="explore-page explore-page--soon" aria-label="Explore — coming soon">
+    <main className="explore-page explore-page--soon" aria-label={t('Explore — coming soon', 'Explorer — bientôt disponible')}>
       <section className="explore-soon">
-        <span className="explore-soon__chip">Coming soon</span>
-        <h2 className="explore-soon__title">The explorer is coming soon</h2>
+        <span className="explore-soon__chip">{t('Coming soon', 'Bientôt disponible')}</span>
+        <h2 className="explore-soon__title">{t('The explorer is coming soon', "L'explorateur arrive bientôt")}</h2>
         <p className="explore-soon__text">
-          This section will suggest destinations tailored to your journal, your ratings,
-          and those of your friends. We're working on it — see you soon.
+          {t(
+            "This section will suggest destinations tailored to your journal, your ratings, and those of your friends. We're working on it — see you soon.",
+            "Cette section te proposera des destinations sur mesure à partir de ton carnet et de tes amis. On y travaille — rendez-vous très vite."
+          )}
         </p>
       </section>
     </main>
@@ -1574,26 +1586,26 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
               className="account-avatar"
             />
             <div>
-              <h2>My account</h2>
-              <p>{user?.email ?? (draftId ? `@${draftId}` : 'Local profile')}</p>
+              <h2>{t('My account', 'Mon compte')}</h2>
+              <p>{user?.email ?? (draftId ? `@${draftId}` : t('Local profile', 'Profil local'))}</p>
             </div>
           </div>
-          <button className="account-close" aria-label="Close" onClick={onClose}>
+          <button className="account-close" aria-label={t('Close', 'Fermer')} onClick={onClose}>
             <Icon name="x" />
           </button>
         </div>
 
         <SegmentedControl
           className="account-tabs"
-          ariaLabel="Account settings"
+          ariaLabel={t('Account settings', 'Paramètres du compte')}
           role="tablist"
           size="sm"
           layout="fill"
           value={mode}
           options={[
-            { value: 'profile', label: 'Profile' },
-            { value: 'map', label: 'Map' },
-            { value: 'account', label: 'Account' },
+            { value: 'profile', label: t('Profile', 'Profil') },
+            { value: 'map', label: t('Map', 'Carte') },
+            { value: 'account', label: t('Account', 'Compte') },
           ]}
           onChange={nextMode => {
             setMode(nextMode)
@@ -1610,45 +1622,45 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
         {mode === 'map' && (
           <div className="account-section">
             <p className="account-hint">
-              Choose how much detail to show on the map.
+              {t('Choose how much detail to show on the map.', 'Choisir le niveau de détail affiché sur la carte.')}
             </p>
-            <label>Map detail</label>
+            <label>{t('Map detail', 'Détail carte')}</label>
             <SegmentedControl
               className="account-auth-tabs"
-              ariaLabel="Map detail level"
+              ariaLabel={t('Map detail level', 'Niveau de détail carte')}
               role="radiogroup"
               size="sm"
               layout="fill"
               value={mapDetail}
               options={[
-                { value: 'simple', label: 'Simple' },
-                { value: 'detailed', label: 'Detailed' },
+                { value: 'simple', label: t('Simple', 'Simple') },
+                { value: 'detailed', label: t('Detailed', 'Détaillé') },
               ]}
               onChange={v => onMapDetailChange(v as 'simple' | 'detailed')}
             />
             <p className="account-hint" style={{ marginTop: 6 }}>
-              <strong>Simple:</strong> major country labels only.{' '}
-              <strong>Detailed:</strong> + country borders and city names.
+              <strong>{t('Simple:', 'Simple :')}</strong> {t('major country labels only.', 'grands pays uniquement.')}{' '}
+              <strong>{t('Detailed:', 'Détaillé :')}</strong> {t('+ borders and city names.', '+ frontières et villes.')}
             </p>
 
             <div style={{ marginTop: 20 }}>
               <p className="account-hint">
-                Control who can view your map when you share it.
+                {t('Control who can view your map when you share it.', 'Contrôler qui peut voir ta carte quand tu la partages.')}
               </p>
               <label>
-                Map visibility
+                {t('Map visibility', 'Visibilité de la carte')}
                 <select
                   value={visibilityDraft}
                   onChange={event => setVisibilityDraft(event.target.value as MapVisibility)}
                   disabled={visibilityBusy}
                 >
-                  <option value="public">Public</option>
-                  <option value="friends">Friends only</option>
-                  <option value="private">Private</option>
+                  <option value="public">{t('Public', 'Publique')}</option>
+                  <option value="friends">{t('Friends only', 'Amis uniquement')}</option>
+                  <option value="private">{t('Private', 'Privée')}</option>
                 </select>
               </label>
               <p className="account-hint">
-                Public: anyone with the link. Friends only: only your friends. Private: only you.
+                {t('Public: anyone with the link. Friends only: only your friends. Private: only you.', 'Publique : tout le monde avec le lien. Amis uniquement : tes amis seulement. Privée : toi uniquement.')}
               </p>
               <div className="account-actions">
                 <button
@@ -1656,7 +1668,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                   onClick={saveVisibility}
                   disabled={visibilityBusy || visibilityDraft === mapVisibility}
                 >
-                  {visibilityBusy ? 'Saving…' : 'Save visibility'}
+                  {visibilityBusy ? t('Saving…', 'Enregistrement…') : t('Save visibility', 'Enregistrer la visibilité')}
                 </button>
               </div>
               {feedback && mode === 'map' && (
@@ -1665,6 +1677,23 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                 </p>
               )}
             </div>
+
+            <div style={{ marginTop: 24, borderTop: '1px solid rgba(0,0,0,0.07)', paddingTop: 16 }}>
+              <p className="account-hint">{t('Interface language', 'Langue de l\'interface')}</p>
+              <SegmentedControl
+                className="account-auth-tabs"
+                ariaLabel={t('Language', 'Langue')}
+                role="radiogroup"
+                size="sm"
+                layout="fill"
+                value={lang}
+                options={[
+                  { value: 'en', label: 'English' },
+                  { value: 'fr', label: 'Français' },
+                ]}
+                onChange={v => setLang(v as 'en' | 'fr')}
+              />
+            </div>
           </div>
         )}
 
@@ -1672,22 +1701,22 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
           <div className="account-section">
             {user ? (
               <>
-                <p className="account-hint">Signed in as <strong>{user.email}</strong>.</p>
+                <p className="account-hint">{t('Signed in as', 'Connecté en tant que')} <strong>{user.email}</strong>.</p>
 
                 <p className="account-hint" style={{ marginTop: 16 }}>
-                  Your username is used for sharing and lets friends find your journal.
+                  {t('Your username is used for sharing and lets friends find your journal.', 'Ton pseudo sert au lien de partage et permet aux amis de retrouver ton carnet.')}
                 </p>
                 <label>
-                  Public username
+                  {t('Public username', 'Pseudo public')}
                   <input
                     value={draftId}
                     onChange={event => setDraftId(event.target.value)}
-                    placeholder="your-username"
+                    placeholder={t('your-username', 'ton-pseudo')}
                   />
                 </label>
                 {shareLink && (
                   <label>
-                    Share link
+                    {t('Share link', 'Lien de partage')}
                     <input readOnly value={shareLink} onClick={e => (e.target as HTMLInputElement).select()} />
                   </label>
                 )}
@@ -1697,14 +1726,14 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                     onClick={saveLocal}
                     disabled={!draftId.trim()}
                   >
-                    {savedTick ? 'Saved' : 'Save'}
+                    {savedTick ? t('Saved', 'Enregistré') : t('Save', 'Enregistrer')}
                   </button>
                   <button
                     className="account-secondary"
                     onClick={copyShareLink}
                     disabled={!shareLink}
                   >
-                    {linkCopied ? 'Copied' : 'Copy link'}
+                    {linkCopied ? t('Copied', 'Copié') : t('Copy link', 'Copier le lien')}
                   </button>
                 </div>
 
@@ -1713,15 +1742,15 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                     className="account-secondary account-danger"
                     onClick={async () => { await signOut(); onClose() }}
                   >
-                    Sign out
+                    {t('Sign out', 'Me déconnecter')}
                   </button>
                   <button
                     className="account-secondary account-reset"
                     onClick={() => setConfirmResetOpen(true)}
                     disabled={carnetCount === 0}
-                    title={carnetCount === 0 ? 'Your journal is already empty' : undefined}
+                    title={carnetCount === 0 ? t('Your journal is already empty', 'Ton carnet est déjà vide') : undefined}
                   >
-                    Clear my journal{carnetCount > 0 ? ` (${carnetCount})` : ''}
+                    {t('Clear my journal', 'Vider mon carnet')}{carnetCount > 0 ? ` (${carnetCount})` : ''}
                   </button>
                 </div>
               </>
@@ -1730,23 +1759,23 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                 {(passwordMode === 'signin' || passwordMode === 'signup') && (
                   <>
                     <p className="account-hint">
-                      Sync your destinations and access your map on all your devices.
+                      {t('Sync your destinations and access your map on all your devices.', 'Synchronise tes destinations et retrouve ta carte sur tous tes appareils.')}
                     </p>
                     <button className="account-google" onClick={connectWithGoogle} disabled={googleBusy || busy}>
                       <span aria-hidden="true">G</span>
-                      {googleBusy ? 'Signing in…' : 'Continue with Google'}
+                      {googleBusy ? t('Signing in…', 'Connexion…') : t('Continue with Google', 'Continuer avec Google')}
                     </button>
-                    <div className="account-divider"><span>or</span></div>
+                    <div className="account-divider"><span>{t('or', 'ou')}</span></div>
                     <SegmentedControl
                       className="account-auth-tabs"
-                      ariaLabel="Sign in or sign up"
+                      ariaLabel={t('Sign in or sign up', 'Connexion ou inscription')}
                       role="tablist"
                       size="sm"
                       layout="fill"
                       value={passwordMode}
                       options={[
-                        { value: 'signin', label: 'Sign in' },
-                        { value: 'signup', label: 'Sign up' },
+                        { value: 'signin', label: t('Sign in', 'Connexion') },
+                        { value: 'signup', label: t('Sign up', 'Inscription') },
                       ]}
                       onChange={nextMode => {
                         setPasswordMode(nextMode as PasswordAuthMode)
@@ -1765,12 +1794,12 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                       />
                     </label>
                     <label>
-                      Password
+                      {t('Password', 'Mot de passe')}
                       <input
                         type="password"
                         value={password}
                         onChange={event => setPassword(event.target.value)}
-                        placeholder="6 characters minimum"
+                        placeholder={t('6 characters minimum', '6 caractères minimum')}
                         autoComplete={passwordMode === 'signin' ? 'current-password' : 'new-password'}
                         onKeyDown={event => {
                           if (event.key === 'Enter') void submitPasswordAuth()
@@ -1778,7 +1807,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                       />
                     </label>
                     <button className="add-submit account-primary" onClick={() => void submitPasswordAuth()} disabled={busy || googleBusy}>
-                      {busy ? 'Please wait…' : passwordMode === 'signin' ? 'Sign in' : 'Sign up'}
+                      {busy ? t('Please wait…', 'Patiente…') : passwordMode === 'signin' ? t('Sign in', 'Se connecter') : t('Sign up', "S'inscrire")}
                     </button>
                     {passwordMode === 'signin' && (
                       <button
@@ -1786,7 +1815,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                         className="account-forgot-link"
                         onClick={() => { setPasswordMode('forgot'); setFeedback(null) }}
                       >
-                        Forgot password?
+                        {t('Forgot password?', 'Mot de passe oublié ?')}
                       </button>
                     )}
                     {feedback && (
@@ -1800,7 +1829,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                 {passwordMode === 'forgot' && (
                   <>
                     <p className="account-hint">
-                      Enter your email and we'll send you a link to reset your password.
+                      {t("Enter your email and we'll send you a link to reset your password.", "Saisis ton email et on t'envoie un lien pour réinitialiser ton mot de passe.")}
                     </p>
                     <label>
                       Email
@@ -1817,14 +1846,14 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                       />
                     </label>
                     <button className="add-submit account-primary" onClick={() => void submitForgotPassword()} disabled={busy}>
-                      {busy ? 'Sending…' : 'Send reset link'}
+                      {busy ? t('Sending…', 'Envoi…') : t('Send reset link', 'Envoyer le lien')}
                     </button>
                     <button
                       type="button"
                       className="account-forgot-link"
                       onClick={() => { setPasswordMode('signin'); setFeedback(null) }}
                     >
-                      ← Back to sign in
+                      {t('← Back to sign in', '← Retour à la connexion')}
                     </button>
                     {feedback && (
                       <p className={feedback.kind === 'ok' ? 'friends-feedback-ok' : 'friends-feedback-err'}>
@@ -1837,14 +1866,14 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                 {passwordMode === 'forgot-sent' && (
                   <>
                     <p className="friends-feedback-ok" style={{ marginTop: 8 }}>
-                      Check your inbox — we've sent a reset link to <strong>{email}</strong>.
+                      {t("Check your inbox — we've sent a reset link to", "Vérifie ta boîte mail — on a envoyé un lien à")} <strong>{email}</strong>.
                     </p>
                     <button
                       type="button"
                       className="account-forgot-link"
                       onClick={() => { setPasswordMode('signin'); setFeedback(null) }}
                     >
-                      ← Back to sign in
+                      {t('← Back to sign in', '← Retour à la connexion')}
                     </button>
                   </>
                 )}
@@ -1867,12 +1896,11 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
             onClick={e => e.stopPropagation()}
           >
             <div className="duplicate-modal-body">
-              <p className="duplicate-modal-eyebrow">Irreversible action</p>
-              <h2 id="account-reset-title">Clear your entire journal?</h2>
+              <p className="duplicate-modal-eyebrow">{t('Irreversible action', 'Action irréversible')}</p>
+              <h2 id="account-reset-title">{t('Clear your entire journal?', 'Vider tout ton carnet ?')}</h2>
               <p className="duplicate-modal-text">
-                You are about to delete <strong>{carnetCount} destination{carnetCount > 1 ? 's' : ''}</strong>{' '}
-                from your journal, on Supabase and on this device. Your account, username and friends
-                are not affected. This cannot be undone.
+                {t('You are about to delete', 'Tu vas supprimer')} <strong>{carnetCount} destination{carnetCount > 1 ? 's' : ''}</strong>{' '}
+                {t('from your journal. Your account, username and friends are not affected. This cannot be undone.', 'de ton carnet. Ton compte, ton pseudo et tes amis ne sont pas touchés. Cette action ne peut pas être annulée.')}
               </p>
               <div className="duplicate-modal-actions">
                 <button
@@ -1880,14 +1908,14 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                   onClick={() => setConfirmResetOpen(false)}
                   disabled={resetBusy}
                 >
-                  Cancel
+                  {t('Cancel', 'Annuler')}
                 </button>
                 <button
                   className="duplicate-modal-primary account-reset-confirm"
                   onClick={handleConfirmReset}
                   disabled={resetBusy}
                 >
-                  {resetBusy ? 'Deleting…' : 'Yes, clear journal'}
+                  {resetBusy ? t('Deleting…', 'Suppression…') : t('Yes, clear journal', 'Oui, vider le carnet')}
                 </button>
               </div>
             </div>

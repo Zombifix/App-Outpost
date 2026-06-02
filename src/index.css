@@ -11913,6 +11913,13 @@ svg {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 6px 16px rgba(37, 91, 160, 0.16);
 }
 
+.top-action-badge,
+.bottom-nav-badge {
+  color: #1e293b;
+  font-weight: 800;
+  text-shadow: none;
+}
+
 .tier-orb,
 .tier-dot {
   border: 1px solid rgba(255, 255, 255, 0.54);
@@ -12361,8 +12368,11 @@ svg {
     gap: 8px;
   }
 
+  .legend--stacked-left .legend-header,
+  .legend--bottom-left .legend-header,
   .legend--stacked-left .legend-label,
   .legend--bottom-left .legend-label {
+    grid-column: 1 / -1;
     min-height: 0;
     height: auto;
   }
@@ -12385,7 +12395,7 @@ svg {
 
   .travel-app.tier-collapsed .legend.legend--stacked-left,
   .travel-app .legend--stacked-left {
-    top: var(--desktop-left-stack-top);
+    top: var(--desktop-legend-stack-top);
     bottom: auto;
   }
 
@@ -12785,8 +12795,45 @@ svg {
 }
 
 .legend-label {
+  margin: 0;
+}
+
+/* Collapsible notation header (stacked/docked modes only) */
+.legend-header {
   grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
   margin: 0 0 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.legend-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.legend-chevron.is-closed {
+  transform: rotate(-90deg);
+}
+
+.legend-items {
+  display: contents;
+}
+
+.legend.is-collapsed .legend-header {
+  margin-bottom: 0;
+}
+
+.legend.is-collapsed .legend-items {
+  display: none;
 }
 
 .tier-board h2 {

@@ -6,11 +6,11 @@ interface AuthContextValue {
   user: User | null
   session: Session | null
   loading: boolean
-  /** Envoie un magic link à `email`. Si `inviteToken` fourni, sera consommé après login. */
   signInWithEmail: (email: string, inviteToken?: string) => Promise<{ error?: string }>
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>
   signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsConfirmation?: boolean }>
   signInWithGoogle: () => Promise<{ error?: string }>
+  resetPassword: (email: string) => Promise<{ error?: string }>
   signOut: () => Promise<void>
 }
 
@@ -21,25 +21,25 @@ const magicLinkAttempts = new Map<string, number>()
 function friendlyAuthError(message: string) {
   const normalized = message.toLowerCase()
   if (normalized.includes('email rate limit')) {
-    return 'Trop de liens demandés pour l\'instant. Attends au moins 1 minute avant de réessayer ; si la limite email du projet est atteinte, il faudra attendre jusqu\'à 1 heure. Utilise toujours le dernier email reçu.'
+    return 'Too many requests. Wait at least 1 minute before trying again; if the project email limit is reached, you may need to wait up to 1 hour. Always use the latest email received.'
   }
   if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
-    return 'Trop de tentatives rapprochées. Attends une minute avant de demander un nouveau lien.'
+    return 'Too many attempts in a short time. Wait a minute before requesting a new link.'
   }
   if (normalized.includes('invalid login credentials')) {
-    return 'Email ou mot de passe incorrect.'
+    return 'Incorrect email or password.'
   }
   if (normalized.includes('email not confirmed') || normalized.includes('not confirmed')) {
-    return 'Ce compte existe, mais il attend encore une confirmation email. Pour les tests sans SMTP, désactive "Confirm email" dans Supabase puis confirme ou recrée cet utilisateur.'
+    return 'This account exists but is waiting for email confirmation. To test without SMTP, disable "Confirm email" in Supabase then confirm or recreate the user.'
   }
   if (normalized.includes('signups not allowed') || normalized.includes('signup is disabled')) {
-    return 'Les inscriptions sont désactivées dans Supabase. Active "Allow new users" / "Enable sign ups" dans Authentication > Sign In / Providers > Email.'
+    return 'Sign-ups are disabled in Supabase. Enable "Allow new users" / "Enable sign ups" under Authentication > Sign In / Providers > Email.'
   }
   if (normalized.includes('user already registered') || normalized.includes('already registered')) {
-    return 'Un compte existe déjà avec cet email. Essaie plutôt de te connecter.'
+    return 'An account already exists with this email. Try signing in instead.'
   }
   if (normalized.includes('password should be at least') || normalized.includes('weak password')) {
-    return 'Mot de passe trop court. Utilise au moins 6 caractères.'
+    return 'Password too short. Use at least 6 characters.'
   }
   return message
 }
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (lastAttempt) {
       const remaining = Math.ceil((MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastAttempt)) / 1000)
       if (remaining > 0) {
-        return { error: `Attends encore ${remaining} s avant de demander un nouveau lien pour cet email.` }
+        return { error: `Wait ${remaining}s before requesting a new link for this email.` }
       }
     }
 
@@ -123,13 +123,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: friendlyAuthError(error.message) } : {}
   }
 
+  const resetPassword = async (email: string) => {
+    if (!supabase) return { error: 'Supabase not configured' }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: window.location.origin,
+    })
+    return error ? { error: friendlyAuthError(error.message) } : {}
+  }
+
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
-    // Nettoyage explicite : éviter qu'un autre user qui se connecte sur ce
-    // navigateur voie les destinations / pseudo du précédent. La sync
-    // bidirectionnelle (useMyDestinations) garantit que rien n'est perdu :
-    // les destinations sont en sécurité côté Supabase.
     try {
       localStorage.removeItem('outpost-destinations-v2')
       localStorage.removeItem('triptier-destinations-v2')
@@ -140,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithEmail, signInWithPassword, signUpWithPassword, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithEmail, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut }}>
       {children}
     </AuthContext.Provider>
   )

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { ActivityEvent, ActivityKind, Tier } from '../../types'
 import { TIER_COLORS } from '../../data'
 import { useActivityFeed } from '../../hooks/useActivityFeed'
+import { t } from '../../i18n'
 
 interface ActivityStripProps {
   onFlyTo?: (lat: number, lng: number, name: string) => void
@@ -41,7 +42,7 @@ export default function ActivityStrip({ onFlyTo, onOpenProfile, onSeeAll, varian
   if (variant === 'compact' && collapsed) {
     return (
       <button className="activity-strip-toggle" onClick={() => setCollapsed(false)}>
-        Activité ▴
+        {t('Activity', 'Activité')} ▴
       </button>
     )
   }
@@ -51,9 +52,9 @@ export default function ActivityStrip({ onFlyTo, onOpenProfile, onSeeAll, varian
   if (variant === 'full') {
     return (
       <div className="activity-feed-full">
-        {loading && <p className="friends-muted">Chargement…</p>}
+        {loading && <p className="friends-muted">{t('Loading…', 'Chargement…')}</p>}
         {!loading && events.length === 0 && (
-          <p className="friends-muted">Aucune activité pour l'instant. Ajoute des amis pour voir leurs voyages ici.</p>
+          <p className="friends-muted">{t('No activity yet. Add friends to see their trips here.', 'Aucune activité pour l\'instant. Ajoute des amis pour voir leurs voyages ici.')}</p>
         )}
         {grouped.map(item => (
           <ActivityRow key={item.key} item={item} onFlyTo={onFlyTo} onOpenProfile={onOpenProfile} />
@@ -63,15 +64,15 @@ export default function ActivityStrip({ onFlyTo, onOpenProfile, onSeeAll, varian
   }
 
   return (
-    <div className="activity-strip" aria-label="Activité récente">
-      <button className="activity-strip-collapse" onClick={() => setCollapsed(true)} aria-label="Réduire">▾</button>
+    <div className="activity-strip" aria-label={t('Recent activity', 'Activité récente')}>
+      <button className="activity-strip-collapse" onClick={() => setCollapsed(true)} aria-label={t('Collapse', 'Réduire')}>▾</button>
       <div className="activity-strip-scroll">
         {grouped.slice(0, 8).map(item => (
           <ActivityCard key={item.key} item={item} onFlyTo={onFlyTo} onOpenProfile={onOpenProfile} />
         ))}
         {onSeeAll && (
           <button className="activity-strip-see-all" onClick={onSeeAll}>
-            Voir tout →
+            {t('See all →', 'Voir tout →')}
           </button>
         )}
       </div>
@@ -247,23 +248,25 @@ function renderActivityLabel(kind: ActivityKind, payload: Record<string, unknown
   const toTier = typeof payload.to === 'string' ? payload.to : null
   switch (kind) {
     case 'destination_added':
-      return count > 1 ? <>a ajouté <strong>{count} destinations</strong></> : <>a ajouté <strong>{name}</strong></>
+      return count > 1
+        ? <>{t('added', 'a ajouté')} <strong>{count} destinations</strong></>
+        : <>{t('added', 'a ajouté')} <strong>{name}</strong></>
     case 'tier_changed':
-      return <>a déplacé <strong>{name}</strong>{fromTier && toTier ? ` de ${fromTier} en ${toTier}` : ''}</>
+      return <>{t('moved', 'a déplacé')} <strong>{name}</strong>{fromTier && toTier ? ` ${t(`from ${fromTier} to ${toTier}`, `de ${fromTier} en ${toTier}`)}` : ''}</>
     case 'coup_de_coeur_set':
-      return <>a marqué <strong>{name}</strong> comme coup de cœur</>
+      return <>{t('marked', 'a marqué')} <strong>{name}</strong> {t('as a favorite', 'comme coup de cœur')}</>
     case 'roadtrip_created':
-      return <>a créé un nouveau roadtrip <strong>{name}</strong></>
+      return <>{t('created a new roadtrip', 'a créé un nouveau roadtrip')} <strong>{name}</strong></>
     case 'roadtrip_stop_added':
-      return <>a ajouté une étape à <strong>{name}</strong></>
+      return <>{t('added a stop to', 'a ajouté une étape à')} <strong>{name}</strong></>
     case 'friendship_accepted':
-      return 'a un nouvel ami'
+      return t('has a new friend', 'a un nouvel ami')
     case 'reaction_received':
-      return <>a reçu une réaction sur <strong>{name}</strong></>
+      return <>{t('received a reaction on', 'a reçu une réaction sur')} <strong>{name}</strong></>
     case 'mutual_destination':
-      return <>partage <strong>{name}</strong> avec toi</>
+      return <>{t('shares', 'partage')} <strong>{name}</strong> {t('with you', 'avec toi')}</>
     case 'milestone':
-      return <>a atteint un cap : <strong>{name}</strong></>
+      return <>{t('reached a milestone:', 'a atteint un cap :')} <strong>{name}</strong></>
     default:
       return kind
   }
@@ -272,11 +275,11 @@ function renderActivityLabel(kind: ActivityKind, payload: Record<string, unknown
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
-  if (min < 1) return "à l'instant"
-  if (min < 60) return `il y a ${min} min`
+  if (min < 1) return t('just now', 'à l\'instant')
+  if (min < 60) return t(`${min}m ago`, `il y a ${min} min`)
   const hr = Math.floor(min / 60)
-  if (hr < 24) return `il y a ${hr} h`
+  if (hr < 24) return t(`${hr}h ago`, `il y a ${hr} h`)
   const day = Math.floor(hr / 24)
-  if (day < 7) return `il y a ${day} j`
-  return new Date(iso).toLocaleDateString('fr-FR')
+  if (day < 7) return t(`${day}d ago`, `il y a ${day} j`)
+  return new Date(iso).toLocaleDateString(t('en-US', 'fr-FR'))
 }

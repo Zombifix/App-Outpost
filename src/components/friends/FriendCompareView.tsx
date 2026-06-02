@@ -2,6 +2,7 @@ import type { Destination, Friendship, Tier } from '../../types'
 import { TIER_COLORS, TIER_ORDER } from '../../data'
 import { destinationNameKey } from '../../utils/destinationIdentity'
 import { getDestinationTier } from '../../utils'
+import { t } from '../../i18n'
 
 interface FriendCompareViewProps {
   friend: Friendship
@@ -22,7 +23,7 @@ export default function FriendCompareView({ friend, myDestinations, theirDestina
     <div className="friend-compare">
       <CommonDests mine={myDestinations} theirs={theirDestinations} friendName={friend.displayName} />
       <div className="friend-compare-grid">
-        <DestList destinations={myDestinations} label="Moi" />
+        <DestList destinations={myDestinations} label={t('Me', 'Moi')} />
         <div className="friend-compare-sep" />
         <DestList destinations={theirDestinations} label={friend.displayName} />
       </div>
@@ -36,11 +37,11 @@ function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs
     .map(t => ({ them: t, mine: myMap.get(destinationNameKey(t)) }))
     .filter((x): x is { them: Destination; mine: Destination } => !!x.mine)
   if (common.length === 0) {
-    return <p className="friends-muted">Aucune destination en commun avec {friendName} pour le moment.</p>
+    return <p className="friends-muted">{t(`No destinations in common with ${friendName} yet.`, `Aucune destination en commun avec ${friendName} pour le moment.`)}</p>
   }
   return (
     <section className="friend-compare-common">
-      <h4>{common.length} destination{common.length > 1 ? 's' : ''} en commun</h4>
+      <h4>{common.length} destination{common.length > 1 ? 's' : ''} {t('in common', 'en commun')}</h4>
       <div className="friend-compare-common-list">
         {common.map(({ them, mine: m }) => {
           const myTier = getDestinationTier(m)
@@ -99,7 +100,7 @@ function DestList({ destinations, label }: { destinations: Destination[]; label:
         )
       })}
       {destinations.length === 0 && (
-        <p className="friends-muted">Aucune destination.</p>
+        <p className="friends-muted">{t('No destinations.', 'Aucune destination.')}</p>
       )}
     </div>
   )

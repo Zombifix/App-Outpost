@@ -692,6 +692,7 @@ export default function WorldMap({
   const [compactPins, setCompactPins] = useState(true)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
+  const [notationOpen, setNotationOpen] = useState(true)
   const controlsClass = controlsMode === 'stacked-left'
     ? ' map-controls--stacked-left'
     : controlsMode === 'bottom-left'
@@ -1257,14 +1258,34 @@ export default function WorldMap({
         </button>
       </div>}
 
-      {!mapError && <div className={`legend${legendClass}`}>
-        {showLegendLabel && <p className="legend-label">Notation</p>}
-        {[['S','Exceptionnel'],['A','Génial'],['B','Correct'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
-          <span key={tier}>
-            <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>
-            {label}
-          </span>
-        ))}
+      {!mapError && <div className={`legend${legendClass}${showLegendLabel && !notationOpen ? ' is-collapsed' : ''}`}>
+        {showLegendLabel ? (
+          <button
+            type="button"
+            className="legend-header"
+            onClick={() => setNotationOpen(o => !o)}
+            aria-expanded={notationOpen}
+          >
+            <strong className="legend-label">Notation</strong>
+            <svg
+              className={`legend-chevron${notationOpen ? '' : ' is-closed'}`}
+              width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        ) : null}
+        <div className="legend-items">
+          {[['S','Exceptionnel'],['A','Génial'],['B','Correct'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
+            <span key={tier}>
+              <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>
+              {label}
+            </span>
+          ))}
+        </div>
       </div>}
 
       {!mapError && <p className="map-attribution">

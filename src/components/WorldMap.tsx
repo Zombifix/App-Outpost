@@ -685,6 +685,7 @@ export default function WorldMap({
   const autoFitTimeoutRef = useRef<number | null>(null)
 
   const [mapReady, setMapReady] = useState(false)
+  const [mapError, setMapError] = useState<string | null>(null)
   const [compactPins, setCompactPins] = useState(true)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
@@ -708,19 +709,55 @@ export default function WorldMap({
     htmlMarkersRef.current = []
   }
 
+  function describeMapInitError(error: unknown, source?: string) {
+    const detail = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Initialisation WebGL impossible.'
+    return source ? `${source} ${detail}` : detail
+  }
+
   // ── Init MapLibre ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: STYLE_URL,
-      center: INIT_CENTER,
-      zoom: INIT_ZOOM,
-      attributionControl: false,
-      pitchWithRotate: false,
-      dragRotate: false,
-    })
+    const container = mapContainerRef.current
+    const handleWebGlError = (event: Event) => {
+      const webglEvent = event as Event & { statusMessage?: string; message?: string }
+      const detail = webglEvent.statusMessage ?? webglEvent.message ?? 'Le navigateur n’a pas pu creer de contexte WebGL.'
+      console.error('WorldMap WebGL context creation failed:', webglEvent)
+      setMapError(describeMapInitError(detail, 'Carte indisponible.'))
+    }
+
+    container.addEventListener('webglcontextcreationerror', handleWebGlError as EventListener)
+
+    let map: maplibregl.Map
+    try {
+      map = new maplibregl.Map({
+        container,
+        style: STYLE_URL,
+        center: INIT_CENTER,
+        zoom: INIT_ZOOM,
+        attributionControl: false,
+        pitchWithRotate: false,
+        dragRotate: false,
+        canvasContextAttributes: {
+          antialias: false,
+          preserveDrawingBuffer: false,
+          powerPreference: 'default',
+          failIfMajorPerformanceCaveat: false,
+          desynchronized: false,
+          alpha: true,
+          depth: true,
+          stencil: true,
+          premultipliedAlpha: true,
+          contextType: 'webgl',
+        },
+      })
+      setMapError(null)
+    } catch (error) {
+      console.error('WorldMap failed to initialize MapLibre:', error)
+      setMapError(describeMapInitError(error, 'Carte indisponible.'))
+      container.removeEventListener('webglcontextcreationerror', handleWebGlError as EventListener)
+      return
+    }
 
     map.on('load', () => {
       customizeAtlasPremiumStyle(map)
@@ -740,6 +777,7 @@ export default function WorldMap({
     return () => {
       if (autoFitTimeoutRef.current !== null) window.clearTimeout(autoFitTimeoutRef.current)
       clearHtmlMarkers()
+      container.removeEventListener('webglcontextcreationerror', handleWebGlError as EventListener)
       map.remove()
       mapRef.current = null
       setMapReady(false)
@@ -1089,7 +1127,7 @@ export default function WorldMap({
       onDragStartCapture={(event) => event.preventDefault()}
     >
       <div ref={mapContainerRef} className="map-gl-container" draggable={false} />
-      {!mapReady && (
+      {!mapReady && !mapError && (
         <div
           className="map-loading-shimmer"
           aria-hidden="true"
@@ -1104,12 +1142,21 @@ export default function WorldMap({
           }}
         />
       )}
+      {mapError && (
+        <div className="map-fallback" role="status" aria-live="polite">
+          <div className="map-fallback-card">
+            <h3>Carte interactive indisponible</h3>
+            <p>WebGL n&apos;a pas pu demarrer sur cet appareil ou dans cette configuration navigateur.</p>
+            <p className="map-fallback-detail">{mapError}</p>
+          </div>
+        </div>
+      )}
 
       {/* width/height attrs requis par Safari WebKit pour établir le viewport SVG
           et permettre le rendu des éléments <foreignObject> enfants. */}
       <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label="Pins des destinations">
         <g ref={pinsGroupRef}>
-          {mapReady && (
+          {mapReady && !mapError && (
             <>
               {/*
             // Index of standalone destinations (place/stage) — used to detect
@@ -1154,7 +1201,7 @@ export default function WorldMap({
         </g>
       </svg>
 
-      <div className={`map-controls${controlsClass}`} aria-label="Controles de carte">
+      {!mapError && <div className={`map-controls${controlsClass}`} aria-label="Controles de carte">
         <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>
         <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>−</button>
         <span className="map-controls-divider" aria-hidden="true" />
@@ -1165,9 +1212,9 @@ export default function WorldMap({
             <path d="M3 15v5h5" /><path d="M21 15v5h-5" />
           </svg>
         </button>
-      </div>
+      </div>}
 
-      <div className={`legend${legendClass}`}>
+      {!mapError && <div className={`legend${legendClass}`}>
         {showLegendLabel && <p className="legend-label">Notation</p>}
         {[['S','Exceptionnel'],['A','Génial'],['B','Correct'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
           <span key={tier}>
@@ -1175,13 +1222,13 @@ export default function WorldMap({
             {label}
           </span>
         ))}
-      </div>
+      </div>}
 
-      <p className="map-attribution">
+      {!mapError && <p className="map-attribution">
         <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">© MapTiler</a>
         {' · '}
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>
-      </p>
+      </p>}
     </section>
   )
 }

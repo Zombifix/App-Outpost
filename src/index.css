@@ -2723,6 +2723,52 @@ svg {
   -webkit-user-drag: none;
 }
 
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.36), transparent 42%),
+    linear-gradient(180deg, rgba(240, 248, 252, 0.88), rgba(223, 236, 244, 0.92));
+  backdrop-filter: blur(14px);
+}
+
+.map-fallback-card {
+  max-width: 420px;
+  padding: 22px 24px;
+  border: 1px solid rgba(169, 195, 214, 0.5);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 20px 54px rgba(121, 149, 175, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  text-align: center;
+  color: #28425c;
+}
+
+.map-fallback-card h3 {
+  margin: 0 0 10px;
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.2;
+}
+
+.map-fallback-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(40, 66, 92, 0.78);
+}
+
+.map-fallback-detail {
+  margin-top: 12px !important;
+  font-size: 0.82rem !important;
+  color: rgba(40, 66, 92, 0.62) !important;
+}
+
 .map-area *,
 .map-gl-container canvas {
   user-select: none;

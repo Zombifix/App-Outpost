@@ -306,7 +306,7 @@ function AppInner() {
 function MobileAvatarImg({ src, fallback }: { src: string; fallback: string }) {
   const [failed, setFailed] = useState(false)
   if (failed) return <>{fallback.slice(0, 1).toUpperCase()}</>
-  return <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }} onError={() => setFailed(true)} />
+  return <img src={src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setFailed(true)} />
 }
 
 function AppCore({

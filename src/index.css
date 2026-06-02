@@ -5992,6 +5992,7 @@ svg {
     height: 36px;
     border-radius: 50%;
     overflow: hidden;
+    position: relative;
     background: rgba(255, 255, 255, 0.86);
     border: 1px solid rgba(198, 218, 240, 0.9);
     backdrop-filter: blur(12px);

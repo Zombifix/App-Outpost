@@ -3271,8 +3271,8 @@ svg {
 
 .map-controls {
   position: absolute;
-  left: calc(var(--content-l) + 16px);
-  bottom: calc(var(--map-b-open) + 8px);
+  right: 16px;
+  bottom: 16px;
   width: 44px;
   padding: 0;
   border-radius: 0;
@@ -5719,12 +5719,13 @@ svg {
 
 .travel-app.tier-collapsed .map-controls,
 .travel-app.tier-collapsed .compare-inline-bar {
-  bottom: calc(var(--map-b-closed) + 8px);
+  bottom: 16px;
 }
 
 .travel-app.desktop-controls-bottom-left .map-controls--bottom-left {
-  left: var(--desktop-controls-left);
-  bottom: var(--desktop-controls-bottom);
+  left: auto;
+  right: 16px;
+  bottom: 16px;
 }
 
 .travel-app.tier-collapsed .legend {
@@ -6201,7 +6202,8 @@ svg {
      la tier list est déployée. */
   .map-controls {
     bottom: calc(var(--tier-collapsed-h) + var(--tier-bottom) + 88px + env(safe-area-inset-bottom, 0px));
-    left: 14px;
+    left: auto;
+    right: 14px;
     /* Sur mobile, on n'a qu'un seul bouton visible (recadrer) — on retire
        l'enveloppe pour ne pas faire croire à des boutons cachés derrière. */
     width: auto;
@@ -6641,8 +6643,8 @@ svg {
   .map-controls {
     top: auto !important;
     bottom: calc(330px + env(safe-area-inset-bottom, 0px)) !important;
-    left: 14px !important;
-    right: auto !important;
+    left: auto !important;
+    right: 14px !important;
     z-index: 35;
   }
   /* Quand sheet replié, le bouton remonte au-dessus du panel replié */
@@ -12220,9 +12222,9 @@ svg {
 
   .map-controls--stacked-left,
   .map-controls--bottom-left {
-    left: var(--desktop-controls-left);
-    right: auto;
-    bottom: var(--desktop-controls-bottom);
+    left: auto;
+    right: 16px;
+    bottom: 16px;
   }
 
   .legend--stacked-left,
@@ -13353,7 +13355,8 @@ svg {
 @media (min-width: 901px) {
   .map-controls--stacked-left,
   .map-controls--bottom-left {
-    left: var(--desktop-controls-left);
+    left: auto;
+    right: 16px;
   }
 }
 

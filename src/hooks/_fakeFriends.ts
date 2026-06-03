@@ -16,11 +16,11 @@ const minutesAgo = (m: number) => new Date(NOW - m * 60_000).toISOString()
 const daysAgo = (d: number) => new Date(NOW - d * 24 * 3600_000).toISOString()
 
 const PROFILES = {
-  alice:  { id: 'u-alice',  handle: 'alice-seed',  name: 'Alice (seed)',  bg: '#FEF3C7', fg: '#92400E' },
-  bruno:  { id: 'u-bruno',  handle: 'bruno-seed',  name: 'Bruno (seed)',  bg: '#DBEAFE', fg: '#1E40AF' },
-  chloe:  { id: 'u-chloe',  handle: 'chloe-seed',  name: 'Chloé (seed)',  bg: '#FCE7F3', fg: '#9D174D' },
-  david:  { id: 'u-david',  handle: 'david-seed',  name: 'David (seed)',  bg: '#D1FAE5', fg: '#065F46' },
-  elise:  { id: 'u-elise',  handle: 'elise-seed',  name: 'Élise (seed)',  bg: '#EDE9FE', fg: '#5B21B6' },
+  alice:  { id: 'u-alice',  handle: 'alice-seed',  name: 'Alice',  bg: '#FEF3C7', fg: '#92400E' },
+  bruno:  { id: 'u-bruno',  handle: 'bruno-seed',  name: 'Bruno',  bg: '#DBEAFE', fg: '#1E40AF' },
+  chloe:  { id: 'u-chloe',  handle: 'chloe-seed',  name: 'Chloé',  bg: '#FCE7F3', fg: '#9D174D' },
+  david:  { id: 'u-david',  handle: 'david-seed',  name: 'David',  bg: '#D1FAE5', fg: '#065F46' },
+  elise:  { id: 'u-elise',  handle: 'elise-seed',  name: 'Élise',  bg: '#EDE9FE', fg: '#5B21B6' },
 }
 
 export const FAKE_FRIENDSHIPS: Friendship[] = [
@@ -117,12 +117,14 @@ function dest(
 }
 
 const ALICE_DESTS: Destination[] = [
-  dest('Lisbonne', 'Portugal',  38.7223, -9.1393, 'A', img('1548707309-dcebeab9ea9b'), { food: 5, night: 4, culture: 5, nature: 4, value: 5 }, 'tourisme', 4.6, 'pt'),
-  dest('Porto',    'Portugal',  41.1579, -8.6291, 'A', img('1555881400-74d7acaacd8b'), { food: 5, night: 4, culture: 5, nature: 3, value: 5 }, 'gastro', 4.5, 'pt'),
-  dest('Sintra',   'Portugal',  38.8029, -9.3817, 'S', img('1588535239434-f2c63b97c6da'), { food: 4, night: 2, culture: 5, nature: 5, value: 4 }, 'nature', 4.8, 'pt'),
-  dest('Madrid',   'Espagne',   40.4168, -3.7038, 'A', img('1543783207-ec64e4d95325'), { food: 5, night: 5, culture: 5, nature: 3, value: 4 }, 'tourisme', 4.5, 'es'),
-  dest('Marrakech','Maroc',     31.6295, -7.9811, 'B', img('1597212618440-3f0a8da57c00'), { food: 5, night: 3, culture: 5, nature: 3, value: 5 }, 'tourisme', 4.1, 'ma'),
-  dest('Reykjavik','Islande',   64.1466, -21.9426, 'A', img('1486546910464-ec8e45c4a137'), { food: 3, night: 4, culture: 4, nature: 5, value: 2 }, 'nature', 4.4, 'is'),
+  dest('Kyoto',      'Japon',         35.0116, 135.7681, 'A', img('1528360983277-13d401cdc186'), { food: 4, night: 3, culture: 5, nature: 5, value: 4 }, 'tourisme', 4.4, 'jp'),
+  dest('Lisbonne',   'Portugal',      38.7223,  -9.1393, 'S', img('1548707309-dcebeab9ea9b'), { food: 5, night: 4, culture: 5, nature: 4, value: 5 }, 'tourisme', 4.7, 'pt'),
+  dest('Le Cap',     'Afrique du Sud',-33.9249, 18.4241, 'B', img('1521295121783-8a321d551ad2'), { food: 4, night: 4, culture: 4, nature: 5, value: 3 }, 'nature', 4.0, 'za'),
+  dest('Bangkok',    'Thaïlande',     13.7563, 100.5018, 'A', img('1508009603885-50cf7c579365'), { food: 5, night: 5, culture: 4, nature: 2, value: 5 }, 'sorties', 4.5, 'th'),
+  dest('Porto',      'Portugal',      41.1579,  -8.6291, 'A', img('1555881400-74d7acaacd8b'), { food: 5, night: 4, culture: 5, nature: 3, value: 5 }, 'gastro', 4.5, 'pt'),
+  dest('Séoul',      'Corée du Sud',  37.5665, 126.9780, 'S', img('1538485399081-7a06146d59f2'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'tourisme', 4.8, 'kr'),
+  dest('Oaxaca',     'Mexique',       17.0732, -96.7266, 'B', img('1518105779142-d975f22f1b0a'), { food: 5, night: 3, culture: 5, nature: 3, value: 4 }, 'gastro', 4.2, 'mx'),
+  dest('Tbilissi',   'Géorgie',       41.7151,  44.8271, 'A', img('1531572753322-ad063cecc140'), { food: 4, night: 4, culture: 4, nature: 3, value: 5 }, 'city-trip', 4.3, 'ge'),
 ]
 
 const BRUNO_DESTS: Destination[] = [

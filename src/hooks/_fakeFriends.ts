@@ -104,6 +104,7 @@ function dest(
   scores: { food: number; night: number; culture: number; nature: number; value: number },
   intent: Destination['intent'] = 'tourisme',
   score = 4.2,
+  countryCode?: string,
 ): Destination {
   return {
     name, country, lat, lng, tier, image,
@@ -111,26 +112,27 @@ function dest(
     food: scores.food, night: scores.night, culture: scores.culture,
     nature: scores.nature, value: scores.value,
     intent,
+    ...(countryCode ? { countryCode } : {}),
   }
 }
 
 const ALICE_DESTS: Destination[] = [
-  dest('Lisbonne', 'Portugal',  38.7223, -9.1393, 'A', img('1548707309-dcebeab9ea9b'), { food: 5, night: 4, culture: 5, nature: 4, value: 5 }, 'tourisme', 4.6),
-  dest('Porto',    'Portugal',  41.1579, -8.6291, 'A', img('1555881400-74d7acaacd8b'), { food: 5, night: 4, culture: 5, nature: 3, value: 5 }, 'gastro', 4.5),
-  dest('Sintra',   'Portugal',  38.8029, -9.3817, 'S', img('1588535239434-f2c63b97c6da'), { food: 4, night: 2, culture: 5, nature: 5, value: 4 }, 'nature', 4.8),
-  dest('Madrid',   'Espagne',   40.4168, -3.7038, 'A', img('1543783207-ec64e4d95325'), { food: 5, night: 5, culture: 5, nature: 3, value: 4 }, 'tourisme', 4.5),
-  dest('Marrakech','Maroc',     31.6295, -7.9811, 'B', img('1597212618440-3f0a8da57c00'), { food: 5, night: 3, culture: 5, nature: 3, value: 5 }, 'tourisme', 4.1),
-  dest('Reykjavik','Islande',   64.1466, -21.9426, 'A', img('1486546910464-ec8e45c4a137'), { food: 3, night: 4, culture: 4, nature: 5, value: 2 }, 'nature', 4.4),
+  dest('Lisbonne', 'Portugal',  38.7223, -9.1393, 'A', img('1548707309-dcebeab9ea9b'), { food: 5, night: 4, culture: 5, nature: 4, value: 5 }, 'tourisme', 4.6, 'pt'),
+  dest('Porto',    'Portugal',  41.1579, -8.6291, 'A', img('1555881400-74d7acaacd8b'), { food: 5, night: 4, culture: 5, nature: 3, value: 5 }, 'gastro', 4.5, 'pt'),
+  dest('Sintra',   'Portugal',  38.8029, -9.3817, 'S', img('1588535239434-f2c63b97c6da'), { food: 4, night: 2, culture: 5, nature: 5, value: 4 }, 'nature', 4.8, 'pt'),
+  dest('Madrid',   'Espagne',   40.4168, -3.7038, 'A', img('1543783207-ec64e4d95325'), { food: 5, night: 5, culture: 5, nature: 3, value: 4 }, 'tourisme', 4.5, 'es'),
+  dest('Marrakech','Maroc',     31.6295, -7.9811, 'B', img('1597212618440-3f0a8da57c00'), { food: 5, night: 3, culture: 5, nature: 3, value: 5 }, 'tourisme', 4.1, 'ma'),
+  dest('Reykjavik','Islande',   64.1466, -21.9426, 'A', img('1486546910464-ec8e45c4a137'), { food: 3, night: 4, culture: 4, nature: 5, value: 2 }, 'nature', 4.4, 'is'),
 ]
 
 const BRUNO_DESTS: Destination[] = [
-  dest('Tokyo',    'Japon',   35.6762, 139.6503, 'S', img('1503899036084-c55cdd92da26'), { food: 5, night: 5, culture: 5, nature: 3, value: 3 }, 'tourisme', 4.9),
-  dest('Kyoto',    'Japon',   35.0116, 135.7681, 'S', img('1528360983277-13d401cdc186'), { food: 5, night: 3, culture: 5, nature: 5, value: 4 }, 'tourisme', 4.8),
-  dest('Osaka',    'Japon',   34.6937, 135.5023, 'A', img('1590559899731-a382839e5549'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'gastro', 4.5),
-  dest('Séoul',    'Corée du Sud', 37.5665, 126.9780, 'A', img('1538485399081-7a06146d59f2'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'tourisme', 4.5),
-  dest('Taipei',   'Taïwan',   25.0330, 121.5654, 'B', img('1552751753-0fc24f0bb31a'), { food: 5, night: 4, culture: 4, nature: 3, value: 5 }, 'gastro', 4.2),
-  dest('Hanoï',    'Vietnam',  21.0285, 105.8542, 'B', img('1528127269322-539801943592'), { food: 5, night: 3, culture: 4, nature: 4, value: 5 }, 'tourisme', 4.0),
-  dest('Singapour','Singapour', 1.3521, 103.8198, 'A', img('1565967511849-76a60a516170'), { food: 5, night: 4, culture: 4, nature: 4, value: 2 }, 'tourisme', 4.4),
+  dest('Tokyo',    'Japon',        35.6762, 139.6503, 'S', img('1503899036084-c55cdd92da26'), { food: 5, night: 5, culture: 5, nature: 3, value: 3 }, 'tourisme', 4.9, 'jp'),
+  dest('Kyoto',    'Japon',        35.0116, 135.7681, 'S', img('1528360983277-13d401cdc186'), { food: 5, night: 3, culture: 5, nature: 5, value: 4 }, 'tourisme', 4.8, 'jp'),
+  dest('Osaka',    'Japon',        34.6937, 135.5023, 'A', img('1590559899731-a382839e5549'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'gastro', 4.5, 'jp'),
+  dest('Séoul',    'Corée du Sud', 37.5665, 126.9780, 'A', img('1538485399081-7a06146d59f2'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'tourisme', 4.5, 'kr'),
+  dest('Taipei',   'Taïwan',       25.0330, 121.5654, 'B', img('1552751753-0fc24f0bb31a'), { food: 5, night: 4, culture: 4, nature: 3, value: 5 }, 'gastro', 4.2, 'tw'),
+  dest('Hanoï',    'Vietnam',      21.0285, 105.8542, 'B', img('1528127269322-539801943592'), { food: 5, night: 3, culture: 4, nature: 4, value: 5 }, 'tourisme', 4.0, 'vn'),
+  dest('Singapour','Singapour',     1.3521, 103.8198, 'A', img('1565967511849-76a60a516170'), { food: 5, night: 4, culture: 4, nature: 4, value: 2 }, 'tourisme', 4.4, 'sg'),
 ]
 
 const FRIEND_DESTS_BY_USER: Record<string, Destination[]> = {

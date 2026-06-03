@@ -993,8 +993,8 @@ function AppCore({
         hidden={activeView !== 'map'}
         mapDetail={mapDetail}
       />
-      {/* Barre flottante compare quand on superpose les pins d'un ami */}
-      {compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend && (
+      {/* Barre flottante compare (desktop only) — sur mobile la comparaison vit dans le panneau My rankings */}
+      {compareFriend && !compareFriendDenied && activeView === 'map' && !viewingFriend && !isMobileLayout && (
         <div
           className={[
             'compare-inline-bar',
@@ -1116,6 +1116,8 @@ function AppCore({
           <TierListPage
             destinations={destinations}
             onSelect={openDestinationOnMap}
+            incomingCompareFriend={compareFriend && !compareFriendDenied ? compareFriend : null}
+            incomingCompareFriendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : []}
           />
         </Suspense>
       )}
@@ -1225,9 +1227,13 @@ function AppCore({
           onCompareFriend={viewingFriend ? undefined : setCompareFriend}
           onMobileToggle={() => setTierListCollapsed(value => !value)}
           onViewTierList={() => setActiveView('tier-list')}
+          onCompareOnTierList={() => setActiveView('tier-list')}
+          onExitCompare={() => setCompareFriend(null)}
+          compareFriend={compareFriend && !compareFriendDenied ? compareFriend : undefined}
           compareFriendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
           compareFriendName={compareFriend && !compareFriendDenied ? compareFriend.displayName.split(' ')[0] : undefined}
           compareFriendAvatarUrl={compareFriend && !compareFriendDenied ? (compareFriend.avatarUrl ?? null) : null}
+          compareCommonCount={compareFriend && !compareFriendDenied ? compareCommonCount : undefined}
         />
       )}
       {addingDestination && (

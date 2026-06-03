@@ -5,6 +5,7 @@ import { TIER_COLORS, TIER_ORDER } from '../data'
 import { getDestinationScore, getDestinationTier } from '../utils'
 import CompareWithFriendButton from './friends/CompareWithFriendButton'
 import { SegmentedControl } from './SegmentedControl'
+import { Avatar } from './Avatar'
 import { t } from '../i18n'
 
 interface TierListPanelProps {
@@ -17,9 +18,13 @@ interface TierListPanelProps {
   onCompareFriend?: (friend: Friendship) => void
   onMobileToggle?: () => void
   onViewTierList?: () => void
+  onCompareOnTierList?: () => void
+  onExitCompare?: () => void
+  compareFriend?: Friendship | null
   compareFriendDestinations?: Destination[]
   compareFriendName?: string
   compareFriendAvatarUrl?: string | null
+  compareCommonCount?: number
 }
 
 const tierLabels: Record<Tier, string> = {
@@ -69,9 +74,13 @@ export default function TierListPanel({
   onFlyTo,
   onCompareFriend,
   onViewTierList,
+  onCompareOnTierList,
+  onExitCompare,
+  compareFriend,
   compareFriendDestinations,
   compareFriendName,
   compareFriendAvatarUrl,
+  compareCommonCount,
 }: TierListPanelProps) {
   const tiersWithItems = TIER_ORDER.filter(tier =>
     destinations.some(d => getDestinationTier(d) === tier && d.kind !== 'stop')
@@ -176,11 +185,7 @@ export default function TierListPanel({
     </div>
   )
 
-  const mobileTierItems = destinations.filter(d => {
-    if (d.kind === 'stop') return false
-    if (mobileTier === 'all') return true
-    return getDestinationTier(d) === mobileTier
-  }).sort((a, b) => compareDestinations(a, b, sortMode))
+  const isComparing = Boolean(compareFriend && compareFriendDestinations)
   const rankedDestinationsCount = destinations.filter(d => d.kind !== 'stop').length
   const tierCounts = TIER_ORDER.map(tier => ({
     tier,
@@ -192,17 +197,19 @@ export default function TierListPanel({
         count: compareFriendDestinations.filter(d => d.kind !== 'stop' && getDestinationTier(d) === tier).length,
       })).filter(item => item.count > 0)
     : null
-  const tierCountChips = tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
-    <span
-      key={tier}
-      className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
-    >
-      <span className="tier-board-collapsed-dot" aria-hidden="true" />
-      {count}
-    </span>
-  )) : (
-    <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
-  )
+  const renderTierChips = (counts: { tier: Tier; count: number }[]) =>
+    counts.length > 0 ? counts.map(({ tier, count }) => (
+      <span
+        key={tier}
+        className={`tier-board-collapsed-count tier-board-collapsed-count--${tier.toLowerCase()}`}
+      >
+        <span className="tier-board-collapsed-dot" aria-hidden="true" />
+        {count}
+      </span>
+    )) : (
+      <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
+    )
+  const tierCountChips = renderTierChips(tierCounts)
 
   const tierOptions = [
     { value: 'all' as const, label: t('All', 'Tous') },
@@ -316,68 +323,93 @@ export default function TierListPanel({
         {sortControl('tier-sort-toggle-desktop')}
       </div>
 
-      {/* ── Mobile view: heading + tier pills + cards ── */}
+      {/* ── Mobile view: solo = chips only (static) · compare = unified panel ── */}
       <div className="tier-mobile-section">
-        <div className="tier-mobile-topline">
-          <div className="tier-mobile-title-row">
-            <h2 className="tier-mobile-title">{t('My rankings', 'Mon classement')}</h2>
-            <span className="tier-mobile-total-badge" aria-label={`${rankedDestinationsCount} ranked destinations`}>
-              {rankedDestinationsCount}
-            </span>
+        {!isComparing && (
+          <div className="tier-mobile-topline">
+            <div className="tier-mobile-title-row">
+              <h2 className="tier-mobile-title">{t('My rankings', 'Mon classement')}</h2>
+              <span className="tier-mobile-total-badge" aria-label={`${rankedDestinationsCount} ranked destinations`}>
+                {rankedDestinationsCount}
+              </span>
+            </div>
+            <div className="tier-mobile-summary" aria-label="Summary by rating">
+              {tierCountChips}
+            </div>
           </div>
-          <div className="tier-mobile-summary" aria-label="Summary by rating">
-            {tierCountChips}
-          </div>
-        </div>
-        <div className="tier-mobile-filter-row">
-          <SegmentedControl
-            className="tier-mobile-tabs"
-            ariaLabel="Filter by tier"
-            role="radiogroup"
-            size="sm"
-            layout="scrollable"
-            tone="tinted"
-            value={mobileTier}
-            options={tierOptions}
-            onChange={setMobileTier}
-          />
-          {sortControl('tier-sort-toggle-mobile', true)}
-        </div>
-        <div className="tier-mobile-strip">
-          {mobileTierItems.map(destination => {
-            const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
-            const destinationTier = getDestinationTier(destination)
-            const colors = TIER_COLORS[destinationTier]
-            return (
-              <article
-                key={destination.name}
-                className={`mini-destination${isCoupDeCoeur ? ' is-coup-de-coeur' : ''}`}
-                style={{
-                  '--tier-pin': colors?.pin,
-                } as CSSProperties}
-              >
-                <button
-                  className="mini-destination-main"
-                  onClick={() => onFlyTo(destination.name)}
-                  aria-label={`Voir ${destination.name} sur la carte`}
-                >
-                  <span className="mini-tier-badge" aria-hidden="true" style={{ background: colors.pin } as CSSProperties}>
-                    {destinationTier}
-                  </span>
-                  <span className="tier-mobile-destination-copy">
-                    <strong>{destination.name}</strong>
-                    <em>{destination.country}</em>
-                  </span>
-                  {isCoupDeCoeur && (
-                    <span className="mini-heart-badge is-active" aria-label="Coup de coeur">
-                      <HeartIcon filled />
-                    </span>
+        )}
+        {isComparing && (
+          <div className="tier-mobile-compare">
+            <div className="tier-mobile-compare-legend">
+              <span className="tier-mobile-compare-legend-item">
+                <span className="compare-legend-dot compare-legend-dot--mine" aria-hidden="true" />
+                {t('You', 'Toi')}
+              </span>
+              <span className="tier-mobile-compare-legend-item">
+                {compareFriend ? (
+                  <Avatar
+                    className="compare-legend-dot compare-legend-dot--theirs"
+                    avatarUrl={compareFriend.avatarUrl}
+                    initials={(compareFriendName ?? compareFriend.displayName).slice(0, 1)}
+                    bg={compareFriend.avatarBg}
+                    fg={compareFriend.avatarFg}
+                    ariaHidden
+                  />
+                ) : (
+                  <span className="compare-legend-dot compare-legend-dot--theirs" aria-hidden="true" />
+                )}
+                {compareFriendName ?? t('Friend', 'Ami')}
+              </span>
+              {typeof compareCommonCount === 'number' && (
+                <span className="tier-mobile-compare-legend-item">
+                  <span className="compare-legend-dot compare-legend-dot--shared" aria-hidden="true" />
+                  {compareCommonCount} {t('in common', 'en commun')}
+                </span>
+              )}
+            </div>
+            <div className="tier-mobile-compare-rows">
+              <div className="tier-mobile-compare-row">
+                <span className="tier-mobile-compare-who">{t('Me', 'Moi')}</span>
+                <span className="tier-mobile-summary">{renderTierChips(tierCounts)}</span>
+              </div>
+              <div className="tier-mobile-compare-row tier-mobile-compare-row--friend">
+                <span className="tier-mobile-compare-who">
+                  {compareFriendAvatarUrl && (
+                    <img src={compareFriendAvatarUrl} alt="" aria-hidden="true" className="tier-board-friend-avatar" />
                   )}
+                  {compareFriendName ?? t('Friend', 'Ami')}
+                </span>
+                <span className="tier-mobile-summary">{renderTierChips(friendTierCounts ?? [])}</span>
+              </div>
+            </div>
+            <div className="tier-mobile-compare-actions">
+              {onExitCompare && (
+                <button
+                  type="button"
+                  className="tier-mobile-compare-exit"
+                  onClick={onExitCompare}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                  {t('Exit', 'Quitter')}
                 </button>
-              </article>
-            )
-          })}
-        </div>
+              )}
+              {onCompareOnTierList && (
+                <button
+                  type="button"
+                  className="tier-mobile-compare-cta"
+                  onClick={onCompareOnTierList}
+                >
+                  {t('Compare on the tier list', 'Comparer sur la tier list')}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Desktop view: full tier columns ── */}

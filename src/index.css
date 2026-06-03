@@ -6099,6 +6099,7 @@ svg {
   }
 
   .mobile-header-avatar-face {
+    display: block;
     width: 100%;
     height: 100%;
     border-radius: inherit;
@@ -12647,7 +12648,7 @@ svg {
   }
 
   .tier-board {
-    border-radius: 28px 28px 0 0;
+    border-radius: 28px 28px 20px 20px;
   }
 
   .tier-board-handle-bar {

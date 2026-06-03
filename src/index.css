@@ -1436,14 +1436,17 @@ svg {
    la map et pas sur le bord gauche de la page. */
 .compare-inline-bar {
   position: absolute;
-  left: calc(var(--content-l) + 72px);
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
   bottom: var(--map-b-open);
   z-index: 9;
   display: flex;
   align-items: center;
   gap: 14px;
   height: 46px;
-  max-width: min(520px, calc(100vw - var(--content-l) - 40px));
+  max-width: min(520px, calc(100vw - 48px));
   padding: 0 6px 0 18px;
   background: rgba(255,255,255,0.94);
   backdrop-filter: blur(18px);
@@ -1457,9 +1460,10 @@ svg {
 }
 .compare-inline-bar--stacked-left,
 .compare-inline-bar--bottom-left {
-  left: var(--desktop-left-dock-x);
-  right: auto;
-  bottom: 16px;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  bottom: 24px;
   min-height: 52px;
   height: auto;
   padding: 8px 10px 8px 16px;
@@ -12041,7 +12045,6 @@ svg {
 .comparison-banner,
 .tier-destination-preview,
 .friend-picker,
-.compare-inline-bar,
 .btn,
 .top-actions button,
 .side-menu button,
@@ -12747,7 +12750,8 @@ svg {
 
   .compare-inline-bar--stacked-left,
   .compare-inline-bar--bottom-left {
-    width: min(420px, calc(100vw - var(--desktop-left-dock-x) - 32px));
+    width: fit-content;
+    max-width: min(420px, calc(100vw - 48px));
   }
 
   .travel-app.tier-collapsed .legend.legend--stacked-left,
@@ -13947,8 +13951,7 @@ svg {
   .tier-mobile-compare-actions {
     display: flex;
     align-items: stretch;
-    gap: 8px;
-    margin-top: 2px;
+    gap: 10px;
   }
 
   .tier-mobile-compare-exit {
@@ -13957,9 +13960,10 @@ svg {
     justify-content: center;
     gap: 6px;
     flex: 0 0 auto;
-    padding: 11px 14px;
+    min-width: 96px;
+    padding: 13px 18px;
     border: 1px solid rgba(120, 140, 175, 0.32);
-    border-radius: 12px;
+    border-radius: 14px;
     background: rgba(255, 255, 255, 0.72);
     color: #3a557f;
     font-size: 13px;
@@ -14014,9 +14018,9 @@ svg {
     justify-content: center;
     gap: 8px;
     flex: 1 1 auto;
-    padding: 11px 14px;
+    padding: 13px 16px;
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     background: linear-gradient(180deg, #2f6bf0, #1b5fe8);
     color: #fff;
     font-size: 13px;

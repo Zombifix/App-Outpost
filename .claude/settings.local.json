@@ -32,7 +32,8 @@
       "Bash(supabase --version)",
       "Bash(awk 'NR>=13200 && NR<=13250 {print NR\": \"$0}' /Users/theopornin/Documents/GitHub/App-Outpost/src/index.css)",
       "Bash(awk 'NR>=13100 && NR<=13200 {print NR\": \"$0}' /Users/theopornin/Documents/GitHub/App-Outpost/src/index.css)",
-      "Bash(awk 'NR>=12633 && NR<=12700 {print NR\": \"$0}' /Users/theopornin/Documents/GitHub/App-Outpost/src/index.css)"
+      "Bash(awk 'NR>=12633 && NR<=12700 {print NR\": \"$0}' /Users/theopornin/Documents/GitHub/App-Outpost/src/index.css)",
+      "Bash(git remote *)"
     ]
   }
 }

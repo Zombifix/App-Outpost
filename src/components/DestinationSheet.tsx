@@ -224,6 +224,7 @@ type DragState = { startY: number; lastY: number; lastT: number; v: number; curr
 function MobileSheet(props: DestinationSheetProps) {
   const isComparison = Boolean(props.compareWith)
   const sheetRef = useRef<HTMLElement | null>(null)
+  const bodyRef = useRef<HTMLDivElement | null>(null)
   const [snap, setSnap] = useState<SnapState>(isComparison ? 'full' : 'peek')
   const dragRef = useRef<DragState>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -282,22 +283,13 @@ function MobileSheet(props: DestinationSheetProps) {
       return
     }
 
-    // Depuis peek : fermeture plus facile (seuil bas + vÃ©locitÃ© modÃ©rÃ©e)
     if (snap === 'peek') {
-      if (finalTop > vh * 0.68 || velocity > 0.5) {
-        props.onClose()
-        return
-      }
+      if (finalTop > vh * 0.68 || velocity > 0.5) { props.onClose(); return }
       if (velocity < -0.6) { setSnap('full'); return }
-      // Ni fermeture ni ouverture â†' reste peek
       return
     }
 
-    // Depuis full : comportement standard
-    if (finalTop > vh * CLOSE_RATIO || velocity > 1.0) {
-      props.onClose()
-      return
-    }
+    if (finalTop > vh * CLOSE_RATIO || velocity > 1.0) { props.onClose(); return }
     if (velocity < -0.6) { setSnap('full'); return }
     if (velocity > 0.6) { setSnap('peek'); return }
     const midpoint = vh * ((PEEK_RATIO + FULL_RATIO) / 2)
@@ -329,7 +321,7 @@ function MobileSheet(props: DestinationSheetProps) {
         >
           <span className="destination-sheet-grabber" />
         </button>
-        <div className="destination-sheet-body">
+        <div className="destination-sheet-body" ref={bodyRef}>
           <DestinationCardContent {...props} />
         </div>
       </aside>

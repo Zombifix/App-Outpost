@@ -3477,8 +3477,6 @@ svg {
   right: max(12px, calc((100vw - 720px) / 2));
   top: clamp(8px, 2.4vh, 24px);
   border-radius: 26px 26px 0 0;
-  -webkit-mask-image: linear-gradient(to bottom, black 90%, transparent 98%);
-  mask-image:         linear-gradient(to bottom, black 90%, transparent 98%);
 }
 
 .destination-sheet-handle {

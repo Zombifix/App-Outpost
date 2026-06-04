@@ -15899,6 +15899,204 @@ svg {
   }
 }
 
+/* ── Versus mode: deux colonnes côte à côte ─────────────── */
+
+/* Légende des colonnes Me / Ami */
+.tier-versus-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(214, 226, 242, 0.5);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.tier-versus-legend-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(248, 251, 255, 0.92);
+  font-size: 13px;
+  font-weight: var(--weight-bold);
+  color: #2b4568;
+}
+
+.tier-versus-legend-col--friend {
+  justify-content: flex-end;
+  flex-direction: row-reverse;
+  background: color-mix(in srgb, var(--friend-bg, #e8f0ff) 30%, rgba(248, 251, 255, 0.92));
+}
+
+.tier-versus-legend-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+}
+
+/* Section tier en mode versus */
+.tier-versus-section {
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(214, 226, 242, 0.6);
+  background: rgba(255, 255, 255, 0.72);
+  overflow: hidden;
+}
+
+.tier-versus-section > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 120ms ease;
+}
+.tier-versus-section > header:hover {
+  background: rgba(27, 95, 232, 0.03);
+}
+
+.tier-versus-header-counts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--text-muted);
+}
+
+.tier-versus-count-sep {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  opacity: 0.5;
+}
+
+/* Corps du tier en deux colonnes */
+.tier-versus-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid rgba(214, 226, 242, 0.5);
+}
+
+.tier-versus-col {
+  padding: 6px 4px;
+}
+
+.tier-versus-col--friend {
+  border-left: 1px solid rgba(214, 226, 242, 0.5);
+  background: color-mix(in srgb, var(--friend-bg, #e8f0ff) 10%, transparent);
+}
+
+.tier-versus-empty {
+  display: block;
+  padding: 12px 10px;
+  text-align: center;
+  font-size: 18px;
+  color: rgba(180, 196, 214, 0.7);
+}
+
+/* Ligne de destination compacte dans chaque colonne */
+.versus-dest-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(214, 226, 242, 0.3);
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0;
+  transition: background 100ms ease;
+}
+.versus-dest-row:last-child { border-bottom: none; }
+.versus-dest-row:hover { background: rgba(27, 95, 232, 0.04); }
+
+.versus-dest-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(214, 226, 242, 0.5);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.versus-dest-thumb-placeholder {
+  font-size: 14px;
+  font-weight: var(--weight-bold);
+  color: #7a95b8;
+}
+
+.versus-dest-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.versus-dest-name {
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  color: var(--ink, #15233f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.versus-dest-country {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #6c84a0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.versus-dest-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.versus-dest-score {
+  font-size: 14px;
+  font-weight: var(--weight-extrabold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Mobile: colonnes plus compactes */
+@media (max-width: 768px) {
+  .tier-versus-legend-col {
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .versus-dest-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+  }
+
+  .versus-dest-name { font-size: 11px; }
+  .versus-dest-country { display: none; }
+  .versus-dest-score { font-size: 13px; }
+  .versus-dest-row { gap: 5px; padding: 5px 6px; }
+}
+
 /* ── Tier list refinements: new elements (2024 refactor) ─── */
 
 /* Personality title in comparison banner and solo card */

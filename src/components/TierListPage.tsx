@@ -585,6 +585,126 @@ function TierRow({
   )
 }
 
+// ── Versus mode: two columns side by side ─────────────────────────
+
+function VersusDestRow({
+  dest,
+  onSelect,
+}: {
+  dest: Destination
+  onSelect?: (d: Destination) => void
+}) {
+  const score = getDestinationScore(dest)
+  const tier = getDestinationTier(dest)
+  const colors = TIER_COLORS[tier]
+  const flagUrl = getCountryFlag(dest)
+  const isFav = Boolean(dest.coupDeCoeur)
+
+  return (
+    <button
+      type="button"
+      className="versus-dest-row"
+      onClick={() => onSelect?.(dest)}
+      aria-label={`Voir ${dest.name}`}
+    >
+      <div
+        className="versus-dest-thumb"
+        style={dest.image ? { backgroundImage: `url(${dest.image})` } as React.CSSProperties : undefined}
+        aria-hidden="true"
+      >
+        {!dest.image && <span className="versus-dest-thumb-placeholder">{dest.name[0]}</span>}
+      </div>
+      <div className="versus-dest-info">
+        <span className="versus-dest-name">{dest.name}</span>
+        <span className="versus-dest-country">
+          {flagUrl && <img src={flagUrl} alt="" className="dest-row-flag" loading="lazy" />}
+          <span>{dest.country}</span>
+        </span>
+      </div>
+      <div className="versus-dest-right">
+        {isFav && (
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#e84060" stroke="none" aria-hidden="true">
+            <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
+          </svg>
+        )}
+        <span className="versus-dest-score" style={{ color: colors.pin } as React.CSSProperties}>
+          {score.toFixed(1)}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function VersusTierSection({
+  tier,
+  myDests,
+  friendDests,
+  collapsed,
+  onToggle,
+  onSelectMine,
+  onSelectFriend,
+}: {
+  tier: Tier
+  myDests: Destination[]
+  friendDests: Destination[]
+  collapsed: boolean
+  onToggle: () => void
+  onSelectMine: (d: Destination) => void
+  onSelectFriend: (d: Destination) => void
+}) {
+  const colors = TIER_COLORS[tier]
+  const mine = myDests
+    .filter(d => getDestinationTier(d) === tier && d.kind !== 'stop')
+    .sort((a, b) => getDestinationScore(b) - getDestinationScore(a))
+  const theirs = friendDests
+    .filter(d => getDestinationTier(d) === tier && d.kind !== 'stop')
+    .sort((a, b) => getDestinationScore(b) - getDestinationScore(a))
+
+  if (mine.length === 0 && theirs.length === 0) return null
+
+  return (
+    <article className={`tier-versus-section tier-list-row-${tier.toLowerCase()}`}>
+      <header onClick={onToggle}>
+        <span className={`tier-orb tier-${tier.toLowerCase()}`} style={{ boxShadow: `0 6px 16px ${colors.pin}33` }}>
+          {tier}
+        </span>
+        <div className="tier-row-label-group">
+          <strong style={{ color: colors.label }}>{TIER_LABEL[tier]}</strong>
+          <span className="tier-row-description">{TIER_DESCRIPTIONS[tier]}</span>
+        </div>
+        <div className="tier-versus-header-counts">
+          <span>{mine.length}</span>
+          <span className="tier-versus-count-sep">vs</span>
+          <span>{theirs.length}</span>
+        </div>
+        <svg
+          className={`tier-row-chevron ${collapsed ? '' : 'is-open'}`}
+          width="16" height="16" viewBox="0 0 16 16" fill="none"
+        >
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </header>
+
+      {!collapsed && (
+        <div className="tier-versus-body">
+          <div className="tier-versus-col tier-versus-col--me">
+            {mine.length === 0
+              ? <span className="tier-versus-empty">—</span>
+              : mine.map(d => <VersusDestRow key={destinationNameKey(d)} dest={d} onSelect={onSelectMine} />)
+            }
+          </div>
+          <div className="tier-versus-col tier-versus-col--friend">
+            {theirs.length === 0
+              ? <span className="tier-versus-empty">—</span>
+              : theirs.map(d => <VersusDestRow key={destinationNameKey(d)} dest={d} onSelect={onSelectFriend} />)
+            }
+          </div>
+        </div>
+      )}
+    </article>
+  )
+}
+
 export default function TierListPage({
   destinations,
   onSelect,
@@ -932,28 +1052,51 @@ export default function TierListPage({
         </section>
       )}
 
-      {/* Compare mode — versus: union des deux listes avec scores côte à côte */}
+      {/* Compare mode — versus: deux colonnes côte à côte, une par utilisateur */}
       {friend && !compareDenied && filter === 'versus' && (
         <section
-          className="tier-list-rows tier-list-rows--compare"
+          className="tier-list-rows tier-list-rows--versus"
           style={{ '--friend-bg': friend.bg, '--friend-color': friend.color } as React.CSSProperties}
           aria-label={`${t('My rankings', 'Mon classement')} ${t('with', 'avec')} ${friendFirstName}`}
         >
+          {/* En-têtes de colonnes */}
+          <div className="tier-versus-legend">
+            <div className="tier-versus-legend-col tier-versus-legend-col--me">
+              <Avatar
+                avatarUrl={myProfile?.avatarUrl}
+                initials={myProfile?.displayName?.trim().slice(0, 2).toUpperCase() ?? 'M'}
+                bg={myProfile?.avatarBg ?? '#1B5FE8'}
+                fg={myProfile?.avatarFg ?? '#ffffff'}
+                className="tier-versus-legend-avatar"
+                ariaHidden={true}
+              />
+              <span>{myProfile?.displayName?.split(' ')[0] ?? t('Me', 'Moi')}</span>
+            </div>
+            <div className="tier-versus-legend-col tier-versus-legend-col--friend">
+              <Avatar
+                avatarUrl={friend.avatarUrl}
+                initials={friend.initials}
+                bg={friend.bg}
+                fg={friend.color}
+                className="tier-versus-legend-avatar"
+                ariaHidden={true}
+              />
+              <span>{friendFirstName}</span>
+            </div>
+          </div>
+
           {versusTiers.length === 0 ? (
             <p className="tier-list-empty">{t('No destinations', 'Aucune destination')}</p>
           ) : versusTiers.map(tier => (
-            <TierRow
+            <VersusTierSection
               key={`versus-${tier}`}
               tier={tier}
               myDests={myFiltered}
               friendDests={friendFiltered}
-              friend={friend}
-              sharedNames={sharedNames}
               collapsed={collapsed[tier]}
-              isCompareMode={true}
-              friendOnlyDests={friendOnlyFiltered}
               onToggle={() => toggleCollapse(tier)}
               onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
+              onSelectFriend={destination => setPreview({ destination, ownerLabel: friendFirstName, ownerColor: friend.bg })}
             />
           ))}
         </section>

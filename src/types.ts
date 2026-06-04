@@ -120,6 +120,7 @@ export interface Friend {
   color: string
   bg: string
   count: number
+  avatarUrl?: string
 }
 
 /** @deprecated — utilise ActivityEvent. */

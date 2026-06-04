@@ -3554,18 +3554,19 @@ svg {
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 3;
+  z-index: 20;
   display: flex;
   align-items: flex-start;
   gap: 6px;
   max-width: calc(100% - 20px);
+  pointer-events: auto;
 }
 
 .floating-close {
   position: relative;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   padding: 0;
   border-radius: 50%;
   display: grid;
@@ -3574,6 +3575,10 @@ svg {
   background: white;
   box-shadow: 0 12px 24px rgba(65, 82, 110, 0.14);
   z-index: 2;
+}
+
+.destination-hero-wrap {
+  position: relative;
 }
 
 .destination-hero {
@@ -3763,8 +3768,8 @@ svg {
 }
 
 .card-kebab {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border-radius: 50%;
   display: grid;
@@ -6023,7 +6028,7 @@ svg {
 
 /* Touch target sizing for primary action buttons on mobile.
    Ensures ≥44px tap height per WCAG 2.5.5 / AAA recommandation. */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .friends-action-btn,
   .add-submit,
   .map-button,
@@ -6040,7 +6045,7 @@ svg {
 }
 
 /* === Tablet / mobile (max 900px) === */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   :root {
     --sidebar-w: 0px;
     --gap: 12px;
@@ -8238,7 +8243,7 @@ svg {
   border-left: 1px solid rgba(219, 228, 243, 0.9);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .wizard-panel {
     max-width: 560px;
     padding-inline: 34px;
@@ -11641,7 +11646,7 @@ svg {
 
 /* ── Tier-list-page mobile ───────────────────────────────── */
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .tier-list-page {
     top: calc(env(safe-area-inset-top, 0px) + 56px);
     left: 0;
@@ -12773,7 +12778,7 @@ svg {
   background: var(--glass-bg);
 }
 
-@media (min-width: 901px) {
+@media (min-width: 769px) {
   .view-map .sidebar {
     bottom: auto;
     height: auto;
@@ -13725,7 +13730,7 @@ svg {
 .tier-board-collapsed-count--empty { color: #8f9caf; }
 
 /* Navbar mobile — iso main branch floating pill */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .bottom-nav {
     left: var(--mobile-nav-offset);
     right: var(--mobile-nav-offset);
@@ -14363,7 +14368,7 @@ svg {
 /* 4. Contrôles carte (+ / - / centre) — repositionner à droite du dock
       var(--desktop-controls-left) n'est pas injecté → fallback à static pos.
       On réutilise --content-l comme la CSS de base. */
-@media (min-width: 901px) {
+@media (min-width: 769px) {
   .map-controls--stacked-left,
   .map-controls--bottom-left {
     left: auto;
@@ -15549,7 +15554,7 @@ svg {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .travel-app.view-tier-list {
     overflow: hidden;
   }
@@ -15885,5 +15890,113 @@ svg {
   .dest-score-delta {
     min-width: 38px;
     font-size: 12px;
+  }
+
+  /* Hide context chips on narrow mobile — space too tight in versus mode */
+  .dest-row-chip {
+    display: none;
+  }
+}
+
+/* ── Tier list refinements: new elements (2024 refactor) ─── */
+
+/* Personality title in comparison banner and solo card */
+.compare-banner-title,
+.tier-list-solo-title {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: #7a95b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 110px;
+  line-height: 1.2;
+}
+
+/* Icons in banner center stats */
+.compare-banner-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.compare-banner-stat svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Friend identity right-aligned */
+.compare-banner-identity--right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* Stacked scores in versus mode */
+.dest-row-scores--versus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 44px;
+}
+
+.dest-score-stacked-me {
+  font-size: 15px;
+  font-weight: var(--weight-extrabold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ink, #15233f);
+}
+
+.dest-score-stacked-friend {
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: #7a95b8;
+  line-height: 1;
+}
+
+/* Companion / duration context chips on destination rows */
+.dest-row-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(27, 95, 232, 0.07);
+  color: #7a95b8;
+  white-space: nowrap;
+  max-width: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "destinations" label after the hero count number */
+.tier-list-hero-count-label {
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  color: #7a95b8;
+  margin-left: -1px;
+}
+
+/* Desktop centering: constrain content width and center it with symmetric padding */
+@media (min-width: 1024px) {
+  .tier-list-page {
+    padding-left: max(32px, calc((100% - 820px) / 2));
+    padding-right: max(32px, calc((100% - 820px) / 2));
+  }
+}
+
+@media (min-width: 1280px) {
+  .dest-score-stacked-me {
+    font-size: 17px;
+  }
+  .dest-score-stacked-friend {
+    font-size: 14px;
+  }
+  .compare-banner-title,
+  .tier-list-solo-title {
+    max-width: 140px;
   }
 }

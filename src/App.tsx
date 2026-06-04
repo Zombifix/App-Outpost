@@ -494,7 +494,7 @@ function AppCore({
   const [mapDetail, setMapDetail] = useState<'simple' | 'detailed'>(() =>
     (localStorage.getItem('outpost-map-detail') as 'simple' | 'detailed' | null) ?? 'simple'
   )
-  const isMobileLayout = useMediaQuery('(max-width: 900px)')
+  const isMobileLayout = useMediaQuery('(max-width: 768px)')
   const [desktopDock, setDesktopDock] = useState<DesktopDockState>(DESKTOP_DOCK_DEFAULT)
 
   useEffect(() => {
@@ -1118,6 +1118,12 @@ function AppCore({
             onSelect={openDestinationOnMap}
             incomingCompareFriend={compareFriend && !compareFriendDenied ? compareFriend : null}
             incomingCompareFriendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : []}
+            myProfile={profileDisplayName ? {
+              displayName: profileDisplayName,
+              avatarUrl: profileAvatarUrl,
+              avatarBg: profileAvatarBg,
+              avatarFg: profileAvatarFg,
+            } : null}
           />
         </Suspense>
       )}

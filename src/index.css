@@ -3464,20 +3464,22 @@ svg {
   left: 0;
   right: 0;
   bottom: 0;
-  top: 8vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.96);
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -24px 60px rgba(20, 22, 50, 0.18);
-  transform: translateY(40vh);
+  transform: translateY(100%);
   transition: transform 280ms cubic-bezier(0.32, 0.72, 0.24, 1);
   will-change: transform;
   touch-action: none;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  backdrop-filter: none !important;
 }
 
-.destination-sheet.is-peek { transform: translateY(55vh); }
+/* peek: push down so ~280px of the sheet peeks above the nav bar */
+.destination-sheet.is-peek { transform: translateY(calc(100% - 280px)); }
 .destination-sheet.is-full { transform: translateY(0); }
 .destination-sheet.is-dragging { transition: none; }
 

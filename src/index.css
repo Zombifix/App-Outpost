@@ -3436,8 +3436,17 @@ svg {
   inset: 0;
   z-index: 40;
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(1px);
   animation: sheet-fade-in 180ms ease-out;
+}
+
+/* Blur on a pseudo-element so the backdrop div does NOT become a containing
+   block for its fixed children (backdrop-filter triggers that per CSS spec). */
+.destination-sheet-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(1px);
+  pointer-events: none;
 }
 
 @keyframes sheet-fade-in {
@@ -12047,7 +12056,6 @@ svg {
 .legend,
 .tier-board,
 .destination-card,
-.destination-sheet,
 .filter-popover,
 .wizard-panel,
 .friends-view,

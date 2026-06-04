@@ -646,11 +646,11 @@ export default function TierListPage({
   )
 
   const myProfileTitle = useMemo(
-    () => destinations.length >= 3 ? computeTravelerProfile(destinations).title : null,
+    () => destinations.length >= 1 ? computeTravelerProfile(destinations).title : null,
     [destinations]
   )
   const friendTitle = useMemo(
-    () => friend && friendDests.length >= 3 ? computeTravelerProfile(friendDests).title : null,
+    () => friend && friendDests.length >= 1 ? computeTravelerProfile(friendDests).title : null,
     [friend, friendDests]
   )
 

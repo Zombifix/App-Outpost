@@ -15981,11 +15981,19 @@ svg {
   margin-left: -1px;
 }
 
-/* Desktop centering: constrain content width and center it with symmetric padding */
+/* Desktop: padding confortable, contenu utilise tout l'espace disponible */
 @media (min-width: 1024px) {
   .tier-list-page {
-    padding-left: max(32px, calc((100% - 820px) / 2));
-    padding-right: max(32px, calc((100% - 820px) / 2));
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+/* Sur très grands écrans, centrer doucement à partir de 1400px de large */
+@media (min-width: 1400px) {
+  .tier-list-page {
+    padding-left: max(40px, calc((100% - 1280px) / 2));
+    padding-right: max(40px, calc((100% - 1280px) / 2));
   }
 }
 

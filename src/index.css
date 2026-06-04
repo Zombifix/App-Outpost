@@ -1512,6 +1512,23 @@ svg {
 .compare-inline-close:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .compare-inline-close svg { width: 13px; height: 13px; }
 
+/* Variante mobile : pill flottante sous le header (évite le tier-board qui grandit en compare) */
+.map-compare-filter--floating {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 58px + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 24px rgba(95, 119, 148, 0.18), 0 0 0 0.5px rgba(0,0,0,0.05);
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+}
+.map-compare-filter--floating .map-compare-filter__dot {
+  display: none;
+}
+
 /* En compare, cacher uniquement la légende overlay (même position que la barre).
    Les légendes sidebar (stacked-left / bottom-left) restent visibles. */
 .compare-active .legend:not(.legend--stacked-left):not(.legend--bottom-left) { display: none; }

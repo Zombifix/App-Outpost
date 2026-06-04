@@ -221,6 +221,7 @@ function DestRow({
   friendName,
   isShared,
   isCompareMode,
+  isFriendPrimary,
   onSelect,
 }: {
   myDest: Destination
@@ -228,6 +229,8 @@ function DestRow({
   friendName?: string
   isShared?: boolean
   isCompareMode?: boolean
+  /** Destination appartenant uniquement à l'ami : scores affichés à l'envers (– pour moi, score ami en haut) */
+  isFriendPrimary?: boolean
   onSelect?: (destination: Destination) => void
 }) {
   const isCoupDeCoeur = Boolean(myDest.coupDeCoeur)
@@ -291,8 +294,17 @@ function DestRow({
             </span>
           )}
         </div>
-        <div className={`dest-row-scores${friendDest !== undefined ? ' dest-row-scores--versus' : ''}`}>
-          {friendDest !== undefined ? (
+        <div className={`dest-row-scores${(friendDest !== undefined || isFriendPrimary) ? ' dest-row-scores--versus' : ''}`}>
+          {isFriendPrimary ? (
+            // Destination uniquement chez l'ami : "–" pour moi en haut, score ami en bas
+            <>
+              <span className="dest-score-stacked-me" style={{ color: '#b8c8da' } as React.CSSProperties}>–</span>
+              <span className="dest-score-stacked-friend" style={{ color: colors.pin, fontWeight: 700 } as React.CSSProperties}>
+                {myScore.toFixed(1)}
+              </span>
+            </>
+          ) : friendDest !== undefined ? (
+            // Destination partagée ou uniquement chez moi
             <>
               <span className="dest-score-stacked-me" style={{ color: colors.pin } as React.CSSProperties}>
                 {myScore.toFixed(1)}
@@ -472,6 +484,7 @@ function TierRow({
   sharedNames,
   collapsed,
   isCompareMode,
+  friendOnlyDests,
   onToggle,
   onSelectMine,
 }: {
@@ -482,6 +495,8 @@ function TierRow({
   sharedNames: Set<string>
   collapsed: boolean
   isCompareMode?: boolean
+  /** Destinations visitées uniquement par l'ami (versus mode) */
+  friendOnlyDests?: Destination[]
   onToggle: () => void
   onSelectMine: (destination: Destination) => void
 }) {
@@ -494,7 +509,12 @@ function TierRow({
       .filter(destination => destination.kind !== 'stop')
       .map(destination => [destinationNameKey(destination), destination])
   )
-  const count = String(mine.length)
+  // Destinations de l'ami dans ce tier, non présentes dans ma liste
+  const friendOnly = (friendOnlyDests ?? [])
+    .filter(destination => getDestinationTier(destination) === tier && destination.kind !== 'stop')
+    .sort((a, b) => getDestinationScore(b) - getDestinationScore(a))
+
+  const count = String(mine.length + friendOnly.length)
 
   return (
     <article className={`tier-list-row tier-list-row-${tier.toLowerCase()}`}>
@@ -529,18 +549,34 @@ function TierRow({
                 their: friend ? (friendLookup.get(destinationNameKey(d)) ?? null) : null,
                 isShared: sharedNames.has(destinationNameKey(d)),
               }))
-              if (rows.length === 0) return <span className="tier-list-empty">{t('No destinations', 'Aucune destination')}</span>
-              return rows.map(({ my, their, isShared: shared }) => (
-                <DestRow
-                  key={destinationNameKey(my)}
-                  myDest={my}
-                  friendDest={friend ? their : undefined}
-                  friendName={friend?.name.split(' ')[0]}
-                  isShared={shared}
-                  isCompareMode={isCompareMode}
-                  onSelect={onSelectMine}
-                />
-              ))
+              if (rows.length === 0 && friendOnly.length === 0) {
+                return <span className="tier-list-empty">{t('No destinations', 'Aucune destination')}</span>
+              }
+              return (
+                <>
+                  {rows.map(({ my, their, isShared: shared }) => (
+                    <DestRow
+                      key={destinationNameKey(my)}
+                      myDest={my}
+                      friendDest={friend ? their : undefined}
+                      friendName={friend?.name.split(' ')[0]}
+                      isShared={shared}
+                      isCompareMode={isCompareMode}
+                      onSelect={onSelectMine}
+                    />
+                  ))}
+                  {friendOnly.map(d => (
+                    <DestRow
+                      key={`fo-${destinationNameKey(d)}`}
+                      myDest={d}
+                      isFriendPrimary={true}
+                      isCompareMode={isCompareMode}
+                      friendName={friend?.name.split(' ')[0]}
+                      onSelect={onSelectMine}
+                    />
+                  ))}
+                </>
+              )
             })()}
           </div>
         </div>
@@ -644,6 +680,20 @@ export default function TierListPage({
     () => TIER_ORDER.filter(tier => friendFiltered.some(d => getDestinationTier(d) === tier && d.kind !== 'stop')),
     [friendFiltered]
   )
+  // Tiers présents dans l'une ou l'autre liste (pour le mode versus complet)
+  const versusTiers = useMemo(
+    () => TIER_ORDER.filter(tier =>
+      myFiltered.some(d => getDestinationTier(d) === tier && d.kind !== 'stop') ||
+      friendFiltered.some(d => getDestinationTier(d) === tier && d.kind !== 'stop')
+    ),
+    [myFiltered, friendFiltered]
+  )
+  // Destinations visitées uniquement par l'ami (pas dans ma liste)
+  const friendOnlyFiltered = useMemo(() => {
+    if (!friend) return []
+    const myNames = destinationNameSet(myFiltered)
+    return friendFiltered.filter(d => !myNames.has(destinationNameKey(d)))
+  }, [friend, myFiltered, friendFiltered])
 
   const myProfileTitle = useMemo(
     () => destinations.length >= 1 ? computeTravelerProfile(destinations).title : null,
@@ -882,16 +932,16 @@ export default function TierListPage({
         </section>
       )}
 
-      {/* Compare mode — versus: my list with friend scores side by side */}
+      {/* Compare mode — versus: union des deux listes avec scores côte à côte */}
       {friend && !compareDenied && filter === 'versus' && (
         <section
           className="tier-list-rows tier-list-rows--compare"
           style={{ '--friend-bg': friend.bg, '--friend-color': friend.color } as React.CSSProperties}
           aria-label={`${t('My rankings', 'Mon classement')} ${t('with', 'avec')} ${friendFirstName}`}
         >
-          {myTiers.length === 0 ? (
+          {versusTiers.length === 0 ? (
             <p className="tier-list-empty">{t('No destinations', 'Aucune destination')}</p>
-          ) : myTiers.map(tier => (
+          ) : versusTiers.map(tier => (
             <TierRow
               key={`versus-${tier}`}
               tier={tier}
@@ -901,6 +951,7 @@ export default function TierListPage({
               sharedNames={sharedNames}
               collapsed={collapsed[tier]}
               isCompareMode={true}
+              friendOnlyDests={friendOnlyFiltered}
               onToggle={() => toggleCollapse(tier)}
               onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
             />

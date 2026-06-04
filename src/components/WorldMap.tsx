@@ -1388,6 +1388,12 @@ const TripPinOverlay = memo(function TripPinOverlay({
   const taggedRoadTrip = isRoadTripTagged(destination)
   if (!color || (stageCount === 0 && !taggedRoadTrip)) return null
 
+  // Flip card to expand left when near right edge (prevents off-screen overflow)
+  // Normal:  fo x=-36,  circle at fo[0..60],   circle center = cx-6
+  // Flipped: fo x=-166, circle at fo[130..190], circle center = cx-6 (same)
+  const flipLeft = cx > window.innerWidth - 220
+  const foX = flipLeft ? -166 : -36
+
   return (
     <g
       className={`trip-pin-root trip-pin-root--${owner}`}
@@ -1398,7 +1404,7 @@ const TripPinOverlay = memo(function TripPinOverlay({
     >
       <rect
         className="trip-pin-hit"
-        x={-36}
+        x={foX}
         y={-42}
         width={190}
         height={102}
@@ -1411,16 +1417,16 @@ const TripPinOverlay = memo(function TripPinOverlay({
       />
       <foreignObject
         className="trip-pin-foreign-object"
-        x={-36}
+        x={foX}
         y={-42}
         width={190}
         height={102}
         overflow="visible"
       >
         <div className="trip-pin-html-shell">
-          <div className="pin-stage trip-pin-stage">
+          <div className={`pin-stage trip-pin-stage${flipLeft ? ' trip-pin-stage--flip-left' : ''}`}>
             <div
-              className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}${(tripHovered || selected) ? ' map-pin-trip-card--revealed' : ''}`}
+              className={`map-pin-trip-card${owner === 'friend' ? ' map-pin-trip-card--friend' : ''}${(tripHovered || selected) ? ' map-pin-trip-card--revealed' : ''}${flipLeft ? ' map-pin-trip-card--flip-left' : ''}`}
               style={{ '--pin-color': color, '--pin-photo': destination.image ? `url("${destination.image}")` : 'none' } as CSSProperties}
               onPointerEnter={() => setTripHovered(true)}
               onPointerLeave={() => setTripHovered(false)}

@@ -209,7 +209,7 @@ function hasRenderableStops(destination: Destination) {
 
 export default function DestinationSheet(props: DestinationSheetProps) {
   const isComparison = Boolean(props.compareWith)
-  const useSheetLayout = useMediaQuery(isComparison ? '(max-width: 1100px)' : '(max-width: 900px)')
+  const useSheetLayout = useMediaQuery(isComparison ? '(max-width: 1100px)' : '(max-width: 768px)')
 
   if (useSheetLayout) return <MobileSheet {...props} />
   return (
@@ -508,11 +508,11 @@ function DestinationCardContent({
         />
       ) : (
         <>
+      <div className="destination-hero-wrap">
       <div
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
-        {cardActions}
         <div className="destination-hero-pills">
           {compareWith && (
             <span className="intent-pill destination-hero-pill">
@@ -548,6 +548,8 @@ function DestinationCardContent({
             </button>
           )}
         </div>
+      </div>
+      {cardActions}
       </div>
       <div className="destination-title-row">
         <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
@@ -974,11 +976,11 @@ function RoadTripCardContent({
 
   return (
     <>
+      <div className="destination-hero-wrap">
       <div
         className="destination-hero roadtrip-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
-        {cardActions}
         <div className="destination-hero-pills">
           <span className="intent-pill destination-hero-pill">
             <Icon name="map" />
@@ -999,6 +1001,8 @@ function RoadTripCardContent({
             </button>
           )}
         </div>
+      </div>
+      {cardActions}
       </div>
 
       <div className="destination-title-row roadtrip-title-row">

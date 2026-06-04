@@ -15099,6 +15099,7 @@ svg {
 .compare-banner-player {
   min-width: 0;
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
   padding: 0;

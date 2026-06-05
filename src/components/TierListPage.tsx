@@ -379,28 +379,19 @@ function ComparisonBanner({
             <circle cx="9" cy="7" r="3" /><circle cx="15" cy="7" r="3" />
             <path d="M3 21c0-3.31 2.69-6 6-6h6c3.31 0 6 2.69 6 6" />
           </svg>
-          {sharedCount} {t('en commun', 'shared')}
+          {sharedCount}<span className="compare-banner-stat-label"> {t('en commun', 'shared')}</span>
         </span>
         {friendOnlyCount > 0 && (
           <span className="compare-banner-stat">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {friendOnlyCount} {t('only for', 'uniques à')} {friendFirstName}
+            {friendOnlyCount}<span className="compare-banner-stat-label"> {t('uniques à', 'only for')} {friendFirstName}</span>
           </span>
         )}
       </div>
 
       <div className="compare-banner-player compare-banner-player--friend">
-        <div className="compare-banner-identity compare-banner-identity--right">
-          <span className="compare-banner-name">{friendFirstName}</span>
-          {friendTitle && (
-            <span className="compare-banner-title" title={friendTitle}>{friendTitle}</span>
-          )}
-          {friendAvg !== null && (
-            <span className="compare-banner-score">{friendAvg.toFixed(1)}</span>
-          )}
-        </div>
         <Avatar
           avatarUrl={friend.avatarUrl}
           initials={friend.initials}
@@ -409,6 +400,15 @@ function ComparisonBanner({
           className="compare-banner-avatar"
           ariaHidden={true}
         />
+        <div className="compare-banner-identity">
+          <span className="compare-banner-name">{friendFirstName}</span>
+          {friendTitle && (
+            <span className="compare-banner-title" title={friendTitle}>{friendTitle}</span>
+          )}
+          {friendAvg !== null && (
+            <span className="compare-banner-score compare-banner-score--friend">{friendAvg.toFixed(1)}</span>
+          )}
+        </div>
       </div>
 
       <button className="compare-banner-close" onClick={onClose} aria-label={t('Fermer la comparaison', 'Close comparison')}>
@@ -639,6 +639,8 @@ function VersusTierSection({
   tier,
   myDests,
   friendDests,
+  myName,
+  friendName,
   collapsed,
   onToggle,
   onSelectMine,
@@ -647,6 +649,8 @@ function VersusTierSection({
   tier: Tier
   myDests: Destination[]
   friendDests: Destination[]
+  myName: string
+  friendName: string
   collapsed: boolean
   onToggle: () => void
   onSelectMine: (d: Destination) => void
@@ -688,12 +692,14 @@ function VersusTierSection({
       {!collapsed && (
         <div className="tier-versus-body">
           <div className="tier-versus-col tier-versus-col--me">
+            <span className="tier-versus-col-label">{myName}</span>
             {mine.length === 0
               ? <span className="tier-versus-empty">—</span>
               : mine.map(d => <VersusDestRow key={destinationNameKey(d)} dest={d} onSelect={onSelectMine} />)
             }
           </div>
           <div className="tier-versus-col tier-versus-col--friend">
+            <span className="tier-versus-col-label">{friendName}</span>
             {theirs.length === 0
               ? <span className="tier-versus-empty">—</span>
               : theirs.map(d => <VersusDestRow key={destinationNameKey(d)} dest={d} onSelect={onSelectFriend} />)
@@ -848,8 +854,7 @@ export default function TierListPage({
       <section className="tier-list-hero" aria-label={t('Ranking summary', 'Résumé du classement')}>
         <div className="tier-list-hero-head">
           <div className="tier-list-title">
-            <span className="tier-list-eyebrow">Outpost</span>
-            <h1>{t('My rankings', 'Mon classement')}</h1>
+            <h1>Destinations</h1>
           </div>
 
           <div className="tier-list-hero-actions">
@@ -1093,6 +1098,8 @@ export default function TierListPage({
               tier={tier}
               myDests={myFiltered}
               friendDests={friendFiltered}
+              myName={myProfile?.displayName?.split(' ')[0] ?? t('Me', 'Moi')}
+              friendName={friendFirstName}
               collapsed={collapsed[tier]}
               onToggle={() => toggleCollapse(tier)}
               onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}

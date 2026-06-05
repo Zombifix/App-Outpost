@@ -14940,7 +14940,8 @@ svg {
   opacity: 0.72;
 }
 
-.tier-list-hero .friend-picker {
+.tier-list-hero .friend-picker,
+.tier-list-filter-row .friend-picker {
   top: calc(100% + 10px);
   right: 0;
   border-radius: 20px;
@@ -14953,12 +14954,14 @@ svg {
     0 16px 36px rgba(50, 82, 122, 0.12);
 }
 
-.tier-list-hero .friend-picker-clear {
+.tier-list-hero .friend-picker-clear,
+.tier-list-filter-row .friend-picker-clear {
   color: #60738d;
   font-weight: var(--weight-bold);
 }
 
-.tier-list-hero .friend-picker-clear:hover {
+.tier-list-hero .friend-picker-clear:hover,
+.tier-list-filter-row .friend-picker-clear:hover {
   color: #233754;
   background: rgba(239, 245, 253, 0.92);
 }
@@ -15205,8 +15208,22 @@ svg {
 .tier-list-filter-row {
   position: relative;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 0 2px;
   border: 0;
+}
+
+/* Segmented control prend l'espace disponible, le bouton Comparer reste fixe à droite */
+.tier-list-filter-row .tier-list-filters {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tier-list-filter-row .tier-list-actions {
+  flex: 0 0 auto;
+  position: relative;
 }
 
 .tier-list-filter-row .segmented-control__list {

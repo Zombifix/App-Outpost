@@ -14,11 +14,11 @@
   --tier-b: #ffc94a;
   --tier-c: #61c77a;
   --tier-d: #657cff;
-  /* Typography — families */
+  /* Typography � families */
   --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
 
-  /* Typography — size scale */
+  /* Typography � size scale */
   --text-2xs: 11px;
   --text-xs: 12px;
   --text-sm: 13px;
@@ -30,24 +30,24 @@
   --text-3xl: 32px;
   --text-display: 40px;
 
-  /* Typography — weight scale */
+  /* Typography � weight scale */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
 
-  /* Typography — line-height scale */
+  /* Typography � line-height scale */
   --leading-tight: 1.1;
   --leading-snug: 1.25;
   --leading-normal: 1.5;
   --leading-relaxed: 1.65;
 
-  /* Typography — letter-spacing */
+  /* Typography � letter-spacing */
   --tracking-tight: -0.02em;
   --tracking-normal: 0;
   --tracking-wide: 0.03em;
 
-  /* Typography — weight alias for legacy 800 weight in CSS */
+  /* Typography � weight alias for legacy 800 weight in CSS */
   --weight-extrabold: 800;
 
   /* Border radius scale */
@@ -77,7 +77,7 @@
   --border-soft: rgba(0, 0, 0, 0.06);
   --border-strong: rgba(125, 142, 166, 0.32);
 
-  /* Layout system — change these and everything adjusts */
+  /* Layout system � change these and everything adjusts */
   --sidebar-w: 264px;
   --gap: 20px;
   --content-l: calc(var(--sidebar-w) + var(--gap));
@@ -93,7 +93,7 @@
   --topbar-t: 18px;
   --topbar-h: 58px;
   --title-t: calc(var(--topbar-t) + var(--topbar-h) + 14px);
-  /* Le titre vit désormais dans la topbar (cf. .topbar-title) — on peut coller la map juste sous. */
+  /* Le titre vit d�sormais dans la topbar (cf. .topbar-title) � on peut coller la map juste sous. */
   --map-t: calc(var(--topbar-t) + var(--topbar-h) + 14px);
 }
 
@@ -133,18 +133,18 @@ svg {
   display: block;
 }
 
-/* ─── Bouton — composant unifié ─────────────────────────────────────────────
+/* --- Bouton � composant unifi� ---------------------------------------------
    Variantes :
    - .btn-primary  : action principale (bleu, plein)
    - .btn-secondary: action secondaire (blanc, bordure)
    - .btn-ghost    : action tertiaire (transparent)
-   - .btn-icon     : icône seule (44×44 hit area)
+   - .btn-icon     : ic�ne seule (44�44 hit area)
 
    Modifiers :
    - .btn-pill     : pill shape (sinon arrondi --radius-lg)
    - .btn-sm       : compact (36px)
    - .btn-lg       : large (52px)
-   ───────────────────────────────────────────────────────────────────────── */
+   ------------------------------------------------------------------------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -362,7 +362,7 @@ svg {
   flex-shrink: 0;
 }
 
-/* ─── Carte stats Mon carnet ────────────────────────────────────────────────── */
+/* --- Carte stats Mon carnet -------------------------------------------------- */
 .carnet-stats {
   position: relative;
   display: flex;
@@ -445,7 +445,7 @@ svg {
 }
 
 /* Bottom row */
-/* Fiche signalétique — eyebrow */
+/* Fiche signal�tique � eyebrow */
 .carnet-stats-eyebrow {
   position: absolute;
   top: 12px;
@@ -503,7 +503,7 @@ svg {
   color: rgba(110, 130, 170, 0.85);
 }
 
-/* Continents — version inline compacte */
+/* Continents � version inline compacte */
 .carnet-stats-continents-inline {
   position: relative;
   z-index: 3;
@@ -543,7 +543,7 @@ svg {
   font-weight: var(--weight-regular);
 }
 
-/* Continents bars (legacy — conservé au cas où) */
+/* Continents bars (legacy � conserv� au cas o�) */
 .carnet-stats-continents {
   display: flex;
   flex-direction: column;
@@ -923,7 +923,7 @@ svg {
 }
 
 
-/* Activité récente dans la sidebar (remplace l'ancien bandeau fixe en bas de map) */
+/* Activit� r�cente dans la sidebar (remplace l'ancien bandeau fixe en bas de map) */
 .sidebar-activity {
   margin-top: auto;
   padding-top: 12px;
@@ -963,14 +963,14 @@ svg {
 
 .sidebar-activity-link:hover { text-decoration: underline; }
 
-/* Sous-titre sous le header "ACTIVITÉ RÉCENTE" */
+/* Sous-titre sous le header "ACTIVIT� R�CENTE" */
 .sidebar-activity-sub {
   margin: -2px 0 4px;
   font-size: var(--text-2xs);
   color: var(--text-muted);
 }
 
-/* ─── Hero card (1ère activité, grand format style mobile inspo) ───────────── */
+/* --- Hero card (1�re activit�, grand format style mobile inspo) ------------- */
 .sidebar-hero {
   position: relative;
   width: 100%;
@@ -1082,7 +1082,7 @@ svg {
   flex-shrink: 0;
 }
 
-/* ─── Rows secondaires ────────────────────────────────────────────────────── */
+/* --- Rows secondaires ------------------------------------------------------ */
 .sidebar-activity-rows {
   list-style: none;
   margin: 4px 0 0;
@@ -1101,9 +1101,9 @@ svg {
   min-height: 126px;
 }
 /* Row sidebar : minimaliste pour ne pas surcharger.
-   Thumb + nom (sm, semi-bold) + pays (xs, muted) + tier pill à droite.
-   L'acteur et le temps n'apparaissent que sur la hero, pour réduire
-   le bruit visuel. Pas de shadow agressive — juste un hairline. */
+   Thumb + nom (sm, semi-bold) + pays (xs, muted) + tier pill � droite.
+   L'acteur et le temps n'apparaissent que sur la hero, pour r�duire
+   le bruit visuel. Pas de shadow agressive � juste un hairline. */
 .sidebar-row {
   display: flex;
   align-items: center;
@@ -1185,7 +1185,7 @@ svg {
   animation: sidebar-row-slide 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Pastille pulse "Live" à côté du titre du widget Activité récente */
+/* Pastille pulse "Live" � c�t� du titre du widget Activit� r�cente */
 .sidebar-activity-head h4 {
   display: inline-flex;
   align-items: center;
@@ -1207,7 +1207,7 @@ svg {
   100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
-/* Animation slide-in pour un nouvel event arrivé en live */
+/* Animation slide-in pour un nouvel event arriv� en live */
 .sidebar-activity li.is-new {
   animation: sidebar-row-slide 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1218,7 +1218,7 @@ svg {
   100% { background: transparent; }
 }
 
-/* Bouton retour "← Mon carnet" sur la page-title quand on regarde un ami */
+/* Bouton retour "? Mon carnet" sur la page-title quand on regarde un ami */
 .page-title-back {
   display: inline-flex;
   align-items: center;
@@ -1274,9 +1274,9 @@ svg {
 }
 .empty-friend-carnet-card button { margin-top: 4px; }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Compare ta map — modal + picker dropdown
-   ─────────────────────────────────────────────────────────────────────────── */
+/* -----------------------------------------------------------------------------
+   Compare ta map � modal + picker dropdown
+   --------------------------------------------------------------------------- */
 
 .compare-overlay {
   position: fixed;
@@ -1306,7 +1306,7 @@ svg {
   overflow: hidden;
 }
 
-/* Variante "map" — la modale prend plus de hauteur pour la carte */
+/* Variante "map" � la modale prend plus de hauteur pour la carte */
 .compare-modal--map {
   max-width: 1100px;
   height: calc(100vh - 64px);
@@ -1342,7 +1342,7 @@ svg {
 .compare-stat--mine::before   { background: #1B5FE8; }
 .compare-stat--theirs::before { background: #ec4899; }
 
-/* Container carte + légende flottante */
+/* Container carte + l�gende flottante */
 .compare-map-wrap {
   position: relative;
   flex: 1;
@@ -1416,21 +1416,21 @@ svg {
   border-color: #7C8DB5;
   box-shadow: inset 0 0 0 0.5px #7C8DB5, 0 1px 3px rgba(0,0,0,0.15);
 }
-/* Pin partagé = orange avec étoile */
+/* Pin partag� = orange avec �toile */
 .compare-legend-dot--shared {
   background: #f59e0b;
   position: relative;
 }
 .compare-legend-dot--shared::after {
-  content: '★';
+  content: '?';
   font-size: var(--text-2xs);
 }
 .compare-stat--mine::before   { background: linear-gradient(135deg, #f25f73, #fb8b45); }
 .compare-stat--theirs::before { background: #fff; box-shadow: inset 0 0 0 1.5px #7C8DB5; }
 
-/* ─── Barre "Compare inline" — au même niveau que la légende overlay ──────────
-   La légende overlay (overlay-bottom) est cachée pendant le compare pour éviter
-   le chevauchement (voir règle ci-dessous). Les légendes sidebar restent visibles.
+/* --- Barre "Compare inline" � au m�me niveau que la l�gende overlay ----------
+   La l�gende overlay (overlay-bottom) est cach�e pendant le compare pour �viter
+   le chevauchement (voir r�gle ci-dessous). Les l�gendes sidebar restent visibles.
    Note : la barre est un enfant de .travel-app (pas .map-area), donc on
    recale left avec --content-l (sidebar + gap) pour qu'elle s'aligne sur
    la map et pas sur le bord gauche de la page. */
@@ -1512,7 +1512,7 @@ svg {
 .compare-inline-close:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .compare-inline-close svg { width: 13px; height: 13px; }
 
-/* Variante mobile : pill flottante sous le header (évite le tier-board qui grandit en compare) */
+/* Variante mobile : pill flottante sous le header (�vite le tier-board qui grandit en compare) */
 .map-compare-filter--floating {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 58px + 10px);
@@ -1529,8 +1529,8 @@ svg {
   display: none;
 }
 
-/* En compare, cacher uniquement la légende overlay (même position que la barre).
-   Les légendes sidebar (stacked-left / bottom-left) restent visibles. */
+/* En compare, cacher uniquement la l�gende overlay (m�me position que la barre).
+   Les l�gendes sidebar (stacked-left / bottom-left) restent visibles. */
 .compare-active .legend:not(.legend--stacked-left):not(.legend--bottom-left) { display: none; }
 
 .compare-head {
@@ -1573,7 +1573,7 @@ svg {
   overflow-y: auto;
 }
 
-/* Picker dropdown utilisé dans TierListPanel + TierListPage */
+/* Picker dropdown utilis� dans TierListPanel + TierListPage */
 .compare-picker {
   position: relative;
   display: inline-flex;
@@ -1674,7 +1674,7 @@ svg {
   color: var(--text-muted);
 }
 
-/* Badge "X amis y sont allés" sur DestinationSheet */
+/* Badge "X amis y sont all�s" sur DestinationSheet */
 .friend-visitors {
   position: relative;
   display: flex;
@@ -1830,7 +1830,7 @@ svg {
 }
 .top-action-badge svg { width: 18px; height: 18px; display: block; }
 
-/* Mini pop-up Amis : volontairement compacte et discrète. */
+/* Mini pop-up Amis : volontairement compacte et discr�te. */
 .manage-overlay {
   position: fixed;
   inset: 0;
@@ -2525,7 +2525,7 @@ svg {
   pointer-events: auto;
 }
 
-/* Bloc titre fusionné dans la topbar (remplace le bandeau page-title séparé) */
+/* Bloc titre fusionn� dans la topbar (remplace le bandeau page-title s�par�) */
 .topbar-title {
   flex: 1;
   min-width: 0;
@@ -2869,7 +2869,7 @@ svg {
 
 .map-pins-overlay {
   position: absolute;
-  /* Fallback explicite pour Safari < 14.1 (inset non supporté) */
+  /* Fallback explicite pour Safari < 14.1 (inset non support�) */
   top: 0;
   right: 0;
   bottom: 0;
@@ -2880,9 +2880,9 @@ svg {
   overflow: visible;
   pointer-events: none;
   z-index: 4;
-  /* Force un layer GPU sur Safari/Metal — nécessaire pour que le SVG soit
-     composité au-dessus du canvas WebGL de MapLibre.
-     Sans ce translateZ(0), Safari peut "perdre" le SVG derrière le canvas. */
+  /* Force un layer GPU sur Safari/Metal � n�cessaire pour que le SVG soit
+     composit� au-dessus du canvas WebGL de MapLibre.
+     Sans ce translateZ(0), Safari peut "perdre" le SVG derri�re le canvas. */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
@@ -2972,7 +2972,7 @@ svg {
   pointer-events: none;
 }
 
-/* ── Photo pin (Airbnb style) ─────────────────────────────────── */
+/* -- Photo pin (Airbnb style) ----------------------------------- */
 .map-pin {
   position: relative;
   width: 72px;
@@ -2980,8 +2980,8 @@ svg {
   padding: 0;
   border-radius: 50%;
   background-color: #f4f7fb;
-  /* Fallback pour Safari < 15.4 (color-mix non supporté) :
-     pin visible avec dégradé neutre, sans couleur de tier */
+  /* Fallback pour Safari < 15.4 (color-mix non support�) :
+     pin visible avec d�grad� neutre, sans couleur de tier */
   background-image: var(--pin-photo, none),
                     linear-gradient(135deg, #dde6f3, #f4f7fb);
   background-size: cover, 100% 100%;
@@ -2998,17 +2998,17 @@ svg {
   pointer-events: auto;
   transform-origin: center;
   /* NE PAS mettre will-change: transform ici.
-     Les layers GPU à l'intérieur d'un <foreignObject> SVG ne sont pas
-     composités correctement par Safari/WebKit — les pins disparaissent.
-     Le GPU compositing est géré au niveau du SVG parent (.map-pins-overlay). */
+     Les layers GPU � l'int�rieur d'un <foreignObject> SVG ne sont pas
+     composit�s correctement par Safari/WebKit � les pins disparaissent.
+     Le GPU compositing est g�r� au niveau du SVG parent (.map-pins-overlay). */
   transition:
     transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 200ms ease,
     border-color 160ms ease,
     outline-width 160ms ease;
 }
-/* Dégradé couleur de tier + outline semi-transparent pour les navigateurs
-   supportant color-mix() — Safari 15.4+, Chrome 111+, Firefox 113+ */
+/* D�grad� couleur de tier + outline semi-transparent pour les navigateurs
+   supportant color-mix() � Safari 15.4+, Chrome 111+, Firefox 113+ */
 @supports (color: color-mix(in srgb, red, blue)) {
   .map-pin {
     background-image: var(--pin-photo, none),
@@ -3027,7 +3027,7 @@ svg {
     0 1px 2px rgba(20, 30, 60, 0.18);
 }
 
-/* Selected — thicker color ring + lift */
+/* Selected � thicker color ring + lift */
 .pin-selected .map-pin {
   transform: translateY(-3px) scale(1.10);
   outline-width: 3px;
@@ -3037,7 +3037,7 @@ svg {
     0 1px 2px rgba(20, 30, 60, 0.18);
 }
 
-/* ── Shared pin badge base — all corner badges share this foundation */
+/* -- Shared pin badge base � all corner badges share this foundation */
 .map-pin-tier,
 .map-pin-heart,
 .map-pin-home,
@@ -3061,7 +3061,7 @@ svg {
   background-clip: padding-box;
 }
 
-/* Tier — bottom-right, couleur du tier */
+/* Tier � bottom-right, couleur du tier */
 .map-pin .map-pin-tier {
   bottom: -4px;
   right: -4px;
@@ -3071,7 +3071,7 @@ svg {
   letter-spacing: 0.02em;
 }
 
-/* Coup de coeur — top-left, blanc/rose */
+/* Coup de coeur � top-left, blanc/rose */
 .map-pin-heart {
   top: -4px;
   left: -4px;
@@ -3082,7 +3082,7 @@ svg {
     0 2px 6px rgba(27, 38, 66, 0.22);
 }
 
-/* Vécu là-bas — bottom-left, blanc/bleu (évite le chevauchement avec ami top-right) */
+/* V�cu l�-bas � bottom-left, blanc/bleu (�vite le chevauchement avec ami top-right) */
 .map-pin-home {
   bottom: -4px;
   left: -4px;
@@ -3123,7 +3123,7 @@ svg {
     0 1px 2px rgba(20, 30, 60, 0.18);
 }
 
-/* Destination name — chip below the pin, only on hover/selected */
+/* Destination name � chip below the pin, only on hover/selected */
 .map-pin strong {
   position: absolute;
   top: calc(100% + 8px);
@@ -3153,7 +3153,7 @@ svg {
 
 .map-pin small { display: none; }
 
-/* Compact mode — légèrement réduit mais reste lisible quand dézoomé */
+/* Compact mode � l�g�rement r�duit mais reste lisible quand d�zoom� */
 .map-pin--compact {
   width: 50px;
   height: 50px;
@@ -3165,7 +3165,7 @@ svg {
 }
 .map-pin--compact strong { display: none; }
 
-/* ── Roadtrip path — style Apple Maps Directions ─────────────────── */
+/* -- Roadtrip path � style Apple Maps Directions ------------------- */
 .route-path-root { pointer-events: none; }
 
 /* Halo blanc sous les tirets */
@@ -3178,10 +3178,10 @@ svg {
   opacity: 0.6;
 }
 
-/* Couche intermédiaire pas utilisée — kept hidden pour back-compat */
+/* Couche interm�diaire pas utilis�e � kept hidden pour back-compat */
 .route-path-halo { display: none; }
 
-/* Ligne principale colorée — tiretée */
+/* Ligne principale color�e � tiret�e */
 .route-path {
   fill: none;
   stroke: var(--pin-color);
@@ -3194,7 +3194,7 @@ svg {
 .route-path-root--friend .route-path { opacity: 0.7; }
 .route-path-root--friend .route-path-glow { stroke-width: 5; opacity: 0.9; }
 
-/* Stage : petit dot plein coloré */
+/* Stage : petit dot plein color� */
 .route-stop-dot {
   fill: var(--pin-color);
   stroke: rgba(255,255,255,0.85);
@@ -3456,10 +3456,6 @@ svg {
   animation: sheet-fade-in 180ms ease-out;
 }
 
-.destination-sheet-backdrop.is-comparison {
-  background: transparent;
-}
-
 /* Blur on a pseudo-element so the backdrop div does NOT become a containing
    block for its fixed children (backdrop-filter triggers that per CSS spec). */
 .destination-sheet-backdrop::before {
@@ -3468,10 +3464,6 @@ svg {
   inset: 0;
   backdrop-filter: blur(1px);
   pointer-events: none;
-}
-
-.destination-sheet-backdrop.is-comparison::before {
-  backdrop-filter: none;
 }
 
 @keyframes sheet-fade-in {
@@ -3509,42 +3501,10 @@ svg {
 .destination-sheet.is-dragging { transition: none; }
 
 .destination-sheet.is-comparison {
-  left: max(8px, calc((100vw - 720px) / 2));
-  right: max(8px, calc((100vw - 720px) / 2));
-  bottom: 0;
-  top: auto;
-  max-height: calc(100vh - 8px);
-  border-radius: 0;
-  background: transparent !important;
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.destination-sheet.is-comparison .destination-sheet-body {
-  background: transparent !important;
-}
-
-.destination-sheet.is-comparison .destination-sheet-handle {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  z-index: 3;
-  width: auto;
-  height: auto;
-  padding: 0;
-  transform: translateX(-50%);
-}
-
-.destination-sheet.is-comparison .destination-sheet-grabber {
-  width: 52px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 8px 20px rgba(10, 20, 36, 0.18);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  left: max(12px, calc((100vw - 720px) / 2));
+  right: max(12px, calc((100vw - 720px) / 2));
+  top: clamp(8px, 2.4vh, 24px);
+  border-radius: 26px 26px 0 0;
 }
 
 .destination-sheet-handle {
@@ -5745,9 +5705,9 @@ svg {
   border-color: rgba(220, 38, 38, 0.22);
 }
 
-/* Bouton "Vider mon carnet" : action destructive mais réversible (on peut
-   ré-ajouter des destinations). Couleur ambre pour le distinguer du rouge
-   "Me déconnecter" sans paniquer l'utilisateur. */
+/* Bouton "Vider mon carnet" : action destructive mais r�versible (on peut
+   r�-ajouter des destinations). Couleur ambre pour le distinguer du rouge
+   "Me d�connecter" sans paniquer l'utilisateur. */
 .account-reset {
   margin-top: 8px;
   color: #8a4b00;
@@ -5877,7 +5837,7 @@ svg {
   to { transform: translateX(0); }
 }
 
-/* === Tier list collapsed — map already at bottom: 0, nothing to override === */
+/* === Tier list collapsed � map already at bottom: 0, nothing to override === */
 .travel-app.tier-collapsed .page-title {
   right: var(--map-r-no-card);
 }
@@ -5897,12 +5857,12 @@ svg {
   bottom: calc(var(--map-b-closed) + 8px);
 }
 
-/* === No destination card shown — map already at right: 0, nothing to override === */
+/* === No destination card shown � map already at right: 0, nothing to override === */
 .travel-app.no-card .page-title {
   right: var(--map-r-no-card);
 }
 
-/* === Medium desktop (1100–1320px) === */
+/* === Medium desktop (1100�1320px) === */
 @media (max-width: 1320px) {
   :root {
     --sidebar-w: 230px;
@@ -5915,7 +5875,7 @@ svg {
   .tier-column header span { display: none; }
 }
 
-/* === Small desktop / large tablet (900–1100px) === */
+/* === Small desktop / large tablet (900�1100px) === */
 @media (max-width: 1100px) {
   :root {
     --sidebar-w: 220px;
@@ -6051,7 +6011,7 @@ svg {
   }
 }
 
-/* Mobile-only elements — hidden on desktop */
+/* Mobile-only elements � hidden on desktop */
 .mobile-brand { display: none; }
 .mobile-header { display: none; }
 .tier-board-handle { display: none; }
@@ -6062,12 +6022,12 @@ svg {
   outline: none;
 }
 
-/* Mobile bottom nav — hidden on desktop */
+/* Mobile bottom nav � hidden on desktop */
 .bottom-nav { display: none; }
 .mobile-tier-toggle { display: none; }
 
 /* Touch target sizing for primary action buttons on mobile.
-   Ensures ≥44px tap height per WCAG 2.5.5 / AAA recommandation. */
+   Ensures =44px tap height per WCAG 2.5.5 / AAA recommandation. */
 @media (max-width: 768px) {
   .friends-action-btn,
   .add-submit,
@@ -6116,7 +6076,7 @@ svg {
   .topbar { display: none; }
   .page-title { display: none; }
 
-  /* Mobile floating header — logo centré + avatar à droite */
+  /* Mobile floating header � logo centr� + avatar � droite */
   .mobile-header {
     --mobile-header-side: 44px;
     display: grid;
@@ -6377,18 +6337,18 @@ svg {
     place-items: center;
   }
 
-  /* Légende cachée sur mobile (couleurs des pins suffisent) */
+  /* L�gende cach�e sur mobile (couleurs des pins suffisent) */
   .legend { display: none; }
 
   /* Sur mobile le tier board flotte au-dessus de la carte ; on ancre les
-     contrôles au-dessus du board pour qu'ils restent atteignables même quand
-     la tier list est déployée. */
+     contr�les au-dessus du board pour qu'ils restent atteignables m�me quand
+     la tier list est d�ploy�e. */
   .map-controls {
     bottom: calc(var(--tier-collapsed-h) + var(--tier-bottom) + 88px + env(safe-area-inset-bottom, 0px));
     left: auto;
     right: 14px;
-    /* Sur mobile, on n'a qu'un seul bouton visible (recadrer) — on retire
-       l'enveloppe pour ne pas faire croire à des boutons cachés derrière. */
+    /* Sur mobile, on n'a qu'un seul bouton visible (recadrer) � on retire
+       l'enveloppe pour ne pas faire croire � des boutons cach�s derri�re. */
     width: auto;
     padding: 0;
     background: transparent;
@@ -6399,7 +6359,7 @@ svg {
   .travel-app:not(.tier-collapsed) .map-controls {
     bottom: calc(var(--tier-h) + var(--tier-bottom) + 88px + env(safe-area-inset-bottom, 0px));
   }
-  /* Pinch + double-tap suffisent — on garde uniquement le recadrage global */
+  /* Pinch + double-tap suffisent � on garde uniquement le recadrage global */
   .map-controls button[aria-label="Zoomer"],
   .map-controls button[aria-label="Dezoomer"],
   .map-controls .map-controls-divider {
@@ -6433,7 +6393,7 @@ svg {
     height: 17px;
   }
 
-  /* Tier list mobile — alléger le header et les contrôles */
+  /* Tier list mobile � all�ger le header et les contr�les */
   .tier-board-head button:not(.tier-board-mobile-toggle) { display: none; } /* "Gerer ma tier list" */
   .tier-favorite-counter { display: none; }
   .tier-board-title h2 span { display: none; } /* "(13 destinations)" */
@@ -6459,7 +6419,7 @@ svg {
   }
   .tier-column { scroll-snap-align: none; }
 
-  /* ── Map plein écran ── */
+  /* -- Map plein �cran -- */
   .map-area {
     height: 100dvh !important;
     min-height: unset;
@@ -6469,7 +6429,7 @@ svg {
     height: 100dvh !important;
   }
 
-  /* ── Tier board — alignée avec la nav floating ── */
+  /* -- Tier board � align�e avec la nav floating -- */
   .tier-board {
     position: fixed;
     left: 10px;
@@ -6497,10 +6457,10 @@ svg {
     transform: none;
     overflow: visible;
   }
-  /* Panneau « My rankings » statique sur mobile — toujours visible, pas de poignée */
+  /* Panneau � My rankings � statique sur mobile � toujours visible, pas de poign�e */
   .tier-board.is-collapsed .tier-mobile-section { display: block; }
 
-  /* Poignée iOS retirée sur mobile : le panneau ne se déplie plus */
+  /* Poign�e iOS retir�e sur mobile : le panneau ne se d�plie plus */
   .tier-board-handle,
   .tier-board-handle-bar,
   .tier-board-collapsed-hint {
@@ -6521,13 +6481,13 @@ svg {
     padding: 1px 6px;
   }
 
-  /* ── Desktop sections — hidden on mobile ── */
+  /* -- Desktop sections � hidden on mobile -- */
   .tier-board-head { display: none; }
   .tier-rail { display: none; }
   .tier-desktop-tabs { display: none; }
   .mobile-tier-toggle { display: none; }
 
-  /* ── Mobile tier section ── */
+  /* -- Mobile tier section -- */
   .tier-mobile-section {
     display: block;
     padding: 2px 0 14px;
@@ -6582,7 +6542,7 @@ svg {
   }
   .tier-mobile-tabs::-webkit-scrollbar { display: none; }
 
-  /* Pastel pills — toujours teintés */
+  /* Pastel pills � toujours teint�s */
   .tier-pill {
     flex: 0 0 auto;
     min-width: 38px;
@@ -6617,7 +6577,7 @@ svg {
   }
   .tier-mobile-strip::-webkit-scrollbar { display: none; }
 
-  /* Carte CARRÉE avec photo */
+  /* Carte CARR�E avec photo */
   .tier-mobile-strip .mini-destination {
     position: relative;
     flex: 0 0 132px;
@@ -6677,7 +6637,7 @@ svg {
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   }
 
-  /* Tier badge en haut à gauche (S/A/B/C) */
+  /* Tier badge en haut � gauche (S/A/B/C) */
   .mini-tier-badge {
     position: absolute;
     top: 7px;
@@ -6696,7 +6656,7 @@ svg {
     pointer-events: none;
   }
 
-  /* Heart en haut à droite — outline par défaut, rempli rouge si CDC */
+  /* Heart en haut � droite � outline par d�faut, rempli rouge si CDC */
   .mini-heart-badge {
     position: absolute;
     top: 7px;
@@ -6727,7 +6687,7 @@ svg {
   /* Reset les badges desktop sur mobile */
   .tier-mobile-strip .mini-favorite-button { display: none; }
 
-  /* ── Bottom nav — floating pill style image 5 ── */
+  /* -- Bottom nav � floating pill style image 5 -- */
   .bottom-nav {
     left: 10px;
     right: 10px;
@@ -6765,7 +6725,7 @@ svg {
     margin-bottom: 0;
   }
 
-  /* FAB + circulaire flottant légèrement au-dessus */
+  /* FAB + circulaire flottant l�g�rement au-dessus */
   .bottom-nav-add {
     padding: 0 0 6px;
     flex: 1 1 0;
@@ -6798,7 +6758,7 @@ svg {
     margin-top: 0;
   }
 
-  /* Map controls — en bas à gauche, au-dessus du sheet */
+  /* Map controls � en bas � gauche, au-dessus du sheet */
   .map-controls {
     top: auto !important;
     bottom: calc(var(--mobile-tier-clearance) + 170px) !important;
@@ -6806,7 +6766,7 @@ svg {
     right: 14px !important;
     z-index: 35;
   }
-  /* Quand sheet replié, le bouton remonte au-dessus du panel replié */
+  /* Quand sheet repli�, le bouton remonte au-dessus du panel repli� */
   .tier-board.is-collapsed ~ .map-area .map-controls,
   .travel-app:has(.tier-board.is-collapsed) .map-controls {
     bottom: calc(var(--mobile-tier-clearance) + 16px) !important;
@@ -6818,7 +6778,7 @@ svg {
     box-shadow: 0 4px 12px rgba(30, 50, 90, 0.14);
   }
 
-  /* Pill "Tous" — fond blanc neutre */
+  /* Pill "Tous" � fond blanc neutre */
   .tier-pill-all {
     color: #1B5FE8 !important;
     background: rgba(27, 95, 232, 0.10) !important;
@@ -6833,13 +6793,13 @@ svg {
     opacity: 0.7 !important;
   }
 
-  /* Cards — recentrer photo vers le haut pour éviter le crop */
+  /* Cards � recentrer photo vers le haut pour �viter le crop */
   .tier-mobile-strip .mini-destination {
     background-position: center 35% !important;
   }
 }
 
-/* ── Add Destination Wizard ─────────────────────────── */
+/* -- Add Destination Wizard --------------------------- */
 
 .wizard-overlay {
   position: fixed;
@@ -7285,7 +7245,7 @@ svg {
   transform: translateY(-2px);
   box-shadow: 0 16px 34px rgba(37, 61, 120, 0.10);
 }
-/* Réponse sélectionnée en mode édition (surlignage discret mais clair) */
+/* R�ponse s�lectionn�e en mode �dition (surlignage discret mais clair) */
 .wizard-answer-btn.is-selected {
   border-color: #3b7cf4;
   background: linear-gradient(180deg, #ffffff 0%, #f2f7ff 100%);
@@ -7418,7 +7378,7 @@ svg {
 }
 
 .wizard-skip-helper::before {
-  content: '✦';
+  content: '?';
   color: #b8c1d5;
   font-size: 15px;
   line-height: 1;
@@ -7802,7 +7762,7 @@ svg {
   border-top: 2px solid transparent;
   transition: opacity 0.12s, border-color 0.12s;
 }
-/* drag-and-drop retiré — réordonnancement via boutons ↑↓ */
+/* drag-and-drop retir� � r�ordonnancement via boutons ?? */
 
 .wizard-stop-field {
   display: flex;
@@ -8598,7 +8558,7 @@ svg {
   opacity: 0.7;
 }
 
-/* Trip card — pill avec photo thumb intégrée */
+/* Trip card � pill avec photo thumb int�gr�e */
 .map-pin-trip-card {
   position: relative;
   min-width: 60px;
@@ -8640,7 +8600,7 @@ svg {
     0 1px 5px rgba(0,0,0,0.08);
 }
 
-/* Photo thumbnail inside trip pill — anneau coloré */
+/* Photo thumbnail inside trip pill � anneau color� */
 .map-pin-trip-thumb {
   position: absolute;
   left: 0;
@@ -8659,7 +8619,7 @@ svg {
   transition: left 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Petit badge emoji roadtrip en haut à droite du thumb */
+/* Petit badge emoji roadtrip en haut � droite du thumb */
 .map-pin-trip-icon {
   position: absolute;
   top: -5px;
@@ -8684,8 +8644,8 @@ svg {
   left: -15px;
 }
 
-/* Tier badge (S/A/B/C/D) — haut-gauche du cercle road trip.
-   Déplacé du bas-centre pour ne jamais chevaucher le texte pill "N arrêts". */
+/* Tier badge (S/A/B/C/D) � haut-gauche du cercle road trip.
+   D�plac� du bas-centre pour ne jamais chevaucher le texte pill "N arr�ts". */
 .map-pin-trip-badge {
   position: absolute;
   top: -5px;
@@ -8766,7 +8726,7 @@ svg {
   box-shadow: 0 0 0 2px #7C8DB5, 0 2px 10px rgba(0,0,0,0.11);
 }
 
-/* ── Trip card flip-left (near right screen edge) ──────────────────────────── */
+/* -- Trip card flip-left (near right screen edge) ---------------------------- */
 .trip-pin-stage--flip-left {
   justify-content: flex-end;
 }
@@ -9133,7 +9093,7 @@ svg {
 
 .comparison-banner-close:hover { background: var(--faint); color: var(--ink); }
 
-/* Tier rows — flat bands, no nested card */
+/* Tier rows � flat bands, no nested card */
 .tier-list-rows {
   display: flex;
   flex-direction: column;
@@ -9141,7 +9101,7 @@ svg {
   padding-bottom: 16px;
 }
 
-/* ── Comparaison : deux sections séparées Moi / Pote ── */
+/* -- Comparaison : deux sections s�par�es Moi / Pote -- */
 .tier-compare-split {
   display: flex;
   flex-direction: column;
@@ -9367,7 +9327,7 @@ svg {
   letter-spacing: 0.02em;
 }
 
-/* Compare mode — split tier rows */
+/* Compare mode � split tier rows */
 .tier-row-body {
   display: flex;
   flex-direction: column;
@@ -9465,7 +9425,7 @@ svg {
   color: #2a3144 !important;
 }
 
-/* Ami — top-right, ardoise */
+/* Ami � top-right, ardoise */
 .pin-friend-badge {
   top: -4px;
   right: -4px;
@@ -9491,7 +9451,7 @@ svg {
   display: block;
 }
 
-/* Partagé — top-right, vert */
+/* Partag� � top-right, vert */
 .pin-shared-badge {
   top: -4px;
   right: -4px;
@@ -9502,7 +9462,7 @@ svg {
 }
 
 /* ============================================================
-   FRIENDS — vue Amis + modal d'ajout
+   FRIENDS � vue Amis + modal d'ajout
    ============================================================ */
 
 .side-menu-badge {
@@ -10041,7 +10001,7 @@ svg {
   color: var(--text-muted);
 }
 
-/* Compare view (utilisé dans le profil + TierListPage) */
+/* Compare view (utilis� dans le profil + TierListPage) */
 .friend-compare {
   display: flex;
   flex-direction: column;
@@ -10172,7 +10132,7 @@ svg {
   flex-shrink: 0;
 }
 
-/* Activity strip — compact (sur la map) */
+/* Activity strip � compact (sur la map) */
 .activity-strip {
   position: fixed;
   bottom: 0;
@@ -10294,7 +10254,7 @@ svg {
   cursor: pointer;
 }
 
-/* Activity feed — full (dans FriendsView) */
+/* Activity feed � full (dans FriendsView) */
 .activity-feed-full {
   display: flex;
   flex-direction: column;
@@ -10448,7 +10408,7 @@ svg {
   padding: 4px 10px;
 }
 
-/* Friends header — tight & utilitarian, no hero */
+/* Friends header � tight & utilitarian, no hero */
 .friends-header {
   display: flex;
   align-items: flex-end;
@@ -10485,7 +10445,7 @@ svg {
   font-weight: var(--weight-semibold);
 }
 
-/* Layout 2 colonnes : feed à gauche (flex), aside friends/demandes à droite (320px) */
+/* Layout 2 colonnes : feed � gauche (flex), aside friends/demandes � droite (320px) */
 .friends-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -10528,7 +10488,7 @@ svg {
   }
 }
 
-/* Section head — replaces stand-alone h3 inside friends-section */
+/* Section head � replaces stand-alone h3 inside friends-section */
 .friends-section {
   margin-top: 28px;
 }
@@ -11429,7 +11389,7 @@ svg {
   background: rgba(13, 22, 38, 0.34);
 }
 
-/* ── Destination row (replaces dest-card) ─────────────────── */
+/* -- Destination row (replaces dest-card) ------------------- */
 
 .dest-row {
   border-bottom: 1px solid rgba(214, 226, 242, 0.5);
@@ -11576,7 +11536,7 @@ svg {
   background: rgba(220, 38, 38, 0.08);
 }
 
-/* ── Compare banner ──────────────────────────────────────── */
+/* -- Compare banner ---------------------------------------- */
 
 .compare-banner {
   display: flex;
@@ -11684,7 +11644,7 @@ svg {
   color: #8096b4;
 }
 
-/* ── Tier-list-page mobile ───────────────────────────────── */
+/* -- Tier-list-page mobile --------------------------------- */
 
 @media (max-width: 768px) {
   .tier-list-page {
@@ -13198,7 +13158,7 @@ svg {
   }
 }
 
-/* Légende Notation — plus grande, items égaux */
+/* L�gende Notation � plus grande, items �gaux */
 .legend--stacked-left span,
 .legend--bottom-left span {
   min-width: 0;
@@ -13231,7 +13191,7 @@ svg {
   padding: 12px;
 }
 
-/* Mon classement collapsed count — badge style */
+/* Mon classement collapsed count � badge style */
 .tier-board-collapsed-hint {
   display: flex;
   flex-direction: column;
@@ -13769,7 +13729,7 @@ svg {
 .tier-board-collapsed-count--d { --collapsed-tier-color: var(--tier-d); }
 .tier-board-collapsed-count--empty { color: #8f9caf; }
 
-/* Navbar mobile — iso main branch floating pill */
+/* Navbar mobile � iso main branch floating pill */
 @media (max-width: 768px) {
   .bottom-nav {
     left: var(--mobile-nav-offset);
@@ -14163,7 +14123,7 @@ svg {
   }
 }
 
-/* Mon compte mobile — centré avec marges symétriques */
+/* Mon compte mobile � centr� avec marges sym�triques */
 @media (max-width: 760px) {
   .account-panel {
     position: fixed;
@@ -14263,7 +14223,7 @@ svg {
   opacity: 0.7;
 }
 
-/* Trip card — pill avec photo thumb intégrée */
+/* Trip card � pill avec photo thumb int�gr�e */
 .map-pin-trip-card {
   position: relative;
   min-width: 60px;
@@ -14305,7 +14265,7 @@ svg {
     0 1px 5px rgba(0,0,0,0.08);
 }
 
-/* Photo thumbnail inside trip pill — anneau coloré */
+/* Photo thumbnail inside trip pill � anneau color� */
 .map-pin-trip-thumb {
   position: absolute;
   left: 0;
@@ -14324,7 +14284,7 @@ svg {
   transition: left 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Petit badge emoji roadtrip en haut à droite du thumb */
+/* Petit badge emoji roadtrip en haut � droite du thumb */
 .map-pin-trip-icon {
   position: absolute;
   top: -5px;
@@ -14349,10 +14309,10 @@ svg {
   left: -15px;
 }
 
-/* Tier badge (S/A/B/C/D) — haut-gauche du cercle road trip.
-   Déplacé du bas-centre pour ne jamais chevaucher le texte pill "N arrêts". */
+/* Tier badge (S/A/B/C/D) � haut-gauche du cercle road trip.
+   D�plac� du bas-centre pour ne jamais chevaucher le texte pill "N arr�ts". */
 
-/* Légende — fond teinté par tier */
+/* L�gende � fond teint� par tier */
 .legend--stacked-left span:has(.tier-s),
 .legend--bottom-left span:has(.tier-s) {
   background: color-mix(in srgb, var(--tier-s) 12%, rgba(255, 255, 255, 0.75));
@@ -14384,30 +14344,30 @@ svg {
   backdrop-filter: none; -webkit-backdrop-filter: none;
 }
 
-/* ── Fixes layout sidebar-gauche ─────────────────────────────────── */
+/* -- Fixes layout sidebar-gauche ----------------------------------- */
 
-/* 1. Arrondi des chips légende */
+/* 1. Arrondi des chips l�gende */
 .legend--stacked-left span,
 .legend--bottom-left span {
   border-radius: 12px;
 }
 
-/* 2. Cache "Déplier" dans le mode stacked-left replié — le handle suffit */
+/* 2. Cache "D�plier" dans le mode stacked-left repli� � le handle suffit */
 .tier-board--stacked-left.is-collapsed .tier-board-actions,
 .tier-board--stacked-left.is-collapsed .tier-fold-btn {
   display: none;
 }
 
-/* 3. Espacement cohérent — padding interne légende + tier collapsed */
+/* 3. Espacement coh�rent � padding interne l�gende + tier collapsed */
 .legend--stacked-left,
 .legend--bottom-left {
   padding: 12px;
   gap: 6px;
 }
 
-/* 4. Contrôles carte (+ / - / centre) — repositionner à droite du dock
-      var(--desktop-controls-left) n'est pas injecté → fallback à static pos.
-      On réutilise --content-l comme la CSS de base. */
+/* 4. Contr�les carte (+ / - / centre) � repositionner � droite du dock
+      var(--desktop-controls-left) n'est pas inject� ? fallback � static pos.
+      On r�utilise --content-l comme la CSS de base. */
 @media (min-width: 769px) {
   .map-controls--stacked-left,
   .map-controls--bottom-left {
@@ -14832,7 +14792,7 @@ svg {
 
 
 .tier-list-page {
-  /* Étend la page jusqu'aux bords — supprime l'effet "carte flottante" */
+  /* �tend la page jusqu'aux bords � supprime l'effet "carte flottante" */
   right: 0;
   bottom: 0;
   gap: 18px;
@@ -15153,7 +15113,7 @@ svg {
   background: transparent;
 }
 
-/* Friend side: DOM order swapped to [Avatar, identity] — matches Me layout */
+/* Friend side: DOM order swapped to [Avatar, identity] � matches Me layout */
 .compare-banner-player--friend {
   /* same row direction as Me side, no overrides needed */
 }
@@ -15255,7 +15215,7 @@ svg {
   border: 0;
 }
 
-/* Segmented control prend l'espace disponible, le bouton Comparer reste fixe à droite */
+/* Segmented control prend l'espace disponible, le bouton Comparer reste fixe � droite */
 .tier-list-filter-row .tier-list-filters {
   flex: 1 1 auto;
   min-width: 0;
@@ -15968,15 +15928,15 @@ svg {
     font-size: 12px;
   }
 
-  /* Hide context chips on narrow mobile — space too tight in versus mode */
+  /* Hide context chips on narrow mobile � space too tight in versus mode */
   .dest-row-chip {
     display: none;
   }
 }
 
-/* ── Versus mode: deux colonnes côte à côte ─────────────── */
+/* -- Versus mode: deux colonnes c�te � c�te --------------- */
 
-/* Légende des colonnes Me / Ami */
+/* L�gende des colonnes Me / Ami */
 .tier-versus-legend {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -16178,12 +16138,12 @@ svg {
 
 /* Mobile: colonnes plus compactes */
 @media (max-width: 768px) {
-  /* La légende globale est remplacée par les labels par tier */
+  /* La l�gende globale est remplac�e par les labels par tier */
   .tier-versus-legend {
     display: none;
   }
 
-  /* Colonnes empilées verticalement au lieu de côte à côte */
+  /* Colonnes empil�es verticalement au lieu de c�te � c�te */
   .tier-versus-body {
     grid-template-columns: 1fr;
   }
@@ -16217,7 +16177,7 @@ svg {
   .versus-dest-row { gap: 5px; padding: 5px 6px; }
 }
 
-/* ── Tier list refinements: new elements (2024 refactor) ─── */
+/* -- Tier list refinements: new elements (2024 refactor) --- */
 
 /* Personality title in comparison banner and solo card */
 .compare-banner-title,
@@ -16307,7 +16267,7 @@ svg {
   }
 }
 
-/* Sur très grands écrans, centrer doucement à partir de 1400px de large */
+/* Sur tr�s grands �crans, centrer doucement � partir de 1400px de large */
 @media (min-width: 1400px) {
   .tier-list-page {
     padding-left: max(40px, calc((100% - 1280px) / 2));
@@ -16340,7 +16300,6 @@ svg {
 .destination-card,
 .destination-sheet {
   width: min(480px, calc(100vw - 32px));
-  overflow: hidden;
 }
 
 .destination-card {
@@ -16359,21 +16318,20 @@ svg {
 }
 
 .destination-card.is-comparison {
-  left: auto;
-  right: clamp(20px, 4vw, 40px);
+  left: 50%;
+  right: auto;
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 56px);
-  transform: none;
+  transform: translateX(-50%);
   padding: 0 0 18px;
   overflow: hidden;
 }
 
-@media (min-width: 761px) {
-  .destination-card:not(.is-comparison) {
+@media (min-width: 1024px) {
+  .destination-card.is-comparison {
     left: auto;
     right: clamp(20px, 4vw, 40px);
     transform: none;
-    padding: 0 0 14px;
   }
 }
 
@@ -16383,7 +16341,6 @@ svg {
 
 .destination-card.is-comparison .destination-hero-wrap,
 .destination-sheet.is-comparison .destination-hero-wrap {
-  margin-top: -12px;
   margin-left: -18px;
   margin-right: -18px;
 }
@@ -16502,31 +16459,6 @@ svg {
     0 18px 40px rgba(66, 89, 120, 0.08);
 }
 
-.solo-mode-shell {
-  position: relative;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.solo-mode-shell--criteria {
-  margin-top: 4px;
-}
-
-.content-shell {
-  padding: 14px 13px 16px;
-  border-radius: 28px;
-  display: grid;
-  gap: 12px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-}
-
 .friend-visitors,
 .destination-context,
 .sheet-cross-links {
@@ -16545,121 +16477,15 @@ svg {
 }
 
 .destination-card:not(.is-comparison) .destination-context {
-  margin-top: 0;
-  padding-top: 18px;
-  border-radius: 30px;
+  margin-top: -34px;
+  padding-top: 26px;
+  border-radius: 34px;
   background:
     radial-gradient(circle at 50% 0%, rgba(225, 239, 255, 0.40), transparent 56%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 255, 0.92) 100%);
   box-shadow:
     inset 0 0 0 1px rgba(226, 236, 246, 0.96),
     0 22px 48px rgba(66, 89, 120, 0.10);
-}
-
-.destination-card:not(.is-comparison) .solo-mode-shell,
-.destination-sheet:not(.is-comparison) .solo-mode-shell {
-  margin-top: -28px;
-  z-index: 1;
-}
-
-.destination-card:not(.is-comparison) .friend-visitors,
-.destination-sheet:not(.is-comparison) .friend-visitors {
-  margin-top: 0;
-  margin-bottom: 12px;
-  padding: 14px 16px;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 74% 10%, rgba(232, 241, 255, 0.72), transparent 40%),
-    linear-gradient(180deg, rgba(244, 249, 255, 0.98) 0%, rgba(237, 245, 255, 0.94) 100%);
-  border: 1px solid rgba(231, 239, 248, 0.96);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
-    0 14px 30px rgba(72, 99, 132, 0.08);
-}
-
-.destination-card:not(.is-comparison) .friend-visitors-text,
-.destination-sheet:not(.is-comparison) .friend-visitors-text {
-  color: #435777;
-}
-
-.destination-card:not(.is-comparison) .friend-visitors-action,
-.destination-sheet:not(.is-comparison) .friend-visitors-action {
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: inset 0 0 0 1px rgba(216, 227, 240, 0.92);
-}
-
-.destination-card:not(.is-comparison) .destination-context,
-.destination-sheet:not(.is-comparison) .destination-context {
-  margin: 0 0 12px;
-  padding: 12px 14px;
-  border-radius: 24px;
-}
-
-.destination-card:not(.is-comparison) .destination-context-meta,
-.destination-sheet:not(.is-comparison) .destination-context-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 16px;
-  border-bottom: 1px solid var(--detail-line);
-}
-
-.destination-card:not(.is-comparison) .destination-context-meta span,
-.destination-sheet:not(.is-comparison) .destination-context-meta span {
-  min-height: 38px;
-  padding: 8px 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: #3a4e6d;
-  font-size: 12px;
-  font-weight: var(--weight-semibold);
-  gap: 5px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.destination-card:not(.is-comparison) .destination-context-meta span svg,
-.destination-sheet:not(.is-comparison) .destination-context-meta span svg {
-  width: 14px;
-  height: 14px;
-}
-
-.destination-card:not(.is-comparison) .destination-context-details,
-.destination-sheet:not(.is-comparison) .destination-context-details {
-  margin-top: 0;
-  gap: 0;
-}
-
-.destination-card:not(.is-comparison) .destination-context-details div,
-.destination-sheet:not(.is-comparison) .destination-context-details div {
-  min-height: 38px;
-  padding: 8px 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  border-top: 1px solid var(--detail-line);
-}
-
-.destination-card:not(.is-comparison) .destination-context-details div:first-child,
-.destination-sheet:not(.is-comparison) .destination-context-details div:first-child {
-  border-top: 0;
-}
-
-.destination-card:not(.is-comparison) .destination-context-details .destination-context-chip,
-.destination-sheet:not(.is-comparison) .destination-context-details .destination-context-chip {
-  min-height: 28px;
-  padding: 0 10px;
-  font-size: 11px;
-}
-
-
-.destination-card:not(.is-comparison) .sheet-cross-links,
-.destination-sheet:not(.is-comparison) .sheet-cross-links {
-  margin-bottom: 0;
 }
 
 .friend-visitors {
@@ -16811,24 +16637,6 @@ svg {
   font-weight: var(--weight-semibold);
 }
 
-.destination-context-details .destination-context-chip--neutral {
-  background: rgba(228, 235, 248, 0.65);
-  color: #3b4f72;
-  box-shadow: inset 0 0 0 1px rgba(196, 212, 238, 0.7);
-}
-
-.destination-context-details .destination-context-chip--positive {
-  background: rgba(225, 247, 231, 0.65);
-  color: #1e7038;
-  box-shadow: inset 0 0 0 1px rgba(185, 230, 200, 0.7);
-}
-
-.destination-context-details .destination-context-chip--negative {
-  background: rgba(252, 234, 238, 0.65);
-  color: #8e2636;
-  box-shadow: inset 0 0 0 1px rgba(234, 194, 204, 0.7);
-}
-
 .compare-meta-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -16961,7 +16769,7 @@ svg {
 }
 
 .compare-tag-column h3::after {
-  content: '👤';
+  content: '??';
   font-size: 12px;
   letter-spacing: 0;
 }
@@ -17033,12 +16841,8 @@ svg {
 
 .criteria-compare-head,
 .criteria-compare-row {
-  grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
-  column-gap: 6px;
-}
-
-.criteria-compare-row--solo {
-  grid-template-columns: minmax(0, 1fr) 56px;
+  grid-template-columns: 18px minmax(0, 1fr) 72px 72px;
+  column-gap: 10px;
 }
 
 .criteria-compare-head {
@@ -17071,7 +16875,7 @@ svg {
   gap: 0;
   padding-top: 0;
   border-top: 0;
-  border-radius: 20px;
+  border-radius: 30px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.86);
   box-shadow:
@@ -17080,10 +16884,10 @@ svg {
 }
 
 .criteria-compare-row {
-  min-height: 42px;
-  padding: 0 12px;
+  min-height: 62px;
+  padding: 0 16px;
   border-top: 1px solid var(--detail-line);
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .criteria-compare-row:first-child {
@@ -17091,42 +16895,21 @@ svg {
 }
 
 .criteria-compare-row strong {
-  min-height: 28px;
-  min-width: 42px;
-  padding: 0 8px;
-  border-radius: 999px;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: center;
   font-variant-numeric: tabular-nums;
 }
 
-.criteria-compare-label {
-  min-width: 0;
-  display: inline-grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  align-items: center;
-  column-gap: 8px;
-}
-
-.criteria-compare-label > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.criteria-compare-label svg {
-  width: 14px;
-  height: 14px;
-}
-
-.criteria-compare-row strong:nth-of-type(1) {
+.criteria-compare-row strong:nth-child(3) {
   color: var(--detail-mine-accent);
   background: var(--detail-mine-soft);
 }
 
-.criteria-compare-row strong:nth-of-type(2) {
+.criteria-compare-row strong:nth-child(4) {
   color: var(--detail-friend-accent);
   background: var(--detail-friend-soft);
 }
@@ -17138,23 +16921,22 @@ svg {
   }
 
   .destination-sheet.is-comparison {
-    left: 8px;
-    right: 8px;
-    width: auto;
-    transform: none;
+    left: 50%;
+    right: auto;
+    width: min(480px, calc(100vw - 16px));
+    transform: translateX(-50%);
   }
 
   .destination-sheet.is-comparison.is-peek {
-    transform: translateY(calc(100% - 280px));
+    transform: translateX(-50%) translateY(calc(100% - 280px));
   }
 
   .destination-sheet.is-comparison.is-full {
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
 
   .destination-sheet-body {
     padding: 0 14px 18px;
-    overflow-x: clip;
   }
 
   .destination-sheet-body .destination-hero,
@@ -17248,16 +17030,28 @@ svg {
 .destination-card.is-comparison .compare-mode-shell,
 .destination-sheet.is-comparison .compare-mode-shell {
   position: relative;
-  margin-top: -20px;
-  padding: 0 13px 18px;
+  margin-top: -24px;
+  padding: 16px 13px 18px;
+  border-radius: 34px 34px 0 0;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   overflow: visible;
 }
 
 .destination-card.is-comparison .compare-mode-shell::before,
 .destination-sheet.is-comparison .compare-mode-shell::before {
-  content: none;
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 100px;
+  border-radius: 34px 34px 24px 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+  z-index: 0;
 }
 
 .destination-card.is-comparison .compare-mode-shell > *,
@@ -17347,114 +17141,19 @@ svg {
   font-weight: 500;
 }
 
-@media (min-width: 761px) {
-  .destination-card:not(.is-comparison) .destination-hero-wrap {
-    margin-top: -12px;
-    margin-left: -18px;
-    margin-right: -18px;
-  }
-
-  .destination-card:not(.is-comparison) .destination-hero {
-    min-height: 238px;
-    border-radius: 36px;
-    box-shadow: none;
-    overflow: hidden;
-  }
-
-  .destination-card:not(.is-comparison) .destination-card-actions {
-    top: 20px;
-    right: 20px;
-    gap: 10px;
-  }
-
-  .destination-card:not(.is-comparison) .destination-hero-copy {
-    left: 28px;
-    right: 28px;
-    bottom: 82px;
-    gap: 12px;
-  }
-
-  .destination-card:not(.is-comparison) .destination-hero-tier {
-    width: 38px;
-    height: 38px;
-    font-size: 17px;
-  }
-
-  .destination-card:not(.is-comparison) .destination-hero-copy h2 {
-    max-width: 8ch;
-    font-size: clamp(31px, 7.6vw, 38px);
-    font-weight: 900;
-    line-height: 0.96;
-    letter-spacing: -0.045em;
-  }
-
-  .destination-card:not(.is-comparison) .destination-hero-pills {
-    left: 22px;
-    right: 22px;
-    bottom: 18px;
-    gap: 8px;
-    padding-bottom: 6px;
-  }
-
-  .destination-card:not(.is-comparison) .destination-hero-pill.dest-row-chip,
-  .destination-card:not(.is-comparison) .destination-hero-favorite {
-    min-height: 34px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(24, 28, 36, 0.6);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 20px rgba(10, 20, 36, 0.16);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .destination-card.is-comparison .destination-card-actions,
-  .destination-sheet.is-comparison .destination-card-actions {
-    top: 24px;
-    right: 24px;
-    gap: 12px;
-  }
-
-  .destination-card.is-comparison .destination-hero-copy,
-  .destination-sheet.is-comparison .destination-hero-copy {
-    left: 34px;
-    right: 34px;
-    bottom: 104px;
-    gap: 16px;
-  }
-
-  .destination-card.is-comparison .destination-hero-pills,
-  .destination-sheet.is-comparison .destination-hero-pills {
-    left: 28px;
-    right: 28px;
-    bottom: 28px;
-    gap: 12px;
-    padding-bottom: 10px;
-  }
-
-  .destination-card.is-comparison .destination-hero-pill.dest-row-chip,
-  .destination-card.is-comparison .destination-hero-favorite,
-  .destination-sheet.is-comparison .destination-hero-pill.dest-row-chip,
-  .destination-sheet.is-comparison .destination-hero-favorite {
-    padding: 0 16px;
-  }
-}
-
 .destination-card.is-comparison .sheet-compare-banner,
 .destination-sheet.is-comparison .sheet-compare-banner {
-  margin: -34px 0 0;
-  min-height: 0;
-  padding: 14px 16px;
-  border-radius: 24px;
+  margin: 0;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 32px 32px 24px 24px;
   background:
-    radial-gradient(circle at 74% 10%, rgba(232, 241, 255, 0.72), transparent 40%),
-    linear-gradient(180deg, rgba(244, 249, 255, 0.98) 0%, rgba(237, 245, 255, 0.94) 100%);
-  border: 1px solid rgba(231, 239, 248, 0.96);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
-    0 14px 30px rgba(72, 99, 132, 0.08);
+    radial-gradient(circle at 72% 6%, rgba(228, 239, 255, 0.58), transparent 36%),
+    linear-gradient(180deg, rgba(244, 249, 255, 0.78) 0%, rgba(236, 244, 255, 0.72) 100%);
+  border: 1px solid rgba(225, 234, 246, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.54), 0 8px 18px rgba(72, 99, 132, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
 }
 
@@ -17486,32 +17185,14 @@ svg {
   min-width: 0;
 }
 
-.destination-card.is-comparison .sheet-compare-banner-copy strong,
-.destination-sheet.is-comparison .sheet-compare-banner-copy strong {
-  display: block;
-  color: #23324f;
-  font-size: 15px;
-  line-height: 1.2;
-}
-
-.destination-card.is-comparison .sheet-compare-banner-copy small,
-.destination-sheet.is-comparison .sheet-compare-banner-copy small {
-  margin-top: 2px;
-  color: #60738f;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
 .destination-card.is-comparison .compare-meta,
 .destination-card.is-comparison .compare-sheet-card,
 .destination-card.is-comparison .compare-tag-groups,
 .destination-card.is-comparison .criteria-compare,
-.destination-card.is-comparison .compare-fallback-note,
 .destination-sheet.is-comparison .compare-meta,
 .destination-sheet.is-comparison .compare-sheet-card,
 .destination-sheet.is-comparison .compare-tag-groups,
-.destination-sheet.is-comparison .criteria-compare,
-.destination-sheet.is-comparison .compare-fallback-note {
+.destination-sheet.is-comparison .criteria-compare {
   margin: 0;
   align-self: stretch;
 }
@@ -17613,38 +17294,33 @@ svg {
 
 .destination-card.is-comparison .compare-sheet-card,
 .destination-sheet.is-comparison .compare-sheet-card {
-  padding: 14px 13px 16px;
-  border-radius: 28px;
+  padding: 13px 15px;
+  border-radius: 22px;
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
+    radial-gradient(circle at 78% 16%, rgba(255, 241, 228, 0.48), transparent 34%),
+    linear-gradient(180deg, rgba(255, 253, 250, 0.98) 0%, rgba(255, 247, 238, 0.96) 100%);
+  box-shadow: inset 0 0 0 1px rgba(246, 224, 202, 0.82), 0 18px 40px rgba(82, 102, 130, 0.08);
 }
 
 .destination-card.is-comparison .compare-sheet-score strong,
 .destination-sheet.is-comparison .compare-sheet-score strong {
-  font-size: clamp(30px, 7.2vw, 40px);
-  line-height: 0.96;
+  font-size: clamp(32px, 7.8vw, 44px);
+  line-height: 0.92;
 }
 
 .destination-card.is-comparison .compare-sheet-score em,
 .destination-sheet.is-comparison .compare-sheet-score em {
-  margin-top: 6px;
-  padding: 0;
-  color: #7183a1;
-  background: transparent;
-  font-size: 11px;
+  margin-top: 4px;
+  padding: 5px 8px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .destination-card.is-comparison .compare-sheet-stats,
 .destination-sheet.is-comparison .compare-sheet-stats {
-  gap: 0;
-  padding-left: 0;
-  border-left: 0;
+  gap: 8px;
+  padding-left: 14px;
 }
 
 .destination-card.is-comparison .compare-sheet-stat,
@@ -17652,17 +17328,9 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 38px;
-  padding: 8px 0;
-  border-top: 1px solid var(--detail-line);
   font-size: 12px;
   line-height: 1.35;
   gap: 10px;
-}
-
-.destination-card.is-comparison .compare-sheet-stat:first-child,
-.destination-sheet.is-comparison .compare-sheet-stat:first-child {
-  border-top: 0;
 }
 
 .destination-card.is-comparison .compare-sheet-stat span,
@@ -17687,409 +17355,164 @@ svg {
   line-height: 1;
 }
 
-.destination-card.is-comparison .compare-meta--recap,
-.destination-sheet.is-comparison .compare-meta--recap {
-  padding: 0;
-}
-
-.destination-card.is-comparison .compare-meta--recap p,
-.destination-sheet.is-comparison .compare-meta--recap p {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
+.destination-card.is-comparison .compare-tag-columns,
+.destination-sheet.is-comparison .compare-tag-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  color: #506784;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(244, 248, 253, 0.76) 100%);
-  box-shadow: inset 0 0 0 1px rgba(221, 232, 245, 0.92), 0 8px 18px rgba(73, 99, 133, 0.05);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  font-size: 12px;
-  line-height: 1.35;
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
-.destination-card.is-comparison .compare-sheet-card--insight,
-.destination-sheet.is-comparison .compare-sheet-card--insight {
-  grid-template-columns: 1fr;
-  gap: 0;
-  padding: 14px 13px 16px;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at 72% 14%, rgba(230, 240, 255, 0.52), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 255, 0.92) 100%);
+.destination-card.is-comparison .compare-tag-column,
+.destination-sheet.is-comparison .compare-tag-column {
+  padding: 10px 10px 8px;
+  border-radius: 16px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.56);
+  box-shadow: inset 0 0 0 1px rgba(229, 236, 245, 0.68), 0 10px 20px rgba(70, 95, 124, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score,
-.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score {
-  display: grid;
-  gap: 6px;
-  align-content: start;
-}
-
-.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score > span,
-.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score > span {
-  color: #5f7694;
+.destination-card.is-comparison .compare-tag-column h3,
+.destination-sheet.is-comparison .compare-tag-column h3 {
+  margin-bottom: 6px;
   font-size: 10px;
-  font-weight: 700;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
-.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score strong,
-.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score strong {
-  font-family: inherit;
-  font-size: 23px;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-  color: #203255;
-}
-
-.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score p,
-.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score p {
-  margin: 0;
-  color: #425879;
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score em,
-.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score em {
-  margin-top: 2px;
-  padding: 0;
-  color: #6c819f;
-  background: transparent;
-  font-size: 11px;
-  font-style: normal;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.destination-card.is-comparison .compare-sheet-card--aligned,
-.destination-sheet.is-comparison .compare-sheet-card--aligned {
-  box-shadow:
-    inset 0 0 0 1px rgba(200, 222, 250, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-}
-
-.destination-card.is-comparison .compare-sheet-card--mixed,
-.destination-sheet.is-comparison .compare-sheet-card--mixed {
-  box-shadow:
-    inset 0 0 0 1px rgba(229, 220, 201, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-}
-
-.destination-card.is-comparison .compare-sheet-card--gap,
-.destination-sheet.is-comparison .compare-sheet-card--gap {
-  box-shadow:
-    inset 0 0 0 1px rgba(238, 214, 196, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-}
-
-.destination-card.is-comparison .compare-tag-groups,
-.destination-sheet.is-comparison .compare-tag-groups {
-  padding: 14px 13px 16px;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-}
-
-.destination-card.is-comparison .compare-takeaways h3,
-.destination-sheet.is-comparison .compare-takeaways h3 {
-  margin: 0 0 6px;
-  color: #7183a1;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.destination-card.is-comparison .compare-takeaways-shared,
-.destination-sheet.is-comparison .compare-takeaways-shared {
-  margin: 0 0 8px;
-  display: grid;
+.destination-card.is-comparison .compare-tag-list,
+.destination-sheet.is-comparison .compare-tag-list {
+  margin-top: 0;
   gap: 6px;
 }
 
-.destination-card.is-comparison .compare-takeaways-shared strong,
-.destination-sheet.is-comparison .compare-takeaways-shared strong {
-  color: #3d536f;
-  font-weight: 700;
-  font-size: 12px;
+.destination-card.is-comparison .compare-tag-column--mine h3,
+.destination-sheet.is-comparison .compare-tag-column--mine h3 {
+  color: rgba(39, 82, 176, 0.92);
 }
 
-.destination-card.is-comparison .compare-takeaways-list,
-.destination-sheet.is-comparison .compare-takeaways-list {
-  display: grid;
-  gap: 0;
+.destination-card.is-comparison .compare-tag-column--theirs h3,
+.destination-sheet.is-comparison .compare-tag-column--theirs h3 {
+  color: rgba(214, 106, 34, 0.92);
 }
 
-.destination-card.is-comparison .compare-takeaway-row,
-.destination-sheet.is-comparison .compare-takeaway-row {
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-  min-height: 38px;
-  padding: 10px 0;
-  border-top: 1px solid var(--detail-line);
-}
-
-.destination-card.is-comparison .compare-takeaway-row:first-child,
-.destination-sheet.is-comparison .compare-takeaway-row:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.destination-card.is-comparison .compare-takeaway-row > span,
-.destination-sheet.is-comparison .compare-takeaway-row > span {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.destination-card.is-comparison .compare-takeaway-row--mine > span,
-.destination-sheet.is-comparison .compare-takeaway-row--mine > span {
-  color: var(--detail-mine-accent);
-}
-
-.destination-card.is-comparison .compare-takeaway-row--theirs > span,
-.destination-sheet.is-comparison .compare-takeaway-row--theirs > span {
-  color: var(--detail-friend-accent);
-}
-
-.destination-card.is-comparison .compare-takeaway-chips,
-.destination-sheet.is-comparison .compare-takeaway-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-
-.destination-card.is-comparison .compare-takeaway-chip,
-.destination-sheet.is-comparison .compare-takeaway-chip {
-  min-height: 28px;
+.destination-card.is-comparison .compare-tag,
+.destination-sheet.is-comparison .compare-tag {
+  min-height: 34px;
   padding: 0 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  color: #44597a;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: inset 0 0 0 1px rgba(231, 238, 246, 0.92), 0 6px 12px rgba(83, 104, 130, 0.05);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(238, 242, 248, 0.82), 0 8px 16px rgba(83, 104, 130, 0.05);
   font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.destination-card.is-comparison .compare-takeaway-chip--mine,
-.destination-sheet.is-comparison .compare-takeaway-chip--mine {
-  color: var(--detail-mine-accent);
-  background: rgba(234, 242, 255, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(173, 205, 255, 0.42);
-}
-
-.destination-card.is-comparison .compare-takeaway-chip--theirs,
-.destination-sheet.is-comparison .compare-takeaway-chip--theirs {
-  color: var(--detail-friend-accent);
-  background: rgba(255, 240, 229, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(245, 205, 173, 0.5);
-}
-
-.destination-card.is-comparison .compare-takeaway-chip--shared,
-.destination-sheet.is-comparison .compare-takeaway-chip--shared {
-  color: #536987;
-  background: rgba(244, 247, 252, 0.96);
-}
-
-.destination-card.is-comparison .compare-takeaway-more,
-.destination-sheet.is-comparison .compare-takeaway-more {
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  color: #5b7090;
-  background: rgba(236, 242, 250, 0.92);
-  box-shadow: inset 0 0 0 1px rgba(212, 223, 238, 0.96);
-  font-size: 11px;
-  font-weight: 700;
+  line-height: 1.25;
 }
 
 .destination-card.is-comparison .criteria-compare-head,
 .destination-card.is-comparison .criteria-compare-row,
 .destination-sheet.is-comparison .criteria-compare-head,
 .destination-sheet.is-comparison .criteria-compare-row {
-  grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
-  column-gap: 6px;
+  grid-template-columns: 16px minmax(0, 1fr) 62px 62px;
+  column-gap: 8px;
 }
 
 .destination-card.is-comparison .criteria-compare-heading,
 .destination-sheet.is-comparison .criteria-compare-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 6px;
+  gap: 8px;
   min-width: 0;
-  margin-bottom: 0;
-  padding: 0 0 10px;
-}
-
-.destination-card.is-comparison .criteria-compare-heading h3,
-.destination-sheet.is-comparison .criteria-compare-heading h3 {
-  margin: 0;
-  align-self: center;
-  grid-column: 1;
 }
 
 .destination-card.is-comparison .criteria-compare-legend,
 .destination-sheet.is-comparison .criteria-compare-legend {
-  display: contents;
-}
-
-.destination-card.is-comparison .criteria-compare-pill,
-.destination-sheet.is-comparison .criteria-compare-pill {
-  min-height: 18px;
-  padding: 0;
-  background: transparent;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  justify-self: stretch;
-  text-align: center;
-}
-
-.destination-card.is-comparison .criteria-compare-status,
-.destination-sheet.is-comparison .criteria-compare-status {
-  justify-self: center;
-  width: 28px;
-  min-height: 20px;
-  padding: 0;
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 62px 62px;
+  column-gap: 8px;
+  justify-self: end;
   align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: none;
-  white-space: normal;
-}
-
-.destination-card.is-comparison .criteria-compare-status--aligned,
-.destination-sheet.is-comparison .criteria-compare-status--aligned {
-  color: #2665db;
-  background: transparent;
-}
-
-.destination-card.is-comparison .criteria-compare-status--close,
-.destination-sheet.is-comparison .criteria-compare-status--close {
-  color: #627593;
-  background: transparent;
-}
-
-.destination-card.is-comparison .criteria-compare-status--gap,
-.destination-sheet.is-comparison .criteria-compare-status--gap {
-  color: #d47d24;
-  background: transparent;
-}
-
-.destination-card.is-comparison .criteria-compare-status--big-gap,
-.destination-sheet.is-comparison .criteria-compare-status--big-gap {
-  color: #df6b21;
-  background: transparent;
-}
-
-.destination-card.is-comparison .criteria-compare,
-.destination-sheet.is-comparison .criteria-compare {
-  padding: 14px 13px 16px;
-  border-radius: 28px;
+  margin-right: 12px;
 }
 
 .destination-card.is-comparison .criteria-compare-list,
 .destination-sheet.is-comparison .criteria-compare-list {
-  border-radius: 24px;
-  background: transparent;
-  box-shadow: none;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(229, 237, 246, 0.92), 0 14px 32px rgba(65, 90, 122, 0.06);
+}
+
+.destination-card.is-comparison .criteria-compare-head,
+.destination-sheet.is-comparison .criteria-compare-head {
+  margin: 0;
+  width: 116px;
+  flex: 0 0 auto;
+}
+
+.destination-card.is-comparison .criteria-compare-pill,
+.destination-sheet.is-comparison .criteria-compare-pill {
+  min-height: 30px;
+  padding: 0 6px;
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 .destination-card.is-comparison .criteria-compare-row,
 .destination-sheet.is-comparison .criteria-compare-row {
-  min-height: 38px;
-  padding: 8px 0;
-  border-top: 1px solid var(--detail-line);
+  min-height: 46px;
+  padding: 0 10px;
   font-size: 12px;
 }
 
 .destination-card.is-comparison .criteria-compare-row strong,
 .destination-sheet.is-comparison .criteria-compare-row strong {
-  min-height: 34px;
-  min-width: 42px;
+  min-height: 30px;
   padding: 0 8px;
   border-radius: 12px;
-  justify-self: end;
-}
-
-.destination-card.is-comparison .compare-fallback-note,
-.destination-sheet.is-comparison .compare-fallback-note {
-  padding: 14px 13px 16px;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at 68% 10%, rgba(231, 240, 255, 0.58), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 250, 255, 0.92) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-}
-
-.destination-card.is-comparison .compare-fallback-note strong,
-.destination-sheet.is-comparison .compare-fallback-note strong {
-  color: #23324f;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.destination-card.is-comparison .compare-fallback-note p,
-.destination-card.is-comparison .compare-fallback-empty,
-.destination-sheet.is-comparison .compare-fallback-note p,
-.destination-sheet.is-comparison .compare-fallback-empty {
-  margin-top: 8px;
-  color: #60738f;
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 @media (max-width: 760px) {
-  .destination-sheet.is-comparison {
-    border-radius: 30px 30px 0 0;
-    overflow: hidden;
+  .destination-sheet.is-comparison .compare-tag-columns {
+    grid-template-columns: 1fr;
   }
 
   .destination-sheet.is-comparison .destination-sheet-body {
     padding: 0 0 18px;
   }
 
-  .destination-sheet.is-comparison .destination-hero-wrap {
-    margin-top: 0;
-    margin-left: 0;
-    margin-right: 0;
+  .destination-sheet.is-comparison .compare-meta-list {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+    gap: 8px;
   }
 
-  .destination-sheet.is-comparison.is-peek .destination-sheet-body .destination-hero {
-    min-height: 290px;
+  .destination-sheet.is-comparison .compare-meta-item {
+    min-height: 78px;
+    padding: 10px 10px;
+    border-radius: 16px;
+    gap: 8px;
   }
 
-  .destination-sheet.is-comparison.is-peek .compare-mode-shell {
-    margin-top: -14px;
+  .destination-sheet.is-comparison .compare-meta-item svg {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
+
+  .destination-sheet.is-comparison .compare-meta-item-copy > strong {
+    font-size: 13px;
+  }
+
+  .destination-sheet.is-comparison .compare-meta-item-copy small,
+  .destination-sheet.is-comparison .compare-meta-item-copy em,
+  .destination-sheet.is-comparison .compare-meta-item-split-entry small {
+    font-size: 10px;
+  }
+
+  .destination-sheet.is-comparison .compare-meta-item-split {
+    gap: 8px;
+  }
+
+  .destination-sheet.is-comparison .compare-meta-item-split-entry strong {
+    font-size: 11px;
   }
 
   .destination-sheet.is-comparison .destination-hero {
@@ -18113,30 +17536,34 @@ svg {
   .destination-sheet.is-comparison .compare-meta,
   .destination-sheet.is-comparison .compare-sheet-card,
   .destination-sheet.is-comparison .compare-tag-groups,
-  .destination-sheet.is-comparison .criteria-compare,
-  .destination-sheet.is-comparison .compare-fallback-note {
+  .destination-sheet.is-comparison .criteria-compare {
     margin-left: 10px;
     margin-right: 10px;
   }
 
   .destination-sheet.is-comparison .compare-sheet-card {
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px 13px 16px;
+    gap: 16px;
+    padding: 16px 14px;
   }
 
-  .destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score strong {
-    font-size: 21px;
+  .destination-sheet.is-comparison .compare-sheet-stats {
+    padding-left: 0;
+    padding-top: 16px;
+    border-left: 0;
+    border-top: 1px solid rgba(226, 209, 191, 0.8);
   }
 
   .destination-sheet.is-comparison .criteria-compare-head,
   .destination-sheet.is-comparison .criteria-compare-row {
-    grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
+    grid-template-columns: 14px minmax(0, 1fr) 58px 58px;
     column-gap: 6px;
   }
 
   .destination-sheet.is-comparison .criteria-compare-legend {
-    display: contents;
+    grid-template-columns: 58px 58px;
+    column-gap: 6px;
+    margin-right: 10px;
   }
 
   .destination-sheet.is-comparison .criteria-compare-heading {
@@ -18144,13 +17571,14 @@ svg {
     gap: 8px;
   }
 
-  .destination-sheet.is-comparison .criteria-compare {
-    padding: 14px 13px 16px;
+  .destination-sheet.is-comparison .criteria-compare-head {
+    width: 100%;
+    max-width: 112px;
+    justify-self: end;
   }
 
   .destination-sheet.is-comparison .destination-hero-copy h2 {
     font-size: clamp(42px, 11vw, 48px);
     line-height: 1.04;
-    padding-bottom: 0.12em;
   }
 }

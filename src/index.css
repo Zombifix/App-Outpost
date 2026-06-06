@@ -16855,6 +16855,15 @@ svg {
   margin-bottom: 12px;
 }
 
+.criteria-compare-title {
+  margin: 0;
+  color: #7183a1;
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .criteria-compare-pill {
   min-height: 36px;
   padding: 0 10px;

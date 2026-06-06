@@ -953,7 +953,7 @@ function DestinationCardContent({
           )}
 
           <div className="criteria-compare-heading">
-            <h3>Ratings by criterion</h3>
+            <h3 className="criteria-compare-title">RATINGS BY CRITERION</h3>
             <div className="criteria-compare-legend" aria-label="Comparison legend">
               <strong className="criteria-compare-pill criteria-compare-pill--mine">YOU</strong>
               <strong className="criteria-compare-pill criteria-compare-pill--theirs">{firstName.toUpperCase()}</strong>
@@ -989,7 +989,7 @@ function DestinationCardContent({
         <>
         <div className="solo-mode-shell solo-mode-shell--criteria content-shell">
           <div className="criteria-compare-heading">
-            <h3>Ratings by criterion</h3>
+            <h3 className="criteria-compare-title">RATINGS BY CRITERION</h3>
           </div>
           <div className="criteria-compare-list">
             {criteria.map(([label, value, icon]) => (

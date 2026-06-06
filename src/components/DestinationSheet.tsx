@@ -7,6 +7,7 @@ import { getDestinationScore, getDestinationTier, getMaxCoupDeCoeur } from '../u
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
+import { Avatar } from './Avatar'
 
 interface DestinationSheetProps {
   destination: Destination
@@ -52,6 +53,14 @@ const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> =
   travail: 'Work',
 }
 
+const COMPANION_EMOJIS: Record<NonNullable<Destination['companions']>, string> = {
+  solo: '🧭',
+  couple: '💞',
+  amis: '👥',
+  famille: '🏡',
+  travail: '💼',
+}
+
 function formatEuro(value: number) {
   return `${Math.round(value).toLocaleString('en-US')} EUR`
 }
@@ -77,6 +86,28 @@ const INTENT_EMOJIS: Record<Destination['intent'], string> = {
 type ContextDetail =
   | { kind: 'text'; icon: string; label: string; value: string }
   | { kind: 'chips'; icon: string; label: string; chips: Array<{ label: string; tone: 'neutral' | 'positive' | 'negative' }> }
+
+type ComparisonStatus = 'aligned' | 'close' | 'gap' | 'big-gap'
+
+type ComparableCriterion = {
+  label: string
+  icon: string
+  mine: number
+  theirs: number
+  gap: number
+  status: ComparisonStatus
+}
+
+type ComparisonInsight = {
+  alignedCriteria: ComparableCriterion[]
+  closeCriteria: ComparableCriterion[]
+  gapCriteria: ComparableCriterion[]
+  biggestGaps: ComparableCriterion[]
+  summarySentence: string
+  detailSentence: string
+  countsLine: string
+  matchTone: 'aligned' | 'mixed' | 'gap'
+}
 
 const STANDOUT_FLOP_LABELS = new Set([
   'Budget qui pique',
@@ -144,17 +175,26 @@ function getCriteria(destination: Destination) {
   return base
 }
 
+function getComparisonStatus(gap: number): ComparisonStatus {
+  if (gap <= 0) return 'aligned'
+  if (gap <= 1) return 'close'
+  if (gap < 3) return 'gap'
+  return 'big-gap'
+}
+
 function getComparableCriteria(destination: Destination, compareDestination: Destination) {
   const mine = new Map(getCriteria(destination).map(([label, value, icon]) => [label, { value, icon }]))
   return getCriteria(compareDestination).flatMap(([label, compareValue]) => {
     const current = mine.get(label)
     if (!current) return []
+    const gap = Math.abs(current.value - compareValue)
     return [{
       label,
       icon: current.icon,
       mine: current.value,
       theirs: compareValue,
-      gap: Math.abs(current.value - compareValue),
+      gap,
+      status: getComparisonStatus(gap),
     }]
   })
 }
@@ -171,22 +211,98 @@ function getCompareTags(destination: Destination, compareDestination: Destinatio
   }
 }
 
-function getCompareCompatibility(compareCriteria: Array<{ gap: number }>) {
-  if (!compareCriteria.length) return { score: 0, shared: 0, differences: 0 }
-  const shared = compareCriteria.filter(item => item.gap <= 1).length
-  const differences = compareCriteria.filter(item => item.gap > 1).length
-  const averageGap = compareCriteria.reduce((sum, item) => sum + item.gap, 0) / compareCriteria.length
+function formatCriterionLabels(criteria: ComparableCriterion[], limit = 2) {
+  const labels = criteria.slice(0, limit).map(item => item.label.replace(' & ', ' / ').toLowerCase())
+  if (!labels.length) return ''
+  if (labels.length === 1) return labels[0]
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`
+  return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
+}
+
+function formatTagPreview(tags: string[], limit = 3) {
   return {
-    score: Math.max(0, Math.min(100, Math.round(100 - averageGap * 16))),
-    shared,
-    differences,
+    visibleTags: tags.slice(0, limit),
+    remainingCount: Math.max(0, tags.length - limit),
   }
 }
 
-function formatCompareLabel(mine: number | undefined, theirs: number | undefined, suffix = '') {
-  if (mine == null || theirs == null) return ''
-  const format = (value: number) => `${Math.round(value).toLocaleString('fr-FR')}${suffix}`
-  return `${format(mine)} / ${format(theirs)}`
+function getGapMarker(status: ComparisonStatus) {
+  if (status === 'aligned') return '🤝'
+  if (status === 'close') return '≈'
+  if (status === 'gap') return '!'
+  return '!!'
+}
+
+function getComparisonInsight(destination: Destination, compareCriteria: ComparableCriterion[]): ComparisonInsight {
+  if (!compareCriteria.length) {
+    return {
+      alignedCriteria: [],
+      closeCriteria: [],
+      gapCriteria: [],
+      biggestGaps: [],
+      summarySentence: `Not enough detail yet to compare ${destination.name} side by side.`,
+      detailSentence: 'Add more criterion ratings to reveal what overlaps and what differs.',
+      countsLine: 'No comparable ratings yet',
+      matchTone: 'mixed',
+    }
+  }
+
+  const alignedCriteria = compareCriteria.filter(item => item.status === 'aligned')
+  const closeCriteria = compareCriteria.filter(item => item.status === 'close')
+  const gapCriteria = compareCriteria.filter(item => item.status === 'gap' || item.status === 'big-gap')
+  const biggestGaps = [...gapCriteria].sort((a, b) => b.gap - a.gap).slice(0, 2)
+  const strongGaps = compareCriteria.filter(item => item.status === 'big-gap')
+  const softMatches = alignedCriteria.length + closeCriteria.length
+  const alignedLabel = formatCriterionLabels([...alignedCriteria, ...closeCriteria], 3)
+  const gapLabel = formatCriterionLabels(biggestGaps.length ? biggestGaps : gapCriteria, 2)
+
+  let summarySentence = 'Some shared highs, some different priorities.'
+  if (alignedCriteria.length >= 2 && strongGaps.length >= 1) {
+    summarySentence = 'Same city, different reasons.'
+  } else if (gapCriteria.length > softMatches) {
+    summarySentence = 'Same destination, different expectations.'
+  } else if (softMatches >= Math.max(3, gapCriteria.length + 1)) {
+    summarySentence = alignedLabel
+      ? `Strong match on ${alignedLabel}.`
+      : 'Strong match overall, with lighter gaps elsewhere.'
+  }
+
+  const detailParts: string[] = []
+  if (alignedLabel) detailParts.push(`You align on ${alignedLabel}.`)
+  if (gapLabel) detailParts.push(`Biggest gaps: ${gapLabel}.`)
+
+  let matchTone: ComparisonInsight['matchTone'] = 'mixed'
+  if (gapCriteria.length > softMatches) matchTone = 'gap'
+  else if (alignedCriteria.length >= 2 || softMatches >= 4) matchTone = 'aligned'
+
+  return {
+    alignedCriteria,
+    closeCriteria,
+    gapCriteria,
+    biggestGaps,
+    summarySentence,
+    detailSentence: detailParts.join(' '),
+    countsLine: `${alignedCriteria.length} aligned · ${closeCriteria.length} close · ${gapCriteria.length} gaps`,
+    matchTone,
+  }
+}
+
+function getCompareTripRecap(mineDestination: Destination | null, compareDestination: Destination | null, firstName: string) {
+  const sameYear = Boolean(
+    mineDestination?.tripYear &&
+    compareDestination?.tripYear &&
+    mineDestination.tripYear === compareDestination.tripYear
+  )
+  const segments: string[] = []
+  if (sameYear && mineDestination?.tripYear) {
+    segments.push(`Both in ${mineDestination.tripYear}`)
+  } else {
+    if (mineDestination?.tripYear) segments.push(`You in ${mineDestination.tripYear}`)
+    if (compareDestination?.tripYear) segments.push(`${firstName} in ${compareDestination.tripYear}`)
+  }
+  if (mineDestination?.tripDays) segments.push(`You ${mineDestination.tripDays}d`)
+  if (compareDestination?.tripDays) segments.push(`${firstName} ${compareDestination.tripDays}d`)
+  return segments.join(' · ')
 }
 
 function formatScore(destination: Destination) {
@@ -209,7 +325,7 @@ function hasRenderableStops(destination: Destination) {
 
 export default function DestinationSheet(props: DestinationSheetProps) {
   const isComparison = Boolean(props.compareWith)
-  const useSheetLayout = useMediaQuery(isComparison ? '(max-width: 1100px)' : '(max-width: 768px)')
+  const useSheetLayout = useMediaQuery(isComparison ? '(max-width: 1024px)' : '(max-width: 768px)')
 
   if (useSheetLayout) return <MobileSheet {...props} />
   return (
@@ -225,14 +341,13 @@ function MobileSheet(props: DestinationSheetProps) {
   const isComparison = Boolean(props.compareWith)
   const sheetRef = useRef<HTMLElement | null>(null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
-  const [snap, setSnap] = useState<SnapState>(isComparison ? 'full' : 'peek')
+  const [snap, setSnap] = useState<SnapState>('peek')
   const dragRef = useRef<DragState>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
 
-  // A comparison needs its full reading surface; a regular card keeps the peek affordance.
   useEffect(() => {
-    setSnap(isComparison ? 'full' : 'peek')
+    setSnap('peek')
     setDragOffset(0)
   }, [props.destination.name, isComparison])
 
@@ -301,7 +416,7 @@ function MobileSheet(props: DestinationSheetProps) {
     : {}
 
   return (
-    <div className="destination-sheet-backdrop" onClick={props.onClose} role="presentation">
+    <div className={`destination-sheet-backdrop${isComparison ? ' is-comparison' : ''}`} onClick={props.onClose} role="presentation">
       <aside
         ref={sheetRef}
         className={`destination-sheet is-${snap}${isComparison ? ' is-comparison' : ''}${isDragging ? ' is-dragging' : ''}`}
@@ -348,6 +463,7 @@ function DestinationCardContent({
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [visitorPickerOpen, setVisitorPickerOpen] = useState(false)
+  const [expandedTakeaways, setExpandedTakeaways] = useState<'mine' | 'theirs' | 'shared' | null>(null)
   const visitorPickerRef = useRef<HTMLDivElement | null>(null)
   const mineDestination = compareWith?.mine ?? null
   const compareDestination = compareWith?.theirs ?? null
@@ -363,9 +479,9 @@ function DestinationCardContent({
     () => mineDestination && compareDestination ? getCompareTags(mineDestination, compareDestination) : { common: [], mineOnly: [], theirsOnly: [] },
     [mineDestination, compareDestination]
   )
-  const compareCompatibility = useMemo(
-    () => getCompareCompatibility(compareCriteria),
-    [compareCriteria]
+  const compareInsight = useMemo(
+    () => mineDestination && compareDestination ? getComparisonInsight(destination, compareCriteria) : null,
+    [destination, mineDestination, compareCriteria, compareDestination]
   )
   const displayTier = getDisplayTier(destination)
 
@@ -417,6 +533,19 @@ function DestinationCardContent({
   const compareableVisitor = !compareWith && friendVisitors.length === 1 ? friendVisitors[0] : null
   const hasMultipleVisitors = !compareWith && friendVisitors.length > 1
   const firstName = compareWith?.friend.displayName.split(' ')[0] ?? ''
+  const destinationTitle = `${destination.name}${destination.country && destination.country !== destination.name ? `, ${destination.country}` : ''}`
+  const compareTripRecap = compareWith ? getCompareTripRecap(mineDestination, compareDestination, firstName) : ''
+  const mineTakeaways = compareTags.mineOnly.length ? formatTagPreview(compareTags.mineOnly) : null
+  const friendTakeaways = compareTags.theirsOnly.length ? formatTagPreview(compareTags.theirsOnly) : null
+  const sharedTakeaways = compareTags.common.length ? formatTagPreview(compareTags.common, 2) : null
+  const visibleSharedTakeaways = expandedTakeaways === 'shared' ? compareTags.common : sharedTakeaways?.visibleTags ?? []
+  const visibleMineTakeaways = expandedTakeaways === 'mine' ? compareTags.mineOnly : mineTakeaways?.visibleTags ?? []
+  const visibleFriendTakeaways = expandedTakeaways === 'theirs' ? compareTags.theirsOnly : friendTakeaways?.visibleTags ?? []
+  const heroTags = [
+    compareWith ? `👥 You + ${firstName}` : null,
+    destination.intent ? `${INTENT_EMOJIS[destination.intent]} ${INTENT_LABELS[destination.intent]}` : null,
+    destination.companions ? `${COMPANION_EMOJIS[destination.companions]} ${COMPANION_LABELS[destination.companions]}` : null,
+  ].filter((tag): tag is string => Boolean(tag))
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
   const maxCoupDeCoeur = getMaxCoupDeCoeur(allDestinations?.length ?? 0)
@@ -425,6 +554,10 @@ function DestinationCardContent({
   useEffect(() => {
     setVisitorPickerOpen(false)
   }, [destination.name, compareWith])
+
+  useEffect(() => {
+    setExpandedTakeaways(null)
+  }, [destination.name, compareWith?.friend.userId])
 
   useEffect(() => {
     if (!visitorPickerOpen) return
@@ -513,37 +646,34 @@ function DestinationCardContent({
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
+        <div className="destination-hero-copy">
+          <span className={`tier-orb tier-${displayTier.toLowerCase()} destination-hero-tier`}>{displayTier}</span>
+          <h2 style={!compareWith && destinationTitle.length > 24 ? { fontSize: 'clamp(22px, 5.4vw, 26px)', maxWidth: 'none' } : undefined}>{destinationTitle}</h2>
+        </div>
         <div className="destination-hero-pills">
-          {compareWith && (
-            <span className="intent-pill destination-hero-pill">
-              <Icon name="users" />
-              You + {compareWith.friend.displayName.split(' ')[0]}
+          {heroTags.map(tag => (
+            <span key={tag} className="dest-row-chip destination-hero-pill">
+              {tag}
             </span>
-          )}
-          {destination.intent && (
-            <span className="intent-pill destination-hero-pill">
-              <span aria-hidden="true">{INTENT_EMOJIS[destination.intent]}</span>
-              {INTENT_LABELS[destination.intent]}
-            </span>
-          )}
+          ))}
           {canEditOwnDestination && coupDeCoeur ? (
             <button
-              className="coup-de-coeur-button destination-hero-favorite is-active"
+              className="coup-de-coeur-button destination-hero-favorite destination-hero-pill is-active"
               aria-label="Remove from favorites"
               title="Favorite — remove"
               onClick={onCoupDeCoeur}
             >
-              <Icon name="heart" />
+              <span aria-hidden="true">❤</span>
               Favorite
             </button>
           ) : canEditOwnDestination && !coupDeCoeurDisabled && (
             <button
-              className="coup-de-coeur-button destination-hero-favorite"
+              className="coup-de-coeur-button destination-hero-favorite destination-hero-pill"
               aria-label="Add to favorites"
               title="Add to favorites"
               onClick={onCoupDeCoeur}
             >
-              <Icon name="heart" />
+              <span aria-hidden="true">❤</span>
               Favorite
             </button>
           )}
@@ -551,249 +681,261 @@ function DestinationCardContent({
       </div>
       {cardActions}
       </div>
-      <div className="destination-title-row">
-        <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
-        <div>
-          <h2>{destination.name}{destination.country && destination.country !== destination.name ? `, ${destination.country}` : ''}</h2>
-        </div>
-      </div>
-      {compareWith && (
-        <section className="sheet-compare-banner" aria-label="Comparison in progress">
-          <div className="sheet-compare-banner-copy">
-            <strong>Comparing with {firstName}</strong>
-            {isFriendOnlyComparison && (
-              <small>You have not visited or rated this destination yet.</small>
-            )}
-          </div>
-          {onExitCompare && (
-            <button
-              type="button"
-              className="sheet-compare-banner-action"
-              onClick={onExitCompare}
+      <div className="destination-title-row" aria-hidden="true" />
+      {!compareWith && (
+        <div className="solo-mode-shell">
+          {friendVisitors.length > 0 && (
+            <div
+              className={`friend-visitors${visitorPickerOpen ? ' is-popover-open' : ''}`}
+              aria-label="Friends who've been there"
+              ref={visitorPickerRef}
             >
-              Exit
-            </button>
-          )}
-        </section>
-      )}
-      {isFriendOnlyComparison && compareDestination && (
-        <section className="compare-fallback-note" aria-label="Your travel status">
-          <strong>Not in your journal yet</strong>
-          <p>
-            {compareWith?.friend.displayName.split(' ')[0]} has been to {compareDestination.name}.
-            You have not visited or rated this destination yet.
-          </p>
-        </section>
-      )}
-      {!compareWith && friendVisitors.length > 0 && (
-        <div
-          className={`friend-visitors${visitorPickerOpen ? ' is-popover-open' : ''}`}
-          aria-label="Friends who've been there"
-          ref={visitorPickerRef}
-        >
-          <button
-            type="button"
-            className={`friend-visitors-avatars friend-visitors-avatars-btn${hasMultipleVisitors ? ' is-interactive' : ''}`}
-            onClick={() => {
-              if (compareableVisitor && onCompareFriend) onCompareFriend(compareableVisitor.userId)
-              else if (hasMultipleVisitors) setVisitorPickerOpen(value => !value)
-            }}
-            aria-haspopup={hasMultipleVisitors ? 'menu' : undefined}
-            aria-expanded={hasMultipleVisitors ? visitorPickerOpen : undefined}
-            disabled={!compareableVisitor && !hasMultipleVisitors}
-          >
-            {friendVisitors.slice(0, 3).map((v, i) => (
-              <span
-                key={i}
-                className="friend-visitors-avatar"
-                style={{ background: v.bg ?? '#c7d2fe', color: v.fg ?? '#1e3a8a' }}
-                title={v.displayName}
-              >
-                {v.displayName.slice(0, 1).toUpperCase()}
-              </span>
-            ))}
-          </button>
-          <span className="friend-visitors-text">
-            {friendVisitors.length === 1
-              ? <><strong>{friendVisitors[0].displayName}</strong> has been there</>
-              : friendVisitors.length <= 3
-                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} and <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> have been there</>
-                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} and {friendVisitors.length - 2} other{friendVisitors.length - 2 > 1 ? 's' : ''} have been there</>
-            }
-          </span>
-          {compareableVisitor && onCompareFriend && (
-            <button
-              type="button"
-              className="friend-visitors-action"
-              onClick={() => onCompareFriend(compareableVisitor.userId)}
-            >
-              Compare with {compareableVisitor.displayName.split(' ')[0]}
-            </button>
-          )}
-          {hasMultipleVisitors && (
-            <>
               <button
                 type="button"
-                className="friend-visitors-action"
-                onClick={() => setVisitorPickerOpen(value => !value)}
-                aria-haspopup="menu"
-                aria-expanded={visitorPickerOpen}
+                className={`friend-visitors-avatars friend-visitors-avatars-btn${hasMultipleVisitors ? ' is-interactive' : ''}`}
+                onClick={() => {
+                  if (compareableVisitor && onCompareFriend) onCompareFriend(compareableVisitor.userId)
+                  else if (hasMultipleVisitors) setVisitorPickerOpen(value => !value)
+                }}
+                aria-haspopup={hasMultipleVisitors ? 'menu' : undefined}
+                aria-expanded={hasMultipleVisitors ? visitorPickerOpen : undefined}
+                disabled={!compareableVisitor && !hasMultipleVisitors}
               >
-                Compare with…
+                {friendVisitors.slice(0, 3).map((v, i) => (
+                  <span
+                    key={i}
+                    className="friend-visitors-avatar"
+                    style={{ background: v.bg ?? '#c7d2fe', color: v.fg ?? '#1e3a8a' }}
+                    title={v.displayName}
+                  >
+                    {v.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                ))}
               </button>
-              {visitorPickerOpen && (
-                <div className="friend-visitors-popover" role="menu" aria-label="Choose a friend to compare">
-                  {friendVisitors.map(visitor => (
-                    <button
-                      key={visitor.userId}
-                      type="button"
-                      className="friend-visitors-option"
-                      role="menuitem"
-                      onClick={() => {
-                        setVisitorPickerOpen(false)
-                        onCompareFriend?.(visitor.userId)
-                      }}
-                    >
-                      <span
-                        className="friend-visitors-option-avatar"
-                        style={{ background: visitor.bg ?? '#c7d2fe', color: visitor.fg ?? '#1e3a8a' }}
-                      >
-                        {visitor.displayName.slice(0, 1).toUpperCase()}
-                      </span>
-                      <span className="friend-visitors-option-copy">
-                        <strong>{visitor.displayName}</strong>
-                        <small>Compare with {visitor.displayName.split(' ')[0]}</small>
-                      </span>
-                      {visitor.tier && (
-                        <span
-                          className="friend-visitors-option-tier"
-                          style={{ color: TIER_COLORS[visitor.tier].label, background: `${TIER_COLORS[visitor.tier].pin}22` }}
-                        >
-                          {visitor.tier}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-      {!compareWith && context.hasContext && (
-        <div className="destination-context" aria-label="Contexte du voyage">
-          {context.meta.length > 0 && (
-            <div className="destination-context-meta">
-              {context.meta.map(item => (
-                <span key={`${item.icon}-${item.label}`}>
-                  <Icon name={item.icon} />
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          )}
-          {context.details.length > 0 && (
-            <div className="destination-context-details">
-              {context.details.map(item => (
-                <div
-                  key={`${item.icon}-${item.label}`}
-                  className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
+              <span className="friend-visitors-text">
+                {friendVisitors.length === 1
+                  ? <><strong>{friendVisitors[0].displayName}</strong> has been there</>
+                  : friendVisitors.length <= 3
+                    ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} and <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> have been there</>
+                    : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} and {friendVisitors.length - 2} other{friendVisitors.length - 2 > 1 ? 's' : ''} have been there</>
+                }
+              </span>
+              {compareableVisitor && onCompareFriend && (
+                <button
+                  type="button"
+                  className="friend-visitors-action"
+                  onClick={() => onCompareFriend(compareableVisitor.userId)}
                 >
-                  <Icon name={item.icon} />
-                  <span>{item.label}</span>
-                  {item.kind === 'text' ? (
-                    <strong>{item.value}</strong>
-                  ) : (
-                    <div className="destination-context-chips">
-                      {item.chips.map(chip => (
-                        <span
-                          key={chip.label}
-                          className={`destination-context-chip destination-context-chip--${chip.tone}`}
+                  Compare with {compareableVisitor.displayName.split(' ')[0]}
+                </button>
+              )}
+              {hasMultipleVisitors && (
+                <>
+                  <button
+                    type="button"
+                    className="friend-visitors-action"
+                    onClick={() => setVisitorPickerOpen(value => !value)}
+                    aria-haspopup="menu"
+                    aria-expanded={visitorPickerOpen}
+                  >
+                    Compare with…
+                  </button>
+                  {visitorPickerOpen && (
+                    <div className="friend-visitors-popover" role="menu" aria-label="Choose a friend to compare">
+                      {friendVisitors.map(visitor => (
+                        <button
+                          key={visitor.userId}
+                          type="button"
+                          className="friend-visitors-option"
+                          role="menuitem"
+                          onClick={() => {
+                            setVisitorPickerOpen(false)
+                            onCompareFriend?.(visitor.userId)
+                          }}
                         >
-                          {chip.label}
-                        </span>
+                          <span
+                            className="friend-visitors-option-avatar"
+                            style={{ background: visitor.bg ?? '#c7d2fe', color: visitor.fg ?? '#1e3a8a' }}
+                          >
+                            {visitor.displayName.slice(0, 1).toUpperCase()}
+                          </span>
+                          <span className="friend-visitors-option-copy">
+                            <strong>{visitor.displayName}</strong>
+                            <small>Compare with {visitor.displayName.split(' ')[0]}</small>
+                          </span>
+                          {visitor.tier && (
+                            <span
+                              className="friend-visitors-option-tier"
+                              style={{ color: TIER_COLORS[visitor.tier].label, background: `${TIER_COLORS[visitor.tier].pin}22` }}
+                            >
+                              {visitor.tier}
+                            </span>
+                          )}
+                        </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      {compareWith && (
-        <>
-          <div className="compare-meta" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
-            <div className="compare-meta-list">
-              {mineDestination?.tripYear && compareDestination?.tripYear && (
-                <span className="compare-meta-item">
-                  <Icon name="calendar" />
-                  {mineDestination.tripYear} / {compareDestination.tripYear}
-                </span>
-              )}
-              {mineDestination?.tripDays && compareDestination?.tripDays && (
-                <span className="compare-meta-item">
-                  <Icon name="clock" />
-                  {mineDestination.tripDays}d / {compareDestination.tripDays}d
-                </span>
-              )}
-              {mineDestination?.personalBudget && compareDestination?.personalBudget && (
-                <span className="compare-meta-item">
-                  <Icon name="coins" />
-                  {formatCompareLabel(
-                    mineDestination.personalBudget / Math.max(mineDestination.tripDays ?? 1, 1),
-                    compareDestination.personalBudget / Math.max(compareDestination.tripDays ?? 1, 1),
-                    ' EUR/d'
-                  )}
-                </span>
-              )}
-              {isFriendOnlyComparison && (
-                <>
-                  {compareDestination?.tripYear && (
-                    <span className="compare-meta-item">
-                      <Icon name="calendar" />
-                      {compareWith.friend.displayName.split(' ')[0]}: {compareDestination.tripYear}
-                    </span>
-                  )}
-                  {compareDestination?.tripDays && (
-                    <span className="compare-meta-item">
-                      <Icon name="clock" />
-                      {compareWith.friend.displayName.split(' ')[0]}: {compareDestination.tripDays}d
-                    </span>
-                  )}
-                  {compareDestination?.personalBudget && (
-                    <span className="compare-meta-item">
-                      <Icon name="coins" />
-                      {compareWith.friend.displayName.split(' ')[0]}: {Math.round(compareDestination.personalBudget).toLocaleString('fr-FR')} EUR
-                    </span>
                   )}
                 </>
               )}
             </div>
-          </div>
+          )}
+          {context.hasContext && (
+            <div className="destination-context" aria-label="Contexte du voyage">
+              {context.meta.length > 0 && (
+                <div className="destination-context-meta">
+                  {context.meta.map(item => (
+                    <span key={`${item.icon}-${item.label}`}>
+                      <Icon name={item.icon} />
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {context.details.length > 0 && (
+                <div className="destination-context-details">
+                  {context.details.map(item => (
+                    <div
+                      key={`${item.icon}-${item.label}`}
+                      className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
+                    >
+                      <Icon name={item.icon} />
+                      <span>{item.label}</span>
+                      {item.kind === 'text' ? (
+                        <strong>{item.value}</strong>
+                      ) : (
+                        <div className="destination-context-chips">
+                          {item.chips.map(chip => (
+                            <span
+                              key={chip.label}
+                              className={`destination-context-chip destination-context-chip--${chip.tone}`}
+                            >
+                              {chip.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {compareWith ? (
+        <div className="compare-mode-shell">
+          <section className="sheet-compare-banner content-shell" aria-label="Comparison in progress">
+            <div className="sheet-compare-banner-copy">
+              <Avatar
+                avatarUrl={compareWith.friend.avatarUrl}
+                initials={compareWith.friend.displayName}
+                bg={compareWith.friend.avatarBg}
+                fg={compareWith.friend.avatarFg}
+                className="sheet-compare-banner-avatar"
+                ariaHidden
+              />
+              <div>
+                <strong>Comparing with {firstName}</strong>
+                {isFriendOnlyComparison && (
+                  <small>You have not visited or rated this destination yet.</small>
+                )}
+              </div>
+            </div>
+            {onExitCompare && (
+              <button
+                type="button"
+                className="sheet-compare-banner-action"
+                onClick={onExitCompare}
+              >
+                Exit
+              </button>
+            )}
+          </section>
 
-          {mineDestination && compareDestination ? (
-            <section className="compare-sheet-card" aria-label="Compatibility">
-              <div className="compare-sheet-score">
-                <span>Compatibility</span>
-                <strong>{compareCompatibility.score}%</strong>
-                <em>match</em>
-              </div>
-              <div className="compare-sheet-stats">
-                <div className="compare-sheet-stat compare-sheet-stat--ok">
-                  <span>OK</span>
-                  {compareCompatibility.shared} shared criteria
-                </div>
-                <div className="compare-sheet-stat compare-sheet-stat--warn">
-                  <span>!</span>
-                  {compareCompatibility.differences} notable differences
-                </div>
-              </div>
+          {isFriendOnlyComparison && compareDestination && (
+            <section className="compare-fallback-note content-shell" aria-label="Your travel status">
+              <strong>Not in your journal yet</strong>
+              <p>
+                {compareWith.friend.displayName.split(' ')[0]} has been to {compareDestination.name}.
+                You have not visited or rated this destination yet.
+              </p>
             </section>
+          )}
+
+          {compareTripRecap && (
+            <section className="compare-meta compare-meta--recap" aria-label={`Trip context with ${compareWith.friend.displayName}`}>
+              <p>{compareTripRecap}</p>
+            </section>
+          )}
+
+          {mineDestination && compareDestination && compareInsight ? (
+            <>
+              <section className={`compare-sheet-card compare-sheet-card--insight compare-sheet-card--${compareInsight.matchTone} content-shell`} aria-label="Comparison insight">
+                <div className="compare-sheet-score">
+                  <span>Comparison insight</span>
+                  <strong>{compareInsight.summarySentence}</strong>
+                  {compareInsight.detailSentence && <p>{compareInsight.detailSentence}</p>}
+                  <em>{compareInsight.countsLine}</em>
+                </div>
+              </section>
+
+              {(sharedTakeaways || mineTakeaways || friendTakeaways) && (
+                <section className="compare-tag-groups compare-takeaways content-shell" aria-label="Different takeaways">
+                  <h3>Different takeaways</h3>
+                  {sharedTakeaways && (
+                    <div className="compare-takeaways-shared">
+                      <strong>Both noticed</strong>
+                      <div className="compare-takeaway-chips">
+                        {visibleSharedTakeaways.map(tag => (
+                          <span key={tag} className="compare-takeaway-chip compare-takeaway-chip--shared">{tag}</span>
+                        ))}
+                        {sharedTakeaways.remainingCount > 0 && expandedTakeaways !== 'shared' && (
+                          <button type="button" className="compare-takeaway-more" onClick={() => setExpandedTakeaways('shared')}>
+                            +{sharedTakeaways.remainingCount}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="compare-takeaways-list">
+                    {mineTakeaways && (
+                      <div className="compare-takeaway-row compare-takeaway-row--mine">
+                        <span>You</span>
+                        <div className="compare-takeaway-chips">
+                          {visibleMineTakeaways.map(tag => (
+                            <span key={tag} className="compare-takeaway-chip compare-takeaway-chip--mine">{tag}</span>
+                          ))}
+                          {mineTakeaways.remainingCount > 0 && expandedTakeaways !== 'mine' && (
+                            <button type="button" className="compare-takeaway-more" onClick={() => setExpandedTakeaways('mine')}>
+                              +{mineTakeaways.remainingCount}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {friendTakeaways && (
+                      <div className="compare-takeaway-row compare-takeaway-row--theirs">
+                        <span>{firstName}</span>
+                        <div className="compare-takeaway-chips">
+                          {visibleFriendTakeaways.map(tag => (
+                            <span key={tag} className="compare-takeaway-chip compare-takeaway-chip--theirs">{tag}</span>
+                          ))}
+                          {friendTakeaways.remainingCount > 0 && expandedTakeaways !== 'theirs' && (
+                            <button type="button" className="compare-takeaway-more" onClick={() => setExpandedTakeaways('theirs')}>
+                              +{friendTakeaways.remainingCount}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+            </>
           ) : (
-            <section className="compare-sheet-card compare-sheet-card--friend-only" aria-label={`${compareWith.friend.displayName} rating`}>
+            <section className="compare-sheet-card compare-sheet-card--friend-only content-shell" aria-label={`${compareWith.friend.displayName} rating`}>
               <div className="compare-sheet-score">
-                <span>{compareWith.friend.displayName.split(' ')[0]}'s rating</span>
+                <span>{firstName}'s rating</span>
                 <strong>{formatScore(compareDestination ?? destination)}</strong>
                 <em>{getDisplayTier(compareDestination ?? destination)}</em>
               </div>
@@ -810,103 +952,90 @@ function DestinationCardContent({
             </section>
           )}
 
-          {(mineDestination && compareDestination) ? (
-            <section className="compare-tag-groups" aria-label="Compared highlights">
-              {compareTags.common.length > 0 && (
-                <div className="compare-tag-group">
-                  <h3>In common ({compareTags.common.length})</h3>
-                  <div className="compare-tag-list">
-                    {compareTags.common.map(tag => <span key={tag} className="compare-tag compare-tag--common">{tag}</span>)}
-                  </div>
-                </div>
-              )}
-              {(compareTags.mineOnly.length > 0 || compareTags.theirsOnly.length > 0) && (
-                <div className={`compare-tag-columns${compareTags.mineOnly.length === 0 || compareTags.theirsOnly.length === 0 ? ' is-single' : ''}`}>
-                  {compareTags.mineOnly.length > 0 && (
-                    <div className="compare-tag-column">
-                      <h3>Yours only ({compareTags.mineOnly.length})</h3>
-                      <div className="compare-tag-list">
-                        {compareTags.mineOnly.map(tag => <span key={tag} className="compare-tag compare-tag--mine">{tag}</span>)}
-                      </div>
-                    </div>
-                  )}
-                  {compareTags.theirsOnly.length > 0 && (
-                    <div className="compare-tag-column">
-                      <h3>{compareWith.friend.displayName.split(' ')[0]} only ({compareTags.theirsOnly.length})</h3>
-                      <div className="compare-tag-list">
-                        {compareTags.theirsOnly.map(tag => <span key={tag} className="compare-tag compare-tag--theirs">{tag}</span>)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-          ) : context.hasContext ? (
-            <section className="compare-tag-groups compare-tag-groups--friend-only" aria-label={`${compareWith.friend.displayName} trip details`}>
-              <div className="compare-tag-group">
-                <h3>{compareWith.friend.displayName.split(' ')[0]}'s trip details</h3>
-                <div className="compare-tag-list">
-                  {context.details.flatMap(item => (
-                    item.kind === 'text'
-                      ? [<span key={`${item.label}-${item.value}`} className="compare-tag compare-tag--theirs">{item.label}: {item.value}</span>]
-                      : item.chips.map(chip => (
-                        <span key={`${item.label}-${chip.label}`} className="compare-tag compare-tag--theirs">
-                          {chip.label}
-                        </span>
-                      ))
-                  ))}
-                  {context.details.length === 0 && context.meta.map(item => (
-                    <span key={`${item.icon}-${item.label}`} className="compare-tag compare-tag--theirs">
-                      {item.label}
+          <div className="criteria-compare-heading">
+            <h3>Ratings by criterion</h3>
+            <div className="criteria-compare-legend" aria-label="Comparison legend">
+              <strong className="criteria-compare-pill criteria-compare-pill--mine">YOU</strong>
+              <strong className="criteria-compare-pill criteria-compare-pill--theirs">{firstName.toUpperCase()}</strong>
+            </div>
+          </div>
+          {compareCriteria.length > 0 ? (
+            <div className="criteria-compare content-shell" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
+              <div className="criteria-compare-list">
+                {compareCriteria.map(item => (
+                  <div className="criteria-compare-row" key={item.label}>
+                    <span className="criteria-compare-label">
+                      <Icon name={item.icon} />
+                      <span>{item.label}</span>
                     </span>
-                  ))}
-                </div>
+                    <strong>{item.mine.toFixed(1).replace('.', ',')}</strong>
+                    <strong>{item.theirs.toFixed(1).replace('.', ',')}</strong>
+                    <em className={`criteria-compare-status criteria-compare-status--${item.status}`}>
+                      {getGapMarker(item.status)}
+                    </em>
+                  </div>
+                ))}
               </div>
-            </section>
-          ) : null}
-        </>
-      )}
-      <h3>Ratings by criterion</h3>
-      {compareWith && compareCriteria.length > 0 ? (
-        <div className="criteria-compare" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
-          <div className="criteria-compare-head">
-            <span />
-            <span />
-            <strong>You</strong>
-            <strong>{compareWith.friend.displayName.split(' ')[0]}</strong>
-            <strong>Gap</strong>
+            </div>
+          ) : (
+            <p className="compare-fallback-empty">
+              {isFriendOnlyComparison
+                ? `${firstName} has not added detailed criterion ratings for this destination yet.`
+                : 'One of the two profiles is missing detailed criterion ratings for this destination.'}
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+        <div className="solo-mode-shell solo-mode-shell--criteria content-shell">
+          <div className="criteria-compare-heading">
+            <h3>Ratings by criterion</h3>
           </div>
           <div className="criteria-compare-list">
-            {compareCriteria.map(item => (
-              <div className="criteria-compare-row" key={item.label}>
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-                <strong>{item.mine.toFixed(1).replace('.', ',')}</strong>
-                <strong>{item.theirs.toFixed(1).replace('.', ',')}</strong>
-                <strong>{item.gap.toFixed(1).replace('.', ',')}</strong>
+            {criteria.map(([label, value, icon]) => (
+              <div className="criteria-compare-row criteria-compare-row--solo" key={label}>
+                <span className="criteria-compare-label">
+                  <Icon name={icon} />
+                  <span>{label}</span>
+                </span>
+                <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
               </div>
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="criteria-list">
-          {criteria.map(([label, value, icon]) => (
-            <div className="criterion" key={label}>
-              <Icon name={icon} />
-              <span>{label}</span>
-              <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
+          {tripsHereByName.length > 0 && (
+            <div className="sheet-cross-links">
+              <p className="sheet-cross-links-title">Also a stop in</p>
+              <ul>
+                {tripsHereByName.map(([tripName, info]) => {
+                  const stageLabel = info.stages.length
+                    ? `stop #${info.stages.join(', #')}`
+                    : 'itinerary'
+                  return (
+                    <li key={tripName}>
+                      <span className="trip-dot" style={{ '--trip-color': info.color } as CSSProperties} />
+                      {onOpenTrip ? (
+                        <button
+                          type="button"
+                          className="trip-link"
+                          onClick={() => onOpenTrip(tripName)}
+                          style={{ background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', font: 'inherit', textAlign: 'left' }}
+                        >
+                          {tripName}
+                        </button>
+                      ) : (
+                        <span>{tripName}</span>
+                      )}
+                      <span className="stop-num">{stageLabel}</span>
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
-          ))}
+          )}
         </div>
+        </>
       )}
-      {compareWith && criteria.length === 0 && (
-        <p className="compare-fallback-empty">
-          {isFriendOnlyComparison
-            ? `${compareWith.friend.displayName.split(' ')[0]} has not added detailed criterion ratings for this destination yet.`
-            : 'One of the two profiles is missing detailed criterion ratings for this destination.'}
-        </p>
-      )}
-      {tripsHereByName.length > 0 && (
+      {compareWith && tripsHereByName.length > 0 && (
         <div className="sheet-cross-links">
           <p className="sheet-cross-links-title">Also a stop in</p>
           <ul>

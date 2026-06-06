@@ -3456,6 +3456,10 @@ svg {
   animation: sheet-fade-in 180ms ease-out;
 }
 
+.destination-sheet-backdrop.is-comparison {
+  background: transparent;
+}
+
 /* Blur on a pseudo-element so the backdrop div does NOT become a containing
    block for its fixed children (backdrop-filter triggers that per CSS spec). */
 .destination-sheet-backdrop::before {
@@ -3464,6 +3468,10 @@ svg {
   inset: 0;
   backdrop-filter: blur(1px);
   pointer-events: none;
+}
+
+.destination-sheet-backdrop.is-comparison::before {
+  backdrop-filter: none;
 }
 
 @keyframes sheet-fade-in {
@@ -3501,10 +3509,42 @@ svg {
 .destination-sheet.is-dragging { transition: none; }
 
 .destination-sheet.is-comparison {
-  left: max(12px, calc((100vw - 720px) / 2));
-  right: max(12px, calc((100vw - 720px) / 2));
-  top: clamp(8px, 2.4vh, 24px);
-  border-radius: 26px 26px 0 0;
+  left: max(8px, calc((100vw - 720px) / 2));
+  right: max(8px, calc((100vw - 720px) / 2));
+  bottom: 0;
+  top: auto;
+  max-height: calc(100vh - 8px);
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.destination-sheet.is-comparison .destination-sheet-body {
+  background: transparent !important;
+}
+
+.destination-sheet.is-comparison .destination-sheet-handle {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 3;
+  width: auto;
+  height: auto;
+  padding: 0;
+  transform: translateX(-50%);
+}
+
+.destination-sheet.is-comparison .destination-sheet-grabber {
+  width: 52px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 20px rgba(10, 20, 36, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .destination-sheet-handle {
@@ -16300,6 +16340,7 @@ svg {
 .destination-card,
 .destination-sheet {
   width: min(480px, calc(100vw - 32px));
+  overflow: hidden;
 }
 
 .destination-card {
@@ -16318,20 +16359,21 @@ svg {
 }
 
 .destination-card.is-comparison {
-  left: 50%;
-  right: auto;
+  left: auto;
+  right: clamp(20px, 4vw, 40px);
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 56px);
-  transform: translateX(-50%);
+  transform: none;
   padding: 0 0 18px;
   overflow: hidden;
 }
 
-@media (min-width: 1024px) {
-  .destination-card.is-comparison {
+@media (min-width: 761px) {
+  .destination-card:not(.is-comparison) {
     left: auto;
     right: clamp(20px, 4vw, 40px);
     transform: none;
+    padding: 0 0 14px;
   }
 }
 
@@ -16341,6 +16383,7 @@ svg {
 
 .destination-card.is-comparison .destination-hero-wrap,
 .destination-sheet.is-comparison .destination-hero-wrap {
+  margin-top: -12px;
   margin-left: -18px;
   margin-right: -18px;
 }
@@ -16459,6 +16502,31 @@ svg {
     0 18px 40px rgba(66, 89, 120, 0.08);
 }
 
+.solo-mode-shell {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.solo-mode-shell--criteria {
+  margin-top: 4px;
+}
+
+.content-shell {
+  padding: 14px 13px 16px;
+  border-radius: 28px;
+  display: grid;
+  gap: 12px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+}
+
 .friend-visitors,
 .destination-context,
 .sheet-cross-links {
@@ -16477,15 +16545,121 @@ svg {
 }
 
 .destination-card:not(.is-comparison) .destination-context {
-  margin-top: -34px;
-  padding-top: 26px;
-  border-radius: 34px;
+  margin-top: 0;
+  padding-top: 18px;
+  border-radius: 30px;
   background:
     radial-gradient(circle at 50% 0%, rgba(225, 239, 255, 0.40), transparent 56%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 255, 0.92) 100%);
   box-shadow:
     inset 0 0 0 1px rgba(226, 236, 246, 0.96),
     0 22px 48px rgba(66, 89, 120, 0.10);
+}
+
+.destination-card:not(.is-comparison) .solo-mode-shell,
+.destination-sheet:not(.is-comparison) .solo-mode-shell {
+  margin-top: -28px;
+  z-index: 1;
+}
+
+.destination-card:not(.is-comparison) .friend-visitors,
+.destination-sheet:not(.is-comparison) .friend-visitors {
+  margin-top: 0;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 74% 10%, rgba(232, 241, 255, 0.72), transparent 40%),
+    linear-gradient(180deg, rgba(244, 249, 255, 0.98) 0%, rgba(237, 245, 255, 0.94) 100%);
+  border: 1px solid rgba(231, 239, 248, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 14px 30px rgba(72, 99, 132, 0.08);
+}
+
+.destination-card:not(.is-comparison) .friend-visitors-text,
+.destination-sheet:not(.is-comparison) .friend-visitors-text {
+  color: #435777;
+}
+
+.destination-card:not(.is-comparison) .friend-visitors-action,
+.destination-sheet:not(.is-comparison) .friend-visitors-action {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(216, 227, 240, 0.92);
+}
+
+.destination-card:not(.is-comparison) .destination-context,
+.destination-sheet:not(.is-comparison) .destination-context {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 24px;
+}
+
+.destination-card:not(.is-comparison) .destination-context-meta,
+.destination-sheet:not(.is-comparison) .destination-context-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 16px;
+  border-bottom: 1px solid var(--detail-line);
+}
+
+.destination-card:not(.is-comparison) .destination-context-meta span,
+.destination-sheet:not(.is-comparison) .destination-context-meta span {
+  min-height: 38px;
+  padding: 8px 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #3a4e6d;
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  gap: 5px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.destination-card:not(.is-comparison) .destination-context-meta span svg,
+.destination-sheet:not(.is-comparison) .destination-context-meta span svg {
+  width: 14px;
+  height: 14px;
+}
+
+.destination-card:not(.is-comparison) .destination-context-details,
+.destination-sheet:not(.is-comparison) .destination-context-details {
+  margin-top: 0;
+  gap: 0;
+}
+
+.destination-card:not(.is-comparison) .destination-context-details div,
+.destination-sheet:not(.is-comparison) .destination-context-details div {
+  min-height: 38px;
+  padding: 8px 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  border-top: 1px solid var(--detail-line);
+}
+
+.destination-card:not(.is-comparison) .destination-context-details div:first-child,
+.destination-sheet:not(.is-comparison) .destination-context-details div:first-child {
+  border-top: 0;
+}
+
+.destination-card:not(.is-comparison) .destination-context-details .destination-context-chip,
+.destination-sheet:not(.is-comparison) .destination-context-details .destination-context-chip {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+
+.destination-card:not(.is-comparison) .sheet-cross-links,
+.destination-sheet:not(.is-comparison) .sheet-cross-links {
+  margin-bottom: 0;
 }
 
 .friend-visitors {
@@ -16635,6 +16809,24 @@ svg {
   border-radius: 999px;
   font-size: 12px;
   font-weight: var(--weight-semibold);
+}
+
+.destination-context-details .destination-context-chip--neutral {
+  background: rgba(228, 235, 248, 0.65);
+  color: #3b4f72;
+  box-shadow: inset 0 0 0 1px rgba(196, 212, 238, 0.7);
+}
+
+.destination-context-details .destination-context-chip--positive {
+  background: rgba(225, 247, 231, 0.65);
+  color: #1e7038;
+  box-shadow: inset 0 0 0 1px rgba(185, 230, 200, 0.7);
+}
+
+.destination-context-details .destination-context-chip--negative {
+  background: rgba(252, 234, 238, 0.65);
+  color: #8e2636;
+  box-shadow: inset 0 0 0 1px rgba(234, 194, 204, 0.7);
 }
 
 .compare-meta-list {
@@ -16841,8 +17033,12 @@ svg {
 
 .criteria-compare-head,
 .criteria-compare-row {
-  grid-template-columns: 18px minmax(0, 1fr) 72px 72px;
-  column-gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
+  column-gap: 6px;
+}
+
+.criteria-compare-row--solo {
+  grid-template-columns: minmax(0, 1fr) 56px;
 }
 
 .criteria-compare-head {
@@ -16875,7 +17071,7 @@ svg {
   gap: 0;
   padding-top: 0;
   border-top: 0;
-  border-radius: 30px;
+  border-radius: 20px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.86);
   box-shadow:
@@ -16884,10 +17080,10 @@ svg {
 }
 
 .criteria-compare-row {
-  min-height: 62px;
-  padding: 0 16px;
+  min-height: 42px;
+  padding: 0 12px;
   border-top: 1px solid var(--detail-line);
-  font-size: 15px;
+  font-size: 12px;
 }
 
 .criteria-compare-row:first-child {
@@ -16895,21 +17091,42 @@ svg {
 }
 
 .criteria-compare-row strong {
-  min-height: 38px;
-  padding: 0 10px;
-  border-radius: 14px;
+  min-height: 28px;
+  min-width: 42px;
+  padding: 0 8px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  justify-self: center;
   font-variant-numeric: tabular-nums;
 }
 
-.criteria-compare-row strong:nth-child(3) {
+.criteria-compare-label {
+  min-width: 0;
+  display: inline-grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.criteria-compare-label > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.criteria-compare-label svg {
+  width: 14px;
+  height: 14px;
+}
+
+.criteria-compare-row strong:nth-of-type(1) {
   color: var(--detail-mine-accent);
   background: var(--detail-mine-soft);
 }
 
-.criteria-compare-row strong:nth-child(4) {
+.criteria-compare-row strong:nth-of-type(2) {
   color: var(--detail-friend-accent);
   background: var(--detail-friend-soft);
 }
@@ -16921,22 +17138,23 @@ svg {
   }
 
   .destination-sheet.is-comparison {
-    left: 50%;
-    right: auto;
-    width: min(480px, calc(100vw - 16px));
-    transform: translateX(-50%);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    transform: none;
   }
 
   .destination-sheet.is-comparison.is-peek {
-    transform: translateX(-50%) translateY(calc(100% - 280px));
+    transform: translateY(calc(100% - 280px));
   }
 
   .destination-sheet.is-comparison.is-full {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
 
   .destination-sheet-body {
     padding: 0 14px 18px;
+    overflow-x: clip;
   }
 
   .destination-sheet-body .destination-hero,
@@ -17030,28 +17248,16 @@ svg {
 .destination-card.is-comparison .compare-mode-shell,
 .destination-sheet.is-comparison .compare-mode-shell {
   position: relative;
-  margin-top: -24px;
-  padding: 16px 13px 18px;
-  border-radius: 34px 34px 0 0;
+  margin-top: -20px;
+  padding: 0 13px 18px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
   overflow: visible;
 }
 
 .destination-card.is-comparison .compare-mode-shell::before,
 .destination-sheet.is-comparison .compare-mode-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 100px;
-  border-radius: 34px 34px 24px 24px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
-    0 10px 28px rgba(72, 99, 132, 0.08);
-  z-index: 0;
+  content: none;
 }
 
 .destination-card.is-comparison .compare-mode-shell > *,
@@ -17141,19 +17347,114 @@ svg {
   font-weight: 500;
 }
 
+@media (min-width: 761px) {
+  .destination-card:not(.is-comparison) .destination-hero-wrap {
+    margin-top: -12px;
+    margin-left: -18px;
+    margin-right: -18px;
+  }
+
+  .destination-card:not(.is-comparison) .destination-hero {
+    min-height: 238px;
+    border-radius: 36px;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .destination-card:not(.is-comparison) .destination-card-actions {
+    top: 20px;
+    right: 20px;
+    gap: 10px;
+  }
+
+  .destination-card:not(.is-comparison) .destination-hero-copy {
+    left: 28px;
+    right: 28px;
+    bottom: 82px;
+    gap: 12px;
+  }
+
+  .destination-card:not(.is-comparison) .destination-hero-tier {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+  }
+
+  .destination-card:not(.is-comparison) .destination-hero-copy h2 {
+    max-width: 8ch;
+    font-size: clamp(31px, 7.6vw, 38px);
+    font-weight: 900;
+    line-height: 0.96;
+    letter-spacing: -0.045em;
+  }
+
+  .destination-card:not(.is-comparison) .destination-hero-pills {
+    left: 22px;
+    right: 22px;
+    bottom: 18px;
+    gap: 8px;
+    padding-bottom: 6px;
+  }
+
+  .destination-card:not(.is-comparison) .destination-hero-pill.dest-row-chip,
+  .destination-card:not(.is-comparison) .destination-hero-favorite {
+    min-height: 34px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(24, 28, 36, 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 20px rgba(10, 20, 36, 0.16);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .destination-card.is-comparison .destination-card-actions,
+  .destination-sheet.is-comparison .destination-card-actions {
+    top: 24px;
+    right: 24px;
+    gap: 12px;
+  }
+
+  .destination-card.is-comparison .destination-hero-copy,
+  .destination-sheet.is-comparison .destination-hero-copy {
+    left: 34px;
+    right: 34px;
+    bottom: 104px;
+    gap: 16px;
+  }
+
+  .destination-card.is-comparison .destination-hero-pills,
+  .destination-sheet.is-comparison .destination-hero-pills {
+    left: 28px;
+    right: 28px;
+    bottom: 28px;
+    gap: 12px;
+    padding-bottom: 10px;
+  }
+
+  .destination-card.is-comparison .destination-hero-pill.dest-row-chip,
+  .destination-card.is-comparison .destination-hero-favorite,
+  .destination-sheet.is-comparison .destination-hero-pill.dest-row-chip,
+  .destination-sheet.is-comparison .destination-hero-favorite {
+    padding: 0 16px;
+  }
+}
+
 .destination-card.is-comparison .sheet-compare-banner,
 .destination-sheet.is-comparison .sheet-compare-banner {
-  margin: 0;
-  min-height: 48px;
-  padding: 10px 16px;
-  border-radius: 32px 32px 24px 24px;
+  margin: -34px 0 0;
+  min-height: 0;
+  padding: 14px 16px;
+  border-radius: 24px;
   background:
-    radial-gradient(circle at 72% 6%, rgba(228, 239, 255, 0.58), transparent 36%),
-    linear-gradient(180deg, rgba(244, 249, 255, 0.78) 0%, rgba(236, 244, 255, 0.72) 100%);
-  border: 1px solid rgba(225, 234, 246, 0.92);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.54), 0 8px 18px rgba(72, 99, 132, 0.06);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+    radial-gradient(circle at 74% 10%, rgba(232, 241, 255, 0.72), transparent 40%),
+    linear-gradient(180deg, rgba(244, 249, 255, 0.98) 0%, rgba(237, 245, 255, 0.94) 100%);
+  border: 1px solid rgba(231, 239, 248, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 14px 30px rgba(72, 99, 132, 0.08);
   overflow: hidden;
 }
 
@@ -17185,14 +17486,32 @@ svg {
   min-width: 0;
 }
 
+.destination-card.is-comparison .sheet-compare-banner-copy strong,
+.destination-sheet.is-comparison .sheet-compare-banner-copy strong {
+  display: block;
+  color: #23324f;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.destination-card.is-comparison .sheet-compare-banner-copy small,
+.destination-sheet.is-comparison .sheet-compare-banner-copy small {
+  margin-top: 2px;
+  color: #60738f;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .destination-card.is-comparison .compare-meta,
 .destination-card.is-comparison .compare-sheet-card,
 .destination-card.is-comparison .compare-tag-groups,
 .destination-card.is-comparison .criteria-compare,
+.destination-card.is-comparison .compare-fallback-note,
 .destination-sheet.is-comparison .compare-meta,
 .destination-sheet.is-comparison .compare-sheet-card,
 .destination-sheet.is-comparison .compare-tag-groups,
-.destination-sheet.is-comparison .criteria-compare {
+.destination-sheet.is-comparison .criteria-compare,
+.destination-sheet.is-comparison .compare-fallback-note {
   margin: 0;
   align-self: stretch;
 }
@@ -17294,33 +17613,38 @@ svg {
 
 .destination-card.is-comparison .compare-sheet-card,
 .destination-sheet.is-comparison .compare-sheet-card {
-  padding: 13px 15px;
-  border-radius: 22px;
+  padding: 14px 13px 16px;
+  border-radius: 28px;
   background:
-    radial-gradient(circle at 78% 16%, rgba(255, 241, 228, 0.48), transparent 34%),
-    linear-gradient(180deg, rgba(255, 253, 250, 0.98) 0%, rgba(255, 247, 238, 0.96) 100%);
-  box-shadow: inset 0 0 0 1px rgba(246, 224, 202, 0.82), 0 18px 40px rgba(82, 102, 130, 0.08);
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
 }
 
 .destination-card.is-comparison .compare-sheet-score strong,
 .destination-sheet.is-comparison .compare-sheet-score strong {
-  font-size: clamp(32px, 7.8vw, 44px);
-  line-height: 0.92;
+  font-size: clamp(30px, 7.2vw, 40px);
+  line-height: 0.96;
 }
 
 .destination-card.is-comparison .compare-sheet-score em,
 .destination-sheet.is-comparison .compare-sheet-score em {
-  margin-top: 4px;
-  padding: 5px 8px;
-  font-size: 10px;
+  margin-top: 6px;
+  padding: 0;
+  color: #7183a1;
+  background: transparent;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .destination-card.is-comparison .compare-sheet-stats,
 .destination-sheet.is-comparison .compare-sheet-stats {
-  gap: 8px;
-  padding-left: 14px;
+  gap: 0;
+  padding-left: 0;
+  border-left: 0;
 }
 
 .destination-card.is-comparison .compare-sheet-stat,
@@ -17328,9 +17652,17 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 38px;
+  padding: 8px 0;
+  border-top: 1px solid var(--detail-line);
   font-size: 12px;
   line-height: 1.35;
   gap: 10px;
+}
+
+.destination-card.is-comparison .compare-sheet-stat:first-child,
+.destination-sheet.is-comparison .compare-sheet-stat:first-child {
+  border-top: 0;
 }
 
 .destination-card.is-comparison .compare-sheet-stat span,
@@ -17355,164 +17687,409 @@ svg {
   line-height: 1;
 }
 
-.destination-card.is-comparison .compare-tag-columns,
-.destination-sheet.is-comparison .compare-tag-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.destination-card.is-comparison .compare-meta--recap,
+.destination-sheet.is-comparison .compare-meta--recap {
+  padding: 0;
+}
+
+.destination-card.is-comparison .compare-meta--recap p,
+.destination-sheet.is-comparison .compare-meta--recap p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #506784;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(244, 248, 253, 0.76) 100%);
+  box-shadow: inset 0 0 0 1px rgba(221, 232, 245, 0.92), 0 8px 18px rgba(73, 99, 133, 0.05);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.destination-card.is-comparison .compare-tag-column,
-.destination-sheet.is-comparison .compare-tag-column {
-  padding: 10px 10px 8px;
-  border-radius: 16px;
-  position: relative;
-  background: rgba(255, 255, 255, 0.56);
-  box-shadow: inset 0 0 0 1px rgba(229, 236, 245, 0.68), 0 10px 20px rgba(70, 95, 124, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.destination-card.is-comparison .compare-sheet-card--insight,
+.destination-sheet.is-comparison .compare-sheet-card--insight {
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 14px 13px 16px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 72% 14%, rgba(230, 240, 255, 0.52), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 255, 0.92) 100%);
 }
 
-.destination-card.is-comparison .compare-tag-column h3,
-.destination-sheet.is-comparison .compare-tag-column h3 {
-  margin-bottom: 6px;
+.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score,
+.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score > span,
+.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score > span {
+  color: #5f7694;
   font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.destination-card.is-comparison .compare-tag-list,
-.destination-sheet.is-comparison .compare-tag-list {
-  margin-top: 0;
+.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score strong,
+.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score strong {
+  font-family: inherit;
+  font-size: 23px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: #203255;
+}
+
+.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score p,
+.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score p {
+  margin: 0;
+  color: #425879;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.destination-card.is-comparison .compare-sheet-card--insight .compare-sheet-score em,
+.destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score em {
+  margin-top: 2px;
+  padding: 0;
+  color: #6c819f;
+  background: transparent;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.destination-card.is-comparison .compare-sheet-card--aligned,
+.destination-sheet.is-comparison .compare-sheet-card--aligned {
+  box-shadow:
+    inset 0 0 0 1px rgba(200, 222, 250, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+}
+
+.destination-card.is-comparison .compare-sheet-card--mixed,
+.destination-sheet.is-comparison .compare-sheet-card--mixed {
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 220, 201, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+}
+
+.destination-card.is-comparison .compare-sheet-card--gap,
+.destination-sheet.is-comparison .compare-sheet-card--gap {
+  box-shadow:
+    inset 0 0 0 1px rgba(238, 214, 196, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+}
+
+.destination-card.is-comparison .compare-tag-groups,
+.destination-sheet.is-comparison .compare-tag-groups {
+  padding: 14px 13px 16px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.94) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+}
+
+.destination-card.is-comparison .compare-takeaways h3,
+.destination-sheet.is-comparison .compare-takeaways h3 {
+  margin: 0 0 6px;
+  color: #7183a1;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.destination-card.is-comparison .compare-takeaways-shared,
+.destination-sheet.is-comparison .compare-takeaways-shared {
+  margin: 0 0 8px;
+  display: grid;
   gap: 6px;
 }
 
-.destination-card.is-comparison .compare-tag-column--mine h3,
-.destination-sheet.is-comparison .compare-tag-column--mine h3 {
-  color: rgba(39, 82, 176, 0.92);
+.destination-card.is-comparison .compare-takeaways-shared strong,
+.destination-sheet.is-comparison .compare-takeaways-shared strong {
+  color: #3d536f;
+  font-weight: 700;
+  font-size: 12px;
 }
 
-.destination-card.is-comparison .compare-tag-column--theirs h3,
-.destination-sheet.is-comparison .compare-tag-column--theirs h3 {
-  color: rgba(214, 106, 34, 0.92);
+.destination-card.is-comparison .compare-takeaways-list,
+.destination-sheet.is-comparison .compare-takeaways-list {
+  display: grid;
+  gap: 0;
 }
 
-.destination-card.is-comparison .compare-tag,
-.destination-sheet.is-comparison .compare-tag {
-  min-height: 34px;
+.destination-card.is-comparison .compare-takeaway-row,
+.destination-sheet.is-comparison .compare-takeaway-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 38px;
+  padding: 10px 0;
+  border-top: 1px solid var(--detail-line);
+}
+
+.destination-card.is-comparison .compare-takeaway-row:first-child,
+.destination-sheet.is-comparison .compare-takeaway-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.destination-card.is-comparison .compare-takeaway-row > span,
+.destination-sheet.is-comparison .compare-takeaway-row > span {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.destination-card.is-comparison .compare-takeaway-row--mine > span,
+.destination-sheet.is-comparison .compare-takeaway-row--mine > span {
+  color: var(--detail-mine-accent);
+}
+
+.destination-card.is-comparison .compare-takeaway-row--theirs > span,
+.destination-sheet.is-comparison .compare-takeaway-row--theirs > span {
+  color: var(--detail-friend-accent);
+}
+
+.destination-card.is-comparison .compare-takeaway-chips,
+.destination-sheet.is-comparison .compare-takeaway-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.destination-card.is-comparison .compare-takeaway-chip,
+.destination-sheet.is-comparison .compare-takeaway-chip {
+  min-height: 28px;
   padding: 0 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(238, 242, 248, 0.82), 0 8px 16px rgba(83, 104, 130, 0.05);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  color: #44597a;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(231, 238, 246, 0.92), 0 6px 12px rgba(83, 104, 130, 0.05);
   font-size: 11px;
-  line-height: 1.25;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.destination-card.is-comparison .compare-takeaway-chip--mine,
+.destination-sheet.is-comparison .compare-takeaway-chip--mine {
+  color: var(--detail-mine-accent);
+  background: rgba(234, 242, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(173, 205, 255, 0.42);
+}
+
+.destination-card.is-comparison .compare-takeaway-chip--theirs,
+.destination-sheet.is-comparison .compare-takeaway-chip--theirs {
+  color: var(--detail-friend-accent);
+  background: rgba(255, 240, 229, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(245, 205, 173, 0.5);
+}
+
+.destination-card.is-comparison .compare-takeaway-chip--shared,
+.destination-sheet.is-comparison .compare-takeaway-chip--shared {
+  color: #536987;
+  background: rgba(244, 247, 252, 0.96);
+}
+
+.destination-card.is-comparison .compare-takeaway-more,
+.destination-sheet.is-comparison .compare-takeaway-more {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  color: #5b7090;
+  background: rgba(236, 242, 250, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(212, 223, 238, 0.96);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .destination-card.is-comparison .criteria-compare-head,
 .destination-card.is-comparison .criteria-compare-row,
 .destination-sheet.is-comparison .criteria-compare-head,
 .destination-sheet.is-comparison .criteria-compare-row {
-  grid-template-columns: 16px minmax(0, 1fr) 62px 62px;
-  column-gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
+  column-gap: 6px;
 }
 
 .destination-card.is-comparison .criteria-compare-heading,
 .destination-sheet.is-comparison .criteria-compare-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
   align-items: center;
-  gap: 8px;
+  column-gap: 6px;
   min-width: 0;
+  margin-bottom: 0;
+  padding: 0 0 10px;
+}
+
+.destination-card.is-comparison .criteria-compare-heading h3,
+.destination-sheet.is-comparison .criteria-compare-heading h3 {
+  margin: 0;
+  align-self: center;
+  grid-column: 1;
 }
 
 .destination-card.is-comparison .criteria-compare-legend,
 .destination-sheet.is-comparison .criteria-compare-legend {
-  display: grid;
-  grid-template-columns: 62px 62px;
-  column-gap: 8px;
-  justify-self: end;
-  align-items: center;
-  margin-right: 12px;
-}
-
-.destination-card.is-comparison .criteria-compare-list,
-.destination-sheet.is-comparison .criteria-compare-list {
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: inset 0 0 0 1px rgba(229, 237, 246, 0.92), 0 14px 32px rgba(65, 90, 122, 0.06);
-}
-
-.destination-card.is-comparison .criteria-compare-head,
-.destination-sheet.is-comparison .criteria-compare-head {
-  margin: 0;
-  width: 116px;
-  flex: 0 0 auto;
+  display: contents;
 }
 
 .destination-card.is-comparison .criteria-compare-pill,
 .destination-sheet.is-comparison .criteria-compare-pill {
-  min-height: 30px;
-  padding: 0 6px;
-  font-size: 10px;
+  min-height: 18px;
+  padding: 0;
+  background: transparent;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   white-space: nowrap;
+  justify-self: stretch;
+  text-align: center;
+}
+
+.destination-card.is-comparison .criteria-compare-status,
+.destination-sheet.is-comparison .criteria-compare-status {
+  justify-self: center;
+  width: 28px;
+  min-height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+
+.destination-card.is-comparison .criteria-compare-status--aligned,
+.destination-sheet.is-comparison .criteria-compare-status--aligned {
+  color: #2665db;
+  background: transparent;
+}
+
+.destination-card.is-comparison .criteria-compare-status--close,
+.destination-sheet.is-comparison .criteria-compare-status--close {
+  color: #627593;
+  background: transparent;
+}
+
+.destination-card.is-comparison .criteria-compare-status--gap,
+.destination-sheet.is-comparison .criteria-compare-status--gap {
+  color: #d47d24;
+  background: transparent;
+}
+
+.destination-card.is-comparison .criteria-compare-status--big-gap,
+.destination-sheet.is-comparison .criteria-compare-status--big-gap {
+  color: #df6b21;
+  background: transparent;
+}
+
+.destination-card.is-comparison .criteria-compare,
+.destination-sheet.is-comparison .criteria-compare {
+  padding: 14px 13px 16px;
+  border-radius: 28px;
+}
+
+.destination-card.is-comparison .criteria-compare-list,
+.destination-sheet.is-comparison .criteria-compare-list {
+  border-radius: 24px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .destination-card.is-comparison .criteria-compare-row,
 .destination-sheet.is-comparison .criteria-compare-row {
-  min-height: 46px;
-  padding: 0 10px;
+  min-height: 38px;
+  padding: 8px 0;
+  border-top: 1px solid var(--detail-line);
   font-size: 12px;
 }
 
 .destination-card.is-comparison .criteria-compare-row strong,
 .destination-sheet.is-comparison .criteria-compare-row strong {
-  min-height: 30px;
+  min-height: 34px;
+  min-width: 42px;
   padding: 0 8px;
   border-radius: 12px;
+  justify-self: end;
+}
+
+.destination-card.is-comparison .compare-fallback-note,
+.destination-sheet.is-comparison .compare-fallback-note {
+  padding: 14px 13px 16px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 68% 10%, rgba(231, 240, 255, 0.58), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 250, 255, 0.92) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 239, 247, 0.96),
+    0 10px 28px rgba(72, 99, 132, 0.08);
+}
+
+.destination-card.is-comparison .compare-fallback-note strong,
+.destination-sheet.is-comparison .compare-fallback-note strong {
+  color: #23324f;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.destination-card.is-comparison .compare-fallback-note p,
+.destination-card.is-comparison .compare-fallback-empty,
+.destination-sheet.is-comparison .compare-fallback-note p,
+.destination-sheet.is-comparison .compare-fallback-empty {
+  margin-top: 8px;
+  color: #60738f;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 @media (max-width: 760px) {
-  .destination-sheet.is-comparison .compare-tag-columns {
-    grid-template-columns: 1fr;
+  .destination-sheet.is-comparison {
+    border-radius: 30px 30px 0 0;
+    overflow: hidden;
   }
 
   .destination-sheet.is-comparison .destination-sheet-body {
     padding: 0 0 18px;
   }
 
-  .destination-sheet.is-comparison .compare-meta-list {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
-    gap: 8px;
+  .destination-sheet.is-comparison .destination-hero-wrap {
+    margin-top: 0;
+    margin-left: 0;
+    margin-right: 0;
   }
 
-  .destination-sheet.is-comparison .compare-meta-item {
-    min-height: 78px;
-    padding: 10px 10px;
-    border-radius: 16px;
-    gap: 8px;
+  .destination-sheet.is-comparison.is-peek .destination-sheet-body .destination-hero {
+    min-height: 290px;
   }
 
-  .destination-sheet.is-comparison .compare-meta-item svg {
-    width: 18px;
-    height: 18px;
-    flex-basis: 18px;
-  }
-
-  .destination-sheet.is-comparison .compare-meta-item-copy > strong {
-    font-size: 13px;
-  }
-
-  .destination-sheet.is-comparison .compare-meta-item-copy small,
-  .destination-sheet.is-comparison .compare-meta-item-copy em,
-  .destination-sheet.is-comparison .compare-meta-item-split-entry small {
-    font-size: 10px;
-  }
-
-  .destination-sheet.is-comparison .compare-meta-item-split {
-    gap: 8px;
-  }
-
-  .destination-sheet.is-comparison .compare-meta-item-split-entry strong {
-    font-size: 11px;
+  .destination-sheet.is-comparison.is-peek .compare-mode-shell {
+    margin-top: -14px;
   }
 
   .destination-sheet.is-comparison .destination-hero {
@@ -17536,34 +18113,30 @@ svg {
   .destination-sheet.is-comparison .compare-meta,
   .destination-sheet.is-comparison .compare-sheet-card,
   .destination-sheet.is-comparison .compare-tag-groups,
-  .destination-sheet.is-comparison .criteria-compare {
+  .destination-sheet.is-comparison .criteria-compare,
+  .destination-sheet.is-comparison .compare-fallback-note {
     margin-left: 10px;
     margin-right: 10px;
   }
 
   .destination-sheet.is-comparison .compare-sheet-card {
     grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px 14px;
+    gap: 10px;
+    padding: 14px 13px 16px;
   }
 
-  .destination-sheet.is-comparison .compare-sheet-stats {
-    padding-left: 0;
-    padding-top: 16px;
-    border-left: 0;
-    border-top: 1px solid rgba(226, 209, 191, 0.8);
+  .destination-sheet.is-comparison .compare-sheet-card--insight .compare-sheet-score strong {
+    font-size: 21px;
   }
 
   .destination-sheet.is-comparison .criteria-compare-head,
   .destination-sheet.is-comparison .criteria-compare-row {
-    grid-template-columns: 14px minmax(0, 1fr) 58px 58px;
+    grid-template-columns: minmax(0, 1fr) 56px 56px 28px;
     column-gap: 6px;
   }
 
   .destination-sheet.is-comparison .criteria-compare-legend {
-    grid-template-columns: 58px 58px;
-    column-gap: 6px;
-    margin-right: 10px;
+    display: contents;
   }
 
   .destination-sheet.is-comparison .criteria-compare-heading {
@@ -17571,14 +18144,13 @@ svg {
     gap: 8px;
   }
 
-  .destination-sheet.is-comparison .criteria-compare-head {
-    width: 100%;
-    max-width: 112px;
-    justify-self: end;
+  .destination-sheet.is-comparison .criteria-compare {
+    padding: 14px 13px 16px;
   }
 
   .destination-sheet.is-comparison .destination-hero-copy h2 {
     font-size: clamp(42px, 11vw, 48px);
     line-height: 1.04;
+    padding-bottom: 0.12em;
   }
 }

@@ -964,10 +964,10 @@ function DestinationCardContent({
               <div className="criteria-compare-list">
                 {compareCriteria.map(item => (
                   <div className="criteria-compare-row" key={item.label}>
-                    <span className="criteria-compare-label">
+                    <span className="criteria-compare-icon" aria-hidden="true">
                       <Icon name={item.icon} />
-                      <span>{item.label}</span>
                     </span>
+                    <span className="criteria-compare-label">{item.label}</span>
                     <strong>{item.mine.toFixed(1).replace('.', ',')}</strong>
                     <strong>{item.theirs.toFixed(1).replace('.', ',')}</strong>
                     <em className={`criteria-compare-status criteria-compare-status--${item.status}`}>
@@ -994,10 +994,10 @@ function DestinationCardContent({
           <div className="criteria-compare-list">
             {criteria.map(([label, value, icon]) => (
               <div className="criteria-compare-row criteria-compare-row--solo" key={label}>
-                <span className="criteria-compare-label">
+                <span className="criteria-compare-icon" aria-hidden="true">
                   <Icon name={icon} />
-                  <span>{label}</span>
                 </span>
+                <span className="criteria-compare-label">{label}</span>
                 <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
               </div>
             ))}

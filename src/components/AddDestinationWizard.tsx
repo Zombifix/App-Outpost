@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 import { calculateScore, getMaxCoupDeCoeur, scoreToTier } from '../utils'
+import { buildDestinationRecommendations, emptySuggestionHistoryState } from '../lib/destinationRecommendations'
 import { geoCentroid } from '../lib/geoCentroid'
+import { useSearchSuggestionState } from '../hooks/useSearchSuggestionState'
 import { resolveZoneGeojson } from '../lib/zoneGeometry'
 import { Icon } from './Icon'
 
@@ -593,8 +595,6 @@ function stripLeadingEmojiLabel(label: string) {
   }
 }
 
-const SEARCH_EXAMPLES = ['Tokyo', 'Okinawa', 'Texas', 'Road trip Toscane']
-
 const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; label: string }> = [
   { value: 'solo', label: '🧍 Solo' },
   { value: 'couple', label: '💑 Couple' },
@@ -690,6 +690,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const isEditing = !!initialDestination
   const [step, setStep] = useState<WizardStep>(isEditing ? 'result' : 'search')
   const [query, setQuery] = useState('')
+  const [searchExamples, setSearchExamples] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState<PhotonResult[]>([])
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<PhotonResult | null>(null)
@@ -798,12 +799,18 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [hasTriggeredRerate, setHasTriggeredRerate] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const hasInitializedSearchExamplesRef = useRef(false)
   const [visitCountInput, setVisitCountInput] = useState(() => String(state.visitCount))
   const [revisitEnabled, setRevisitEnabled] = useState(() => state.visitCount > 1)
   const [tripYearInput, setTripYearInput] = useState(() => (state.tripYear ? String(state.tripYear) : ''))
   const initialDurationDraft = decomposeTripDays(state.tripDays)
   const [durationValueInput, setDurationValueInput] = useState(initialDurationDraft.value)
   const [durationUnit, setDurationUnit] = useState<DurationUnit>(initialDurationDraft.unit)
+  const {
+    historyState: searchSuggestionHistory,
+    hydrated: searchSuggestionHistoryReady,
+    recordShownSuggestions,
+  } = useSearchSuggestionState()
   const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
   const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= getMaxCoupDeCoeur(existingDestinations?.length ?? 0)
   const initialEditSnapshot = useMemo(() => {
@@ -933,10 +940,35 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       .sort((a, b) => Number(a.alreadyAdded) - Number(b.alreadyAdded))
       .slice(0, 4)
   }, [existingDestinations, isEditing, query, suggestions])
+  const fallbackSearchExamples = useMemo(() => buildDestinationRecommendations({
+    existingDestinations,
+    historyState: emptySuggestionHistoryState(),
+    currentQuery: query,
+    count: 4,
+  }), [existingDestinations, query])
+  const visibleSearchExamples = searchExamples.length > 0 ? searchExamples : fallbackSearchExamples
+
+  const refreshSearchExamples = useCallback((nextQuery?: string) => {
+    const nextExamples = buildDestinationRecommendations({
+      existingDestinations,
+      historyState: searchSuggestionHistory,
+      currentQuery: nextQuery,
+      count: 4,
+    })
+    setSearchExamples(nextExamples)
+    if (nextExamples.length > 0) recordShownSuggestions(nextExamples)
+  }, [existingDestinations, recordShownSuggestions, searchSuggestionHistory])
 
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
   }, [step])
+
+  useEffect(() => {
+    if (hasInitializedSearchExamplesRef.current) return
+    if (!searchSuggestionHistoryReady) return
+    hasInitializedSearchExamplesRef.current = true
+    refreshSearchExamples(query)
+  }, [query, refreshSearchExamples, searchSuggestionHistoryReady])
 
   useEffect(() => {
     if (!query.trim() || query.length < 2) { setSuggestions([]); return }
@@ -1615,13 +1647,14 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               {loading && <span className="wizard-spinner">·</span>}
             </div>
             <div className="wizard-search-examples" aria-label="Exemples de recherche">
-              {SEARCH_EXAMPLES.map(example => (
+              {visibleSearchExamples.map(example => (
                 <button
                   key={example}
                   type="button"
                   className="wizard-search-example"
                   onClick={() => {
                     setQuery(example)
+                    refreshSearchExamples(example)
                     inputRef.current?.focus()
                   }}
                 >

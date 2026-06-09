@@ -79,7 +79,7 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
   return (
     <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label={t('Create your profile', 'Créer ton profil')}>
       <aside className="account-panel friends-add-panel" style={{ maxWidth: 460 }}>
-        <h2 style={{ marginTop: 4 }}>{t('Welcome to Outpost', 'Bienvenue sur Outpost')}</h2>
+        <h2 style={{ marginTop: 'var(--space-1)' }}>{t('Welcome to Outpost', 'Bienvenue sur Outpost')}</h2>
         <p className="account-hint">
           {t("Choose a username and a display name. That's what your friends will see to find you.", "Choisis un pseudo et un nom affiché. C'est ce que tes amis verront pour te trouver.")}
         </p>
@@ -115,7 +115,7 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
           className="add-submit"
           onClick={submit}
           disabled={busy || handleStatus === 'taken' || handleStatus === 'invalid' || handleStatus === 'checking'}
-          style={{ marginTop: 12 }}
+          style={{ marginTop: 'var(--space-3)' }}
         >
           {busy ? t('Creating…', 'Création…') : t('Create my profile', 'Créer mon profil')}
         </button>
@@ -123,8 +123,8 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
         <button
           onClick={signOut}
           style={{
-            marginTop: 8, background: 'transparent', border: 'none',
-            color: '#9ca3af', fontSize: 12, cursor: 'pointer', textDecoration: 'underline',
+            marginTop: 'var(--space-2)', background: 'transparent', border: 'none',
+            color: 'var(--text-subtle)', fontSize: 'var(--text-xs)', cursor: 'pointer', textDecoration: 'underline',
           }}
         >
           {t('Sign out', 'Me déconnecter')}

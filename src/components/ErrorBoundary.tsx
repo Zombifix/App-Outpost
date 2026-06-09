@@ -42,25 +42,25 @@ export default class ErrorBoundary extends Component<Props, State> {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '32px 24px',
+          padding: 'var(--space-8) var(--space-6)',
           textAlign: 'center',
-          gap: 16,
+          gap: 'var(--space-4)',
           fontFamily: 'system-ui, sans-serif',
-          background: '#f6f2e8',
-          color: '#2a2a2a',
+          background: 'var(--faint)',
+          color: 'var(--text-strong)',
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 22 }}>{t('Something went wrong', 'Oups, quelque chose s\'est cassé')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>{t('Something went wrong', 'Oups, quelque chose s\'est cassé')}</h1>
         <p style={{ margin: 0, maxWidth: 420, opacity: 0.8 }}>
           {t('Reload the page to continue. Your data remains safely stored in your browser.', 'Recharge la page pour repartir. Tes données restent en sécurité dans ton navigateur.')}
         </p>
         {this.state.message && (
           <code style={{
-            fontSize: 12,
+            fontSize: 'var(--text-xs)',
             opacity: 0.55,
-            background: 'rgba(0,0,0,0.05)',
-            padding: '6px 10px',
-            borderRadius: 6,
+            background: 'var(--border-soft)',
+            padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-xs)',
             maxWidth: 480,
             wordBreak: 'break-word',
           }}>
@@ -70,13 +70,13 @@ export default class ErrorBoundary extends Component<Props, State> {
         <button
           onClick={this.reload}
           style={{
-            marginTop: 8,
-            background: '#1B5FE8',
+            marginTop: 'var(--space-2)',
+            background: 'var(--purple)',
             color: '#fff',
             border: 'none',
-            padding: '10px 22px',
-            borderRadius: 999,
-            fontSize: 15,
+            padding: 'var(--space-3) var(--space-6)',
+            borderRadius: 'var(--radius-pill)',
+            fontSize: 'var(--text-base)',
             fontWeight: 600,
             cursor: 'pointer',
           }}

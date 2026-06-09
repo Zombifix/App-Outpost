@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 :root {
   --ink: #17213a;
   --muted: #5a6a84;
@@ -29,6 +31,8 @@
   --text-2xl: 24px;
   --text-3xl: 32px;
   --text-display: 40px;
+  --text-4xl: 48px;
+  --text-5xl: 56px;
 
   /* Typography — weight scale */
   --weight-regular: 400;
@@ -76,6 +80,16 @@
   --text-subtle: #8c99ad;
   --border-soft: rgba(0, 0, 0, 0.06);
   --border-strong: rgba(125, 142, 166, 0.32);
+
+  /* Semantic utility colors */
+  --success: #22c55e;
+  --danger: #ef4444;
+  --avatar-bg-default: #c7d2fe;
+  --avatar-fg-default: #1e3a8a;
+
+  /* Button gradient */
+  --btn-gradient-primary: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  --btn-shadow-primary: 0 4px 16px rgba(27, 95, 232, 0.32);
 
   /* Layout system — change these and everything adjusts */
   --sidebar-w: 264px;
@@ -172,9 +186,9 @@ svg {
 
 .btn-primary {
   color: #fff;
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 4px 16px rgba(27, 95, 232, 0.32);
+  box-shadow: var(--btn-shadow-primary);
 }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
 .btn-primary:disabled {
@@ -325,7 +339,7 @@ svg {
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   box-shadow: 0 4px 16px rgba(27, 95, 232, 0.32);
   border: 1px solid rgba(255, 255, 255, 0.18);
   margin-bottom: 4px;
@@ -1412,9 +1426,9 @@ svg {
 /* Pin ami = blanc avec stroke gris + initiales, comme dans WorldMap */
 .compare-legend-dot--theirs {
   background: #fff;
-  color: #7C8DB5;
-  border-color: #7C8DB5;
-  box-shadow: inset 0 0 0 0.5px #7C8DB5, 0 1px 3px rgba(0,0,0,0.15);
+  color: var(--friend-secondary);
+  border-color: var(--friend-secondary);
+  box-shadow: inset 0 0 0 0.5px var(--friend-secondary), 0 1px 3px rgba(0,0,0,0.15);
 }
 /* Pin partagé = orange avec étoile */
 .compare-legend-dot--shared {
@@ -1426,7 +1440,7 @@ svg {
   font-size: var(--text-2xs);
 }
 .compare-stat--mine::before   { background: linear-gradient(135deg, #f25f73, #fb8b45); }
-.compare-stat--theirs::before { background: #fff; box-shadow: inset 0 0 0 1.5px #7C8DB5; }
+.compare-stat--theirs::before { background: #fff; box-shadow: inset 0 0 0 1.5px var(--friend-secondary); }
 
 /* ─── Barre "Compare inline" — au même niveau que la légende overlay ──────────
    La légende overlay (overlay-bottom) est cachée pendant le compare pour éviter
@@ -1823,7 +1837,7 @@ svg {
   margin-left: 6px;
   padding: 0 5px;
   border-radius: var(--radius-pill);
-  background: #ef4444;
+  background: var(--danger, #ef4444);
   color: white;
   font-size: var(--text-2xs);
   font-weight: var(--weight-semibold);
@@ -1975,7 +1989,7 @@ svg {
   height: 16px;
   padding: 0 4px;
   border-radius: var(--radius-pill);
-  background: #1B5FE8;
+  background: var(--purple);
   color: white;
   font-size: var(--text-2xs);
   font-weight: var(--weight-semibold);
@@ -2485,7 +2499,7 @@ svg {
   padding: 0 14px;
   border-radius: var(--radius-sm);
   color: white;
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   font-size: var(--text-2xs);
   font-weight: var(--weight-extrabold);
   letter-spacing: 0.02em;
@@ -2620,7 +2634,7 @@ svg {
   min-width: 118px;
   justify-content: center;
   color: white;
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   box-shadow: 0 4px 18px rgba(27, 95, 232, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
@@ -2629,7 +2643,7 @@ svg {
   min-width: 148px;
   justify-content: center;
   color: white;
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   box-shadow: 0 4px 18px rgba(27, 95, 232, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
@@ -3112,6 +3126,13 @@ svg {
   transform: scale(1.08);
 }
 
+.map-pin--revisited {
+  box-shadow:
+    0 0 0 4px rgba(255, 138, 61, 0.18),
+    0 10px 22px rgba(20, 30, 60, 0.24),
+    0 1px 2px rgba(20, 30, 60, 0.18);
+}
+
 .map-pin--coup-de-coeur:hover {
   transform: translateY(-2px) scale(1.14);
 }
@@ -3129,7 +3150,7 @@ svg {
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(2px);
-  max-width: 160px;
+  max-width: 220px;
   padding: 3px 9px;
   background: rgba(255, 255, 255, 0.96);
   border-radius: var(--radius-pill);
@@ -4502,7 +4523,7 @@ svg {
   display: grid;
   place-items: center;
   color: #fff;
-  background: #1B5FE8;
+  background: var(--purple);
   border: 3px solid #fff;
   box-shadow: 0 6px 14px rgba(27, 95, 232, 0.22);
   font-size: var(--text-2xs);
@@ -4748,7 +4769,7 @@ svg {
   flex-shrink: 0;
   padding: 4px 9px;
   border-radius: var(--radius-pill);
-  color: #d93f58;
+  color: var(--tier-s);
   background: rgba(242, 95, 115, 0.1);
   border: 1px solid rgba(242, 95, 115, 0.16);
   font-size: var(--text-2xs);
@@ -5682,7 +5703,7 @@ svg {
 
 .account-panel .account-primary {
   height: 42px;
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   box-shadow: 0 10px 22px rgba(27, 95, 232, 0.24);
 }
 
@@ -5700,7 +5721,7 @@ svg {
 }
 
 .account-danger {
-  color: #b91c1c;
+  color: var(--danger-dark);
   background: rgba(220, 38, 38, 0.06);
   border-color: rgba(220, 38, 38, 0.22);
 }
@@ -5821,7 +5842,7 @@ svg {
   height: 46px;
   border-radius: var(--radius-md);
   color: white;
-  background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+  background: var(--btn-gradient-primary);
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
   box-shadow: 0 16px 28px rgba(27, 95, 232, 0.24);
@@ -6117,8 +6138,8 @@ svg {
   .mobile-header-avatar {
     grid-column: 3;
     justify-self: end;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     overflow: hidden;
     position: relative;
@@ -6135,6 +6156,7 @@ svg {
     pointer-events: all;
     cursor: pointer;
     transition: background 120ms ease, transform 100ms ease;
+    will-change: transform;
   }
 
   .mobile-header-avatar-face {
@@ -6309,7 +6331,7 @@ svg {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #1B5FE8, #3D80F5);
+    background: var(--btn-gradient-primary);
     color: white;
     display: grid;
     place-items: center;
@@ -6444,8 +6466,8 @@ svg {
     box-shadow:
       0 2px 0 rgba(255,255,255,0.55) inset,
       0 14px 32px rgba(30, 50, 90, 0.14);
-    backdrop-filter: blur(28px) saturate(1.7);
-    -webkit-backdrop-filter: blur(28px) saturate(1.7);
+    backdrop-filter: blur(18px) saturate(1.7);
+    -webkit-backdrop-filter: blur(18px) saturate(1.7);
     transition: none;
     z-index: 20;
   }
@@ -6737,7 +6759,7 @@ svg {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(150deg, #4F90FF, #1B5FE8);
+    background: linear-gradient(150deg, var(--purple-light), #1B5FE8);
     box-shadow:
       0 2px 0 rgba(255,255,255,0.32) inset,
       0 6px 14px rgba(27, 95, 232, 0.42),
@@ -6785,7 +6807,7 @@ svg {
     opacity: 1 !important;
   }
   .tier-pill-all.is-active {
-    background: linear-gradient(135deg, #4F90FF, #1B5FE8) !important;
+    background: linear-gradient(135deg, var(--purple-light), #1B5FE8) !important;
     color: #fff !important;
     box-shadow: 0 4px 12px rgba(27, 95, 232, 0.32) !important;
   }
@@ -6852,11 +6874,11 @@ svg {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #e0e0e0;
+  background: var(--border-strong);
   transition: background 0.2s, transform 0.2s;
 }
-.wizard-dot.active { background: #3b7cf4; transform: scale(1.25); }
-.wizard-dot.done { background: #3b7cf4; opacity: 0.4; }
+.wizard-dot.active { background: var(--purple); transform: scale(1.25); }
+.wizard-dot.done { background: var(--purple); opacity: 0.4; }
 
 .wizard-step {
   animation: wizardSlideIn 0.22s ease;
@@ -6869,7 +6891,7 @@ svg {
 .wizard-place-name {
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  color: #3b7cf4;
+  color: var(--wizard-primary);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   margin: 0 0 6px;
@@ -6927,7 +6949,7 @@ svg {
   transition: border-color 0.15s;
 }
 .wizard-search-box:focus-within {
-  border-color: #3b7cf4;
+  border-color: var(--wizard-primary);
   background: #fff;
 }
 
@@ -6945,7 +6967,7 @@ svg {
 
 .wizard-spinner {
   font-size: var(--text-xl);
-  color: #3b7cf4;
+  color: var(--purple);
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -7063,7 +7085,7 @@ svg {
   transition: border-color 0.15s, background 0.15s, transform 0.1s;
 }
 .wizard-type-card:hover {
-  border-color: #3b7cf4;
+  border-color: var(--wizard-primary);
   background: #f5f7ff;
   transform: translateY(-1px);
 }
@@ -7247,7 +7269,7 @@ svg {
 }
 /* Réponse sélectionnée en mode édition (surlignage discret mais clair) */
 .wizard-answer-btn.is-selected {
-  border-color: #3b7cf4;
+  border-color: var(--wizard-primary);
   background: linear-gradient(180deg, #ffffff 0%, #f2f7ff 100%);
   color: #1f3fa8;
   box-shadow: 0 0 0 3px rgba(92, 140, 255, 0.12), 0 18px 34px rgba(37, 61, 120, 0.12);
@@ -7398,7 +7420,7 @@ svg {
   padding: 0;
   transition: color 0.12s;
 }
-.wizard-back:hover { color: #3b7cf4; }
+.wizard-back:hover { color: var(--wizard-primary); }
 .wizard-back.wizard-question-nav:hover {
   color: #50627e;
 }
@@ -7640,7 +7662,7 @@ svg {
 
 .result-trip-badge {
   font-size: var(--text-sm);
-  color: #3b7cf4;
+  color: var(--wizard-primary);
   font-weight: var(--weight-semibold);
   margin: 0 0 16px;
 }
@@ -7692,7 +7714,7 @@ svg {
 }
 
 .wizard-quick-stop-btn:hover:not(:disabled) {
-  border-color: #3b7cf4;
+  border-color: var(--wizard-primary);
   color: var(--purple);
   background: #f5f7ff;
 }
@@ -7825,7 +7847,7 @@ svg {
   justify-content: center;
   transition: background 0.12s, color 0.12s;
 }
-.wizard-stop-remove:hover { background: #fee2e2; color: #ef4444; }
+.wizard-stop-remove:hover { background: var(--wizard-remove-bg); color: #ef4444; }
 
 .wizard-stop-suggestions {
   position: absolute;
@@ -7867,7 +7889,7 @@ svg {
   text-align: left;
   transition: border-color 0.15s, color 0.15s;
 }
-.wizard-add-stop:hover { border-color: #3b7cf4; color: #3b7cf4; }
+.wizard-add-stop:hover { border-color: var(--wizard-primary); color: var(--wizard-primary); }
 
 .wizard-context {
   margin: 18px 0 20px;
@@ -8123,6 +8145,15 @@ svg {
   gap: 10px;
 }
 
+.wizard-toggle-row--secondary {
+  gap: 12px;
+}
+
+.wizard-marker-stack {
+  display: grid;
+  gap: 12px;
+}
+
 .wizard-favorite-toggle {
   min-height: 38px;
   display: inline-flex;
@@ -8190,6 +8221,87 @@ svg {
 
 .wizard-lived-toggle.is-selected .wizard-favorite-switch {
   background: linear-gradient(135deg, #1B5FE8 0%, #4ea2ff 100%);
+}
+
+.wizard-revisit-toggle.is-selected {
+  border-color: rgba(255, 159, 67, 0.34);
+  color: #8f4511;
+  background: rgba(255, 249, 242, 0.98);
+  box-shadow: 0 8px 18px rgba(255, 159, 67, 0.16);
+}
+
+.wizard-revisit-toggle.is-selected .wizard-favorite-switch {
+  background: linear-gradient(135deg, #ff8a3d 0%, #ffbe55 100%);
+}
+
+.wizard-revisit-inline {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wizard-revisit-label {
+  color: #7c869a;
+  font-size: 0.72rem;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wizard-revisit-stepper {
+  min-height: 38px;
+  display: inline-grid;
+  grid-template-columns: 34px minmax(48px, 72px) 34px;
+  align-items: center;
+  border: 1px solid #dde6f3;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(40, 60, 94, 0.08);
+  overflow: hidden;
+}
+
+.wizard-revisit-stepper.is-invalid {
+  border-color: rgba(220, 72, 72, 0.28);
+  background: rgba(255, 249, 249, 0.98);
+}
+
+.wizard-revisit-stepper button {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #51607a;
+  font-size: 1rem;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.wizard-revisit-stepper button:hover:not(:disabled) {
+  background: rgba(27, 95, 232, 0.08);
+  color: #214788;
+}
+
+.wizard-revisit-stepper button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wizard-revisit-stepper input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #1f2b42;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+.wizard-revisit-stepper input:focus {
+  outline: none;
 }
 
 .wizard-chip-row button[data-kind="favorite"] {
@@ -8288,7 +8400,7 @@ svg {
 }
 
 .wizard-result-redo:hover {
-  color: #3b7cf4;
+  color: var(--wizard-primary);
   background: rgba(59, 124, 244, 0.04);
 }
 
@@ -8580,6 +8692,10 @@ svg {
     gap: 16px;
   }
 
+  .wizard-revisit-inline {
+    width: 100%;
+  }
+
   .wizard-context-block {
     padding-top: 16px;
   }
@@ -8786,7 +8902,7 @@ svg {
 }
 
 .map-pin-trip-card--friend {
-  box-shadow: 0 0 0 2px #7C8DB5, 0 2px 10px rgba(0,0,0,0.11);
+  box-shadow: 0 0 0 2px var(--friend-secondary), 0 2px 10px rgba(0,0,0,0.11);
 }
 
 /* ── Trip card flip-left (near right screen edge) ──────────────────────────── */
@@ -9468,17 +9584,22 @@ svg {
 }
 
 .tier-list-empty {
-  color: var(--muted);
-  font-style: italic;
-  font-size: var(--text-sm);
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
   align-self: center;
-  padding: 8px 0;
+  padding: 0 14px;
+  border-radius: var(--radius-lg);
+  background: rgba(238, 245, 252, 0.72);
+  font-size: var(--text-sm);
+  font-style: normal;
+  color: var(--text-muted);
 }
 
 /* ===== Friend pin variants (map) ===== */
 .map-pin--friend {
   background-color: #fff;
-  border: 2px solid #7C8DB5 !important;
+  border: 2px solid var(--friend-secondary) !important;
   box-shadow: 0 0 0 4px rgba(124,141,181,0.18), 0 2px 8px rgba(0,0,0,0.08) !important;
   color: #2a3144 !important;
 }
@@ -9494,7 +9615,7 @@ svg {
   right: -4px;
   width: auto;
   border-radius: var(--radius-pill);
-  background: #7C8DB5;
+  background: var(--friend-secondary);
   color: #fff;
   font-style: normal;
 }
@@ -9504,7 +9625,7 @@ svg {
   padding: 0;
   overflow: hidden;
   background: none;
-  border-color: #7C8DB5;
+  border-color: var(--friend-secondary);
 }
 .pin-friend-badge img {
   width: 100%;
@@ -9520,7 +9641,7 @@ svg {
   right: -4px;
   width: auto;
   border-radius: var(--radius-pill);
-  background: #3B6D11;
+  background: var(--success-dark);
   color: #fff;
 }
 
@@ -9845,7 +9966,7 @@ svg {
 
 .friends-feedback-ok {
   font-size: var(--text-xs);
-  color: #3B6D11;
+  color: var(--success-dark);
   background: rgba(99,153,34,0.08);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
@@ -9854,7 +9975,7 @@ svg {
 
 .friends-feedback-err {
   font-size: var(--text-xs);
-  color: #b91c1c;
+  color: var(--danger-dark);
   background: rgba(220,38,38,0.08);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
@@ -10084,7 +10205,7 @@ svg {
   font-weight: var(--weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #3B6D11;
+  color: var(--success-dark);
 }
 
 .friend-compare-common-list {
@@ -10541,6 +10662,14 @@ svg {
   font-size: var(--text-2xs);
   border: none;
   cursor: pointer;
+  position: relative; /* touch target expansion via ::before */
+}
+
+/* Expand tap area to 44×44px (WCAG 2.5.5) without affecting layout */
+.activity-card-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -11px;
 }
 
 .activity-card-actor {
@@ -10882,6 +11011,7 @@ svg {
   right: 16px;
   bottom: 168px;
   width: 240px;
+  max-width: calc(100vw - 32px);
   background: white;
   border-radius: var(--radius-lg);
   border: 0.5px solid rgba(0,0,0,0.08);
@@ -11687,7 +11817,7 @@ svg {
 .dest-card-favorite:hover {
   transform: scale(1.06);
   background: rgba(255, 255, 255, 0.92);
-  color: #d93f58;
+  color: var(--dest-favorite);
 }
 
 .dest-card-favorite.is-active {
@@ -11961,12 +12091,6 @@ svg {
   color: #15233f;
 }
 
-.tier-list-empty {
-  padding: 12px 4px;
-  font-size: var(--text-sm);
-  color: #8096b4;
-}
-
 /* ── Tier-list-page mobile ───────────────────────────────── */
 
 @media (max-width: 768px) {
@@ -12172,15 +12296,7 @@ svg {
   font-weight: var(--weight-bold);
 }
 
-.tier-list-empty {
-  min-height: 52px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 14px;
-  border-radius: var(--radius-lg);
-  background: rgba(238, 245, 252, 0.72);
-  font-style: normal;
-}
+/* .tier-list-empty — canonical definition at line 9419 */
 
 @media (max-width: 1080px) {
   .tier-list-head {
@@ -12339,29 +12455,7 @@ svg {
     overflow-y: auto;
   }
 }
-/* ============================================================
-   Liquid Glass local experiment
-   Branch-only visual pass inspired by iOS glass surfaces.
-============================================================ */
-:root {
-  --glass-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.64), rgba(244, 251, 255, 0.34));
-  --glass-bg-strong: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(241, 249, 255, 0.48));
-  --glass-bg-soft: linear-gradient(145deg, rgba(255, 255, 255, 0.48), rgba(236, 247, 255, 0.28));
-  --glass-border: rgba(255, 255, 255, 0.74);
-  --glass-border-soft: rgba(255, 255, 255, 0.48);
-  --glass-tint: rgba(212, 235, 255, 0.24);
-  --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.92), inset 0 -1px 0 rgba(255, 255, 255, 0.30);
-  --glass-shadow: 0 26px 70px rgba(50, 82, 122, 0.18), 0 8px 22px rgba(14, 34, 58, 0.08);
-  --glass-shadow-soft: 0 14px 38px rgba(50, 82, 122, 0.13), 0 4px 14px rgba(14, 34, 58, 0.06);
-  --glass-blur: blur(34px) saturate(1.82) brightness(1.08);
-  --glass-blur-soft: blur(22px) saturate(1.55) brightness(1.04);
-  --glass-radius: 28px;
-  --glass-radius-sm: 18px;
-  --glass-text: #1c3152;
-  --glass-muted: #5c7191;
-  --glass-blue: #2878ff;
-  --glass-blue-2: #42bbff;
-}
+/* Glass tokens → déplacés dans src/styles/tokens.css */
 
 .travel-app {
   background:
@@ -14066,8 +14160,8 @@ svg {
       linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 26%, rgba(240, 246, 255, 0) 34%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.14)),
       rgba(242, 247, 255, 0.72);
-    backdrop-filter: blur(28px) saturate(1.6);
-    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    backdrop-filter: blur(18px) saturate(1.6);
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.76) inset,
       0 -8px 18px rgba(255, 255, 255, 0.14) inset,
@@ -14224,8 +14318,8 @@ svg {
       0 10px 22px rgba(30, 50, 90, 0.1),
       0 2px 6px rgba(30, 50, 90, 0.04);
     overflow: visible;
-    backdrop-filter: blur(28px) saturate(1.55);
-    -webkit-backdrop-filter: blur(28px) saturate(1.55);
+    backdrop-filter: blur(18px) saturate(1.55);
+    -webkit-backdrop-filter: blur(18px) saturate(1.55);
   }
 
   .tier-board::after {
@@ -15806,7 +15900,7 @@ svg {
 }
 
 .dest-row-signal--heart {
-  color: #e94968;
+  color: var(--signal-heart);
 }
 
 .dest-row-signal--shared {
@@ -16755,7 +16849,7 @@ svg {
   font-size: 12px;
   font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
-  color: #7a95b8;
+  color: var(--score-secondary);
   line-height: 1;
 }
 
@@ -16769,7 +16863,7 @@ svg {
   padding: 2px 6px;
   border-radius: 10px;
   background: rgba(27, 95, 232, 0.07);
-  color: #7a95b8;
+  color: var(--score-secondary);
   white-space: nowrap;
   max-width: 76px;
   overflow: hidden;
@@ -16780,7 +16874,7 @@ svg {
 .tier-list-hero-count-label {
   font-size: 11px;
   font-weight: var(--weight-medium);
-  color: #7a95b8;
+  color: var(--score-secondary);
   margin-left: -1px;
 }
 
@@ -16802,5 +16896,28 @@ svg {
   .compare-banner-title,
   .tier-list-solo-title {
     max-width: 140px;
+  }
+}
+
+/* ─── Accessibility: Respect prefers-reduced-motion ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all animations and transitions globally */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Kill infinite pulses entirely */
+  .sidebar-live-pulse {
+    animation: none !important;
+  }
+
+  /* Keep bottom sheet visible but skip the slide */
+  .destination-sheet {
+    transition: none !important;
   }
 }

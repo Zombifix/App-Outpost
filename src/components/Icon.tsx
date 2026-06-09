@@ -30,11 +30,19 @@ export function Icon({ name }: { name: string }) {
     'arrow-left': <><path d="M19 12H5" /><path d="m11 18-6-6 6-6" /></>,
     calendar: <><path d="M8 2v4" /><path d="M16 2v4" /><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M3 10h18" /></>,
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    flame: <><path d="M12 3c1.8 2.1 3.1 3.7 3.1 5.9 0 1.6-1 2.9-2.4 3.5.2-2-1-3.4-2.4-4.5C8.7 9.4 7 11 7 13.7A5 5 0 0 0 12 19a5 5 0 0 0 5-5.1c0-3.3-1.8-5.8-5-10.9Z" /><path d="M10.6 14.6c-.9.8-1.6 1.8-1.6 3a3 3 0 0 0 6 0c0-1.6-.9-2.7-2.5-4.2-.2 1.3-.9 2-1.9 2.4Z" /></>,
     sparkles: <><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z" /><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8Z" /><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8Z" /></>,
     user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
     share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" /></>,
     'user-plus': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6" /><path d="M16 11h6" /></>,
     versus: <><path d="M5 4 8 14 11 4" /><path d="m18 4-5 16" /><path d="M14 11h6" /></>,
+    arrow: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
+    chevron: <path d="m6 9 6 6 6-6" />,
+    'chevron-down': <path d="m6 9 6 6 6-6" />,
+    'chevron-up': <path d="m6 15 6-6 6 6" />,
+    search: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
+    sort: <><path d="M7 4v16" /><path d="m3 8 4-4 4 4" /><path d="M17 20V4" /><path d="m13 16 4 4 4-4" /></>,
+    pin: <><path d="M12 21s-6-5.2-6-11a6 6 0 1 1 12 0c0 5.8-6 11-6 11Z" /><circle cx="12" cy="10" r="2.5" /></>,
   }
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>

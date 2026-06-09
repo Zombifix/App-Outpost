@@ -44,6 +44,7 @@ export interface Destination {
   notes?: number
   summary?: string
   stops?: RoadTripStop[]
+  visitCount?: number
   tripYear?: number
   tripDays?: number
   companions?: 'solo' | 'couple' | 'amis' | 'famille' | 'travail'

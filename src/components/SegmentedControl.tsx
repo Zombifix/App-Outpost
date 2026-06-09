@@ -34,7 +34,7 @@ interface IndicatorState {
   ready: boolean
 }
 
-const DEFAULT_ACCENT = '#1B5FE8'
+const DEFAULT_ACCENT = getComputedStyle(document.documentElement).getPropertyValue('--purple').trim() || '#1B5FE8'
 
 export function SegmentedControl<T extends string>({
   options,

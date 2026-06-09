@@ -73,7 +73,6 @@ export function useActivityFeed(limit = 30) {
     }
     const rows = (data ?? []) as ActivityRow[]
     const actors = Array.from(new Set(rows.map(r => r.actor)))
-    const profiles = await fetchProfiles(actors)
 
     // Enrichit les events destination_added avec image/tier courants
     // (les anciens events n'avaient pas l'image en payload, on la récupère depuis destinations).
@@ -82,15 +81,18 @@ export function useActivityFeed(limit = 30) {
         .filter(r => typeof r.payload?.destination_id === 'string' && (!r.payload?.image || !r.payload?.tier))
         .map(r => r.payload.destination_id as string)
     ))
+
+    // Profiles et destinations sont indépendants — on les charge en parallèle.
+    const [profiles, destQueryResult] = await Promise.all([
+      fetchProfiles(actors),
+      destIds.length > 0
+        ? supabase.from('destinations').select('id, image, tier').in('id', destIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; image: string | null; tier: string | null }> }),
+    ])
+
     const destMap = new Map<string, { image?: string; tier?: string }>()
-    if (destIds.length > 0) {
-      const { data: destData } = await supabase
-        .from('destinations')
-        .select('id, image, tier')
-        .in('id', destIds)
-      for (const d of (destData ?? []) as Array<{ id: string; image: string | null; tier: string | null }>) {
-        destMap.set(d.id, { image: d.image ?? undefined, tier: d.tier ?? undefined })
-      }
+    for (const d of (destQueryResult.data ?? []) as Array<{ id: string; image: string | null; tier: string | null }>) {
+      destMap.set(d.id, { image: d.image ?? undefined, tier: d.tier ?? undefined })
     }
 
     setEvents(rows.map(r => {

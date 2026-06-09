@@ -15,7 +15,7 @@ import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
-import { computeTravelerProfile, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, withRecalculatedScore } from './utils'
+import { computeTravelerProfile, formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, getVisitCount, withRecalculatedScore } from './utils'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 import { Avatar } from './components/Avatar'
@@ -63,6 +63,7 @@ const PROFILE_ACHIEVEMENT_ICONS: Record<string, string> = {
   'good-public': '🌟',
   'heart-rare': '🤍',
   'heart-easy': '💗',
+  'return-ticket': '🔥',
   terrain: '📍',
   'continent-compass': '🧭',
   'soft-addition': '💶',
@@ -145,6 +146,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function finiteNumber(value: unknown, fallback = 0) {
   const number = Number(value)
   return Number.isFinite(number) ? number : fallback
+}
+
+function normalizePositiveInteger(value: unknown, fallback = 1) {
+  const number = Number(value)
+  return Number.isInteger(number) && number >= 1 ? number : fallback
 }
 
 function normalizeStops(value: unknown): RoadTripStop[] | undefined {
@@ -233,6 +239,7 @@ function normalizeDestination(value: unknown): Destination | null {
     imageSearchVersion: value.imageSearchVersion === undefined ? undefined : finiteNumber(value.imageSearchVersion, 0),
     summary: typeof value.summary === 'string' ? value.summary : undefined,
     tripName: typeof value.tripName === 'string' ? value.tripName : undefined,
+    visitCount: normalizePositiveInteger(value.visitCount, 1),
     tripYear: value.tripYear === undefined ? undefined : finiteNumber(value.tripYear, undefined),
     tripDays: value.tripDays === undefined ? undefined : finiteNumber(value.tripDays, undefined),
     companions: VALID_COMPANIONS.includes(value.companions as NonNullable<Destination['companions']>)
@@ -1633,10 +1640,25 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
 
         {mode === 'map' && (
           <div className="account-section">
-            <p className="account-hint">
-              {t('Choose how much detail to show on the map.', 'Choisir le niveau de détail affiché sur la carte.')}
-            </p>
-            <label>{t('Map detail', 'Détail carte')}</label>
+
+            {/* ── Langue ── */}
+            <label>{t('Interface language', 'Langue de l\'interface')}</label>
+            <SegmentedControl
+              className="account-auth-tabs"
+              ariaLabel={t('Language', 'Langue')}
+              role="radiogroup"
+              size="sm"
+              layout="fill"
+              value={lang}
+              options={[
+                { value: 'en', label: 'English' },
+                { value: 'fr', label: 'Français' },
+              ]}
+              onChange={v => setLang(v as 'en' | 'fr')}
+            />
+
+            {/* ── Détail carte ── */}
+            <label style={{ marginTop: 'var(--space-5)' }}>{t('Map detail', 'Détail carte')}</label>
             <SegmentedControl
               className="account-auth-tabs"
               ariaLabel={t('Map detail level', 'Niveau de détail carte')}
@@ -1650,12 +1672,13 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
               ]}
               onChange={v => onMapDetailChange(v as 'simple' | 'detailed')}
             />
-            <p className="account-hint" style={{ marginTop: 6 }}>
+            <p className="account-hint" style={{ marginTop: 'var(--space-2)' }}>
               <strong>{t('Simple:', 'Simple :')}</strong> {t('major country labels only.', 'grands pays uniquement.')}{' '}
               <strong>{t('Detailed:', 'Détaillé :')}</strong> {t('+ borders and city names.', '+ frontières et villes.')}
             </p>
 
-            <div style={{ marginTop: 20 }}>
+            {/* ── Visibilité de la carte ── */}
+            <div style={{ marginTop: 'var(--space-5)' }}>
               <p className="account-hint">
                 {t('Control who can view your map when you share it.', 'Contrôler qui peut voir ta carte quand tu la partages.')}
               </p>
@@ -1672,7 +1695,8 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
                 </select>
               </label>
               <p className="account-hint">
-                {t('Public: anyone with the link. Friends only: only your friends. Private: only you.', 'Publique : tout le monde avec le lien. Amis uniquement : tes amis seulement. Privée : toi uniquement.')}
+                {t('Public: anyone with the link. Friends only: only your friends. Private: only you.',
+                   'Publique : tout le monde avec le lien. Amis uniquement : tes amis seulement. Privée : toi uniquement.')}
               </p>
               <div className="account-actions">
                 <button
@@ -1690,22 +1714,6 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
               )}
             </div>
 
-            <div style={{ marginTop: 24, borderTop: '1px solid rgba(0,0,0,0.07)', paddingTop: 16 }}>
-              <p className="account-hint">{t('Interface language', 'Langue de l\'interface')}</p>
-              <SegmentedControl
-                className="account-auth-tabs"
-                ariaLabel={t('Language', 'Langue')}
-                role="radiogroup"
-                size="sm"
-                layout="fill"
-                value={lang}
-                options={[
-                  { value: 'en', label: 'English' },
-                  { value: 'fr', label: 'Français' },
-                ]}
-                onChange={v => setLang(v as 'en' | 'fr')}
-              />
-            </div>
           </div>
         )}
 
@@ -1966,12 +1974,16 @@ function formatEuro(value: number) {
 function getDestinationContext(destination: Destination) {
   const meta: Array<{ icon: string; label: string }> = []
   const details: Array<{ icon: string; label: string; value: string }> = []
+  const visitCount = getVisitCount(destination)
 
   if (destination.tripYear) {
     meta.push({ icon: 'calendar', label: String(destination.tripYear) })
   }
   if (destination.tripDays) {
     meta.push({ icon: 'clock', label: `${destination.tripDays} jour${destination.tripDays > 1 ? 's' : ''}` })
+  }
+  if (visitCount > 1) {
+    meta.push({ icon: 'flame', label: formatVisitCountLabel(visitCount) })
   }
   if (destination.companions) {
     details.push({ icon: 'users', label: 'Avec', value: COMPANION_LABELS[destination.companions] })

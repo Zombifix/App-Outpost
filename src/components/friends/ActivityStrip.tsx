@@ -137,10 +137,10 @@ function ActivityCard({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity;
           type="button"
           className="friends-avatar activity-card-avatar"
           onClick={e => { e.stopPropagation(); if (ev.actor) onOpenProfile?.(ev.actor) }}
-          style={ev.actorAvatarUrl ? undefined : { background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
+          style={ev.actorAvatarUrl ? undefined : { background: ev.actorAvatarBg ?? 'var(--avatar-bg-default)', color: ev.actorAvatarFg ?? 'var(--avatar-fg-default)' }}
           aria-label={`Profil de ${ev.actorDisplayName ?? ev.actorHandle ?? 'inconnu'}`}
         >
-          <AvatarContent src={ev.actorAvatarUrl} fallback={ev.actorDisplayName ?? ev.actorHandle ?? '?'} bg={ev.actorAvatarBg ?? '#ccc'} fg={ev.actorAvatarFg ?? '#fff'} />
+          <AvatarContent src={ev.actorAvatarUrl} fallback={ev.actorDisplayName ?? ev.actorHandle ?? '?'} bg={ev.actorAvatarBg ?? 'var(--avatar-bg-default)'} fg={ev.actorAvatarFg ?? 'var(--avatar-fg-default)'} />
         </button>
         <span className="activity-card-actor">{ev.actorDisplayName ?? ev.actorHandle ?? 'Anonyme'}</span>
         <span className="activity-card-time">{relativeTime(ev.createdAt)}</span>
@@ -172,9 +172,9 @@ function ActivityRow({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity; 
         <button
           className="friends-avatar activity-row-avatar"
           onClick={() => onOpenProfile?.(ev.actor)}
-          style={ev.actorAvatarUrl ? undefined : { background: ev.actorAvatarBg ?? '#ccc', color: ev.actorAvatarFg ?? '#fff' }}
+          style={ev.actorAvatarUrl ? undefined : { background: ev.actorAvatarBg ?? 'var(--avatar-bg-default)', color: ev.actorAvatarFg ?? 'var(--avatar-fg-default)' }}
         >
-          <AvatarContent src={ev.actorAvatarUrl} fallback={ev.actorDisplayName ?? ev.actorHandle ?? '?'} bg={ev.actorAvatarBg ?? '#ccc'} fg={ev.actorAvatarFg ?? '#fff'} />
+          <AvatarContent src={ev.actorAvatarUrl} fallback={ev.actorDisplayName ?? ev.actorHandle ?? '?'} bg={ev.actorAvatarBg ?? 'var(--avatar-bg-default)'} fg={ev.actorAvatarFg ?? 'var(--avatar-fg-default)'} />
         </button>
         <div className="activity-row-body">
           <p>
@@ -212,7 +212,7 @@ function ActivityRow({ item, onFlyTo, onOpenProfile }: { item: GroupedActivity; 
                   ? { backgroundImage: `url(${dest.image})` }
                   : dest.tier
                     ? { background: TIER_COLORS[dest.tier].pin, color: TIER_COLORS[dest.tier].label }
-                    : { background: '#e5e7eb', color: '#6b7280' }}
+                    : { background: 'var(--faint)', color: 'var(--text-muted)' }}
                 aria-hidden="true"
               >
                 {!dest.image && (dest.name?.slice(0, 1).toUpperCase() ?? '?')}

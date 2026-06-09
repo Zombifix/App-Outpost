@@ -121,6 +121,17 @@ export function getDestinationTier(destination: Destination): Tier {
   return scoreToTier(getDestinationScore(destination))
 }
 
+export function getVisitCount(destination: Pick<Destination, 'visitCount'>): number {
+  return Number.isInteger(destination.visitCount) && (destination.visitCount ?? 0) >= 1
+    ? destination.visitCount as number
+    : 1
+}
+
+export function formatVisitCountLabel(count: number, locale: 'fr' | 'en' = 'fr'): string {
+  if (locale === 'en') return `${count} visit${count > 1 ? 's' : ''}`
+  return `${count} visite${count > 1 ? 's' : ''}`
+}
+
 export function withRecalculatedScore(destination: Destination): Destination {
   const score = getDestinationScore(destination)
   return {
@@ -236,10 +247,16 @@ export interface TravelerTerritory {
 export interface TravelerProfileStats {
   destinationCount: number
   travelCount: number
+  totalVisitOccurrences: number
+  repeatVisitOccurrences: number
   uniqueCountryCount: number
   mainCountry: string | null
   mainCountryRepeat: number
   mainCountryRatio: number
+  topRevisitedDestination: string | null
+  topRevisitedDestinationCount: number
+  topRevisitedCountry: string | null
+  topRevisitedCountryCount: number
   continentCount: number
   mainContinent: ContinentBucket | null
   mainContinentRatio: number
@@ -826,15 +843,23 @@ function computeContinents(destinations: Destination[]): ContinentShare[] {
 export function computeProfileStats(destinations: Destination[], continents = computeContinents(destinations)): TravelerProfileStats {
   const travels = destinations.filter(destination => !destination.livedThere)
   const effectiveTravels = travels.filter(destination => !isWorkTrip(destination))
+  const totalVisitOccurrences = travels.reduce((sum, destination) => sum + getVisitCount(destination), 0)
+  const repeatVisitOccurrences = travels.reduce((sum, destination) => sum + Math.max(0, getVisitCount(destination) - 1), 0)
   const denominator = Math.max(1, travels.length)
-  const effectiveDenominator = Math.max(1, effectiveTravels.length)
+  const effectiveVisitDenominator = Math.max(1, effectiveTravels.reduce((sum, destination) => sum + getVisitCount(destination), 0))
   const countryCounts = new Map<string, number>()
+  const destinationVisitCounts = new Map<string, number>()
   for (const destination of effectiveTravels) {
-    if (destination.country) countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + 1)
+    const visitCount = getVisitCount(destination)
+    destinationVisitCounts.set(destination.name, (destinationVisitCounts.get(destination.name) ?? 0) + visitCount)
+    if (destination.country) countryCounts.set(destination.country, (countryCounts.get(destination.country) ?? 0) + visitCount)
   }
   const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]
   const mainCountry = topCountry?.[0] ?? null
   const mainCountryRepeat = topCountry?.[1] ?? 0
+  const topRevisitedDestinationEntry = [...destinationVisitCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+  const topRevisitedDestinationCount = topRevisitedDestinationEntry && topRevisitedDestinationEntry[1] > 1 ? topRevisitedDestinationEntry[1] : 0
+  const topRevisitedCountryCount = topCountry && topCountry[1] > 1 ? topCountry[1] : 0
 
   const dayValues = travels.map(destination => destination.tripDays).filter((value): value is number => typeof value === 'number' && value > 0)
   const shortTripCount = dayValues.filter(value => value <= 3).length
@@ -896,10 +921,16 @@ export function computeProfileStats(destinations: Destination[], continents = co
   return {
     destinationCount: destinations.length,
     travelCount: travels.length,
+    totalVisitOccurrences,
+    repeatVisitOccurrences,
     uniqueCountryCount: new Set(destinations.map(destination => destination.country).filter(Boolean)).size,
     mainCountry,
     mainCountryRepeat,
-    mainCountryRatio: mainCountryRepeat / effectiveDenominator,
+    mainCountryRatio: mainCountryRepeat / effectiveVisitDenominator,
+    topRevisitedDestination: topRevisitedDestinationCount > 1 ? topRevisitedDestinationEntry?.[0] ?? null : null,
+    topRevisitedDestinationCount,
+    topRevisitedCountry: topRevisitedCountryCount > 1 ? topCountry?.[0] ?? null : null,
+    topRevisitedCountryCount,
     continentCount: continents.length,
     mainContinent: continents[0]?.continent ?? null,
     mainContinentRatio: (continents[0]?.pct ?? 0) / 100,
@@ -1025,6 +1056,9 @@ function selectSubtitle(titleKey: ArchetypeKey | null, stats: TravelerProfileSta
   switch (titleKey) {
     case 'faithful':
       usedSignals.countryRepeat = true
+      if (stats.topRevisitedDestination && stats.topRevisitedDestinationCount >= 3) {
+        return `${stats.topRevisitedDestination} commence à le reconnaître.`
+      }
       return stats.mainCountry && stats.mainCountryRepeat >= 3 ? `${stats.mainCountry} commence à reconnaître son visage.` : 'A ses repères, mais les appelle encore découvertes.'
     case 'selective':
       if (stats.negativeStandoutTagsRatio >= 0.35) {
@@ -1106,11 +1140,12 @@ function buildAchievements(stats: TravelerProfileStats, titleKey: ArchetypeKey |
   const add = (achievement: TravelerAchievement, condition: boolean, blocked = false) => {
     if (condition && !blocked && achievements.length < max && !achievements.some(item => item.key === achievement.key)) achievements.push(achievement)
   }
+  add({ key: 'return-ticket', icon: '🔥', title: 'Retour assumé', detail: stats.topRevisitedDestination ? `${stats.topRevisitedDestination} · ${formatVisitCountLabel(stats.topRevisitedDestinationCount)}` : `${formatVisitCountLabel(stats.repeatVisitOccurrences + 1)}`, tone: 'red' }, Boolean(stats.topRevisitedDestination && stats.topRevisitedDestinationCount >= 3))
   add({ key: 'note-merit', icon: '☆', title: 'La note se mérite', detail: `${stats.scoreAverage?.toFixed(1) ?? '-'} / 5 en moyenne`, tone: 'gold' }, stats.scoreCount >= 4 && stats.scoreAverage !== null && stats.scoreAverage < 3.5, titleKey === 'selective' || usedSignals.lowScores)
   add({ key: 'good-public', icon: '★', title: 'Bon public, mais pas naïf', detail: `${stats.scoreAverage?.toFixed(1) ?? '-'} / 5 en moyenne`, tone: 'gold' }, stats.scoreCount >= 4 && stats.scoreAverage !== null && stats.scoreAverage >= 4.1, usedSignals.highScores)
   add({ key: 'heart-rare', icon: '♡', title: 'Cœur rare', detail: `${stats.favoriteCount}/${stats.travelCount} coups de cœur`, tone: 'heart' }, stats.favoriteCount > 0 && ((stats.favoriteCount === 1 && stats.destinationCount >= 6) || (stats.favoriteRatio <= 0.15 && stats.destinationCount >= 8)), titleKey === 'selective' || usedSignals.lowFavorites)
   add({ key: 'heart-easy', icon: '♥', title: 'Cœur facile', detail: `${Math.round(stats.favoriteRatio * 100)}% du carnet`, tone: 'heart' }, stats.favoriteRatio >= 0.45 && stats.destinationCount >= 6, usedSignals.highFavorites)
-  add({ key: 'terrain', icon: '📍', title: 'Terrain connu', detail: stats.mainCountry ? `${stats.mainCountry} · ${stats.mainCountryRepeat} voyages` : 'Même boussole', tone: 'red' }, stats.mainCountryRepeat >= 3, titleKey === 'faithful' || usedSignals.countryRepeat)
+  add({ key: 'terrain', icon: '📍', title: 'Terrain connu', detail: stats.mainCountry ? `${stats.mainCountry} · ${formatVisitCountLabel(stats.mainCountryRepeat)}` : 'Même boussole', tone: 'red' }, stats.mainCountryRepeat >= 3, titleKey === 'faithful' || usedSignals.countryRepeat)
   add({ key: 'continent-compass', icon: '🧭', title: `Boussole ${continentLabel(stats.mainContinent)}`, detail: `${Math.round(stats.mainContinentRatio * 100)}% des pays`, tone: 'teal' }, stats.mainContinentRatio >= 0.65 && stats.uniqueCountryCount >= 4, usedSignals.continentDominance)
   add({ key: 'soft-addition', icon: '€', title: 'Addition souple', detail: `~${Math.round(stats.personalBudgetMedian ?? 0)} € / jour`, tone: 'gold' }, stats.personalBudgetMedian !== null && stats.personalBudgetMedian >= 150 && stats.workTripRatio < 0.4, titleKey === 'comfort' || usedSignals.budgetHigh)
   add({ key: 'budget-control', icon: '€', title: 'Budget sous contrôle', detail: `~${Math.round(stats.personalBudgetMedian ?? 0)} € / jour`, tone: 'gold' }, stats.personalBudgetMedian !== null && stats.personalBudgetMedian < 100 && stats.destinationCount >= 4, usedSignals.budgetLow)
@@ -1135,7 +1170,16 @@ function buildTerritories(continents: ContinentShare[]): TravelerTerritory[] {
 
 function buildLegacySignatures(stats: TravelerProfileStats, tags: TravelerBehaviorTag[]): TravelerSignature[] {
   return tags.slice(0, 3).map(tag => {
-    if (tag.key === 'faithful') return { key: 'geo', icon: '⌖', label: 'Revient souvent sur ses pas', detail: stats.mainCountry ? `${stats.mainCountry} · ${stats.mainCountryRepeat} voyages` : undefined }
+    if (tag.key === 'faithful') return {
+      key: 'geo',
+      icon: '⌖',
+      label: 'Revient souvent sur ses pas',
+      detail: stats.topRevisitedDestination
+        ? `${stats.topRevisitedDestination} · ${formatVisitCountLabel(stats.topRevisitedDestinationCount)}`
+        : stats.mainCountry
+          ? `${stats.mainCountry} · ${formatVisitCountLabel(stats.mainCountryRepeat)}`
+          : undefined,
+    }
     if (tag.key === 'comfort') return { key: 'budget', icon: '€', label: 'Le confort reste dans la conversation', detail: stats.personalBudgetMedian ? `~${Math.round(stats.personalBudgetMedian)} €/j` : undefined }
     if (tag.key === 'nomad' || tag.key === 'weekend') return { key: 'format', icon: '↗', label: 'Passe vite, juge quand même', detail: stats.tripDaysMedian ? `~${Math.round(stats.tripDaysMedian)} j` : undefined }
     if (tag.key === 'selective' || tag.key === 'demanding') return { key: 'notes', icon: '☆', label: 'Ne valide pas pour faire plaisir', detail: stats.scoreAverage ? `moy. ${stats.scoreAverage.toFixed(1)}/5` : undefined }

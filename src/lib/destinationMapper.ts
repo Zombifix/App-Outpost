@@ -44,6 +44,7 @@ export interface DbDestinationRow {
   image_search_version: number | null
   summary: string | null
   trip_name: string | null
+  visit_count: number | null
   trip_year: number | null
   trip_days: number | null
   companions: string | null
@@ -64,7 +65,7 @@ export interface DbDestinationRow {
  * in-flight dans useFriendDestinations).
  */
 export const DESTINATION_SELECT_COLUMNS =
-  'id, user_id, destination_key, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, ease, memorability, score, notes, stops, extent, geojson, state, osm_value, osm_id, osm_type, country_code, image, image_provider, image_author, image_source_url, image_query, image_search_version, summary, trip_name, trip_year, trip_days, companions, personal_budget, trip_types, standout, standout_tags, coup_de_coeur, lived_there, vibe_boost, retour_bonus' as const
+  'id, user_id, destination_key, name, country, lat, lng, tier, kind, intent, food, night, culture, nature, value, ease, memorability, score, notes, stops, extent, geojson, state, osm_value, osm_id, osm_type, country_code, image, image_provider, image_author, image_source_url, image_query, image_search_version, summary, trip_name, visit_count, trip_year, trip_days, companions, personal_budget, trip_types, standout, standout_tags, coup_de_coeur, lived_there, vibe_boost, retour_bonus' as const
 
 const VALID_IMAGE_PROVIDERS = ['unsplash', 'pexels', 'wikivoyage', 'wikipedia', 'wikimedia', 'fallback'] as const
 const VALID_COMPANIONS = ['solo', 'couple', 'amis', 'famille', 'travail'] as const
@@ -98,6 +99,11 @@ function normalizeStringList(value: unknown): string[] | undefined {
     .map(item => item.trim())
     .filter(Boolean)
   return items.length ? items : undefined
+}
+
+function normalizeVisitCount(value: unknown) {
+  const count = typeof value === 'number' ? value : Number(value)
+  return Number.isInteger(count) && count >= 1 ? count : 1
 }
 
 // Anciens libellés (V1 court initial + V2 long intermédiaire) remappés vers
@@ -221,6 +227,7 @@ export function rowToDestination(row: DbDestinationRow): Destination {
     imageSearchVersion: row.image_search_version ?? undefined,
     summary: row.summary ?? undefined,
     tripName: row.trip_name ?? undefined,
+    visitCount: normalizeVisitCount(row.visit_count),
     tripYear: row.trip_year ?? undefined,
     tripDays: row.trip_days ?? undefined,
     companions,
@@ -275,6 +282,7 @@ export function destinationToRow(destination: Destination, userId: string): Omit
     image_search_version: destination.imageSearchVersion ?? null,
     summary: destination.summary ?? null,
     trip_name: destination.tripName ?? null,
+    visit_count: normalizeVisitCount(destination.visitCount),
     trip_year: destination.tripYear ?? null,
     trip_days: destination.tripDays ?? null,
     companions: destination.companions ?? null,

@@ -138,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('outpost-destinations-v2')
       localStorage.removeItem('triptier-destinations-v2')
       localStorage.removeItem('outpost-public-id')
+      localStorage.removeItem('outpost-search-suggestion-state-v1')
     } catch {
       /* ignore */
     }

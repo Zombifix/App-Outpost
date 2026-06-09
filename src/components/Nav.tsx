@@ -3,6 +3,7 @@ import type { DestinationFilters } from '../App'
 import type { Destination, Friendship } from '../types'
 import { BrandLogo } from './BrandLogo'
 import { Avatar } from './Avatar'
+import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
 import { t } from '../i18n'
 
@@ -81,6 +82,12 @@ export default function Nav({
     onFiltersChange({ ...filters, ...patch })
   }
 
+  const navMapStats = useMemo(() => {
+    const countryCount = new Set(destinations.map(d => d.country).filter(Boolean)).size
+    const favCount = destinations.filter(d => d.coupDeCoeur).length
+    return { countryCount, favCount }
+  }, [destinations])
+
   return (
     <>
       <aside className="sidebar">
@@ -131,8 +138,7 @@ export default function Nav({
               {activeView === 'friends' && t('Friends', 'Amis')}
             </h1>
             {activeView === 'map' && (() => {
-              const countryCount = new Set(destinations.map(d => d.country).filter(Boolean)).size
-              const favCount = destinations.filter(d => d.coupDeCoeur).length
+              const { countryCount, favCount } = navMapStats
               const bits: string[] = []
               if (countryCount > 0) bits.push(`${countryCount} ${t(countryCount > 1 ? 'countries' : 'country', 'pays')}`)
               if (favCount > 0) bits.push(`${favCount} ${t(favCount > 1 ? 'favorites' : 'favorite', favCount > 1 ? 'coups de cœur' : 'coup de cœur')}`)
@@ -253,44 +259,6 @@ export default function Nav({
   )
 }
 
-function Icon({ name }: { name: string }) {
-  const common = {
-    width: 18,
-    height: 18,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  }
-  const paths: Record<string, JSX.Element> = {
-    plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
-    map: <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z" /><path d="M9 3v15" /><path d="M15 6v15" /></>,
-    compass: <><circle cx="12" cy="12" r="9" /><path d="m15 9-2 5-5 2 2-5Z" /></>,
-    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
-    arrow: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
-    'arrow-left': <><path d="M19 12H5" /><path d="m11 18-6-6 6-6" /></>,
-    chevron: <path d="m6 9 6 6 6-6" />,
-    search: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
-    sliders: <><path d="M4 21v-7" /><path d="M4 10V3" /><path d="M12 21v-9" /><path d="M12 8V3" /><path d="M20 21v-5" /><path d="M20 12V3" /><path d="M1 14h6" /><path d="M9 8h6" /><path d="M17 16h6" /></>,
-    sort: <><path d="M7 4v16" /><path d="m3 8 4-4 4 4" /><path d="M17 20V4" /><path d="m13 16 4 4 4-4" /></>,
-    share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" /></>,
-    user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
-    'user-plus': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></>,
-    'chevron-down': <path d="m6 9 6 6 6-6" />,
-    'chevron-up': <path d="m6 15 6-6 6 6" />,
-    pin: <><path d="M12 21s-6-5.2-6-11a6 6 0 1 1 12 0c0 5.8-6 11-6 11Z" /><circle cx="12" cy="10" r="2.5" /></>,
-    heart: <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.6 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" />,
-    star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,
-    plane: <><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" /></>,
-    sparkles: <><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z" /><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8Z" /><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8Z" /></>,
-    versus: <><path d="M5 4 8 14 11 4" /><path d="m18 4-5 16" /><path d="M14 11h6" /></>,
-    x: <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>,
-  }
-
-  return <svg {...common}>{paths[name] ?? paths.map}</svg>
-}
 
 function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?: (lat: number, lng: number, name: string, actor?: { userId: string; handle: string; displayName: string }) => void }) {
   const { events: allEvents } = useActivityFeed(20)
@@ -435,7 +403,7 @@ function HeroCard({ event: ev, onClick, isPulse }: {
       onClick={onClick}
       title={name || actor}
       style={image ? { backgroundImage: `url(${image})` } : {
-        background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? '#c7d2fe'}, ${ev.actorAvatarBg ?? '#a5b4fc'})`,
+        background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? 'var(--avatar-bg-default)'}, ${ev.actorAvatarBg ?? 'var(--avatar-bg-default)'})`,
       }}
     >
       <span className="sidebar-hero-shade" aria-hidden="true" />
@@ -448,7 +416,7 @@ function HeroCard({ event: ev, onClick, isPulse }: {
         <span className="sidebar-hero-actor">
           <span
             className="sidebar-hero-avatar"
-            style={{ background: ev.actorAvatarBg ?? '#c7d2fe', color: ev.actorAvatarFg ?? '#1e3a8a' }}
+            style={{ background: ev.actorAvatarBg ?? 'var(--avatar-bg-default)', color: ev.actorAvatarFg ?? 'var(--avatar-fg-default)' }}
             aria-hidden="true"
           >
             {actor.slice(0, 1).toUpperCase()}
@@ -483,7 +451,7 @@ function RowCard({ event: ev, onClick }: {
         className="sidebar-row-thumb"
         style={image
           ? { backgroundImage: `url(${image})` }
-          : { background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? '#c7d2fe'}, ${ev.actorAvatarBg ?? '#a5b4fc'})` }}
+          : { background: `linear-gradient(135deg, ${ev.actorAvatarBg ?? 'var(--avatar-bg-default)'}, ${ev.actorAvatarBg ?? 'var(--avatar-bg-default)'})` }}
         aria-hidden="true"
       />
       <span className="sidebar-row-body">

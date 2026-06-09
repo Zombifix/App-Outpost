@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Destination, Friendship, Tier } from '../types'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
-import { getDestinationScore, getDestinationTier, getMaxCoupDeCoeur } from '../utils'
+import { formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, getVisitCount } from '../utils'
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
@@ -90,12 +90,16 @@ const STANDOUT_FLOP_LABELS = new Set([
 function getDestinationContext(destination: Destination) {
   const meta: Array<{ icon: string; label: string }> = []
   const details: ContextDetail[] = []
+  const visitCount = getVisitCount(destination)
 
   if (destination.tripYear) {
     meta.push({ icon: 'calendar', label: String(destination.tripYear) })
   }
   if (destination.tripDays) {
     meta.push({ icon: 'clock', label: `${destination.tripDays} day${destination.tripDays > 1 ? 's' : ''}` })
+  }
+  if (visitCount > 1) {
+    meta.push({ icon: 'flame', label: formatVisitCountLabel(visitCount, 'en') })
   }
   if (destination.personalBudget) {
     const perDay = destination.tripDays ? destination.personalBudget / destination.tripDays : destination.personalBudget
@@ -381,7 +385,7 @@ function DestinationCardContent({
       const trip = allDestinations?.find(d => d.name === m.tripName)
       const tripTier = trip ? getDisplayTier(trip) : undefined
       const tierColor = tripTier ? TIER_COLORS[tripTier]?.pin : undefined
-      const entry = map.get(m.tripName) ?? { stages: [], color: tierColor ?? '#1B5FE8' }
+      const entry = map.get(m.tripName) ?? { stages: [], color: tierColor ?? 'var(--purple)' }
       if (m.stageNumber !== undefined) entry.stages.push(m.stageNumber)
       map.set(m.tripName, entry)
     }
@@ -606,7 +610,7 @@ function DestinationCardContent({
               <span
                 key={i}
                 className="friend-visitors-avatar"
-                style={{ background: v.bg ?? '#c7d2fe', color: v.fg ?? '#1e3a8a' }}
+                style={{ background: v.bg ?? 'var(--avatar-bg-default)', color: v.fg ?? 'var(--avatar-fg-default)' }}
                 title={v.displayName}
               >
                 {v.displayName.slice(0, 1).toUpperCase()}
@@ -656,7 +660,7 @@ function DestinationCardContent({
                     >
                       <span
                         className="friend-visitors-option-avatar"
-                        style={{ background: visitor.bg ?? '#c7d2fe', color: visitor.fg ?? '#1e3a8a' }}
+                        style={{ background: visitor.bg ?? 'var(--avatar-bg-default)', color: visitor.fg ?? 'var(--avatar-fg-default)' }}
                       >
                         {visitor.displayName.slice(0, 1).toUpperCase()}
                       </span>

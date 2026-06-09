@@ -1,0 +1,53 @@
+/* ============================================================
+   Design Tokens — App-Outpost
+   Source canonique des variables CSS pour les nouvelles valeurs.
+   Les tokens fondamentaux (spacing, typo, radius) restent dans
+   le :root de index.css pour compatibilité avec les 918 règles.
+============================================================ */
+
+/* ─── Tokens sémantiques ajoutés ────────────────────────────────────────── */
+:root {
+  /* Wizard UI */
+  --wizard-primary:    #3b7cf4;
+  --wizard-remove-bg:  #fee2e2;
+
+  /* Destination states */
+  --dest-favorite:     #d93f58;   /* hover cœur sur dest-card */
+  --signal-heart:      #e94968;   /* icône cœur dans tier list row */
+
+  /* Score & secondary text */
+  --score-secondary:   #7a95b8;   /* score ami, chips secondaires, compteurs */
+
+  /* Feedback sombre (plus foncés que --success / --danger) */
+  --success-dark:      #3B6D11;   /* texte et badge succès sombre */
+  --danger-dark:       #b91c1c;   /* texte erreur sombre */
+
+  /* Friend / comparison indicators */
+  --friend-secondary:  #7C8DB5;   /* pins ami, légende comparaison "theirs" */
+  --purple-light:      #4F90FF;   /* endpoint clair des gradients marque */
+}
+
+/* ─── Glass morphism tokens ─────────────────────────────────────────────── */
+/*     (déplacés depuis index.css où ils étaient isolés à ~l.12360)         */
+:root {
+  --glass-bg:          linear-gradient(145deg, rgba(255, 255, 255, 0.64), rgba(244, 251, 255, 0.34));
+  --glass-bg-strong:   linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(241, 249, 255, 0.48));
+  --glass-bg-soft:     linear-gradient(145deg, rgba(255, 255, 255, 0.48), rgba(236, 247, 255, 0.28));
+  --glass-border:      rgba(255, 255, 255, 0.74);
+  --glass-border-soft: rgba(255, 255, 255, 0.48);
+  --glass-tint:        rgba(212, 235, 255, 0.24);
+  --glass-inner:       inset 0 1px 0 rgba(255, 255, 255, 0.92), inset 0 -1px 0 rgba(255, 255, 255, 0.30);
+  --glass-shadow:      0 26px 70px rgba(50, 82, 122, 0.18), 0 8px 22px rgba(14, 34, 58, 0.08);
+  --glass-shadow-soft: 0 14px 38px rgba(50, 82, 122, 0.13), 0 4px 14px rgba(14, 34, 58, 0.06);
+  --glass-blur-subtle: blur(8px) saturate(1.2) brightness(1.02);
+  --glass-blur-light:  blur(12px) saturate(1.35) brightness(1.04);
+  --glass-blur-soft:   blur(22px) saturate(1.55) brightness(1.04);
+  --glass-blur:        blur(34px) saturate(1.82) brightness(1.08);
+  --glass-blur-heavy:  blur(40px) saturate(1.9) brightness(1.1);
+  --glass-radius:      28px;
+  --glass-radius-sm:   18px;
+  --glass-text:        #1c3152;
+  --glass-muted:       #5c7191;
+  --glass-blue:        #2878ff;
+  --glass-blue-2:      #42bbff;
+}

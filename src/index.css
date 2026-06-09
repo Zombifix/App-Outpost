@@ -7973,6 +7973,65 @@ svg {
   font-weight: var(--weight-semibold);
 }
 
+.wizard-context-grid input[aria-invalid="true"] {
+  border-color: rgba(220, 72, 72, 0.34);
+  background: rgba(255, 248, 248, 0.96);
+}
+
+.wizard-duration-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  align-items: center;
+  height: 42px;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.wizard-duration-field.is-invalid {
+  border-color: rgba(220, 72, 72, 0.34);
+  background: rgba(255, 248, 248, 0.96);
+}
+
+.wizard-duration-field input,
+.wizard-duration-field select {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.wizard-duration-field input {
+  padding: 0 12px;
+}
+
+.wizard-duration-field select {
+  min-width: 0;
+  padding: 0 34px 0 14px;
+  border-left: 1px solid #e1e8f3;
+  color: #44536d;
+  font-size: 0.82rem;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #6880aa 50%),
+    linear-gradient(135deg, #6880aa 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.wizard-duration-field select:focus,
+.wizard-duration-field input:focus {
+  outline: none;
+}
+
 .wizard-field-helper {
   color: #9aa5b7;
   font-size: var(--text-2xs);
@@ -7980,6 +8039,10 @@ svg {
   letter-spacing: 0;
   text-transform: none;
   margin-top: 1px;
+}
+
+.wizard-field-helper.is-invalid {
+  color: #c04b58;
 }
 
 .wizard-context-group {

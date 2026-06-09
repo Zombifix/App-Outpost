@@ -8,6 +8,28 @@ interface FriendCompareViewProps {
   friend: Friendship
   myDestinations: Destination[]
   theirDestinations: Destination[]
+  onSelectMine?: (destination: Destination) => void
+  onSelectTheirs?: (destination: Destination) => void
+  variant?: 'default' | 'tier-list-page'
+}
+
+const COUNTRY_CODE_MAP: Record<string, string> = {
+  'Japon': 'jp', 'Portugal': 'pt', 'Espagne': 'es', 'France': 'fr',
+  'Italie': 'it', 'Canada': 'ca', 'Brésil': 'br', 'Mexique': 'mx',
+  'Indonésie': 'id', 'Indonesie': 'id', 'Thaïlande': 'th', 'Maroc': 'ma',
+  'Islande': 'is', 'Afrique du Sud': 'za', 'Nouvelle-Zélande': 'nz',
+  'Nouvelle-Zelande': 'nz', 'Émirats arabes unis': 'ae', 'Emirats arabes unis': 'ae',
+  'Singapour': 'sg', 'Corée du Sud': 'kr', 'Coree du Sud': 'kr',
+  'Taïwan': 'tw', 'Taiwan': 'tw', 'Vietnam': 'vn', 'Pologne': 'pl',
+  'Allemagne': 'de', 'Belgique': 'be', 'Pays-Bas': 'nl', 'Irlande': 'ie',
+  'Royaume-Uni': 'gb', 'Royaume-Uni (Écosse)': 'gb', 'Royaume-Uni (UK)': 'gb',
+  "États-Unis d'Amérique": 'us', 'Etats-Unis d\'Amérique': 'us', 'États-Unis': 'us', 'Etats-Unis': 'us',
+}
+
+function getCountryFlag(destination: Destination): string | undefined {
+  const code = destination.countryCode ?? COUNTRY_CODE_MAP[destination.country]
+  if (!code) return undefined
+  return `https://flagcdn.com/24x18/${code.toLowerCase()}.png`
 }
 
 /**
@@ -18,14 +40,33 @@ interface FriendCompareViewProps {
  *
  * Rendu en flux (pas en modal/overlay) : le parent décide du cadrage.
  */
-export default function FriendCompareView({ friend, myDestinations, theirDestinations }: FriendCompareViewProps) {
+export default function FriendCompareView({
+  friend,
+  myDestinations,
+  theirDestinations,
+  onSelectMine,
+  onSelectTheirs,
+  variant = 'default',
+}: FriendCompareViewProps) {
   return (
-    <div className="friend-compare">
+    <div className={`friend-compare${variant === 'tier-list-page' ? ' friend-compare--tier-list' : ''}`}>
       <CommonDests mine={myDestinations} theirs={theirDestinations} friendName={friend.displayName} />
       <div className="friend-compare-grid">
-        <DestList destinations={myDestinations} label={t('Me', 'Moi')} />
+        <DestList
+          destinations={myDestinations}
+          label={t('Me', 'Moi')}
+          emptyLabel={t('No destinations in your tier list yet.', 'Aucune destination dans ta tier list pour le moment.')}
+          onSelect={onSelectMine}
+          tone="mine"
+        />
         <div className="friend-compare-sep" />
-        <DestList destinations={theirDestinations} label={friend.displayName} />
+        <DestList
+          destinations={theirDestinations}
+          label={friend.displayName}
+          emptyLabel={t('No destinations in their tier list yet.', 'Aucune destination dans sa tier list pour le moment.')}
+          onSelect={onSelectTheirs}
+          tone="friend"
+        />
       </div>
     </div>
   )
@@ -37,7 +78,7 @@ function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs
     .map(t => ({ them: t, mine: myMap.get(destinationNameKey(t)) }))
     .filter((x): x is { them: Destination; mine: Destination } => !!x.mine)
   if (common.length === 0) {
-    return <p className="friends-muted">{t(`No destinations in common with ${friendName} yet.`, `Aucune destination en commun avec ${friendName} pour le moment.`)}</p>
+    return null
   }
   return (
     <section className="friend-compare-common">
@@ -64,20 +105,26 @@ function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs
 }
 
 function TierBadge({ tier }: { tier: Tier }) {
-  const c = TIER_COLORS[tier]
   return (
-    <span
-      className="tier-badge-compact"
-      style={{ color: c.label, background: c.pin + '20', borderColor: c.pin + '55' }}
-    >
-      {tier}
-    </span>
+    <span className={`tier-orb tier-${tier.toLowerCase()} friend-compare-tier-orb`}>{tier}</span>
   )
 }
 
-function DestList({ destinations, label }: { destinations: Destination[]; label: string }) {
+function DestList({
+  destinations,
+  label,
+  emptyLabel,
+  onSelect,
+  tone = 'mine',
+}: {
+  destinations: Destination[]
+  label: string
+  emptyLabel: string
+  onSelect?: (destination: Destination) => void
+  tone?: 'mine' | 'friend'
+}) {
   return (
-    <div className="friend-compare-col">
+    <div className={`friend-compare-col friend-compare-col--${tone}`}>
       <h5 className="friend-compare-col-label">{label}</h5>
       {TIER_ORDER.map(tier => {
         const items = destinations.filter(d => getDestinationTier(d) === tier)
@@ -86,22 +133,59 @@ function DestList({ destinations, label }: { destinations: Destination[]; label:
         return (
           <div key={tier} className="friend-compare-tier-block">
             <div className="friend-compare-tier-header">
-              <span className="tier-badge-compact" style={{ color: c.label, background: c.pin + '20', borderColor: c.pin + '55' }}>{tier}</span>
+              <span className={`tier-orb tier-${tier.toLowerCase()} friend-compare-tier-orb`}>{tier}</span>
               <span className="friend-compare-tier-line" style={{ background: c.pin + '30' }} />
             </div>
             {items.map(d => (
-              <div key={d.name} className="friend-compare-tier-item">
-                <span className="friend-compare-tier-dot" style={{ background: c.pin }} />
-                <span className="friend-compare-tier-name">{d.name}</span>
-                <span className="friend-compare-tier-country">{d.country}</span>
-              </div>
+              <CompareTierItem
+                key={d.name}
+                destination={d}
+                tierColor={c.pin}
+                onSelect={onSelect}
+              />
             ))}
           </div>
         )
       })}
       {destinations.length === 0 && (
-        <p className="friends-muted">{t('No destinations.', 'Aucune destination.')}</p>
+        <p className="friends-muted">{emptyLabel}</p>
       )}
     </div>
+  )
+}
+
+function CompareTierItem({
+  destination,
+  tierColor,
+  onSelect,
+}: {
+  destination: Destination
+  tierColor: string
+  onSelect?: (destination: Destination) => void
+}) {
+  const flagUrl = getCountryFlag(destination)
+
+  return (
+    <button
+      type="button"
+      className={`friend-compare-tier-item${onSelect ? ' is-interactive' : ''}${destination.image ? ' has-image' : ''}`}
+      onClick={() => onSelect?.(destination)}
+    >
+      <div
+        className="friend-compare-tier-thumb"
+        style={destination.image ? { backgroundImage: `url(${destination.image})`, '--tier-accent': tierColor } as React.CSSProperties : { '--tier-accent': tierColor } as React.CSSProperties}
+        aria-hidden="true"
+      >
+        {!destination.image && <span className="friend-compare-tier-thumb-placeholder">{destination.name[0]}</span>}
+      </div>
+      <span className="friend-compare-tier-dot" style={{ background: tierColor }} />
+      <span className="friend-compare-tier-copy">
+        <span className="friend-compare-tier-name">{destination.name}</span>
+        <span className="friend-compare-tier-country">
+          {flagUrl && <img src={flagUrl} alt="" className="friend-compare-tier-flag" loading="lazy" />}
+          {destination.country}
+        </span>
+      </span>
+    </button>
   )
 }

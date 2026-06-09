@@ -20,6 +20,7 @@ import { destinationNameKey, destinationNameSet } from '../utils/destinationIden
 import { computeTravelerProfile, getDestinationScore, getDestinationTier } from '../utils'
 import { Avatar } from './Avatar'
 import { SegmentedControl } from './SegmentedControl'
+import FriendCompareView from './friends/FriendCompareView'
 import { t } from '../i18n'
 
 interface TierListPageProps {
@@ -350,18 +351,34 @@ function ComparisonBanner({
           className="compare-banner-avatar"
           ariaHidden={true}
         />
-        <div className="compare-banner-identity">
-          <span className="compare-banner-name">{myName}</span>
-          {myProfileTitle && (
-            <span className="compare-banner-title" title={myProfileTitle}>{myProfileTitle}</span>
-          )}
+        <div className="compare-banner-copy">
+          <div className="compare-banner-identity">
+            <span className="compare-banner-name">{myName}</span>
+            {myProfileTitle && (
+              <span className="compare-banner-title" title={myProfileTitle}>{myProfileTitle}</span>
+            )}
+          </div>
           {myAvg !== null && (
-            <span className="compare-banner-score">{myAvg.toFixed(1)}</span>
+            <span className="compare-banner-score-block">
+              <span className="compare-banner-score">{myAvg.toFixed(1)}</span>
+              <span className="compare-banner-score-label">{t('Moyenne générale', 'Overall average')}</span>
+            </span>
           )}
         </div>
       </div>
 
       <div className="compare-banner-center">
+        <span className="compare-banner-center-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M8 4v16" />
+            <path d="M16 4v16" />
+            <path d="M4 8h4" />
+            <path d="M4 16h4" />
+            <path d="M16 8h4" />
+            <path d="M16 16h4" />
+          </svg>
+        </span>
+        <span className="compare-banner-vs" aria-hidden="true">VS</span>
         <span className="compare-banner-stat">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <circle cx="9" cy="7" r="3" /><circle cx="15" cy="7" r="3" />
@@ -380,13 +397,18 @@ function ComparisonBanner({
       </div>
 
       <div className="compare-banner-player compare-banner-player--friend">
-        <div className="compare-banner-identity compare-banner-identity--right">
-          <span className="compare-banner-name">{friendFirstName}</span>
-          {friendTitle && (
-            <span className="compare-banner-title" title={friendTitle}>{friendTitle}</span>
-          )}
+        <div className="compare-banner-copy compare-banner-copy--right">
+          <div className="compare-banner-identity compare-banner-identity--right">
+            <span className="compare-banner-name">{friendFirstName}</span>
+            {friendTitle && (
+              <span className="compare-banner-title" title={friendTitle}>{friendTitle}</span>
+            )}
+          </div>
           {friendAvg !== null && (
-            <span className="compare-banner-score">{friendAvg.toFixed(1)}</span>
+            <span className="compare-banner-score-block">
+              <span className="compare-banner-score">{friendAvg.toFixed(1)}</span>
+              <span className="compare-banner-score-label">{t('Moyenne générale', 'Overall average')}</span>
+            </span>
           )}
         </div>
         <Avatar
@@ -586,7 +608,7 @@ export default function TierListPage({
   useEffect(() => {
     if (!comparePicker) return
     function handleClick(e: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+      if (!(e.target as Element).closest?.('.tier-list-actions')) {
         setComparePicker(false)
       }
     }
@@ -843,6 +865,96 @@ export default function TierListPage({
           }))}
           onChange={setFilter}
         />
+        {/* Desktop-only: Comparer button at right of filter row (hidden on mobile via CSS) */}
+        <div className="tier-list-actions">
+          <button
+            className={`tier-list-compare-btn${friend ? ' has-selection' : ''}`}
+            type="button"
+            onClick={() => setComparePicker(value => !value)}
+            aria-expanded={comparePicker}
+            style={friend ? { '--friend-bg': friend.bg, '--friend-color': friend.color } as React.CSSProperties : undefined}
+          >
+            {friend ? (
+              <>
+                <Avatar
+                  avatarUrl={friend.avatarUrl}
+                  initials={friend.initials}
+                  bg={friend.bg}
+                  fg={friend.color}
+                  className="tier-list-compare-chip-avatar"
+                  ariaHidden={true}
+                />
+                <span className="tier-list-compare-chip-label">{friend.name.split(' ')[0]}</span>
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle cx="5.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+                  <circle cx="10.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M1 13c0-2.21 2.015-4 4.5-4s4.5 1.79 4.5 4M10.5 9c2.485 0 4.5 1.79 4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+                <span className="tier-list-compare-chip-label">{t('Compare', 'Comparer')}</span>
+              </>
+            )}
+            <svg className="tier-list-compare-chip-caret" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {comparePicker && (
+            <div className="friend-picker">
+              <button className="friend-picker-clear" type="button" onClick={clearComparison}>
+                {t('No one', 'Personne')}
+              </button>
+              {realFriends.length === 0 && (
+                <p className="friends-muted" style={{ padding: '8px 12px' }}>
+                  Local demo friends for testing comparison.
+                </p>
+              )}
+              {realFriends.map(realFriend => {
+                const initials = realFriend.displayName.slice(0, 2).toUpperCase()
+                const friendShape: Friend = {
+                  initials,
+                  name: realFriend.displayName,
+                  color: realFriend.avatarFg,
+                  bg: realFriend.avatarBg,
+                  count: 0,
+                  avatarUrl: realFriend.avatarUrl,
+                }
+                return (
+                  <button
+                    key={realFriend.otherUser}
+                    className={`friend-picker-item ${friendUserId === realFriend.otherUser ? 'is-active' : ''}`}
+                    onClick={() => selectFriend(friendShape, realFriend.otherUser)}
+                    style={{ '--friend-color': realFriend.avatarFg, '--friend-bg': realFriend.avatarBg } as React.CSSProperties}
+                  >
+                    <Avatar
+                      avatarUrl={realFriend.avatarUrl}
+                      initials={initials}
+                      bg={realFriend.avatarBg}
+                      fg={realFriend.avatarFg}
+                      className="friend-picker-avatar"
+                    />
+                    <span className="friend-picker-name">{realFriend.displayName}</span>
+                    <span className="friend-picker-count">@{realFriend.handle}</span>
+                  </button>
+                )
+              })}
+              {realFriends.length === 0 && FRIENDS.map(demoFriend => (
+                <button
+                  key={demoFriend.initials}
+                  className={`friend-picker-item ${friend?.name === demoFriend.name ? 'is-active' : ''}`}
+                  onClick={() => selectFriend(demoFriend, null)}
+                  style={{ '--friend-color': demoFriend.color, '--friend-bg': demoFriend.bg } as React.CSSProperties}
+                >
+                  <span className="friend-picker-avatar">{demoFriend.initials}</span>
+                  <span className="friend-picker-name">{demoFriend.name}</span>
+                  <span className="friend-picker-count">{demoFriend.count} destinations</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {compareDenied && (
@@ -889,22 +1001,24 @@ export default function TierListPage({
           style={{ '--friend-bg': friend.bg, '--friend-color': friend.color } as React.CSSProperties}
           aria-label={`${t('My rankings', 'Mon classement')} ${t('with', 'avec')} ${friendFirstName}`}
         >
-          {myTiers.length === 0 ? (
-            <p className="tier-list-empty">{t('No destinations', 'Aucune destination')}</p>
-          ) : myTiers.map(tier => (
-            <TierRow
-              key={`versus-${tier}`}
-              tier={tier}
-              myDests={myFiltered}
-              friendDests={friendFiltered}
-              friend={friend}
-              sharedNames={sharedNames}
-              collapsed={collapsed[tier]}
-              isCompareMode={true}
-              onToggle={() => toggleCollapse(tier)}
-              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
-            />
-          ))}
+          <FriendCompareView
+            friend={{
+              otherUser: friendUserId ?? 'demo-friend',
+              handle: friendFirstName.toLowerCase(),
+              displayName: friend.name,
+              avatarBg: friend.bg,
+              avatarFg: friend.color,
+              avatarUrl: friend.avatarUrl,
+              status: 'accepted',
+              initiator: 'me',
+              createdAt: '',
+            }}
+            myDestinations={myFiltered.filter(destination => destination.kind !== 'stop')}
+            theirDestinations={friendFiltered.filter(destination => destination.kind !== 'stop')}
+            onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
+            onSelectTheirs={destination => setPreview({ destination, ownerLabel: friendFirstName, ownerColor: friend.bg })}
+            variant="tier-list-page"
+          />
         </section>
       )}
 

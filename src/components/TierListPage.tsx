@@ -17,7 +17,7 @@ import { FAKE_FRIENDS_MODE, getFakeFriendDestinations } from '../hooks/_fakeFrie
 import { useFriends } from '../hooks/useFriends'
 import { useFriendDestinations } from '../hooks/useFriendDestinations'
 import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
-import { computeTravelerProfile, getDestinationScore, getDestinationTier } from '../utils'
+import { computeTravelerProfile, getDestinationScore, getDestinationTier, scoreToTier } from '../utils'
 import { Avatar } from './Avatar'
 import { SegmentedControl } from './SegmentedControl'
 import FriendCompareView from './friends/FriendCompareView'
@@ -178,18 +178,18 @@ const TIER_DESCRIPTIONS: Record<Tier, string> = {
 }
 
 const TIER_LABEL: Record<Tier, string> = {
-  S: t('Exceptional', 'Exceptionnel'),
+  S: t('Gem', 'Pépite'),
   A: t('Great', 'Génial'),
-  B: t('Decent', 'Correct'),
+  B: t('Nice', 'Sympa'),
   C: t('Meh', 'Bof'),
-  D: t('Avoid', 'À éviter'),
+  D: t('Skip', 'À éviter'),
 }
 
 function filterDestinations(list: Destination[], filter: TierListFilter, compareList: Destination[] = []): Destination[] {
   const compareByName = new Map(compareList.map(destination => [destinationNameKey(destination), destination]))
   const currentYear = new Date().getFullYear()
 
-  return list.filter(destination => {
+  const filtered = list.filter(destination => {
     if (filter === 'recent') return Boolean(destination.tripYear && destination.tripYear >= currentYear - 2)
     if (filter === 'favorites') return Boolean(destination.coupDeCoeur)
     if (filter === 'friends') return destination.companions === 'amis'
@@ -200,18 +200,26 @@ function filterDestinations(list: Destination[], filter: TierListFilter, compare
       return Boolean(theirs && getDestinationTier(theirs) !== getDestinationTier(destination))
     }
     return true
-  }).sort((a, b) => {
-    if (filter === 'recent') return (b.tripYear ?? 0) - (a.tripYear ?? 0)
-    if (filter === 'favorites') return Number(Boolean(b.coupDeCoeur)) - Number(Boolean(a.coupDeCoeur))
-    if (filter === 'disagreements') {
-      const aTier = getDestinationTier(a)
-      const bTier = getDestinationTier(b)
+  })
+
+  if (filter === 'disagreements') {
+    const tiersCache = new Map(
+      [...filtered, ...compareList].map(d => [destinationNameKey(d), getDestinationTier(d)])
+    )
+    return filtered.sort((a, b) => {
+      const aTier = tiersCache.get(destinationNameKey(a)) ?? 'B'
+      const bTier = tiersCache.get(destinationNameKey(b)) ?? 'B'
       const aCompare = compareByName.get(destinationNameKey(a))
       const bCompare = compareByName.get(destinationNameKey(b))
-      const aCompareTier = aCompare ? getDestinationTier(aCompare) : aTier
-      const bCompareTier = bCompare ? getDestinationTier(bCompare) : bTier
+      const aCompareTier = aCompare ? (tiersCache.get(destinationNameKey(aCompare)) ?? aTier) : aTier
+      const bCompareTier = bCompare ? (tiersCache.get(destinationNameKey(bCompare)) ?? bTier) : bTier
       return Math.abs(TIER_RANK[bTier] - TIER_RANK[bCompareTier]) - Math.abs(TIER_RANK[aTier] - TIER_RANK[aCompareTier])
-    }
+    })
+  }
+
+  return filtered.sort((a, b) => {
+    if (filter === 'recent') return (b.tripYear ?? 0) - (a.tripYear ?? 0)
+    if (filter === 'favorites') return Number(Boolean(b.coupDeCoeur)) - Number(Boolean(a.coupDeCoeur))
     return 0
   })
 }
@@ -235,7 +243,7 @@ function DestRow({
   const myScore = getDestinationScore(myDest)
   const friendScore = friendDest ? getDestinationScore(friendDest) : null
   const flagUrl = getCountryFlag(myDest)
-  const tier = getDestinationTier(myDest)
+  const tier = scoreToTier(myScore)
   const colors = TIER_COLORS[tier]
   const intentEmoji = INTENT_EMOJI[myDest.intent]
   const intentLabel = INTENT_LABEL[myDest.intent]
@@ -346,7 +354,7 @@ function ComparisonBanner({
         <Avatar
           avatarUrl={myProfile?.avatarUrl}
           initials={myInitials}
-          bg={myProfile?.avatarBg ?? '#1B5FE8'}
+          bg={myProfile?.avatarBg ?? 'var(--purple)'}
           fg={myProfile?.avatarFg ?? '#ffffff'}
           className="compare-banner-avatar"
           ariaHidden={true}
@@ -508,13 +516,19 @@ function TierRow({
   onSelectMine: (destination: Destination) => void
 }) {
   const colors = TIER_COLORS[tier]
-  const mine = myDests
-    .filter(destination => getDestinationTier(destination) === tier && destination.kind !== 'stop')
-    .sort((a, b) => getDestinationScore(b) - getDestinationScore(a) || a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
-  const friendLookup = new Map(
-    friendDests
-      .filter(destination => destination.kind !== 'stop')
-      .map(destination => [destinationNameKey(destination), destination])
+  const mine = useMemo(() =>
+    myDests
+      .filter(d => getDestinationTier(d) === tier && d.kind !== 'stop')
+      .sort((a, b) => getDestinationScore(b) - getDestinationScore(a) || a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    [myDests, tier]
+  )
+  const friendLookup = useMemo(() =>
+    new Map(
+      friendDests
+        .filter(d => d.kind !== 'stop')
+        .map(d => [destinationNameKey(d), d])
+    ),
+    [friendDests]
   )
   const count = String(mine.length)
 
@@ -755,7 +769,7 @@ export default function TierListPage({
                     {t('No one', 'Personne')}
                   </button>
                   {realFriends.length === 0 && (
-                    <p className="friends-muted" style={{ padding: '8px 12px' }}>
+                    <p className="friends-muted" style={{ padding: 'var(--space-2) var(--space-3)' }}>
                       Local demo friends for testing comparison.
                     </p>
                   )}
@@ -823,7 +837,7 @@ export default function TierListPage({
               <Avatar
                 avatarUrl={myProfile?.avatarUrl}
                 initials={myInitials}
-                bg={myProfile?.avatarBg ?? '#1B5FE8'}
+                bg={myProfile?.avatarBg ?? 'var(--purple)'}
                 fg={myProfile?.avatarFg ?? '#ffffff'}
                 className="tier-list-solo-avatar"
                 ariaHidden={true}
@@ -861,7 +875,7 @@ export default function TierListPage({
           options={visibleFilters.map(filterItem => ({
             value: filterItem,
             label: TIER_FILTER_LABEL[filterItem],
-            accentColor: filterItem === 'favorites' ? '#E14F70' : '#1B5FE8',
+            accentColor: filterItem === 'favorites' ? 'var(--tier-s)' : 'var(--purple)',
           }))}
           onChange={setFilter}
         />
@@ -907,7 +921,7 @@ export default function TierListPage({
                 {t('No one', 'Personne')}
               </button>
               {realFriends.length === 0 && (
-                <p className="friends-muted" style={{ padding: '8px 12px' }}>
+                <p className="friends-muted" style={{ padding: 'var(--space-2) var(--space-3)' }}>
                   Local demo friends for testing comparison.
                 </p>
               )}
@@ -988,7 +1002,7 @@ export default function TierListPage({
               sharedNames={sharedNames}
               collapsed={collapsed[tier]}
               onToggle={() => toggleCollapse(tier)}
-              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
+              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
             />
           ))}
         </section>
@@ -1015,7 +1029,7 @@ export default function TierListPage({
             }}
             myDestinations={myFiltered.filter(destination => destination.kind !== 'stop')}
             theirDestinations={friendFiltered.filter(destination => destination.kind !== 'stop')}
-            onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
+            onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
             onSelectTheirs={destination => setPreview({ destination, ownerLabel: friendFirstName, ownerColor: friend.bg })}
             variant="tier-list-page"
           />
@@ -1064,7 +1078,7 @@ export default function TierListPage({
               sharedNames={sharedNames}
               collapsed={collapsed[tier]}
               onToggle={() => toggleCollapse(tier)}
-              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: '#1B5FE8' })}
+              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
             />
           ))}
         </section>

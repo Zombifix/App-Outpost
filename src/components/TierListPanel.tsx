@@ -28,11 +28,11 @@ interface TierListPanelProps {
 }
 
 const tierLabels: Record<Tier, string> = {
-  S: t('Exceptional', 'Exceptionnel'),
+  S: t('Gem', 'Pépite'),
   A: t('Great', 'Génial'),
-  B: t('Decent', 'Correct'),
+  B: t('Nice', 'Sympa'),
   C: t('Meh', 'Bof'),
-  D: t('Avoid', 'À éviter'),
+  D: t('Skip', 'À éviter'),
 }
 
 type SortMode = 'score' | 'recent'

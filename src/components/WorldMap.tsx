@@ -6,7 +6,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destination, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
-import { getDestinationScore, getDestinationTier } from '../utils'
+import { formatVisitCountLabel, getDestinationScore, getDestinationTier, getVisitCount } from '../utils'
 import { destinationNameKey } from '../utils/destinationIdentity'
 import { haversineMeters } from '../utils/duplicates'
 
@@ -1279,7 +1279,7 @@ export default function WorldMap({
           </button>
         ) : null}
         <div className="legend-items">
-          {[['S','Exceptionnel'],['A','Génial'],['B','Correct'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
+          {[['S','Pépite'],['A','Génial'],['B','Sympa'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
             <span key={tier}>
               <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>
               {label}
@@ -1621,13 +1621,21 @@ const Pin = memo(function Pin({
   const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
   const isLivedThere = Boolean(destination.livedThere)
   const isRoadTrip = isRoadTripTagged(destination)
+  const visitCount = getVisitCount(destination)
+  const isRevisited = visitCount > 1
+  const basePinLabel = destination.kind === 'stage' && destination.tripName
+    ? `${destination.name} · ${destination.tripName}`
+    : destination.name
+  const pinLabel = isRevisited
+    ? `🔥 ${basePinLabel} · ${formatVisitCountLabel(visitCount)}`
+    : basePinLabel
   return (
     <div className={`map-pin-html-root pin-root pin-owner-${owner}${selected ? ' pin-selected' : ''}${isCoupDeCoeur ? ' pin-coup-de-coeur' : ''}`}
        data-lng={destination.lng} data-lat={destination.lat}
        style={rootStyle}>
       <div className="pin-stage" style={{ marginLeft: '-82px', marginTop: '-148px', pointerEvents: 'auto' }}>
           <div
-            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}${isCoupDeCoeur ? ' map-pin--coup-de-coeur' : ''}`}
+            className={`map-pin${isCompact ? ' map-pin--compact' : ''}${destination.kind === 'stage' ? ' map-pin-stage' : ''}${owner === 'friend' ? ' map-pin--friend' : ''}${destination.image ? ' map-pin--has-photo' : ''}${isCoupDeCoeur ? ' map-pin--coup-de-coeur' : ''}${isRevisited ? ' map-pin--revisited' : ''}`}
             draggable={false}
             onPointerDown={stopMarkerEvent}
             onClick={(event) => {
@@ -1652,10 +1660,7 @@ const Pin = memo(function Pin({
             {isRoadTrip && (
               <span className="map-pin-roadtrip" aria-label="Road trip">🚗</span>
             )}
-            <strong>
-              {destination.name}
-              {destination.kind === 'stage' && destination.tripName ? <em> · {destination.tripName}</em> : null}
-            </strong>
+            <strong>{pinLabel}</strong>
             {owner === 'friend' && badge && (
               <em className="pin-friend-badge">
                 {badgeAvatarUrl

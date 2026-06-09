@@ -668,9 +668,9 @@ function getQuickStopSuggestions(state: WizardState, stops: RoadTripStop[]): str
 }
 
 const TIER_LABELS: Record<Tier, string> = {
-  S: 'Exceptionnel',
+  S: 'Pépite',
   A: 'Génial',
-  B: 'Correct',
+  B: 'Sympa',
   C: 'Bof',
   D: 'À éviter',
 }
@@ -799,6 +799,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [visitCountInput, setVisitCountInput] = useState(() => String(state.visitCount))
+  const [revisitEnabled, setRevisitEnabled] = useState(() => state.visitCount > 1)
   const [tripYearInput, setTripYearInput] = useState(() => (state.tripYear ? String(state.tripYear) : ''))
   const initialDurationDraft = decomposeTripDays(state.tripDays)
   const [durationValueInput, setDurationValueInput] = useState(initialDurationDraft.value)
@@ -848,10 +849,13 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const parsedVisitCount = visitCountInput ? Number(visitCountInput) : null
   const visitCountIsValid = parsedVisitCount !== null
     && Number.isInteger(parsedVisitCount)
-    && parsedVisitCount >= 1
+    && parsedVisitCount >= (revisitEnabled ? 2 : 1)
   const visitCountHelperText = visitCountInput.length > 0 && !visitCountIsValid
     ? 'Nombre entier à partir de 1'
     : '1 = première visite'
+  const revisitHelperText = visitCountInput.length > 0 && !visitCountIsValid
+    ? 'Entre 2 et 999'
+    : 'Nombre total de visites'
   const canSubmit = !resolvingImage
     && visitCountIsValid
     && (!needsCoupDeCoeurReplacement || Boolean(state.replaceCoupDeCoeurName))
@@ -877,11 +881,13 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   useEffect(() => {
     setState(prev => ({
       ...prev,
-      visitCount: visitCountIsValid ? parsedVisitCount : prev.visitCount,
+      visitCount: revisitEnabled
+        ? (visitCountIsValid && parsedVisitCount !== null ? parsedVisitCount : Math.max(2, prev.visitCount))
+        : 1,
       tripYear: yearIsInRange ? parsedTripYear : null,
       tripDays: computedTripDays,
     }))
-  }, [computedTripDays, parsedTripYear, visitCountIsValid, parsedVisitCount, yearIsInRange])
+  }, [computedTripDays, parsedTripYear, revisitEnabled, visitCountIsValid, parsedVisitCount, yearIsInRange])
 
   // Fermeture avec garde : demande confirmation si l'utilisateur est en plein
   // questionnaire pour éviter la perte accidentelle de réponses.
@@ -965,6 +971,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     setSelected(r)
     setQuery(r.name + (r.country ? `, ${r.country}` : ''))
     setSuggestions([])
+    setRevisitEnabled(false)
+    setVisitCountInput('1')
     setState(prev => ({
       ...prev,
       name: r.name,
@@ -1343,18 +1351,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
             />
           </label>
-          <label>
-            <span>Nombre de visites</span>
-            <input
-              value={visitCountInput}
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="1"
-              aria-invalid={visitCountInput.length > 0 && !visitCountIsValid}
-              onChange={e => setVisitCountInput(sanitizeDigits(e.target.value, 3))}
-            />
-            <small className={`wizard-field-helper${visitCountInput.length > 0 && !visitCountIsValid ? ' is-invalid' : ''}`}>{visitCountHelperText}</small>
-          </label>
         </div>
       </div>
       <div className="wizard-context-block">
@@ -1377,6 +1373,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         <div className="wizard-context-heading">
           <span>Marqueurs du voyage</span>
         </div>
+        <div className="wizard-marker-stack">
         <div className="wizard-toggle-row" aria-label="Marqueurs du voyage">
           {state.kind === 'zone' && (
             <button
@@ -1420,6 +1417,62 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             </span>
             <span>A vécu là-bas</span>
           </button>
+        </div>
+        <div className="wizard-toggle-row wizard-toggle-row--secondary">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={revisitEnabled}
+            className={`wizard-favorite-toggle wizard-revisit-toggle${revisitEnabled ? ' is-selected' : ''}`}
+            onClick={() => {
+              if (revisitEnabled) {
+                setRevisitEnabled(false)
+                setVisitCountInput('1')
+                return
+              }
+              setRevisitEnabled(true)
+              setVisitCountInput(prev => {
+                const next = prev ? Number(prev) : NaN
+                return Number.isInteger(next) && next >= 2 ? String(next) : '2'
+              })
+            }}
+          >
+            <span className="wizard-favorite-switch" aria-hidden="true">
+              <span>🔥</span>
+            </span>
+            <span>Revisité</span>
+          </button>
+          {revisitEnabled && (
+            <div className="wizard-revisit-inline">
+              <span className="wizard-revisit-label">Visites</span>
+              <div className={`wizard-revisit-stepper${visitCountInput.length > 0 && !visitCountIsValid ? ' is-invalid' : ''}`}>
+                <button
+                  type="button"
+                  aria-label="Retirer une visite"
+                  disabled={!parsedVisitCount || parsedVisitCount <= 2}
+                  onClick={() => setVisitCountInput(String(Math.max(2, (parsedVisitCount ?? 2) - 1)))}
+                >
+                  -
+                </button>
+                <input
+                  value={visitCountInput}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  aria-label="Nombre total de visites"
+                  onChange={e => setVisitCountInput(sanitizeDigits(e.target.value, 3))}
+                />
+                <button
+                  type="button"
+                  aria-label="Ajouter une visite"
+                  onClick={() => setVisitCountInput(String(Math.min(999, Math.max(2, parsedVisitCount ?? 1) + 1)))}
+                >
+                  +
+                </button>
+              </div>
+              <small className={`wizard-field-helper${visitCountInput.length > 0 && !visitCountIsValid ? ' is-invalid' : ''}`}>{revisitHelperText}</small>
+            </div>
+          )}
+        </div>
         </div>
         {needsCoupDeCoeurReplacement && (
           <div className="wizard-replace-choice">

@@ -149,13 +149,11 @@ export function buildDestinationRecommendations({
   currentQuery,
   count = DEFAULT_COUNT,
 }: RecommendationInput): string[] {
-  const excluded = new Set(
-    existingDestinations
-      .map(destination => normalizeSuggestionLabel(destination.name))
-      .filter(Boolean),
-  )
-  const normalizedQuery = currentQuery ? normalizeSuggestionLabel(currentQuery) : ''
-  if (normalizedQuery) excluded.add(normalizedQuery)
+  const excluded = new Set<string>()
+  for (const destination of existingDestinations) {
+    for (const alias of buildSuggestionAliases(destination.name)) excluded.add(alias)
+  }
+  for (const alias of buildSuggestionAliases(currentQuery ?? '')) excluded.add(alias)
 
   const hardBlocked = new Set(
     historyState.recentShown
@@ -205,6 +203,20 @@ function buildNormalizedPools(definition: Record<string, string[]>): Record<stri
   return Object.fromEntries(
     Object.entries(definition).map(([key, value]) => [normalizeSuggestionLabel(key), value]),
   )
+}
+
+function buildSuggestionAliases(value: string): string[] {
+  const normalized = normalizeSuggestionLabel(value)
+  if (!normalized) return []
+
+  const aliases = new Set<string>([normalized])
+  const simplified = normalized
+    .replace(/^(prefecture|province|region|etat|state|county|departement|district)\s+d(?:e|u|es)?\s*/g, '')
+    .replace(/^(ile|iles|archipel)\s+d(?:e|u|es)?\s*/g, '')
+    .trim()
+  if (simplified) aliases.add(simplified)
+
+  return [...aliases]
 }
 
 function buildSoftPenaltyMap(history: string[]): Map<string, number> {

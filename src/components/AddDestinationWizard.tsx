@@ -4,7 +4,7 @@ import { TIER_COLORS } from '../data'
 import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
 import { calculateScore, getMaxCoupDeCoeur, scoreToTier } from '../utils'
-import { buildDestinationRecommendations, emptySuggestionHistoryState } from '../lib/destinationRecommendations'
+import { buildDestinationRecommendations, emptySuggestionHistoryState, pushShownSuggestions } from '../lib/destinationRecommendations'
 import { geoCentroid } from '../lib/geoCentroid'
 import { useSearchSuggestionState } from '../hooks/useSearchSuggestionState'
 import { resolveZoneGeojson } from '../lib/zoneGeometry'
@@ -948,16 +948,19 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   }), [existingDestinations, query])
   const visibleSearchExamples = searchExamples.length > 0 ? searchExamples : fallbackSearchExamples
 
-  const refreshSearchExamples = useCallback((nextQuery?: string) => {
+  const refreshSearchExamples = useCallback((nextQuery?: string, includeCurrentBatch = false) => {
+    const baseHistoryState = includeCurrentBatch
+      ? pushShownSuggestions(searchSuggestionHistory, visibleSearchExamples)
+      : searchSuggestionHistory
     const nextExamples = buildDestinationRecommendations({
       existingDestinations,
-      historyState: searchSuggestionHistory,
+      historyState: baseHistoryState,
       currentQuery: nextQuery,
       count: 4,
     })
     setSearchExamples(nextExamples)
     if (nextExamples.length > 0) recordShownSuggestions(nextExamples)
-  }, [existingDestinations, recordShownSuggestions, searchSuggestionHistory])
+  }, [existingDestinations, recordShownSuggestions, searchSuggestionHistory, visibleSearchExamples])
 
   useEffect(() => {
     if (step === 'search' && inputRef.current) inputRef.current.focus()
@@ -1654,7 +1657,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   className="wizard-search-example"
                   onClick={() => {
                     setQuery(example)
-                    refreshSearchExamples(example)
+                    refreshSearchExamples(example, true)
                     inputRef.current?.focus()
                   }}
                 >

@@ -43,6 +43,7 @@ export function Icon({ name }: { name: string }) {
     search: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
     sort: <><path d="M7 4v16" /><path d="m3 8 4-4 4 4" /><path d="M17 20V4" /><path d="m13 16 4 4 4-4" /></>,
     pin: <><path d="M12 21s-6-5.2-6-11a6 6 0 1 1 12 0c0 5.8-6 11-6 11Z" /><circle cx="12" cy="10" r="2.5" /></>,
+    check: <path d="M20 6 9 17l-5-5" />,
   }
 
   return <svg {...common}>{paths[name] ?? paths.map}</svg>

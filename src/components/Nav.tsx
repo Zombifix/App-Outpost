@@ -232,8 +232,11 @@ export default function Nav({
               </button>
             )
           ) : !viewingFriend ? (
-            <button className="btn btn-primary btn-pill btn-sm share" onClick={onShare}>
-              <Icon name="share" />
+            <button
+              className={`btn btn-primary btn-pill btn-sm share${shareCopied ? ' is-copied' : ''}`}
+              onClick={onShare}
+            >
+              <Icon name={shareCopied ? 'check' : 'share'} />
               {shareCopied ? t('Link copied', 'Lien copié') : t('Share', 'Partager')}
             </button>
           ) : null}

@@ -878,24 +878,19 @@ function AppCore({
   }
 
   const shareTierList = async () => {
+    // Feedback visuel IMMÉDIAT — toujours déclenché au clic, même sans publicId,
+    // pour que le bouton réponde visuellement dans tous les cas.
+    setShareCopied(true)
+    window.setTimeout(() => setShareCopied(false), 1800)
     if (!publicId.trim()) return
     const slug = publicId.trim()
     const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(slug)}`
-    // Feedback visuel IMMÉDIAT : on bascule le label "Partager" → "Lien copie"
-    // avant l'appel au clipboard. Si jamais l'API bloque indéfiniment (popup
-    // permission non résolue, contexte non sécurisé, etc.) l'utilisateur a
-    // quand même un retour, et le presse-papier sera tenté en tâche de fond.
-    setShareCopied(true)
-    window.setTimeout(() => setShareCopied(false), 1800)
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url)
-      } else {
-        throw new Error('Clipboard API unavailable')
       }
     } catch {
-      // Fallback discret : on garde le toast "Lien copié" mais on log le lien
-      // pour permettre une copie manuelle via les devtools si besoin.
+      // Fallback discret : on garde le feedback "Lien copié" mais on log le lien.
       console.warn('[share] clipboard unavailable, link:', url)
     }
   }

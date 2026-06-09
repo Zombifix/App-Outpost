@@ -2637,6 +2637,15 @@ svg {
   background: var(--btn-gradient-primary);
   box-shadow: 0 4px 18px rgba(27, 95, 232, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background 280ms ease, box-shadow 280ms ease, color 280ms ease,
+    transform 100ms ease, filter 140ms ease;
+}
+
+/* État "copié" — flash vert, revient au bleu via transition */
+.top-actions .share.is-copied {
+  background: linear-gradient(135deg, #0d9e6e, #14c88a);
+  box-shadow: 0 4px 18px rgba(13, 158, 110, 0.42);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .top-actions .share-add-friend {

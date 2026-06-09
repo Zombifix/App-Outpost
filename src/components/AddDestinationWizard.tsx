@@ -46,6 +46,17 @@ interface SuggestionItem {
   zoneTypeLabel?: string
 }
 
+const TRIP_YEAR_MIN = 1950
+const TRIP_YEAR_MAX = new Date().getFullYear() + 1
+const DURATION_UNIT_OPTIONS = [
+  { value: 'days', label: 'Jours', days: 1, max: 365 },
+  { value: 'weeks', label: 'Semaines', days: 7, max: 52 },
+  { value: 'months', label: 'Mois', days: 30, max: 12 },
+  { value: 'years', label: '1 an', days: 365, max: 1 },
+] as const
+
+type DurationUnit = typeof DURATION_UNIT_OPTIONS[number]['value']
+
 const ADMIN_ZONE_OSM_VALUES = new Set(['country', 'state', 'region', 'province', 'county', 'department', 'district'])
 const ZONE_OSM_VALUES = new Set([...ADMIN_ZONE_OSM_VALUES, 'island', 'archipelago'])
 const PLACE_OSM_VALUES = new Set(['city', 'town', 'village', 'hamlet', 'suburb', 'locality'])
@@ -78,6 +89,7 @@ interface WizardState {
   vibeBoost: number | null
   retourBonus: number | null
   intent: Intent
+  visitCount: number
   tripYear: number | null
   tripDays: number | null
   companions: Destination['companions'] | null
@@ -110,6 +122,27 @@ function normalizeNullableNumber(value: number | null | undefined) {
   return value == null ? null : value
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function sanitizeDigits(value: string, maxLength?: number) {
+  const digits = value.replace(/\D/g, '')
+  return typeof maxLength === 'number' ? digits.slice(0, maxLength) : digits
+}
+
+function getDurationUnitConfig(unit: DurationUnit) {
+  return DURATION_UNIT_OPTIONS.find(option => option.value === unit) ?? DURATION_UNIT_OPTIONS[0]
+}
+
+function decomposeTripDays(days: number | null | undefined): { value: string; unit: DurationUnit } {
+  if (!days || days <= 0) return { value: '', unit: 'days' }
+  if (days % 365 === 0 && days / 365 <= 1) return { value: String(days / 365), unit: 'years' }
+  if (days % 30 === 0 && days / 30 <= 12) return { value: String(days / 30), unit: 'months' }
+  if (days % 7 === 0 && days / 7 <= 52) return { value: String(days / 7), unit: 'weeks' }
+  return { value: String(days), unit: 'days' }
+}
+
 function buildEditableSnapshot(state: WizardState, stops: RoadTripStop[]) {
   return JSON.stringify({
     food: normalizeNullableNumber(state.food),
@@ -120,6 +153,7 @@ function buildEditableSnapshot(state: WizardState, stops: RoadTripStop[]) {
     ease: normalizeNullableNumber(state.ease),
     vibeBoost: normalizeNullableNumber(state.vibeBoost),
     retourBonus: normalizeNullableNumber(state.retourBonus),
+    visitCount: state.visitCount,
     tripYear: normalizeNullableNumber(state.tripYear),
     tripDays: normalizeNullableNumber(state.tripDays),
     companions: state.companions ?? null,
@@ -392,7 +426,7 @@ async function searchPhoton(
     && Number.isFinite(opts.lat)
     && Number.isFinite(opts.lng)
   let all = shouldBlendNationalAndLocal
-    ? mergePhotonResults(await fetchResults(false), await fetchResults(true))
+    ? await Promise.all([fetchResults(false), fetchResults(true)]).then(([r1, r2]) => mergePhotonResults(r1, r2))
     : await fetchResults(Number.isFinite(opts.lat) && Number.isFinite(opts.lng))
 
   if (opts.kindFilter === 'place') {
@@ -684,6 +718,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           vibeBoost: initialDestination.vibeBoost ?? null,
           retourBonus: initialDestination.retourBonus ?? null,
           intent: initialDestination.intent,
+          visitCount: initialDestination.visitCount ?? 1,
           tripYear: initialDestination.tripYear ?? null,
           tripDays: initialDestination.tripDays ?? null,
           companions: initialDestination.companions ?? null,
@@ -702,6 +737,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           ease: null,
           vibeBoost: null, retourBonus: null,
           intent: 'tourisme',
+          visitCount: 1,
           tripYear: null, tripDays: null, companions: null, personalBudget: null, tripTypes: [], standout: '', standoutTags: [],
           coupDeCoeur: false, livedThere: false, replaceCoupDeCoeurName: '',
         }
@@ -762,6 +798,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const [hasTriggeredRerate, setHasTriggeredRerate] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [visitCountInput, setVisitCountInput] = useState(() => String(state.visitCount))
+  const [tripYearInput, setTripYearInput] = useState(() => (state.tripYear ? String(state.tripYear) : ''))
+  const initialDurationDraft = decomposeTripDays(state.tripDays)
+  const [durationValueInput, setDurationValueInput] = useState(initialDurationDraft.value)
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>(initialDurationDraft.unit)
   const replaceOptions = coupDeCoeurDestinations.filter(destination => destination.name !== initialDestination?.name)
   const needsCoupDeCoeurReplacement = state.coupDeCoeur && !initialDestination?.coupDeCoeur && replaceOptions.length >= getMaxCoupDeCoeur(existingDestinations?.length ?? 0)
   const initialEditSnapshot = useMemo(() => {
@@ -789,6 +830,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       vibeBoost: initialDestination.vibeBoost ?? null,
       retourBonus: initialDestination.retourBonus ?? null,
       intent: initialDestination.intent,
+      visitCount: initialDestination.visitCount ?? 1,
       tripYear: initialDestination.tripYear ?? null,
       tripDays: initialDestination.tripDays ?? null,
       companions: initialDestination.companions ?? null,
@@ -803,9 +845,43 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   }, [initialDestination])
   const currentEditSnapshot = useMemo(() => buildEditableSnapshot(state, stops), [state, stops])
   const hasEditChanges = isEditing && initialEditSnapshot !== currentEditSnapshot
+  const parsedVisitCount = visitCountInput ? Number(visitCountInput) : null
+  const visitCountIsValid = parsedVisitCount !== null
+    && Number.isInteger(parsedVisitCount)
+    && parsedVisitCount >= 1
+  const visitCountHelperText = visitCountInput.length > 0 && !visitCountIsValid
+    ? 'Nombre entier à partir de 1'
+    : '1 = première visite'
   const canSubmit = !resolvingImage
+    && visitCountIsValid
     && (!needsCoupDeCoeurReplacement || Boolean(state.replaceCoupDeCoeurName))
     && (!isEditing || hasEditChanges || hasTriggeredRerate)
+  const selectedDurationUnit = getDurationUnitConfig(durationUnit)
+  const parsedTripYear = tripYearInput.length === 4 ? Number(tripYearInput) : null
+  const yearIsInRange = parsedTripYear !== null && parsedTripYear >= TRIP_YEAR_MIN && parsedTripYear <= TRIP_YEAR_MAX
+  const yearHelperText = tripYearInput.length > 0 && !yearIsInRange
+    ? tripYearInput.length < 4
+      ? 'Entre 4 chiffres'
+      : `Entre ${TRIP_YEAR_MIN} et ${TRIP_YEAR_MAX}`
+    : ''
+  const parsedDurationValue = durationValueInput ? Number(durationValueInput) : null
+  const durationIsValid = parsedDurationValue !== null
+    && Number.isFinite(parsedDurationValue)
+    && parsedDurationValue >= 1
+    && parsedDurationValue <= selectedDurationUnit.max
+  const computedTripDays = durationIsValid ? parsedDurationValue * selectedDurationUnit.days : null
+  const durationHelperText = durationValueInput.length > 0 && !durationIsValid
+    ? `Entre 1 et ${selectedDurationUnit.max} ${selectedDurationUnit.label.toLowerCase()}`
+    : ''
+
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      visitCount: visitCountIsValid ? parsedVisitCount : prev.visitCount,
+      tripYear: yearIsInRange ? parsedTripYear : null,
+      tripDays: computedTripDays,
+    }))
+  }, [computedTripDays, parsedTripYear, visitCountIsValid, parsedVisitCount, yearIsInRange])
 
   // Fermeture avec garde : demande confirmation si l'utilisateur est en plein
   // questionnaire pour éviter la perte accidentelle de réponses.
@@ -1109,6 +1185,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       imageSourceUrl: imageResult.imageSourceUrl,
       imageQuery: imageResult.imageQuery,
       imageSearchVersion: imageResult.imageProvider === 'fallback' ? undefined : AUTO_IMAGE_VERSION,
+      visitCount: s.visitCount,
       tripYear: Number.isFinite(s.tripYear) ? s.tripYear ?? undefined : undefined,
       tripDays: Number.isFinite(s.tripDays) ? s.tripDays ?? undefined : undefined,
       companions: s.companions ?? undefined,
@@ -1213,20 +1290,49 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           <label>
             <span>Année</span>
             <input
-              value={state.tripYear ?? ''}
+              value={tripYearInput}
               inputMode="numeric"
-              placeholder="2024"
-              onChange={e => setState(prev => ({ ...prev, tripYear: e.target.value ? Number(e.target.value) : null }))}
+              autoComplete="off"
+              placeholder="1980"
+              aria-invalid={tripYearInput.length > 0 && !yearIsInRange}
+              onChange={e => setTripYearInput(sanitizeDigits(e.target.value, 4))}
             />
+            {yearHelperText ? <small className="wizard-field-helper is-invalid">{yearHelperText}</small> : null}
           </label>
           <label>
             <span>Durée</span>
-            <input
-              value={state.tripDays ?? ''}
-              inputMode="numeric"
-              placeholder="5 jours"
-              onChange={e => setState(prev => ({ ...prev, tripDays: e.target.value ? Number(e.target.value) : null }))}
-            />
+            <div className={`wizard-duration-field${durationValueInput.length > 0 && !durationIsValid ? ' is-invalid' : ''}`}>
+              <input
+                value={durationValueInput}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="5"
+                aria-invalid={durationValueInput.length > 0 && !durationIsValid}
+                onChange={e => setDurationValueInput(sanitizeDigits(e.target.value, 3))}
+              />
+              <select
+                value={durationUnit}
+                aria-label="Unité de durée"
+                onChange={e => {
+                  const nextUnit = e.target.value as DurationUnit
+                  const nextConfig = getDurationUnitConfig(nextUnit)
+                  setDurationUnit(nextUnit)
+                  setDurationValueInput(prev => {
+                    if (!prev) return prev
+                    const numericValue = Number(prev)
+                    if (!Number.isFinite(numericValue) || numericValue <= 0) return ''
+                    return String(clamp(numericValue, 1, nextConfig.max))
+                  })
+                }}
+              >
+                {DURATION_UNIT_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {durationHelperText ? <small className="wizard-field-helper is-invalid">{durationHelperText}</small> : null}
           </label>
           <label>
             <span>Budget perso</span>
@@ -1236,6 +1342,18 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               placeholder="450 €"
               onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
             />
+          </label>
+          <label>
+            <span>Nombre de visites</span>
+            <input
+              value={visitCountInput}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="1"
+              aria-invalid={visitCountInput.length > 0 && !visitCountIsValid}
+              onChange={e => setVisitCountInput(sanitizeDigits(e.target.value, 3))}
+            />
+            <small className={`wizard-field-helper${visitCountInput.length > 0 && !visitCountIsValid ? ' is-invalid' : ''}`}>{visitCountHelperText}</small>
           </label>
         </div>
       </div>

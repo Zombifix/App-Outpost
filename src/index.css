@@ -9952,6 +9952,21 @@ h3.compare-insight-headline {
   font-size: var(--text-xs);
 }
 
+/* Overlay centré pour le modal Ajouter un ami */
+.friends-modal-overlay {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 16px 24px;
+  z-index: 210;
+}
+
+.friends-modal-overlay .account-panel {
+  position: relative;
+  top: auto;
+  right: auto;
+}
+
 /* Modal d'ajout */
 .friends-add-panel {
   width: min(460px, calc(100vw - 36px));

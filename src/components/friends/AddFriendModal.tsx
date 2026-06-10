@@ -136,7 +136,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
   const trapRef = useFocusTrap<HTMLDivElement>(true)
 
   return (
-    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label={t('Add a friend', 'Ajouter un ami')} onClick={onClose}>
+    <div ref={trapRef} className="account-overlay friends-modal-overlay" role="dialog" aria-modal="true" aria-label={t('Add a friend', 'Ajouter un ami')} onClick={onClose}>
       <aside
         className="account-panel friends-add-panel"
         onClick={e => e.stopPropagation()}

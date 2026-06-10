@@ -7,6 +7,7 @@ import { formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxC
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
+import { t } from '../i18n'
 
 interface DestinationSheetProps {
   destination: Destination
@@ -135,32 +136,116 @@ function getDestinationContext(destination: Destination) {
   return { meta, details, hasContext: meta.length > 0 || details.length > 0 }
 }
 
+type CriterionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease'
+
+const CRITERION_LABELS: Record<CriterionKey, string> = {
+  food: t('Food & Gastronomy', 'Food & Gastronomie'),
+  night: t('Nightlife', 'Vie nocturne'),
+  culture: t('Culture & History', 'Culture & Histoire'),
+  nature: t('Nature & Scenery', 'Nature & Paysages'),
+  value: t('Value for money', 'Rapport qualité-prix'),
+  ease: t('Ease on-site', 'Facilité sur place'),
+}
+
+const CRITERION_ICONS: Record<CriterionKey, string> = {
+  food: 'utensils',
+  night: 'martini',
+  culture: 'temple',
+  nature: 'mountain',
+  value: 'coins',
+  ease: 'compass',
+}
+
+const CRITERION_KEYS: CriterionKey[] = ['food', 'night', 'culture', 'nature', 'value', 'ease']
+
 function getCriteria(destination: Destination) {
-  const base: Array<[string, number, string]> = []
-  if (typeof destination.food === 'number') base.push(['Food & Gastronomy', destination.food, 'utensils'])
-  if (typeof destination.night === 'number') base.push(['Nightlife', destination.night, 'martini'])
-  if (typeof destination.culture === 'number') base.push(['Culture & History', destination.culture, 'temple'])
-  if (typeof destination.nature === 'number') base.push(['Nature & Scenery', destination.nature, 'mountain'])
-  if (typeof destination.value === 'number') base.push(['Value for money', destination.value, 'coins'])
-  if (typeof destination.ease === 'number') {
-    base.push(['Ease on-site', destination.ease, 'compass'])
+  const base: Array<[CriterionKey, number, string]> = []
+  for (const key of CRITERION_KEYS) {
+    const value = destination[key]
+    if (typeof value === 'number') base.push([key, value, CRITERION_ICONS[key]])
   }
   return base
 }
 
-function getComparableCriteria(destination: Destination, compareDestination: Destination) {
-  const mine = new Map(getCriteria(destination).map(([label, value, icon]) => [label, { value, icon }]))
-  return getCriteria(compareDestination).flatMap(([label, compareValue]) => {
-    const current = mine.get(label)
+type CompareCriterion = {
+  key: CriterionKey
+  icon: string
+  mine: number
+  theirs: number
+  gap: number
+}
+
+function getComparableCriteria(destination: Destination, compareDestination: Destination): CompareCriterion[] {
+  const mine = new Map(getCriteria(destination).map(([key, value, icon]) => [key, { value, icon }]))
+  return getCriteria(compareDestination).flatMap(([key, compareValue]) => {
+    const current = mine.get(key)
     if (!current) return []
     return [{
-      label,
+      key,
       icon: current.icon,
       mine: current.value,
       theirs: compareValue,
       gap: Math.abs(current.value - compareValue),
     }]
   })
+}
+
+type CompareBuckets = {
+  aligned: CompareCriterion[]
+  close: CompareCriterion[]
+  gaps: CompareCriterion[]
+}
+
+function classifyCompareCriteria(items: CompareCriterion[]): CompareBuckets {
+  return {
+    aligned: items.filter(item => item.gap === 0),
+    close: items.filter(item => item.gap === 1),
+    gaps: items.filter(item => item.gap >= 2).sort((a, b) => b.gap - a.gap),
+  }
+}
+
+function getGapIndicator(gap: number) {
+  if (gap === 0) return { symbol: '🤝', tone: 'aligned', label: t('Aligned', 'Alignés') }
+  if (gap === 1) return { symbol: '≈', tone: 'close', label: t('Close', 'Proches') }
+  if (gap === 2) return { symbol: '!', tone: 'gap', label: t('Notable gap', 'Écart notable') }
+  return { symbol: '‼', tone: 'big-gap', label: t('Big gap', 'Gros écart') }
+}
+
+function formatCriterionList(items: CompareCriterion[]) {
+  const labels = items.map(item => CRITERION_LABELS[item.key].toLowerCase())
+  if (labels.length <= 1) return labels.join('')
+  return `${labels.slice(0, -1).join(', ')} ${t('and', 'et')} ${labels[labels.length - 1]}`
+}
+
+function getCompareInsight(buckets: CompareBuckets) {
+  const alignedish = [...buckets.aligned, ...buckets.close]
+  const gapCount = buckets.gaps.length
+  const headline = gapCount === 0
+    ? t('Same city, same eyes.', 'Même ville, mêmes yeux.')
+    : gapCount >= alignedish.length
+      ? t('Two very different trips.', 'Deux voyages très différents.')
+      : t('Same city, different reasons.', 'Même ville, autres raisons.')
+
+  const parts: string[] = []
+  if (alignedish.length > 0) {
+    parts.push(t(
+      `You align on ${formatCriterionList(alignedish)}.`,
+      `Vous vous rejoignez sur ${formatCriterionList(alignedish)}.`
+    ))
+  }
+  if (buckets.gaps.length > 0) {
+    parts.push(t(
+      `Biggest gaps: ${formatCriterionList(buckets.gaps)}.`,
+      `Plus gros écarts : ${formatCriterionList(buckets.gaps)}.`
+    ))
+  }
+
+  const footer = t(
+    `${buckets.aligned.length} aligned · ${buckets.close.length} close · ${buckets.gaps.length} gaps`,
+    `${buckets.aligned.length} alignés · ${buckets.close.length} proches · ${buckets.gaps.length} écarts`
+  )
+
+  return { headline, sentence: parts.join(' '), footer }
 }
 
 function getCompareTags(destination: Destination, compareDestination: Destination) {
@@ -175,23 +260,6 @@ function getCompareTags(destination: Destination, compareDestination: Destinatio
   }
 }
 
-function getCompareCompatibility(compareCriteria: Array<{ gap: number }>) {
-  if (!compareCriteria.length) return { score: 0, shared: 0, differences: 0 }
-  const shared = compareCriteria.filter(item => item.gap <= 1).length
-  const differences = compareCriteria.filter(item => item.gap > 1).length
-  const averageGap = compareCriteria.reduce((sum, item) => sum + item.gap, 0) / compareCriteria.length
-  return {
-    score: Math.max(0, Math.min(100, Math.round(100 - averageGap * 16))),
-    shared,
-    differences,
-  }
-}
-
-function formatCompareLabel(mine: number | undefined, theirs: number | undefined, suffix = '') {
-  if (mine == null || theirs == null) return ''
-  const format = (value: number) => `${Math.round(value).toLocaleString('fr-FR')}${suffix}`
-  return `${format(mine)} / ${format(theirs)}`
-}
 
 function formatScore(destination: Destination) {
   return getDestinationScore(destination)
@@ -220,6 +288,54 @@ export default function DestinationSheet(props: DestinationSheetProps) {
     <aside className={`destination-card${isComparison ? ' is-comparison' : ''}`} aria-label={`Detail de ${props.destination.name}`}>
       <DestinationCardContent {...props} />
     </aside>
+  )
+}
+
+function ContextBlock({ context, className, ariaLabel }: {
+  context: ReturnType<typeof getDestinationContext>
+  className?: string
+  ariaLabel: string
+}) {
+  return (
+    <div className={`destination-context${className ? ` ${className}` : ''}`} aria-label={ariaLabel}>
+      {context.meta.length > 0 && (
+        <div className="destination-context-meta">
+          {context.meta.map(item => (
+            <span key={`${item.icon}-${item.label}`}>
+              <Icon name={item.icon} />
+              {item.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {context.details.length > 0 && (
+        <div className="destination-context-details">
+          {context.details.map(item => (
+            <div
+              key={`${item.icon}-${item.label}`}
+              className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+              {item.kind === 'text' ? (
+                <strong>{item.value}</strong>
+              ) : (
+                <div className="destination-context-chips">
+                  {item.chips.map(chip => (
+                    <span
+                      key={chip.label}
+                      className={`destination-context-chip destination-context-chip--${chip.tone}`}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -367,9 +483,13 @@ function DestinationCardContent({
     () => mineDestination && compareDestination ? getCompareTags(mineDestination, compareDestination) : { common: [], mineOnly: [], theirsOnly: [] },
     [mineDestination, compareDestination]
   )
-  const compareCompatibility = useMemo(
-    () => getCompareCompatibility(compareCriteria),
+  const compareInsight = useMemo(
+    () => getCompareInsight(classifyCompareCriteria(compareCriteria)),
     [compareCriteria]
+  )
+  const mineContext = useMemo(
+    () => (mineDestination ? getDestinationContext(mineDestination) : null),
+    [mineDestination]
   )
   const displayTier = getDisplayTier(destination)
 
@@ -517,6 +637,11 @@ function DestinationCardContent({
         className="destination-hero"
         style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
       >
+        <span className={`tier-orb destination-hero-badge tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
+        <div className="destination-hero-overlay">
+        <h2 className="destination-hero-title">
+          {destination.name}{destination.country && destination.country !== destination.name ? `, ${destination.country}` : ''}
+        </h2>
         <div className="destination-hero-pills">
           {compareWith && (
             <span className="intent-pill destination-hero-pill">
@@ -552,21 +677,26 @@ function DestinationCardContent({
             </button>
           )}
         </div>
+        </div>
       </div>
       {cardActions}
       </div>
-      <div className="destination-title-row">
-        <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
-        <div>
-          <h2>{destination.name}{destination.country && destination.country !== destination.name ? `, ${destination.country}` : ''}</h2>
-        </div>
-      </div>
+      <div className="destination-body-sheet">
       {compareWith && (
         <section className="sheet-compare-banner" aria-label="Comparison in progress">
           <div className="sheet-compare-banner-copy">
-            <strong>Comparing with {firstName}</strong>
+            <span
+              className="compare-banner-avatar"
+              style={{ background: compareWith.friend.avatarBg, color: compareWith.friend.avatarFg }}
+              aria-hidden="true"
+            >
+              {compareWith.friend.avatarUrl
+                ? <img src={compareWith.friend.avatarUrl} alt="" />
+                : (firstName.slice(0, 1).toUpperCase() || '?')}
+            </span>
+            <strong>{t('Comparing with', 'Comparaison avec')} {firstName}</strong>
             {isFriendOnlyComparison && (
-              <small>You have not visited or rated this destination yet.</small>
+              <small>{t('You have not visited or rated this destination yet.', 'Tu n’as pas encore visité ou noté cette destination.')}</small>
             )}
           </div>
           {onExitCompare && (
@@ -575,7 +705,7 @@ function DestinationCardContent({
               className="sheet-compare-banner-action"
               onClick={onExitCompare}
             >
-              Exit
+              {t('Exit', 'Quitter')}
             </button>
           )}
         </section>
@@ -685,182 +815,110 @@ function DestinationCardContent({
         </div>
       )}
       {!compareWith && context.hasContext && (
-        <div className="destination-context" aria-label="Contexte du voyage">
-          {context.meta.length > 0 && (
-            <div className="destination-context-meta">
-              {context.meta.map(item => (
-                <span key={`${item.icon}-${item.label}`}>
-                  <Icon name={item.icon} />
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          )}
-          {context.details.length > 0 && (
-            <div className="destination-context-details">
-              {context.details.map(item => (
-                <div
-                  key={`${item.icon}-${item.label}`}
-                  className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
-                >
-                  <Icon name={item.icon} />
-                  <span>{item.label}</span>
-                  {item.kind === 'text' ? (
-                    <strong>{item.value}</strong>
-                  ) : (
-                    <div className="destination-context-chips">
-                      {item.chips.map(chip => (
-                        <span
-                          key={chip.label}
-                          className={`destination-context-chip destination-context-chip--${chip.tone}`}
-                        >
-                          {chip.label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ContextBlock context={context} ariaLabel="Contexte du voyage" />
       )}
       {compareWith && (
         <>
           <div className="compare-meta" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
             <div className="compare-meta-list">
-              {mineDestination?.tripYear && compareDestination?.tripYear && (
+              {compareDestination?.tripYear && (
                 <span className="compare-meta-item">
                   <Icon name="calendar" />
-                  {mineDestination.tripYear} / {compareDestination.tripYear}
+                  {t(`${firstName} in ${compareDestination.tripYear}`, `${firstName} en ${compareDestination.tripYear}`)}
                 </span>
               )}
-              {mineDestination?.tripDays && compareDestination?.tripDays && (
+              {compareDestination?.tripDays && (
                 <span className="compare-meta-item">
                   <Icon name="clock" />
-                  {mineDestination.tripDays}d / {compareDestination.tripDays}d
+                  {firstName} {compareDestination.tripDays}{t('d', 'j')}
                 </span>
               )}
-              {mineDestination?.personalBudget && compareDestination?.personalBudget && (
+              {compareDestination?.personalBudget && (
                 <span className="compare-meta-item">
                   <Icon name="coins" />
-                  {formatCompareLabel(
-                    mineDestination.personalBudget / Math.max(mineDestination.tripDays ?? 1, 1),
-                    compareDestination.personalBudget / Math.max(compareDestination.tripDays ?? 1, 1),
-                    ' EUR/d'
-                  )}
+                  {firstName} ~{Math.round(compareDestination.personalBudget / Math.max(compareDestination.tripDays ?? 1, 1)).toLocaleString('fr-FR')} EUR/{t('d', 'j')}
                 </span>
-              )}
-              {isFriendOnlyComparison && (
-                <>
-                  {compareDestination?.tripYear && (
-                    <span className="compare-meta-item">
-                      <Icon name="calendar" />
-                      {compareWith.friend.displayName.split(' ')[0]}: {compareDestination.tripYear}
-                    </span>
-                  )}
-                  {compareDestination?.tripDays && (
-                    <span className="compare-meta-item">
-                      <Icon name="clock" />
-                      {compareWith.friend.displayName.split(' ')[0]}: {compareDestination.tripDays}d
-                    </span>
-                  )}
-                  {compareDestination?.personalBudget && (
-                    <span className="compare-meta-item">
-                      <Icon name="coins" />
-                      {compareWith.friend.displayName.split(' ')[0]}: {Math.round(compareDestination.personalBudget).toLocaleString('fr-FR')} EUR
-                    </span>
-                  )}
-                </>
               )}
             </div>
           </div>
 
           {mineDestination && compareDestination ? (
-            <section className="compare-sheet-card" aria-label="Compatibility">
-              <div className="compare-sheet-score">
-                <span>Compatibility</span>
-                <strong>{compareCompatibility.score}%</strong>
-                <em>match</em>
-              </div>
-              <div className="compare-sheet-stats">
-                <div className="compare-sheet-stat compare-sheet-stat--ok">
-                  <span>OK</span>
-                  {compareCompatibility.shared} shared criteria
-                </div>
-                <div className="compare-sheet-stat compare-sheet-stat--warn">
-                  <span>!</span>
-                  {compareCompatibility.differences} notable differences
-                </div>
-              </div>
-            </section>
+            compareCriteria.length > 0 && (
+              <section className="compare-insight" aria-label={t('Comparison insight', 'Lecture de la comparaison')}>
+                <span className="card-section-label">{t('Comparison insight', 'Lecture de la comparaison')}</span>
+                <h3 className="compare-insight-headline">{compareInsight.headline}</h3>
+                {compareInsight.sentence && <p className="compare-insight-sentence">{compareInsight.sentence}</p>}
+                <span className="compare-insight-footer">{compareInsight.footer}</span>
+              </section>
+            )
           ) : (
-            <section className="compare-sheet-card compare-sheet-card--friend-only" aria-label={`${compareWith.friend.displayName} rating`}>
-              <div className="compare-sheet-score">
-                <span>{compareWith.friend.displayName.split(' ')[0]}'s rating</span>
-                <strong>{formatScore(compareDestination ?? destination)}</strong>
-                <em>{getDisplayTier(compareDestination ?? destination)}</em>
-              </div>
-              <div className="compare-sheet-stats">
-                <div className="compare-sheet-stat compare-sheet-stat--ok">
-                  <span>FYI</span>
-                  Friend data is available for this destination.
-                </div>
-                <div className="compare-sheet-stat compare-sheet-stat--warn">
-                  <span>!</span>
-                  Add it to your journal to compare your experience side by side.
-                </div>
-              </div>
+            <section className="compare-insight compare-insight--friend-only" aria-label={`${compareWith.friend.displayName} rating`}>
+              <span className="card-section-label">{t(`${firstName}'s rating`, `La note de ${firstName}`)}</span>
+              <h3 className="compare-insight-headline">
+                {formatScore(compareDestination ?? destination)} · {t('Tier', 'Tier')} {getDisplayTier(compareDestination ?? destination)}
+              </h3>
+              <p className="compare-insight-sentence">
+                {t(
+                  'Add this destination to your journal to compare your experiences side by side.',
+                  'Ajoute cette destination à ton carnet pour comparer vos expériences côte à côte.'
+                )}
+              </p>
             </section>
           )}
 
           {(mineDestination && compareDestination) ? (
-            <section className="compare-tag-groups" aria-label="Compared highlights">
-              {compareTags.common.length > 0 && (
-                <div className="compare-tag-group">
-                  <h3>In common ({compareTags.common.length})</h3>
-                  <div className="compare-tag-list">
-                    {compareTags.common.map(tag => <span key={tag} className="compare-tag compare-tag--common">{tag}</span>)}
+            (compareTags.mineOnly.length > 0 || compareTags.common.length > 0 || compareTags.theirsOnly.length > 0) && (
+              <section className="compare-takeaways" aria-label={t('Takeaways', 'Ce qui a marqué')}>
+                <span className="card-section-label">{t('Takeaways', 'Ce qui a marqué')}</span>
+                {compareTags.mineOnly.length > 0 && (
+                  <div className="compare-takeaways-row">
+                    <span className="compare-takeaways-who compare-takeaways-who--you">{t('You', 'Toi')}</span>
+                    <div className="compare-takeaways-chips">
+                      {compareTags.mineOnly.map(tag => (
+                        <span key={tag} className="compare-takeaway-chip compare-takeaway-chip--you">{tag}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              {(compareTags.mineOnly.length > 0 || compareTags.theirsOnly.length > 0) && (
-                <div className={`compare-tag-columns${compareTags.mineOnly.length === 0 || compareTags.theirsOnly.length === 0 ? ' is-single' : ''}`}>
-                  {compareTags.mineOnly.length > 0 && (
-                    <div className="compare-tag-column">
-                      <h3>Yours only ({compareTags.mineOnly.length})</h3>
-                      <div className="compare-tag-list">
-                        {compareTags.mineOnly.map(tag => <span key={tag} className="compare-tag compare-tag--mine">{tag}</span>)}
-                      </div>
+                )}
+                {compareTags.common.length > 0 && (
+                  <div className="compare-takeaways-row">
+                    <span className="compare-takeaways-who compare-takeaways-who--both">{t('Both', 'En commun')}</span>
+                    <div className="compare-takeaways-chips">
+                      {compareTags.common.map(tag => (
+                        <span key={tag} className="compare-takeaway-chip compare-takeaway-chip--both">{tag}</span>
+                      ))}
                     </div>
-                  )}
-                  {compareTags.theirsOnly.length > 0 && (
-                    <div className="compare-tag-column">
-                      <h3>{compareWith.friend.displayName.split(' ')[0]} only ({compareTags.theirsOnly.length})</h3>
-                      <div className="compare-tag-list">
-                        {compareTags.theirsOnly.map(tag => <span key={tag} className="compare-tag compare-tag--theirs">{tag}</span>)}
-                      </div>
+                  </div>
+                )}
+                {compareTags.theirsOnly.length > 0 && (
+                  <div className="compare-takeaways-row">
+                    <span className="compare-takeaways-who compare-takeaways-who--friend">{firstName}</span>
+                    <div className="compare-takeaways-chips">
+                      {compareTags.theirsOnly.map(tag => (
+                        <span key={tag} className="compare-takeaway-chip compare-takeaway-chip--friend">{tag}</span>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
-            </section>
+                  </div>
+                )}
+              </section>
+            )
           ) : context.hasContext ? (
-            <section className="compare-tag-groups compare-tag-groups--friend-only" aria-label={`${compareWith.friend.displayName} trip details`}>
-              <div className="compare-tag-group">
-                <h3>{compareWith.friend.displayName.split(' ')[0]}'s trip details</h3>
-                <div className="compare-tag-list">
+            <section className="compare-takeaways" aria-label={`${compareWith.friend.displayName} trip details`}>
+              <span className="card-section-label">{t(`${firstName}'s trip`, `Le voyage de ${firstName}`)}</span>
+              <div className="compare-takeaways-row">
+                <span className="compare-takeaways-who compare-takeaways-who--friend">{firstName}</span>
+                <div className="compare-takeaways-chips">
                   {context.details.flatMap(item => (
                     item.kind === 'text'
-                      ? [<span key={`${item.label}-${item.value}`} className="compare-tag compare-tag--theirs">{item.label}: {item.value}</span>]
+                      ? [<span key={`${item.label}-${item.value}`} className="compare-takeaway-chip compare-takeaway-chip--friend">{item.label}: {item.value}</span>]
                       : item.chips.map(chip => (
-                        <span key={`${item.label}-${chip.label}`} className="compare-tag compare-tag--theirs">
+                        <span key={`${item.label}-${chip.label}`} className="compare-takeaway-chip compare-takeaway-chip--friend">
                           {chip.label}
                         </span>
                       ))
                   ))}
                   {context.details.length === 0 && context.meta.map(item => (
-                    <span key={`${item.icon}-${item.label}`} className="compare-tag compare-tag--theirs">
+                    <span key={`${item.icon}-${item.label}`} className="compare-takeaway-chip compare-takeaway-chip--friend">
                       {item.label}
                     </span>
                   ))}
@@ -870,35 +928,46 @@ function DestinationCardContent({
           ) : null}
         </>
       )}
-      <h3>Ratings by criterion</h3>
+      <h3 className="card-section-label card-section-title">{t('Ratings by criterion', 'Notes par critère')}</h3>
       {compareWith && compareCriteria.length > 0 ? (
-        <div className="criteria-compare" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
-          <div className="criteria-compare-head">
+        <div className="compare-ratings" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
+          <div className="compare-ratings-head">
             <span />
+            <strong className="cr-head cr-head--you">{t('You', 'Toi')}</strong>
+            <strong className="cr-head cr-head--friend">{firstName}</strong>
             <span />
-            <strong>You</strong>
-            <strong>{compareWith.friend.displayName.split(' ')[0]}</strong>
-            <strong>Gap</strong>
           </div>
-          <div className="criteria-compare-list">
-            {compareCriteria.map(item => (
-              <div className="criteria-compare-row" key={item.label}>
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-                <strong>{item.mine.toFixed(1).replace('.', ',')}</strong>
-                <strong>{item.theirs.toFixed(1).replace('.', ',')}</strong>
-                <strong>{item.gap.toFixed(1).replace('.', ',')}</strong>
-              </div>
-            ))}
+          <div className="compare-ratings-list">
+            {compareCriteria.map(item => {
+              const gapInfo = getGapIndicator(item.gap)
+              return (
+                <div className="compare-ratings-row" key={item.key}>
+                  <span className="cr-label">
+                    <Icon name={item.icon} />
+                    {CRITERION_LABELS[item.key]}
+                  </span>
+                  <span className="cr-chip cr-chip--you">{item.mine.toFixed(1).replace('.', ',')}</span>
+                  <span className="cr-chip cr-chip--friend">{item.theirs.toFixed(1).replace('.', ',')}</span>
+                  <span
+                    className={`cr-gap cr-gap--${gapInfo.tone}`}
+                    role="img"
+                    title={gapInfo.label}
+                    aria-label={gapInfo.label}
+                  >
+                    {gapInfo.symbol}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       ) : (
         <div className="criteria-list">
-          {criteria.map(([label, value, icon]) => (
-            <div className="criterion" key={label}>
+          {criteria.map(([key, value, icon]) => (
+            <div className="criterion" key={key}>
               <Icon name={icon} />
-              <span>{label}</span>
-              <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
+              <span>{CRITERION_LABELS[key]}</span>
+              <strong className="cr-chip cr-chip--you">{Number(value).toFixed(1).replace('.', ',')}</strong>
             </div>
           ))}
         </div>
@@ -906,9 +975,21 @@ function DestinationCardContent({
       {compareWith && criteria.length === 0 && (
         <p className="compare-fallback-empty">
           {isFriendOnlyComparison
-            ? `${compareWith.friend.displayName.split(' ')[0]} has not added detailed criterion ratings for this destination yet.`
-            : 'One of the two profiles is missing detailed criterion ratings for this destination.'}
+            ? t(
+                `${firstName} has not added detailed criterion ratings for this destination yet.`,
+                `${firstName} n’a pas encore noté cette destination en détail.`
+              )
+            : t(
+                'One of the two profiles is missing detailed criterion ratings for this destination.',
+                'L’un des deux profils n’a pas de notes détaillées pour cette destination.'
+              )}
         </p>
+      )}
+      {compareWith && mineContext?.hasContext && (
+        <section className="compare-your-trip" aria-label={t('Your trip', 'Ton voyage')}>
+          <span className="card-section-label">{t('Your trip', 'Ton voyage')}</span>
+          <ContextBlock context={mineContext} ariaLabel={t('Your trip context', 'Contexte de ton voyage')} />
+        </section>
       )}
       {tripsHereByName.length > 0 && (
         <div className="sheet-cross-links">
@@ -940,6 +1021,7 @@ function DestinationCardContent({
           </ul>
         </div>
       )}
+      </div>
         </>
       )}
     </>
@@ -1009,6 +1091,7 @@ function RoadTripCardContent({
       {cardActions}
       </div>
 
+      <div className="destination-body-sheet">
       <div className="destination-title-row roadtrip-title-row">
         {displayTier && <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>}
         <div>
@@ -1026,53 +1109,15 @@ function RoadTripCardContent({
       </section>
 
       {context.hasContext && (
-        <div className="destination-context roadtrip-context" aria-label="Contexte du road trip">
-          {context.meta.length > 0 && (
-            <div className="destination-context-meta">
-              {context.meta.map(item => (
-                <span key={`${item.icon}-${item.label}`}>
-                  <Icon name={item.icon} />
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          )}
-          {context.details.length > 0 && (
-            <div className="destination-context-details">
-              {context.details.map(item => (
-                <div
-                  key={`${item.icon}-${item.label}`}
-                  className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
-                >
-                  <Icon name={item.icon} />
-                  <span>{item.label}</span>
-                  {item.kind === 'text' ? (
-                    <strong>{item.value}</strong>
-                  ) : (
-                    <div className="destination-context-chips">
-                      {item.chips.map(chip => (
-                        <span
-                          key={chip.label}
-                          className={`destination-context-chip destination-context-chip--${chip.tone}`}
-                        >
-                          {chip.label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ContextBlock context={context} className="roadtrip-context" ariaLabel="Contexte du road trip" />
       )}
 
       <h3>Overall ratings</h3>
       <div className="criteria-list">
-        {criteria.map(([label, value, icon]) => (
-          <div className="criterion" key={label}>
+        {criteria.map(([key, value, icon]) => (
+          <div className="criterion" key={key}>
             <Icon name={icon} />
-            <span>{label}</span>
+            <span>{CRITERION_LABELS[key]}</span>
             <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
           </div>
         ))}
@@ -1111,6 +1156,7 @@ function RoadTripCardContent({
           <p className="roadtrip-empty">Add stops to tell the story of the route without having to rate each city.</p>
         )}
       </section>
+      </div>
     </>
   )
 }

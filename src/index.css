@@ -5500,7 +5500,7 @@ h3.compare-insight-headline {
 }
 
 .account-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 140;
   background: rgba(23, 33, 58, 0.08);

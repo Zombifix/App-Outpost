@@ -5,9 +5,10 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { TIER_COLORS } from '../data'
 import { formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, getVisitCount } from '../utils'
 import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils/duplicates'
+import { optimizedImageUrl } from '../utils/imageUrl'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
-import { t } from '../i18n'
+import { lang, t } from '../i18n'
 
 interface DestinationSheetProps {
   destination: Destination
@@ -46,11 +47,11 @@ const FULL_RATIO = 0.08
 const CLOSE_RATIO = 0.85
 
 const COMPANION_LABELS: Record<NonNullable<Destination['companions']>, string> = {
-  solo: 'Solo',
-  couple: 'Couple',
-  amis: 'Friends',
-  famille: 'Family',
-  travail: 'Work',
+  solo: t('Solo', 'Solo'),
+  couple: t('Couple', 'En couple'),
+  amis: t('Friends', 'Entre amis'),
+  famille: t('Family', 'En famille'),
+  travail: t('Work', 'Travail'),
 }
 
 function formatEuro(value: number) {
@@ -58,12 +59,12 @@ function formatEuro(value: number) {
 }
 
 const INTENT_LABELS: Record<Destination['intent'], string> = {
-  tourisme: 'Tourism',
-  sorties: 'Nightlife',
-  gastro: 'Food & Gastronomy',
-  nature: 'Nature',
-  travail: 'Work',
-  'city-trip': 'City trip',
+  tourisme: t('Tourism', 'Tourisme'),
+  sorties: t('Nightlife', 'Sorties'),
+  gastro: t('Food & Gastronomy', 'Food & Gastronomie'),
+  nature: t('Nature', 'Nature'),
+  travail: t('Work', 'Travail'),
+  'city-trip': t('City trip', 'City trip'),
 }
 
 const INTENT_EMOJIS: Record<Destination['intent'], string> = {
@@ -97,26 +98,26 @@ function getDestinationContext(destination: Destination) {
     meta.push({ icon: 'calendar', label: String(destination.tripYear) })
   }
   if (destination.tripDays) {
-    meta.push({ icon: 'clock', label: `${destination.tripDays} day${destination.tripDays > 1 ? 's' : ''}` })
+    meta.push({ icon: 'clock', label: `${destination.tripDays} ${t('day', 'jour')}${destination.tripDays > 1 ? 's' : ''}` })
   }
   if (visitCount > 1) {
-    meta.push({ icon: 'flame', label: formatVisitCountLabel(visitCount, 'en') })
+    meta.push({ icon: 'flame', label: formatVisitCountLabel(visitCount, lang) })
   }
   if (destination.personalBudget) {
     const perDay = destination.tripDays ? destination.personalBudget / destination.tripDays : destination.personalBudget
     meta.push({
       icon: 'coins',
-      label: destination.tripDays ? `~${formatEuro(perDay)}/day` : `~${formatEuro(destination.personalBudget)}`,
+      label: destination.tripDays ? `~${formatEuro(perDay)}${t('/day', '/jour')}` : `~${formatEuro(destination.personalBudget)}`,
     })
   }
   if (destination.companions) {
-    details.push({ kind: 'text', icon: 'users', label: 'With', value: COMPANION_LABELS[destination.companions] })
+    details.push({ kind: 'text', icon: 'users', label: t('With', 'Avec'), value: COMPANION_LABELS[destination.companions] })
   }
   if (destination.tripTypes?.length) {
     details.push({
       kind: 'chips',
       icon: 'sliders',
-      label: 'Type',
+      label: t('Type', 'Type'),
       chips: destination.tripTypes.map(label => ({ label, tone: 'neutral' as const })),
     })
   }
@@ -125,7 +126,7 @@ function getDestinationContext(destination: Destination) {
     details.push({
       kind: 'chips',
       icon: 'sparkles',
-      label: 'Highlights',
+      label: t('Highlights', 'Points marquants'),
       chips: standoutValues.map(label => ({
         label,
         tone: STANDOUT_FLOP_LABELS.has(label) ? ('negative' as const) : ('positive' as const),
@@ -285,7 +286,7 @@ export default function DestinationSheet(props: DestinationSheetProps) {
 
   if (useSheetLayout) return <MobileSheet {...props} />
   return (
-    <aside className={`destination-card${isComparison ? ' is-comparison' : ''}`} aria-label={`Detail de ${props.destination.name}`}>
+    <aside className={`destination-card${isComparison ? ' is-comparison' : ''}`} aria-label={t(`Details: ${props.destination.name}`, `Détail de ${props.destination.name}`)}>
       <DestinationCardContent {...props} />
     </aside>
   )
@@ -425,7 +426,7 @@ function MobileSheet(props: DestinationSheetProps) {
       <aside
         ref={sheetRef}
         className={`destination-sheet is-${snap}${isComparison ? ' is-comparison' : ''}${isDragging ? ' is-dragging' : ''}`}
-        aria-label={`Details: ${props.destination.name}`}
+        aria-label={t(`Details: ${props.destination.name}`, `Détail de ${props.destination.name}`)}
         onClick={e => e.stopPropagation()}
         style={style}
         onPointerDown={onPointerDown}
@@ -436,7 +437,7 @@ function MobileSheet(props: DestinationSheetProps) {
         <button
           type="button"
           className="destination-sheet-handle"
-          aria-label={snap === 'peek' ? 'Expand' : 'Collapse'}
+          aria-label={snap === 'peek' ? t('Expand', 'Agrandir') : t('Collapse', 'Réduire')}
           onClick={() => setSnap(s => s === 'peek' ? 'full' : 'peek')}
         >
           <span className="destination-sheet-grabber" />
@@ -529,7 +530,7 @@ function DestinationCardContent({
         : undefined
       seen.set(ev.actor, {
         userId: ev.actor,
-        displayName: ev.actorDisplayName ?? ev.actorHandle ?? 'A friend',
+        displayName: ev.actorDisplayName ?? ev.actorHandle ?? t('A friend', 'Un ami'),
         handle: ev.actorHandle,
         bg: ev.actorAvatarBg,
         fg: ev.actorAvatarFg,
@@ -572,7 +573,7 @@ function DestinationCardContent({
       <div className="floating-kebab-wrap">
         <button
           className={`card-kebab${menuOpen ? ' is-open' : ''}`}
-          aria-label="Options"
+          aria-label={t('Options', 'Options')}
           aria-expanded={menuOpen}
           onClick={() => { setMenuOpen(v => !v); setConfirmDelete(false) }}
         >
@@ -582,33 +583,33 @@ function DestinationCardContent({
           <div className="card-kebab-menu">
             <button onClick={() => { closeMenu(); onFocus() }}>
               <Icon name="map" />
-              Focus on map
+              {t('Focus on map', 'Centrer sur la carte')}
             </button>
             {canEditOwnDestination && (
               <button onClick={() => { closeMenu(); onEdit(destination) }}>
                 <Icon name="edit" />
-                Edit
+                {t('Edit', 'Modifier')}
               </button>
             )}
             {canEditOwnDestination && (
               <button className="danger" onClick={() => setConfirmDelete(true)}>
                 <Icon name="trash" />
-                Delete
+                {t('Delete', 'Supprimer')}
               </button>
             )}
           </div>
         )}
         {menuOpen && confirmDelete && (
           <div className="card-kebab-menu card-delete-confirm">
-            <p>Delete <strong>{destination.name}</strong>?</p>
+            <p>{t('Delete', 'Supprimer')} <strong>{destination.name}</strong>{t('?', ' ?')}</p>
             <div className="confirm-actions">
-              <button onClick={closeMenu}>Cancel</button>
-              <button className="danger" onClick={() => onDelete(destination.name)}>Confirm</button>
+              <button onClick={closeMenu}>{t('Cancel', 'Annuler')}</button>
+              <button className="danger" onClick={() => onDelete(destination.name)}>{t('Confirm', 'Confirmer')}</button>
             </div>
           </div>
         )}
       </div>
-      <button className="floating-close" aria-label="Close details" onClick={onClose}>
+      <button className="floating-close" aria-label={t('Close details', 'Fermer le détail')} onClick={onClose}>
         <Icon name="x" />
       </button>
     </div>
@@ -633,10 +634,16 @@ function DestinationCardContent({
       ) : (
         <>
       <div className="destination-hero-wrap">
-      <div
-        className="destination-hero"
-        style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
-      >
+      <div className="destination-hero">
+        {destination.image && (
+          <img
+            className="destination-hero-img"
+            src={optimizedImageUrl(destination.image)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
         <span className={`tier-orb destination-hero-badge tier-${displayTier.toLowerCase()}`}>{displayTier}</span>
         <div className="destination-hero-overlay">
         <h2 className="destination-hero-title">
@@ -646,7 +653,7 @@ function DestinationCardContent({
           {compareWith && (
             <span className="intent-pill destination-hero-pill">
               <Icon name="users" />
-              You + {compareWith.friend.displayName.split(' ')[0]}
+              {t('You', 'Toi')} + {compareWith.friend.displayName.split(' ')[0]}
             </span>
           )}
           {destination.intent && (
@@ -658,22 +665,22 @@ function DestinationCardContent({
           {canEditOwnDestination && coupDeCoeur ? (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
-              aria-label="Remove from favorites"
-              title="Favorite — remove"
+              aria-label={t('Remove from favorites', 'Retirer des coups de cœur')}
+              title={t('Favorite — remove', 'Coup de cœur — retirer')}
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Favorite
+              {t('Favorite', 'Coup de cœur')}
             </button>
           ) : canEditOwnDestination && !coupDeCoeurDisabled && (
             <button
               className="coup-de-coeur-button destination-hero-favorite"
-              aria-label="Add to favorites"
-              title="Add to favorites"
+              aria-label={t('Add to favorites', 'Ajouter aux coups de cœur')}
+              title={t('Add to favorites', 'Ajouter aux coups de cœur')}
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Favorite
+              {t('Favorite', 'Coup de cœur')}
             </button>
           )}
         </div>
@@ -683,7 +690,7 @@ function DestinationCardContent({
       </div>
       <div className="destination-body-sheet">
       {compareWith && (
-        <section className="sheet-compare-banner" aria-label="Comparison in progress">
+        <section className="sheet-compare-banner" aria-label={t('Comparison in progress', 'Comparaison en cours')}>
           <div className="sheet-compare-banner-copy">
             <span
               className="compare-banner-avatar"
@@ -711,18 +718,20 @@ function DestinationCardContent({
         </section>
       )}
       {isFriendOnlyComparison && compareDestination && (
-        <section className="compare-fallback-note" aria-label="Your travel status">
-          <strong>Not in your journal yet</strong>
+        <section className="compare-fallback-note" aria-label={t('Your travel status', 'Ton statut de voyage')}>
+          <strong>{t('Not in your journal yet', 'Pas encore dans ton carnet')}</strong>
           <p>
-            {compareWith?.friend.displayName.split(' ')[0]} has been to {compareDestination.name}.
-            You have not visited or rated this destination yet.
+            {t(
+              `${compareWith?.friend.displayName.split(' ')[0]} has been to ${compareDestination.name}. You have not visited or rated this destination yet.`,
+              `${compareWith?.friend.displayName.split(' ')[0]} est allé à ${compareDestination.name}. Tu n’as pas encore visité ou noté cette destination.`
+            )}
           </p>
         </section>
       )}
       {!compareWith && friendVisitors.length > 0 && (
         <div
           className={`friend-visitors${visitorPickerOpen ? ' is-popover-open' : ''}`}
-          aria-label="Friends who've been there"
+          aria-label={t("Friends who've been there", 'Amis qui y sont allés')}
           ref={visitorPickerRef}
         >
           <button
@@ -749,10 +758,10 @@ function DestinationCardContent({
           </button>
           <span className="friend-visitors-text">
             {friendVisitors.length === 1
-              ? <><strong>{friendVisitors[0].displayName}</strong> has been there</>
+              ? <><strong>{friendVisitors[0].displayName}</strong> {t('has been there', 'y est déjà allé')}</>
               : friendVisitors.length <= 3
-                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} and <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> have been there</>
-                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} and {friendVisitors.length - 2} other{friendVisitors.length - 2 > 1 ? 's' : ''} have been there</>
+                ? <>{friendVisitors.slice(0, -1).map(v => v.displayName).join(', ')} {t('and', 'et')} <strong>{friendVisitors[friendVisitors.length - 1].displayName}</strong> {t('have been there', 'y sont déjà allés')}</>
+                : <><strong>{friendVisitors[0].displayName}</strong>, {friendVisitors[1].displayName} {t('and', 'et')} {friendVisitors.length - 2} {t('other', 'autre')}{friendVisitors.length - 2 > 1 ? 's' : ''} {t('have been there', 'y sont déjà allés')}</>
             }
           </span>
           {compareableVisitor && onCompareFriend && (
@@ -761,7 +770,10 @@ function DestinationCardContent({
               className="friend-visitors-action"
               onClick={() => onCompareFriend(compareableVisitor.userId)}
             >
-              Compare with {compareableVisitor.displayName.split(' ')[0]}
+              {t(
+                `Compare with ${compareableVisitor.displayName.split(' ')[0]}`,
+                `Comparer avec ${compareableVisitor.displayName.split(' ')[0]}`
+              )}
             </button>
           )}
           {hasMultipleVisitors && (
@@ -773,10 +785,10 @@ function DestinationCardContent({
                 aria-haspopup="menu"
                 aria-expanded={visitorPickerOpen}
               >
-                Compare with…
+                {t('Compare with…', 'Comparer avec…')}
               </button>
               {visitorPickerOpen && (
-                <div className="friend-visitors-popover" role="menu" aria-label="Choose a friend to compare">
+                <div className="friend-visitors-popover" role="menu" aria-label={t('Choose a friend to compare', 'Choisis un ami à comparer')}>
                   {friendVisitors.map(visitor => (
                     <button
                       key={visitor.userId}
@@ -796,7 +808,10 @@ function DestinationCardContent({
                       </span>
                       <span className="friend-visitors-option-copy">
                         <strong>{visitor.displayName}</strong>
-                        <small>Compare with {visitor.displayName.split(' ')[0]}</small>
+                        <small>{t(
+                          `Compare with ${visitor.displayName.split(' ')[0]}`,
+                          `Comparer avec ${visitor.displayName.split(' ')[0]}`
+                        )}</small>
                       </span>
                       {visitor.tier && (
                         <span
@@ -815,11 +830,11 @@ function DestinationCardContent({
         </div>
       )}
       {!compareWith && context.hasContext && (
-        <ContextBlock context={context} ariaLabel="Contexte du voyage" />
+        <ContextBlock context={context} ariaLabel={t('Trip context', 'Contexte du voyage')} />
       )}
       {compareWith && (
         <>
-          <div className="compare-meta" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
+          <div className="compare-meta" aria-label={t(`Comparison with ${compareWith.friend.displayName}`, `Comparaison avec ${compareWith.friend.displayName}`)}>
             <div className="compare-meta-list">
               {compareDestination?.tripYear && (
                 <span className="compare-meta-item">
@@ -852,7 +867,7 @@ function DestinationCardContent({
               </section>
             )
           ) : (
-            <section className="compare-insight compare-insight--friend-only" aria-label={`${compareWith.friend.displayName} rating`}>
+            <section className="compare-insight compare-insight--friend-only" aria-label={t(`${compareWith.friend.displayName} rating`, `Note de ${compareWith.friend.displayName}`)}>
               <span className="card-section-label">{t(`${firstName}'s rating`, `La note de ${firstName}`)}</span>
               <h3 className="compare-insight-headline">
                 {formatScore(compareDestination ?? destination)} · {t('Tier', 'Tier')} {getDisplayTier(compareDestination ?? destination)}
@@ -903,7 +918,7 @@ function DestinationCardContent({
               </section>
             )
           ) : context.hasContext ? (
-            <section className="compare-takeaways" aria-label={`${compareWith.friend.displayName} trip details`}>
+            <section className="compare-takeaways" aria-label={t(`${compareWith.friend.displayName} trip details`, `Détails du voyage de ${compareWith.friend.displayName}`)}>
               <span className="card-section-label">{t(`${firstName}'s trip`, `Le voyage de ${firstName}`)}</span>
               <div className="compare-takeaways-row">
                 <span className="compare-takeaways-who compare-takeaways-who--friend">{firstName}</span>
@@ -930,7 +945,7 @@ function DestinationCardContent({
       )}
       <h3 className="card-section-label card-section-title">{t('Ratings by criterion', 'Notes par critère')}</h3>
       {compareWith && compareCriteria.length > 0 ? (
-        <div className="compare-ratings" aria-label={`Comparison with ${compareWith.friend.displayName}`}>
+        <div className="compare-ratings" aria-label={t(`Comparison with ${compareWith.friend.displayName}`, `Comparaison avec ${compareWith.friend.displayName}`)}>
           <div className="compare-ratings-head">
             <span />
             <strong className="cr-head cr-head--you">{t('You', 'Toi')}</strong>
@@ -993,12 +1008,12 @@ function DestinationCardContent({
       )}
       {tripsHereByName.length > 0 && (
         <div className="sheet-cross-links">
-          <p className="sheet-cross-links-title">Also a stop in</p>
+          <p className="sheet-cross-links-title">{t('Also a stop in', 'Aussi une étape de')}</p>
           <ul>
             {tripsHereByName.map(([tripName, info]) => {
               const stageLabel = info.stages.length
-                ? `stop #${info.stages.join(', #')}`
-                : 'itinerary'
+                ? `${t('stop', 'étape')} #${info.stages.join(', #')}`
+                : t('itinerary', 'itinéraire')
               return (
                 <li key={tripName}>
                   <span className="trip-dot" style={{ '--trip-color': info.color } as CSSProperties} />
@@ -1063,27 +1078,33 @@ function RoadTripCardContent({
   return (
     <>
       <div className="destination-hero-wrap">
-      <div
-        className="destination-hero roadtrip-hero"
-        style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
-      >
+      <div className="destination-hero roadtrip-hero">
+        {destination.image && (
+          <img
+            className="destination-hero-img"
+            src={optimizedImageUrl(destination.image)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
         <div className="destination-hero-pills">
           <span className="intent-pill destination-hero-pill">
             <Icon name="map" />
-            Road trip
+            {t('Road trip', 'Road trip')}
           </span>
           <span className="intent-pill destination-hero-pill">
-            {stageCount} stop{stageCount > 1 ? 's' : ''}
+            {stageCount} {t('stop', 'étape')}{stageCount > 1 ? 's' : ''}
           </span>
           {canEditOwnDestination && coupDeCoeur && (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
-              aria-label="Remove from favorites"
-              title="Favorite — remove"
+              aria-label={t('Remove from favorites', 'Retirer des coups de cœur')}
+              title={t('Favorite — remove', 'Coup de cœur — retirer')}
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Favorite
+              {t('Favorite', 'Coup de cœur')}
             </button>
           )}
         </div>
@@ -1096,23 +1117,26 @@ function RoadTripCardContent({
         {displayTier && <span className={`tier-orb tier-${displayTier.toLowerCase()}`}>{displayTier}</span>}
         <div>
           <h2>{destination.name}</h2>
-          <p className="roadtrip-title-sub">Overall trip experience</p>
+          <p className="roadtrip-title-sub">{t('Overall trip experience', 'Expérience globale du voyage')}</p>
         </div>
       </div>
 
-      <section className="roadtrip-score-card" aria-label="Overall road trip rating">
+      <section className="roadtrip-score-card" aria-label={t('Overall road trip rating', 'Note globale du road trip')}>
         <div>
-          <span>Overall rating</span>
+          <span>{t('Overall rating', 'Note globale')}</span>
           <strong>{score}</strong>
         </div>
-        <p>Rate the road trip as the experience you actually lived. Stops tell the story of the route; detail a city only if it deserves its own entry.</p>
+        <p>{t(
+          'Rate the road trip as the experience you actually lived. Stops tell the story of the route; detail a city only if it deserves its own entry.',
+          'Note le road trip comme l’expérience que tu as vraiment vécue. Les étapes racontent la route ; détaille une ville seulement si elle mérite sa propre fiche.'
+        )}</p>
       </section>
 
       {context.hasContext && (
-        <ContextBlock context={context} className="roadtrip-context" ariaLabel="Contexte du road trip" />
+        <ContextBlock context={context} className="roadtrip-context" ariaLabel={t('Road trip context', 'Contexte du road trip')} />
       )}
 
-      <h3>Overall ratings</h3>
+      <h3>{t('Overall ratings', 'Notes globales')}</h3>
       <div className="criteria-list">
         {criteria.map(([key, value, icon]) => (
           <div className="criterion" key={key}>
@@ -1123,10 +1147,10 @@ function RoadTripCardContent({
         ))}
       </div>
 
-      <section className="roadtrip-itinerary" aria-label="Road trip itinerary">
+      <section className="roadtrip-itinerary" aria-label={t('Road trip itinerary', 'Itinéraire du road trip')}>
         <div className="roadtrip-section-head">
-          <h3>Itinerary</h3>
-          <span>{validStops.length} stop{validStops.length > 1 ? 's' : ''}</span>
+          <h3>{t('Itinerary', 'Itinéraire')}</h3>
+          <span>{validStops.length} {t('stop', 'étape')}{validStops.length > 1 ? 's' : ''}</span>
         </div>
         {validStops.length > 0 ? (
           <ol className="roadtrip-timeline">
@@ -1138,14 +1162,14 @@ function RoadTripCardContent({
                   <div className="roadtrip-step-body">
                     <div>
                       <strong>{stop.name}</strong>
-                      <span>Route stop</span>
+                      <span>{t('Route stop', 'Étape du parcours')}</span>
                     </div>
                     {linkedDestination && linkedDestination.name !== destination.name ? (
                       <button type="button" onClick={() => onOpenDestination?.(linkedDestination.name)}>
-                        See entry
+                        {t('See entry', 'Voir la fiche')}
                       </button>
                     ) : (
-                      <em>Itinerary</em>
+                      <em>{t('Itinerary', 'Itinéraire')}</em>
                     )}
                   </div>
                 </li>
@@ -1153,7 +1177,10 @@ function RoadTripCardContent({
             })}
           </ol>
         ) : (
-          <p className="roadtrip-empty">Add stops to tell the story of the route without having to rate each city.</p>
+          <p className="roadtrip-empty">{t(
+            'Add stops to tell the story of the route without having to rate each city.',
+            'Ajoute des étapes pour raconter la route sans devoir noter chaque ville.'
+          )}</p>
         )}
       </section>
       </div>

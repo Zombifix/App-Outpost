@@ -74,6 +74,8 @@ export default function Nav({
   const activeFilterCount = [
     filters.coupDeCoeur,
     filters.thisYear,
+    filters.livedThere,
+    filters.visitedMultiple,
     filters.companions !== 'all',
     filters.budget !== 'all',
   ].filter(Boolean).length
@@ -175,6 +177,12 @@ export default function Nav({
                   </button>
                   <button type="button" className={filters.thisYear ? 'is-active' : ''} onPointerDown={() => updateFilters({ thisYear: !filters.thisYear })}>
                     📅 {t('This year', 'Cette année')}
+                  </button>
+                  <button type="button" className={filters.livedThere ? 'is-active' : ''} onPointerDown={() => updateFilters({ livedThere: !filters.livedThere })}>
+                    🏠 {t('Lived there', 'A vécu ici')}
+                  </button>
+                  <button type="button" className={filters.visitedMultiple ? 'is-active' : ''} onPointerDown={() => updateFilters({ visitedMultiple: !filters.visitedMultiple })}>
+                    🔁 {t('Revisited', 'Revisité')}
                   </button>
                 </div>
                 <div className="filter-duration">

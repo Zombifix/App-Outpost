@@ -15,6 +15,7 @@ import type { SaveOptions } from './components/AddDestinationWizard'
 import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
+import { optimizedImageUrl } from './utils/imageUrl'
 import { computeTravelerProfile, formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, getVisitCount, withRecalculatedScore } from './utils'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
@@ -42,6 +43,8 @@ type View = 'map' | 'tier-list' | 'explore' | 'friends'
 export type DestinationFilters = {
   coupDeCoeur: boolean
   thisYear: boolean
+  livedThere: boolean
+  visitedMultiple: boolean
   companions: 'all' | 'solo' | 'amis' | 'famille'
   budget: 'all' | '$' | '$$' | '$$$'
 }
@@ -54,6 +57,8 @@ const VALID_OSM_TYPES: NonNullable<Destination['osmType']>[] = ['N', 'W', 'R', '
 const DEFAULT_FILTERS: DestinationFilters = {
   coupDeCoeur: false,
   thisYear: false,
+  livedThere: false,
+  visitedMultiple: false,
   companions: 'all',
   budget: 'all',
 }
@@ -705,6 +710,8 @@ function AppCore({
     const filtered = destinations.filter(destination => {
       if (filters.coupDeCoeur && !destination.coupDeCoeur) return false
       if (filters.thisYear && destination.tripYear !== currentYear) return false
+      if (filters.livedThere && !destination.livedThere) return false
+      if (filters.visitedMultiple && (!destination.visitCount || destination.visitCount < 2)) return false
       if (filters.companions !== 'all') {
         const c = destination.companions
         if (filters.companions === 'amis' && c !== 'amis' && c !== 'couple') return false
@@ -2024,10 +2031,16 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
 
   return (
     <aside className="destination-card" aria-label={`Detail de ${destination.name}`}>
-      <div
-        className="destination-hero"
-        style={{ backgroundImage: destination.image ? `url(${destination.image})` : undefined }}
-      >
+      <div className="destination-hero">
+        {destination.image && (
+          <img
+            className="destination-hero-img"
+            src={optimizedImageUrl(destination.image)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
         <div className="destination-card-actions">
           <div className="floating-kebab-wrap">
             <button

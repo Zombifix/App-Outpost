@@ -151,7 +151,7 @@ export default function AddFriendModal({ onClose }: AddFriendModalProps) {
         </p>
 
         <SegmentedControl
-          className="friends-tabs"
+          className="account-tabs"
           ariaLabel={t('Add a friend', 'Ajouter un ami')}
           role="tablist"
           size="sm"

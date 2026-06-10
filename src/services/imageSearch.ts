@@ -1,6 +1,7 @@
 import type { Destination, DestinationImageSource, RoadTripStop } from '../types'
 import { supabase } from '../lib/supabase'
 import { buildDestinationKey } from '../utils/destinationKey'
+import { optimizedImageUrl } from '../utils/imageUrl'
 
 export interface DestinationImageResult {
   destinationKey: string
@@ -112,7 +113,7 @@ function toImageResult(
   if (!payload.imageUrl || !payload.imageSource) return null
   return {
     destinationKey: payload.destinationKey ?? destinationKey,
-    image: payload.imageUrl,
+    image: optimizedImageUrl(payload.imageUrl),
     imageProvider: payload.imageSource,
     imageAuthor: payload.photographerName,
     imageSourceUrl: payload.sourceUrl,

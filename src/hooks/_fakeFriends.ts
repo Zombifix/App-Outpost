@@ -131,6 +131,7 @@ const BRUNO_DESTS: Destination[] = [
   dest('Tokyo',    'Japon',        35.6762, 139.6503, 'S', img('1503899036084-c55cdd92da26'), { food: 5, night: 5, culture: 5, nature: 3, value: 3 }, 'tourisme', 4.9, 'jp'),
   dest('Kyoto',    'Japon',        35.0116, 135.7681, 'S', img('1528360983277-13d401cdc186'), { food: 5, night: 3, culture: 5, nature: 5, value: 4 }, 'tourisme', 4.8, 'jp'),
   dest('Osaka',    'Japon',        34.6937, 135.5023, 'A', img('1590559899731-a382839e5549'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'gastro', 4.5, 'jp'),
+  dest('Porto',    'Portugal',     41.1579, -8.6291,  'A', img('1555881400-74d7acaacd8b'), { food: 4, night: 4, culture: 1, nature: 4, value: 5 }, 'tourisme', 4.0, 'pt'),
   dest('Séoul',    'Corée du Sud', 37.5665, 126.9780, 'A', img('1538485399081-7a06146d59f2'), { food: 5, night: 5, culture: 4, nature: 3, value: 4 }, 'tourisme', 4.5, 'kr'),
   dest('Taipei',   'Taïwan',       25.0330, 121.5654, 'B', img('1552751753-0fc24f0bb31a'), { food: 5, night: 4, culture: 4, nature: 3, value: 5 }, 'gastro', 4.2, 'tw'),
   dest('Hanoï',    'Vietnam',      21.0285, 105.8542, 'B', img('1528127269322-539801943592'), { food: 5, night: 3, culture: 4, nature: 4, value: 5 }, 'tourisme', 4.0, 'vn'),

@@ -7,6 +7,16 @@
       "runtimeArgs": ["run", "dev"],
       "port": 4747,
       "autoPort": true
+    },
+    {
+      "name": "wander-fake-friends",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 4747,
+      "autoPort": true,
+      "env": {
+        "VITE_FAKE_FRIENDS": "1"
+      }
     }
   ]
 }

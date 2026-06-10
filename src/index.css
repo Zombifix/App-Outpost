@@ -3488,7 +3488,12 @@ svg {
   margin-top: -20px;
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
   background: #fff;
-  padding: 18px 14px 18px;
+  padding: 20px 16px 20px;
+}
+
+/* The wider compare card breathes a bit more. */
+.destination-card.is-comparison .destination-body-sheet {
+  padding: 22px 18px 24px;
 }
 
 .card-section-label {
@@ -3502,7 +3507,7 @@ svg {
 }
 
 h3.card-section-title {
-  margin: 16px 8px 10px;
+  margin: 22px 8px 12px;
 }
 
 /* === Mobile bottom sheet (rendered only when viewport <=760px) === */
@@ -3617,7 +3622,7 @@ h3.card-section-title {
 .destination-sheet-body .destination-body-sheet {
   margin-left: -16px;
   margin-right: -16px;
-  padding: 18px 16px 8px;
+  padding: 20px 16px 10px;
 }
 
 .destination-sheet.is-comparison .destination-sheet-body .destination-hero {
@@ -4143,7 +4148,7 @@ h3.card-section-title {
 }
 
 .sheet-compare-banner {
-  margin: 0 8px 14px;
+  margin: 0 8px 16px;
   padding: 10px 12px;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(27, 95, 232, 0.07), rgba(27, 95, 232, 0.025));
@@ -4192,7 +4197,7 @@ h3.card-section-title {
 .compare-meta-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
 .compare-meta-item {
@@ -4238,11 +4243,11 @@ h3.card-section-title {
 }
 
 .compare-insight {
-  margin: 12px 8px 0;
-  padding: 14px 16px;
+  margin: 16px 8px 0;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   border-radius: var(--radius-xl);
   background: linear-gradient(180deg, #fffaf5 0%, rgba(27, 95, 232, 0.05) 100%);
   box-shadow: inset 0 0 0 1px #efe4d8;
@@ -4272,7 +4277,7 @@ h3.compare-insight-headline {
 }
 
 .compare-insight-footer {
-  margin-top: 8px;
+  margin-top: 10px;
   color: #7d8aa3;
   font-size: var(--text-2xs);
   font-weight: var(--weight-medium);
@@ -4280,10 +4285,10 @@ h3.compare-insight-headline {
 }
 
 .compare-takeaways {
-  margin: 14px 8px 0;
+  margin: 20px 8px 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
 }
 
 .compare-takeaways-row {
@@ -4352,7 +4357,7 @@ h3.compare-insight-headline {
 }
 
 .compare-ratings-head {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
@@ -4372,8 +4377,8 @@ h3.compare-insight-headline {
 .compare-ratings-list {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  padding-top: 7px;
+  gap: 11px;
+  padding-top: 10px;
   border-top: 1px solid #ece8e1;
 }
 
@@ -4432,8 +4437,8 @@ h3.compare-insight-headline {
 .cr-gap--big-gap { color: #e34b4f; letter-spacing: 0.05em; }
 
 .compare-your-trip {
-  margin: 16px 8px 0;
-  padding-top: 14px;
+  margin: 22px 8px 0;
+  padding-top: 16px;
   border-top: 1px solid #ece8e1;
 }
 
@@ -4467,7 +4472,7 @@ h3.compare-insight-headline {
 .criteria-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 11px;
   padding: 0 8px;
 }
 
@@ -6053,8 +6058,17 @@ h3.compare-insight-headline {
 }
 
 @media (min-width: 1101px) {
+  /* Compare card scales with the viewport instead of a fixed 450px:
+     ~450px on a laptop, up to 620px on 2K+ screens. */
   .travel-app.destination-compare-open {
-    --card-w: 450px;
+    --card-w: clamp(450px, 34vw, 620px);
+  }
+}
+
+/* Wide screens: the solo card gets a bit more room too. */
+@media (min-width: 1700px) {
+  :root {
+    --card-w: 350px;
   }
 }
 

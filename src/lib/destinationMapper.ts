@@ -6,6 +6,10 @@ import type { Destination, Intent, RoadTripStop, Tier } from '../types'
  * Toutes les colonnes du schéma `destinations` (cf. migrations 001 + 008) sont
  * mappées ici, afin d'éviter la dérive entre `useFriendDestinations` (lecture
  * amis) et `useMyDestinations` (lecture/écriture du carnet courant).
+ *
+ * Les champs optionnels marqués "absent côté amis" ne sont pas renvoyés par le
+ * RPC get_public_destinations (migration 022, principe du moindre privilège) :
+ * ils n'existent que sur les lignes du carnet courant.
  */
 
 export interface DbDestinationRow {
@@ -25,23 +29,23 @@ export interface DbDestinationRow {
   nature: number | null
   value: number | null
   ease: number | null
-  memorability: number | null
+  memorability?: number | null // absent côté amis (legacy)
   score: number | null
-  notes: number | null
+  notes?: number | null // absent côté amis
   stops: unknown
   extent: number[] | null
   geojson: unknown
-  state: string | null
-  osm_value: string | null
+  state?: string | null // absent côté amis
+  osm_value?: string | null // absent côté amis
   osm_id: number | null
   osm_type: string | null
   country_code: string | null
   image: string | null
   image_provider: string | null
-  image_author: string | null
-  image_source_url: string | null
-  image_query: string | null
-  image_search_version: number | null
+  image_author?: string | null // absent côté amis
+  image_source_url?: string | null // absent côté amis
+  image_query?: string | null // absent côté amis
+  image_search_version?: number | null // absent côté amis
   summary: string | null
   trip_name: string | null
   visit_count: number | null

@@ -1,7 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Destination, Intent, MapVisibility, RoadTripStop, Tier } from './types'
-import type { ContinentBucket } from './utils'
 import { useMyDestinations } from './hooks/useMyDestinations'
 import { useFocusTrap } from './hooks/useFocusTrap'
 import WorldMap from './components/WorldMap'
@@ -16,7 +15,8 @@ import DuplicateFoundModal from './components/DuplicateFoundModal'
 import { findDuplicate } from './utils/duplicates'
 import { destinationNameKey, destinationNameSet } from './utils/destinationIdentity'
 import { optimizedImageUrl } from './utils/imageUrl'
-import { computeTravelerProfile, formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, getVisitCount, withRecalculatedScore } from './utils'
+import { formatVisitCountLabel, getDestinationScore, getDestinationTier, getMaxCoupDeCoeur, getVisitCount, withRecalculatedScore } from './utils'
+import { TravelerProfileCard, TravelerProfileStrip } from './components/TravelerProfileCard'
 import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 import { Avatar } from './components/Avatar'
@@ -63,35 +63,12 @@ const DEFAULT_FILTERS: DestinationFilters = {
   budget: 'all',
 }
 
-const PROFILE_ACHIEVEMENT_ICONS: Record<string, string> = {
-  'note-merit': '⭐',
-  'good-public': '🌟',
-  'heart-rare': '🤍',
-  'heart-easy': '💗',
-  'return-ticket': '🔥',
-  terrain: '📍',
-  'continent-compass': '🧭',
-  'soft-addition': '💶',
-  'budget-control': '💶',
-  'weekend-profit': '🗓️',
-  'wide-gap': '🌍',
-  'culture-sling': '🏛️',
-  'plate-priority': '🍽️',
-  'documented-trouble': '⚠️',
-  'seasoned-book': '📘',
-  'outside-comfort': '🌿',
-}
-
 function getAvatarFallbackLabel(...labels: Array<string | null | undefined>) {
   for (const label of labels) {
     const normalized = label?.trim()
     if (normalized) return normalized
   }
   return '·'
-}
-
-function getProfileAchievementIcon(key: string, icon: string) {
-  return PROFILE_ACHIEVEMENT_ICONS[key] ?? icon
 }
 
 type DesktopLegendMode = 'stacked-left' | 'bottom-left' | 'overlay-bottom'
@@ -1060,6 +1037,18 @@ function AppCore({
           </div>
         </div>
       )}
+      {/* Profil voyageur de l'ami, visible d'office quand son carnet est ouvert —
+          le gating est implicite : `destinations` ne contient ses lignes que si le
+          RPC get_public_destinations a autorisé l'accès. Replié en chip sur mobile. */}
+      {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length > 0 && (
+        <div className="friend-profile-overlay">
+          <TravelerProfileStrip
+            destinations={destinations}
+            expandable
+            defaultCollapsed={isMobileLayout}
+          />
+        </div>
+      )}
       {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length === 0 && (
         <div className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
@@ -1333,108 +1322,6 @@ function ExploreView(_props: { destinations: Destination[]; onSelect: (name: str
         </p>
       </section>
     </main>
-  )
-}
-
-const ACCOUNT_CONTINENT_META: Record<ContinentBucket, { label: string; icon: string; color: string; soft: string }> = {
-  Europe: { label: 'Europe', icon: '🍷', color: '#ef7b73', soft: '#fff1f1' },
-  Asie: { label: 'Asia', icon: '🏮', color: '#f7bd42', soft: '#fff7dd' },
-  Ameriques: { label: 'Americas', icon: '🌎', color: '#45c489', soft: '#e8fbf2' },
-  Afrique: { label: 'Africa', icon: '🌍', color: '#f0934e', soft: '#fff2e6' },
-  Oceanie: { label: 'Oceania', icon: '🌊', color: '#56a8f5', soft: '#eaf5ff' },
-  Autre: { label: 'Other', icon: '🧭', color: '#94a3b8', soft: '#f1f5f9' },
-}
-
-function TravelerProfileCard({ destinations }: { destinations: Destination[] }) {
-  const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
-  const { total, confidence, countries, title, subtitle, behaviorTags, achievements, territories } = profile
-  const stackSegments = territories
-
-  return (
-    <div className="account-profile-card" aria-label="Profil voyageur">
-      {total === 0 && (
-        <div className="account-profile-empty">
-          <strong>Profil en rodage</strong>
-          <span>Ajoute des destinations pour laisser le carnet commencer à parler.</span>
-        </div>
-      )}
-
-      {total > 0 && (
-        <>
-          <section className="account-profile-title-block" aria-label="Archétype voyageur">
-            <span className="account-profile-title-icon" aria-hidden="true">✦</span>
-            <div>
-              <h3>{title}</h3>
-              {subtitle && <p>{subtitle}</p>}
-              {behaviorTags.length > 0 && (
-                <ul className="account-profile-inline-traits" aria-label="Traits du profil voyageur">
-                  {behaviorTags.map(tag => <li key={tag.key}>{tag.label}</li>)}
-                </ul>
-              )}
-            </div>
-          </section>
-
-          {achievements.length > 0 && (
-            <section className="account-profile-achievements" aria-label="Succès voyageur">
-              {achievements.map(achievement => (
-                <article key={achievement.key} className={`account-profile-tag account-profile-tag--${achievement.tone ?? 'blue'}`}>
-                  <span className="account-profile-tag-icon" aria-hidden="true">{getProfileAchievementIcon(achievement.key, achievement.icon)}</span>
-                  <span className="account-profile-tag-body">
-                    <strong>{achievement.title}</strong>
-                    <span>{achievement.detail}</span>
-                  </span>
-                </article>
-              ))}
-            </section>
-          )}
-        </>
-      )}
-
-      {stackSegments.length > 0 && confidence !== 'empty' && confidence !== 'low' && confidence !== 'light' && (
-        <section className="account-profile-continents" aria-label="Boussole du carnet">
-          <div className="account-profile-section-head">
-            <h4>Boussole du carnet</h4>
-            <span>{countries} pays visités</span>
-          </div>
-          <div className="account-continent-stack" aria-hidden="true">
-            {stackSegments.map(territory => (
-              <span
-                key={territory.key}
-                className="account-continent-stack-segment"
-                style={{
-                  '--continent-color': ACCOUNT_CONTINENT_META[territory.key].color,
-                  width: `${Math.max(8, Math.round(territory.pct))}%`,
-                } as CSSProperties}
-              />
-            ))}
-          </div>
-          <div className="account-continent-list">
-            {stackSegments.map(territory => {
-              const meta = ACCOUNT_CONTINENT_META[territory.key]
-              return (
-                <div key={territory.key} className="account-continent-row">
-                  <span
-                    className="account-continent-icon"
-                    style={{
-                      '--continent-color': meta.color,
-                      '--continent-soft': meta.soft,
-                    } as CSSProperties}
-                    aria-hidden="true"
-                  >
-                    {meta.icon}
-                  </span>
-                  <strong>{territory.label}</strong>
-                  <span className="account-continent-meter" aria-hidden="true">
-                    <span style={{ width: `${Math.max(8, Math.round(territory.pct))}%`, background: meta.color }} />
-                  </span>
-                  <span className="account-continent-pct">{Math.round(territory.pct)}%</span>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
-    </div>
   )
 }
 

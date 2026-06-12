@@ -16030,19 +16030,44 @@ h3.compare-insight-headline {
   padding-inline: 2px;
 }
 
+/* Pills harmonisées : même verre dépoli que les chips du hero.
+   Intent = emoji + texte ; cœur/partagé = icône seule, même géométrie. */
 .dest-row-signal {
-  width: 36px;
-  height: 36px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.84);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 246, 253, 0.84));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 4px 10px rgba(44, 70, 105, 0.05);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 10px rgba(44, 70, 105, 0.06);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   color: #5477a4;
-  font-size: 16px;
+  font-size: 13px;
+}
+
+.dest-row-signal-label {
+  font-size: 11px;
+  font-weight: var(--weight-semibold, 600);
+  color: rgba(62, 83, 118, 0.8);
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dest-row-signal--heart,
+.dest-row-signal--shared {
+  padding: 0;
+  width: 30px;
+  font-size: 14px;
 }
 
 .dest-row-signal--heart {
@@ -16250,7 +16275,10 @@ h3.compare-insight-headline {
   }
 
   .tier-list-filter-row .segmented-control__list {
-    width: 100%;
+    /* fit-content : la piste de verre s'arrête au dernier bouton au lieu de
+       continuer dans le vide (visible en compare avec ses 3 options). */
+    width: fit-content;
+    max-width: 100%;
     justify-content: flex-start;
     gap: 4px;
     padding: 5px;
@@ -16920,8 +16948,15 @@ h3.compare-insight-headline {
   }
 
   .dest-row-signal {
-    width: 27px;
-    height: 27px;
+    height: 26px;
+    min-width: 26px;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  /* Trop étroit pour le texte : emoji seul, le tooltip garde le label */
+  .dest-row-signal-label {
+    display: none;
   }
 
   .dest-score-pill {
@@ -17003,15 +17038,23 @@ h3.compare-insight-headline {
 .dest-row-chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-size: 10px;
+  gap: 3px;
+  height: 30px;
+  font-size: 11px;
   font-weight: var(--weight-medium);
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: rgba(27, 95, 232, 0.07);
-  color: var(--score-secondary);
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 246, 253, 0.84));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 10px rgba(44, 70, 105, 0.06);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: rgba(62, 83, 118, 0.8);
   white-space: nowrap;
-  max-width: 76px;
+  max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -17065,5 +17108,456 @@ h3.compare-insight-headline {
   /* Keep bottom sheet visible but skip the slide */
   .destination-sheet {
     transition: none !important;
+  }
+}
+
+/* ============================================================
+   Profil voyageur — strip slim (bannière compare + overlay map)
+   ============================================================ */
+
+.traveler-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.traveler-strip--right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.traveler-strip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+.traveler-strip-title > span[aria-hidden] {
+  color: var(--purple);
+  font-size: 12px;
+}
+.traveler-strip-title strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-strong, #17213a);
+}
+.traveler-strip-toggle {
+  border: 0;
+  background: transparent;
+  color: rgba(23, 33, 58, 0.5);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.traveler-strip-toggle:hover {
+  background: rgba(23, 33, 58, 0.06);
+  color: rgba(23, 33, 58, 0.8);
+}
+
+.traveler-strip-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.traveler-strip--right .traveler-strip-pills {
+  justify-content: flex-end;
+}
+.traveler-strip-pills li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(23, 33, 58, 0.05);
+  color: rgba(23, 33, 58, 0.7);
+}
+
+.traveler-strip-compass {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.traveler-strip--right .traveler-strip-compass {
+  flex-direction: row-reverse;
+}
+.account-continent-stack--thin {
+  height: 8px;
+  padding: 1px;
+  gap: 2px;
+  flex: 0 1 150px;
+  min-width: 70px;
+}
+.traveler-strip-countries {
+  font-size: 11px;
+  color: rgba(23, 33, 58, 0.5);
+  white-space: nowrap;
+}
+.traveler-strip .account-continent-list {
+  width: 100%;
+}
+
+/* Chip repliée : une ligne "✦ titre ▾" — overlay map mobile */
+.traveler-strip-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--ink-strong, #17213a);
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 10px 24px rgba(95, 119, 148, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.traveler-strip-chip > span[aria-hidden]:first-child {
+  color: var(--purple);
+}
+.traveler-strip-chip strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.traveler-strip-chip > span[aria-hidden]:last-child {
+  opacity: 0.55;
+  font-size: 11px;
+}
+
+/* Profils face à face, intégrés à la bannière compare (rangée pleine largeur) */
+.compare-banner-profiles {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(23, 33, 58, 0.07);
+}
+.compare-banner-profiles-slot {
+  min-width: 0;
+}
+@media (max-width: 768px) {
+  .compare-banner-profiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Mon profil vit déjà dans mon compte — sur mobile on ne montre que l'ami */
+  .compare-banner-profiles-slot--me {
+    display: none;
+  }
+}
+
+/* Overlay du profil ami sur la map (mode "voir son carnet") */
+.friend-profile-overlay {
+  position: fixed;
+  top: calc(var(--topbar-t) + var(--topbar-h) + 12px);
+  left: var(--content-l);
+  width: min(320px, calc(100vw - 32px));
+  z-index: 9;
+}
+.friend-profile-overlay .traveler-strip {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(95, 119, 148, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  max-height: calc(100vh - var(--topbar-t) - var(--topbar-h) - 120px);
+  overflow-y: auto;
+}
+@media (max-width: 768px) {
+  .friend-profile-overlay {
+    top: calc(var(--topbar-t, 12px) + var(--topbar-h, 56px) + 8px);
+    left: 12px;
+    width: min(320px, calc(100vw - 24px));
+  }
+}
+
+/* Badge "note du peuple" — même verre que les autres signaux de rangée,
+   mais texte neutre : jamais confondu avec l'orb de tier perso colorée */
+.community-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 246, 253, 0.84));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 10px rgba(44, 70, 105, 0.06);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: rgba(62, 83, 118, 0.8);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.community-badge b {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(23, 33, 58, 0.78);
+}
+.community-badge-count {
+  opacity: 0.7;
+}
+@media (max-width: 480px) {
+  /* Sur très petit écran la rangée est déjà dense — l'onglet global reste l'endroit principal */
+  .dest-row-signals .community-badge {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Classement global ("note du peuple")
+   ============================================================ */
+
+/* Même famille visuelle que les tabs du compte (sobre, layout fill).
+   Deux instances : --row sur la filter row (desktop, même ligne que Comparer),
+   --hero dans le hero-head (mobile — le hero-head est masqué sur desktop). */
+.tier-list-page-mode {
+  flex: 0 0 auto;
+  min-width: 230px;
+}
+@media (max-width: 768px) {
+  .tier-list-page-mode--row {
+    display: none;
+  }
+}
+@media (min-width: 1100px) {
+  /* La filter row passe en grid 2 colonnes à ce breakpoint : on ajoute une
+     colonne pour le switch, sinon Comparer wrappe sur une deuxième ligne. */
+  .tier-list-filter-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .tier-list-filter-row .segmented-control.tier-list-page-mode {
+    width: auto;
+  }
+}
+@media (max-width: 640px) {
+  .tier-list-page-mode--hero {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 300px;
+  }
+  .tier-list-hero-count-label {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .tier-list-hero-actions {
+    flex-wrap: wrap;
+  }
+  .tier-list-page-mode--hero {
+    order: 10;
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
+
+.community-leaderboard {
+  display: flex;
+  flex-direction: column;
+  /* même rythme vertical que .tier-list-rows */
+  gap: 16px;
+  padding-bottom: 28px;
+}
+
+.community-leaderboard-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.community-leaderboard-intro p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: rgba(23, 33, 58, 0.6);
+}
+/* Même verre dépoli que les chips du hero (.tier-list-hero-count) */
+.community-leaderboard-search {
+  width: 100%;
+  max-width: 420px;
+  height: 44px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--ink-strong, #17213a);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 246, 253, 0.84));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 18px rgba(61, 101, 154, 0.07);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  outline: none;
+}
+.community-leaderboard-search::placeholder {
+  color: rgba(62, 83, 118, 0.55);
+}
+.community-leaderboard-search:focus {
+  border-color: rgba(27, 95, 232, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 18px rgba(61, 101, 154, 0.07),
+    0 0 0 3px rgba(27, 95, 232, 0.12);
+}
+
+/* Rangée de filtres du classement global — même langage que les filtres perso */
+.community-leaderboard-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.community-leaderboard-filters .tier-list-filters {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.community-leaderboard-status {
+  margin: 4px 0;
+  font-size: var(--text-sm);
+  color: rgba(23, 33, 58, 0.55);
+}
+
+.community-leaderboard-empty {
+  margin: 24px auto;
+}
+.community-leaderboard-teaser {
+  font-weight: 600;
+  color: var(--purple);
+}
+
+.community-leaderboard-more {
+  align-self: center;
+  height: 40px;
+  padding: 0 22px;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--purple);
+  background: rgba(27, 95, 232, 0.08);
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.community-leaderboard-more:hover {
+  background: rgba(27, 95, 232, 0.14);
+}
+
+/* Rangées du classement global — même anatomie que les rangées perso */
+.community-row .dest-row-btn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+.community-row-static {
+  cursor: default;
+}
+.community-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+.community-row-tag {
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(23, 33, 58, 0.05);
+  color: rgba(23, 33, 58, 0.66);
+  white-space: nowrap;
+}
+.community-row-scores {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.community-row-avg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+.community-row-avg b {
+  font-size: var(--text-sm);
+  color: rgba(23, 33, 58, 0.82);
+}
+.community-row-avg span {
+  font-size: 10.5px;
+  color: rgba(23, 33, 58, 0.5);
+  white-space: nowrap;
+}
+/* Spécificité : bat la règle `.tier-list-row .tier-orb` (38px) */
+.tier-list-row .tier-orb.tier-orb--mini,
+.tier-orb.tier-orb--mini {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  flex: 0 0 auto;
+  border-width: 1.5px;
+  box-shadow: 0 4px 10px rgba(32, 48, 75, 0.12);
+}
+.community-row-mine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.community-row-mine-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(23, 33, 58, 0.45);
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .community-row-meta {
+    display: none;
+  }
+}
+
+/* Transition douce à la bascule Mon classement <-> Global */
+@media (prefers-reduced-motion: no-preference) {
+  .page-mode-fade {
+    animation: page-mode-fade 0.22s ease both;
+  }
+  @keyframes page-mode-fade {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
   }
 }

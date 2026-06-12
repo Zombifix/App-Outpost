@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import type { Friendship, ActivityEvent, Destination } from '../types'
+import type { CommunityRating, CommunityLeaderboardRow } from './useCommunityRatings'
 
 export const FAKE_FRIENDS_MODE =
   (import.meta.env.VITE_FAKE_FRIENDS as string | undefined) === '1'
@@ -190,6 +191,37 @@ function emitNextLiveEvent() {
     ...enrich(tpl.actor),
   }
   liveListeners.forEach(fn => fn(event))
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Note communautaire (fake) : en mode fake la base n'a aucun agrégat réel,
+// on sert donc un échantillon plausible pour montrer la feature en démo/dev.
+// Les clés suivent le format de destinationCommunityKey (nom normalisé|code pays).
+// ──────────────────────────────────────────────────────────────────────────────
+
+const FAKE_COMMUNITY: CommunityLeaderboardRow[] = [
+  { key: 'tokyo|jp', displayName: 'Tokyo', displayCountry: 'Japon', countryCode: 'jp', avgScore: 4.6, tier: 'S', ratingCount: 18, topTags: ['✨ L’énergie', '🤤 Claques culinaires', '💸 Budget qui pique'] },
+  { key: 'kyoto|jp', displayName: 'Kyoto', displayCountry: 'Japon', countryCode: 'jp', avgScore: 4.5, tier: 'S', ratingCount: 14, topTags: ['⛩️ Dépaysement', '📸 Spots de folie'] },
+  { key: 'lisbonne|pt', displayName: 'Lisbonne', displayCountry: 'Portugal', countryCode: 'pt', avgScore: 4.3, tier: 'S', ratingCount: 21, topTags: ['✨ L’énergie', '💬 Les locaux'] },
+  { key: 'seoul|kr', displayName: 'Séoul', displayCountry: 'Corée du Sud', countryCode: 'kr', avgScore: 4.2, tier: 'A', ratingCount: 11, topTags: ['🤤 Claques culinaires'] },
+  { key: 'porto|pt', displayName: 'Porto', displayCountry: 'Portugal', countryCode: 'pt', avgScore: 4.1, tier: 'A', ratingCount: 16, topTags: ['💬 Les locaux', '🧱 Architecture & ruelles'] },
+  { key: 'bangkok|th', displayName: 'Bangkok', displayCountry: 'Thaïlande', countryCode: 'th', avgScore: 3.9, tier: 'A', ratingCount: 13, topTags: ['🤤 Claques culinaires', '👤 La foule'] },
+  { key: 'paris|fr', displayName: 'Paris', displayCountry: 'France', countryCode: 'fr', avgScore: 3.4, tier: 'B', ratingCount: 26, topTags: ['💸 Budget qui pique', '🧱 Architecture & ruelles'] },
+  { key: 'barcelone|es', displayName: 'Barcelone', displayCountry: 'Espagne', countryCode: 'es', avgScore: 3.3, tier: 'B', ratingCount: 19, topTags: ['🎪 Pièges à touristes', '✨ L’énergie'] },
+  { key: 'singapour|sg', displayName: 'Singapour', displayCountry: 'Singapour', countryCode: 'sg', avgScore: 3.1, tier: 'B', ratingCount: 8, topTags: ['💸 Budget qui pique'] },
+  { key: 'venise|it', displayName: 'Venise', displayCountry: 'Italie', countryCode: 'it', avgScore: 2.8, tier: 'C', ratingCount: 12, topTags: ['👤 La foule', '🎪 Pièges à touristes'] },
+]
+
+export function getFakeCommunityRatings(): CommunityRating[] {
+  return FAKE_COMMUNITY
+}
+
+export function getFakeCommunityLeaderboard(search: string): CommunityLeaderboardRow[] {
+  const needle = search.trim().toLowerCase()
+  if (!needle) return FAKE_COMMUNITY
+  return FAKE_COMMUNITY.filter(row =>
+    row.key.split('|')[0].includes(needle) || row.displayName.toLowerCase().includes(needle)
+  )
 }
 
 export function subscribeFakeLive(cb: (event: EnrichedActivity) => void): () => void {

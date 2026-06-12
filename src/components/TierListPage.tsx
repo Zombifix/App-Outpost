@@ -16,11 +16,15 @@ import {
 import { FAKE_FRIENDS_MODE, getFakeFriendDestinations } from '../hooks/_fakeFriends'
 import { useFriends } from '../hooks/useFriends'
 import { useFriendDestinations } from '../hooks/useFriendDestinations'
-import { destinationNameKey, destinationNameSet } from '../utils/destinationIdentity'
+import { destinationNameKey, destinationNameSet, destinationCommunityKey } from '../utils/destinationIdentity'
+import { useCommunityRatings, type CommunityRating } from '../hooks/useCommunityRatings'
 import { computeTravelerProfile, getDestinationScore, getDestinationTier, scoreToTier } from '../utils'
 import { Avatar } from './Avatar'
 import { SegmentedControl } from './SegmentedControl'
 import FriendCompareView from './friends/FriendCompareView'
+import { TravelerProfileStrip } from './TravelerProfileCard'
+import { CommunityBadge } from './CommunityBadge'
+import { CommunityLeaderboard } from './CommunityLeaderboard'
 import { t } from '../i18n'
 
 interface TierListPageProps {
@@ -230,6 +234,7 @@ function DestRow({
   friendName,
   isShared,
   isCompareMode,
+  communityRating,
   onSelect,
 }: {
   myDest: Destination
@@ -237,6 +242,7 @@ function DestRow({
   friendName?: string
   isShared?: boolean
   isCompareMode?: boolean
+  communityRating?: CommunityRating | null
   onSelect?: (destination: Destination) => void
 }) {
   const isCoupDeCoeur = Boolean(myDest.coupDeCoeur)
@@ -272,7 +278,8 @@ function DestRow({
         </div>
         <div className="dest-row-signals" aria-label={intentLabel}>
           <span className="dest-row-signal dest-row-signal--intent" title={intentLabel} aria-hidden="true">
-            {intentEmoji}
+            <span>{intentEmoji}</span>
+            <span className="dest-row-signal-label">{intentLabel}</span>
           </span>
           {isCoupDeCoeur && (
             <span className="dest-row-signal dest-row-signal--heart" aria-label="Coup de cœur">
@@ -298,6 +305,11 @@ function DestRow({
                 <path d="M3 21c0-3.31 2.69-6 6-6h6c3.31 0 6 2.69 6 6" />
               </svg>
             </span>
+          )}
+          {/* La note du peuple n'apparaît que quand elle raconte quelque chose :
+              un désaccord d'au moins un tier avec ma propre note. */}
+          {communityRating && Math.abs(TIER_RANK[tier] - TIER_RANK[communityRating.tier]) >= 1 && (
+            <CommunityBadge rating={communityRating} myTier={tier} />
           )}
         </div>
         <div className={`dest-row-scores${friendDest !== undefined ? ' dest-row-scores--versus' : ''}`}>
@@ -327,8 +339,6 @@ function ComparisonBanner({
   myDests,
   friendDests,
   friendOnlyCount,
-  myProfileTitle,
-  friendTitle,
   onClose,
 }: {
   friend: Friend
@@ -336,8 +346,6 @@ function ComparisonBanner({
   myDests: Destination[]
   friendDests: Destination[]
   friendOnlyCount: number
-  myProfileTitle?: string | null
-  friendTitle?: string | null
   onClose: () => void
 }) {
   const myMap = new Map(myDests.map(d => [destinationNameKey(d), d]))
@@ -362,14 +370,11 @@ function ComparisonBanner({
         <div className="compare-banner-copy">
           <div className="compare-banner-identity">
             <span className="compare-banner-name">{myName}</span>
-            {myProfileTitle && (
-              <span className="compare-banner-title" title={myProfileTitle}>{myProfileTitle}</span>
-            )}
           </div>
           {myAvg !== null && (
             <span className="compare-banner-score-block">
               <span className="compare-banner-score">{myAvg.toFixed(1)}</span>
-              <span className="compare-banner-score-label">{t('Moyenne générale', 'Overall average')}</span>
+              <span className="compare-banner-score-label">{t('Overall average', 'Moyenne générale')}</span>
             </span>
           )}
         </div>
@@ -392,14 +397,14 @@ function ComparisonBanner({
             <circle cx="9" cy="7" r="3" /><circle cx="15" cy="7" r="3" />
             <path d="M3 21c0-3.31 2.69-6 6-6h6c3.31 0 6 2.69 6 6" />
           </svg>
-          {sharedCount} {t('en commun', 'shared')}
+          {sharedCount} {t('shared', 'en commun')}
         </span>
         {friendOnlyCount > 0 && (
           <span className="compare-banner-stat">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {friendOnlyCount} {t('only for', 'uniques à')} {friendFirstName}
+            {friendOnlyCount} {t('unique to', 'uniques à')} {friendFirstName}
           </span>
         )}
       </div>
@@ -408,14 +413,11 @@ function ComparisonBanner({
         <div className="compare-banner-copy compare-banner-copy--right">
           <div className="compare-banner-identity compare-banner-identity--right">
             <span className="compare-banner-name">{friendFirstName}</span>
-            {friendTitle && (
-              <span className="compare-banner-title" title={friendTitle}>{friendTitle}</span>
-            )}
           </div>
           {friendAvg !== null && (
             <span className="compare-banner-score-block">
               <span className="compare-banner-score">{friendAvg.toFixed(1)}</span>
-              <span className="compare-banner-score-label">{t('Moyenne générale', 'Overall average')}</span>
+              <span className="compare-banner-score-label">{t('Overall average', 'Moyenne générale')}</span>
             </span>
           )}
         </div>
@@ -429,11 +431,24 @@ function ComparisonBanner({
         />
       </div>
 
-      <button className="compare-banner-close" onClick={onClose} aria-label={t('Fermer la comparaison', 'Close comparison')}>
+      <button className="compare-banner-close" onClick={onClose} aria-label={t('Close comparison', 'Fermer la comparaison')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12" />
         </svg>
       </button>
+
+      {/* Profils voyageurs face à face, dans la bannière — visibles d'office.
+          Mon strip est masqué sur mobile via CSS (il vit déjà dans mon compte). */}
+      {(myDests.length > 0 || friendDests.length > 0) && (
+        <div className="compare-banner-profiles">
+          <div className="compare-banner-profiles-slot compare-banner-profiles-slot--me">
+            <TravelerProfileStrip destinations={myDests} />
+          </div>
+          <div className="compare-banner-profiles-slot">
+            <TravelerProfileStrip destinations={friendDests} align="right" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -502,6 +517,7 @@ function TierRow({
   sharedNames,
   collapsed,
   isCompareMode,
+  communityRatings,
   onToggle,
   onSelectMine,
 }: {
@@ -512,6 +528,7 @@ function TierRow({
   sharedNames: Set<string>
   collapsed: boolean
   isCompareMode?: boolean
+  communityRatings?: Map<string, CommunityRating>
   onToggle: () => void
   onSelectMine: (destination: Destination) => void
 }) {
@@ -574,6 +591,7 @@ function TierRow({
                   friendName={friend?.name.split(' ')[0]}
                   isShared={shared}
                   isCompareMode={isCompareMode}
+                  communityRating={communityRatings?.get(destinationCommunityKey(my)) ?? null}
                   onSelect={onSelectMine}
                 />
               ))
@@ -594,6 +612,8 @@ export default function TierListPage({
 }: TierListPageProps) {
   const [friend, setFriend] = useState<Friend | null>(null)
   const [friendUserId, setFriendUserId] = useState<string | null>(null)
+  // 'personal' = mon classement (avec compare) ; 'global' = classement du peuple.
+  const [pageMode, setPageMode] = useState<'personal' | 'global'>('personal')
   const [filter, setFilter] = useState<TierListFilter>('all')
   const [collapsed, setCollapsed] = useState<Record<Tier, boolean>>({ S: false, A: false, B: true, C: true, D: true })
   const [comparePicker, setComparePicker] = useState(false)
@@ -617,6 +637,7 @@ export default function TierListPage({
     })
     setFriendUserId(incomingCompareFriend.otherUser)
     setFilter('versus')
+    setPageMode('personal')
   }, [incomingCompareFriend?.otherUser])
 
   useEffect(() => {
@@ -656,6 +677,11 @@ export default function TierListPage({
     return new Set(friendFiltered.filter(destination => myNames.has(destinationNameKey(destination))).map(destinationNameKey))
   }, [friend, myFiltered, friendFiltered])
 
+  // Notes du peuple pour mes destinations ET celles de l'ami affiché —
+  // un seul batch couvre toutes les rangées visibles.
+  const allVisibleDests = useMemo(() => [...destinations, ...friendDests], [destinations, friendDests])
+  const { ratings: communityRatings } = useCommunityRatings(allVisibleDests)
+
   const myTripCount = useMemo(() => destinations.filter(d => d.kind !== 'stop').length, [destinations])
   const friendFirstName = friend?.name.split(' ')[0] ?? t('Friend', 'Ami')
   const myAverage = useMemo(() => getAvgScore(destinations), [destinations])
@@ -685,11 +711,6 @@ export default function TierListPage({
     () => destinations.length >= 1 ? computeTravelerProfile(destinations).title : null,
     [destinations]
   )
-  const friendTitle = useMemo(
-    () => friend && friendDests.length >= 1 ? computeTravelerProfile(friendDests).title : null,
-    [friend, friendDests]
-  )
-
   function toggleCollapse(tier: Tier) {
     setCollapsed(prev => ({ ...prev, [tier]: !prev[tier] }))
   }
@@ -705,9 +726,33 @@ export default function TierListPage({
     setFriendUserId(userId)
     setComparePicker(false)
     setFilter('versus')
+    setPageMode('personal')
   }
 
   const myInitials = myProfile?.displayName?.trim().slice(0, 2).toUpperCase() ?? 'M'
+
+  // En comparaison active, le switch Mon classement / Global disparaît :
+  // la comparaison est un contexte à part, on n'en sort que par sa croix.
+  const isComparing = Boolean(friend && !compareDenied)
+
+  // Deux emplacements pour le même switch : le hero (mobile — la filter row n'y
+  // montre pas Comparer) et la filter row (desktop — le hero-head y est masqué).
+  // CSS n'affiche jamais les deux à la fois.
+  const renderPageModeControl = (variant: 'hero' | 'row') => isComparing ? null : (
+    <SegmentedControl
+      className={`tier-list-page-mode tier-list-page-mode--${variant}`}
+      ariaLabel={t('Switch between my ranking and the global ranking', 'Basculer entre mon classement et le classement global')}
+      role="tablist"
+      size="sm"
+      layout="fill"
+      value={pageMode}
+      options={[
+        { value: 'personal' as const, label: t('My rankings', 'Mon classement') },
+        { value: 'global' as const, label: `👥 ${t('Global', 'Global')}` },
+      ]}
+      onChange={setPageMode}
+    />
+  )
 
   return (
     <main className={`tier-list-page${friend && !compareDenied ? ' is-comparing' : ' is-solo'}`} aria-label="Tier list">
@@ -715,7 +760,7 @@ export default function TierListPage({
         <div className="tier-list-hero-head">
           <div className="tier-list-title">
             <span className="tier-list-eyebrow">Outpost</span>
-            <h1>{t('My rankings', 'Mon classement')}</h1>
+            <h1>{pageMode === 'global' ? t('Global ranking', 'Classement global') : t('My rankings', 'Mon classement')}</h1>
           </div>
 
           <div className="tier-list-hero-actions">
@@ -728,6 +773,9 @@ export default function TierListPage({
               <span className="tier-list-hero-count-label">destinations</span>
             </span>
 
+            {renderPageModeControl('hero')}
+
+            {pageMode === 'personal' && (
             <div className="tier-list-actions" ref={pickerRef}>
               <button
                 className={`tier-list-compare-btn${friend ? ' has-selection' : ''}`}
@@ -817,22 +865,21 @@ export default function TierListPage({
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
 
-        {friend && !compareDenied ? (
+        {pageMode === 'personal' && (friend && !compareDenied ? (
           <ComparisonBanner
             friend={friend}
             myProfile={myProfile}
             myDests={destinations}
             friendDests={friendDests}
             friendOnlyCount={friendOnlyCount}
-            myProfileTitle={myProfileTitle}
-            friendTitle={friendTitle}
             onClose={clearComparison}
           />
         ) : (
-          <div className="tier-list-solo-summary">
+          <div className="tier-list-solo-summary page-mode-fade">
             <div className="tier-list-solo-player">
               <Avatar
                 avatarUrl={myProfile?.avatarUrl}
@@ -860,10 +907,14 @@ export default function TierListPage({
               ))}
             </div>
           </div>
-        )}
+        ))}
       </section>
 
       <div className="tier-list-filter-row">
+        {/* Desktop : le switch Mon classement / Global vit ici, sur la même
+            ligne que Comparer (le hero-head est masqué sur desktop). */}
+        {renderPageModeControl('row')}
+        {pageMode === 'personal' && (
         <SegmentedControl
           className="tier-list-filters"
           ariaLabel={t('Filter tier list', 'Filtrer la tier list')}
@@ -879,7 +930,9 @@ export default function TierListPage({
           }))}
           onChange={setFilter}
         />
+        )}
         {/* Desktop-only: Comparer button at right of filter row (hidden on mobile via CSS) */}
+        {pageMode === 'personal' && (
         <div className="tier-list-actions">
           <button
             className={`tier-list-compare-btn${friend ? ' has-selection' : ''}`}
@@ -969,9 +1022,17 @@ export default function TierListPage({
             </div>
           )}
         </div>
+        )}
       </div>
 
-      {compareDenied && (
+      {pageMode === 'global' && (
+        <CommunityLeaderboard
+          myDestinations={destinations}
+          onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+        />
+      )}
+
+      {pageMode === 'personal' && compareDenied && (
         <section className="empty-friend-carnet" role="status">
           <div className="empty-friend-carnet-card">
             <h3>{realFriendAccess.deniedReason === 'friends_only'
@@ -990,8 +1051,8 @@ export default function TierListPage({
       )}
 
       {/* Solo mode or comparison denied */}
-      {(!friend || compareDenied) && (
-        <section className="tier-list-rows" aria-label={t('Rankings by tier', 'Classement par tier')}>
+      {pageMode === 'personal' && (!friend || compareDenied) && (
+        <section className="tier-list-rows page-mode-fade" aria-label={t('Rankings by tier', 'Classement par tier')}>
           {TIER_ORDER.map(tier => (
             <TierRow
               key={tier}
@@ -1001,6 +1062,7 @@ export default function TierListPage({
               friend={null}
               sharedNames={sharedNames}
               collapsed={collapsed[tier]}
+              communityRatings={communityRatings}
               onToggle={() => toggleCollapse(tier)}
               onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
             />
@@ -1009,7 +1071,7 @@ export default function TierListPage({
       )}
 
       {/* Compare mode — versus: my list with friend scores side by side */}
-      {friend && !compareDenied && filter === 'versus' && (
+      {pageMode === 'personal' && friend && !compareDenied && filter === 'versus' && (
         <section
           className="tier-list-rows tier-list-rows--compare"
           style={{ '--friend-bg': friend.bg, '--friend-color': friend.color } as React.CSSProperties}
@@ -1037,7 +1099,7 @@ export default function TierListPage({
       )}
 
       {/* Compare mode — friend-only: friend's tier list in solo mode */}
-      {friend && !compareDenied && filter === 'friend-only' && (
+      {pageMode === 'personal' && friend && !compareDenied && filter === 'friend-only' && (
         <section
           className="tier-list-rows tier-list-rows--friend-only"
           aria-label={`Tier list de ${friendFirstName}`}
@@ -1053,6 +1115,7 @@ export default function TierListPage({
               friend={null}
               sharedNames={new Set()}
               collapsed={collapsed[tier]}
+              communityRatings={communityRatings}
               onToggle={() => toggleCollapse(tier)}
               onSelectMine={destination => setPreview({ destination, ownerLabel: friendFirstName, ownerColor: friend.bg })}
             />
@@ -1061,7 +1124,7 @@ export default function TierListPage({
       )}
 
       {/* Compare mode — mine-only: my list in solo mode */}
-      {friend && !compareDenied && filter === 'mine-only' && (
+      {pageMode === 'personal' && friend && !compareDenied && filter === 'mine-only' && (
         <section
           className="tier-list-rows tier-list-rows--mine-only"
           aria-label={t('My rankings', 'Mon classement')}
@@ -1077,6 +1140,7 @@ export default function TierListPage({
               friend={null}
               sharedNames={sharedNames}
               collapsed={collapsed[tier]}
+              communityRatings={communityRatings}
               onToggle={() => toggleCollapse(tier)}
               onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
             />

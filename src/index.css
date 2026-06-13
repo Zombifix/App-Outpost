@@ -6747,9 +6747,9 @@ h3.compare-insight-headline {
   .tier-board.is-collapsed {
     display: block;
     height: auto;
-    padding: 0;
+    padding: 14px 14px 0;
     transform: none;
-    overflow: visible;
+    overflow: hidden;
   }
   /* Panneau « My rankings » statique sur mobile — toujours visible, pas de poignée */
   .tier-board.is-collapsed .tier-mobile-section { display: block; }
@@ -6784,12 +6784,12 @@ h3.compare-insight-headline {
   /* ── Mobile tier section ── */
   .tier-mobile-section {
     display: block;
-    padding: 2px 0 14px;
+    padding: 0 0 12px;
   }
 
   .tier-mobile-topline {
     display: block;
-    padding: 0 14px 10px;
+    padding: 0 0 8px;
   }
 
   /* "Ma tier list" heading */
@@ -10506,6 +10506,34 @@ h3.compare-insight-headline {
   color: var(--success-dark);
 }
 
+.friend-compare-common-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.friend-compare-common-header:hover {
+  opacity: 0.75;
+}
+
+.friend-compare-common-chevron {
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+  margin-bottom: 0;
+}
+
+.friend-compare-common-chevron.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.friend-compare-common.is-collapsed h4 {
+  margin-bottom: 0;
+}
+
 .friend-compare-common-list {
   display: flex;
   flex-direction: column;
@@ -12387,6 +12415,26 @@ h3.compare-insight-headline {
 .compare-banner-close:hover {
   background: rgba(60, 90, 140, 0.15);
   color: #15233f;
+}
+
+.tier-list-compare-stop {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(180, 200, 224, 0.6);
+  background: rgba(60, 90, 140, 0.07);
+  color: #5a7899;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.tier-list-compare-stop:hover {
+  background: rgba(60, 90, 140, 0.14);
+  color: #1f3650;
+  transform: scale(1.05);
 }
 
 /* ── Tier-list-page mobile ───────────────────────────────── */
@@ -14726,16 +14774,7 @@ h3.compare-insight-headline {
   }
 
   .tier-board.is-collapsed::after {
-    left: 26px;
-    right: 26px;
-    bottom: -8px;
-    height: 10px;
-    border-radius: 0 0 22px 22px;
-    background:
-      linear-gradient(180deg, rgba(248, 251, 255, 0.42) 0%, rgba(244, 248, 255, 0.16) 58%, rgba(244, 248, 255, 0) 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.18),
-      0 3px 8px rgba(30, 50, 90, 0.025);
+    display: none;
   }
 
   .tier-mobile-section {
@@ -15979,7 +16018,7 @@ h3.compare-insight-headline {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 18px;
-  padding: 14px 58px 14px 16px;
+  padding: 14px 16px;
 }
 
 .compare-banner-player {
@@ -16008,7 +16047,6 @@ h3.compare-insight-headline {
 
 .compare-banner-player--friend {
   justify-content: flex-end;
-  flex-direction: row-reverse;
   text-align: right;
 }
 
@@ -16884,7 +16922,7 @@ h3.compare-insight-headline {
     grid-template-areas: "me center friend";
     align-items: center;
     gap: 8px;
-    padding: 12px 40px 12px 12px;
+    padding: 12px;
     border-radius: 24px;
   }
 
@@ -16900,7 +16938,6 @@ h3.compare-insight-headline {
 
   .compare-banner-player--friend {
     grid-area: friend;
-    flex-direction: row-reverse;
     justify-content: flex-end;
   }
 
@@ -17800,8 +17837,14 @@ h3.compare-insight-headline {
   }
 }
 @media (max-width: 480px) {
+  .tier-list-hero-head {
+    flex-direction: column;
+    align-items: flex-end;
+  }
   .tier-list-hero-actions {
     flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-end;
   }
   .tier-list-page-mode--hero {
     order: 10;
@@ -18118,12 +18161,15 @@ h3.compare-insight-headline {
   }
 
   .tier-mobile-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
     justify-content: flex-start;
   }
 
   .tier-mobile-total-badge {
     position: static;
-    margin-left: 2px;
+    margin-left: 0;
   }
 
   .tier-mobile-summary {

@@ -40,7 +40,8 @@
       "Bash(powershell -Command \"Select-String -Path 'C:\\\\Users\\\\Bizon\\\\Documents\\\\GitHub\\\\App-Outpost\\\\src\\\\index.css' -Pattern '\\(TIER_COLORS|tier-s|tier-a|tier-b|tier-c|tier-d\\)' -SimpleMatch | Select-Object -First 20\")",
       "Bash(powershell -Command \"ls -Path 'C:\\\\Users\\\\Bizon\\\\Documents\\\\GitHub\\\\App-Outpost\\\\src\\\\components' | Select-Object Name\")",
       "Skill(claude-api)",
-      "Skill(claude-api:*)"
+      "Skill(claude-api:*)",
+      "Bash(awk -F: '$2 < 14700 {last=$0} $2 > 14700 {print last; exit}')"
     ]
   }
 }

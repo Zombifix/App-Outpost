@@ -432,12 +432,6 @@ function ComparisonBanner({
         />
       </div>
 
-      <button className="compare-banner-close" onClick={onClose} aria-label={t('Close comparison', 'Fermer la comparaison')}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-          <path d="M18 6 6 18M6 6l12 12" />
-        </svg>
-      </button>
-
       {/* Profils voyageurs face à face, dans la bannière — visibles d'office.
           Mon strip est masqué sur mobile via CSS (il vit déjà dans mon compte). */}
       {(myDests.length > 0 || friendDests.length > 0) && (
@@ -811,6 +805,18 @@ export default function TierListPage({
                   <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
+              {friend && (
+                <button
+                  className="tier-list-compare-stop"
+                  type="button"
+                  onClick={clearComparison}
+                  aria-label={t('Stop comparing', 'Arrêter de comparer')}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
 
               {comparePicker && (
                 <div className="friend-picker">
@@ -975,6 +981,18 @@ export default function TierListPage({
               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+          {friend && (
+            <button
+              className="tier-list-compare-stop"
+              type="button"
+              onClick={clearComparison}
+              aria-label={t('Stop comparing', 'Arrêter de comparer')}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
 
           {comparePicker && (
             <div className="friend-picker">

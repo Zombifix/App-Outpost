@@ -547,7 +547,7 @@ function AppCore({
       const outerMargin = 16
       const rightMargin = 20
       const stackGap = 24
-      const panelStackGap = stackGap
+      const panelStackGap = 12
       const minPanelStackGap = 12
       const bottomMargin = 16
       const controlsBaseOffset = 14

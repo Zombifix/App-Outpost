@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Destination, Friendship, Tier } from '../../types'
 import { TIER_COLORS, TIER_ORDER } from '../../data'
 import { destinationNameKey } from '../../utils/destinationIdentity'
@@ -73,6 +74,7 @@ export default function FriendCompareView({
 }
 
 function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs: Destination[]; friendName: string }) {
+  const [collapsed, setCollapsed] = useState(false)
   const myMap = new Map(mine.map(d => [destinationNameKey(d), d]))
   const common = theirs
     .map(t => ({ them: t, mine: myMap.get(destinationNameKey(t)) }))
@@ -81,9 +83,12 @@ function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs
     return null
   }
   return (
-    <section className="friend-compare-common">
-      <h4>{common.length} destination{common.length > 1 ? 's' : ''} {t('in common', 'en commun')}</h4>
-      <div className="friend-compare-common-list">
+    <section className={`friend-compare-common${collapsed ? ' is-collapsed' : ''}`}>
+      <h4 className="friend-compare-common-header" onClick={() => setCollapsed(c => !c)}>
+        {common.length} destination{common.length > 1 ? 's' : ''} {t('in common', 'en commun')}
+        <span className={`friend-compare-common-chevron${collapsed ? ' is-collapsed' : ''}`}>▾</span>
+      </h4>
+      {!collapsed && <div className="friend-compare-common-list">
         {common.map(({ them, mine: m }) => {
           const myTier = getDestinationTier(m)
           const theirTier = getDestinationTier(them)
@@ -99,7 +104,7 @@ function CommonDests({ mine, theirs, friendName }: { mine: Destination[]; theirs
             </div>
           )
         })}
-      </div>
+      </div>}
     </section>
   )
 }

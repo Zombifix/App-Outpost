@@ -4,5 +4,7 @@ dist/
 desktop.ini
 *.local
 .claude/worktrees/
+.claude/settings.local.json
+.codex-temp/
 .env
 supabase/.temp/

@@ -603,40 +603,37 @@ const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; 
   { value: 'travail', label: '💻 Travail' },
 ]
 
-const ROAD_TRIP_LABEL = '🚗 Road trip'
-
-const TRIP_TYPE_OPTIONS: { id: string; label: string }[] = [
-  { id: 'culture',  label: '🏛️ Musées & monuments' },
-  { id: 'food',     label: '🍽️ Food tour' },
-  { id: 'nature',   label: '🌿 Grand air & rando' },
-  { id: 'repos',    label: '🧘 Mode lézard' },
-  { id: 'fete',     label: '🌙 Vie nocturne' },
+const EXPERIENCE_TAGS: { id: string; label: string }[] = [
+  { id: 'city-break',  label: '🏙️ City break' },
+  { id: 'culture',     label: '🏛️ Culture & patrimoine' },
+  { id: 'food',        label: '🍜 Food trip' },
+  { id: 'nature',      label: '🌿 Nature & rando' },
+  { id: 'plage',       label: '🏖️ Plage & chill' },
+  { id: 'fete',        label: '🌙 Fête & nightlife' },
+  { id: 'couple',      label: '❤️ En couple' },
+  { id: 'potes',       label: '👯 Entre potes' },
+  { id: 'famille',     label: '👨‍👩‍👧 En famille' },
+  { id: 'bouffes',     label: '🍽️ Meilleures bouffes' },
+  { id: 'vues',        label: '📸 Vues / paysages fous' },
+  { id: 'rencontres',  label: '🤝 Rencontres marquantes' },
+  { id: 'ambiance',    label: '🎭 Ambiance locale' },
+  { id: 'transports',  label: '🚆 Transports galère' },
+  { id: 'cher',        label: '💸 Budget qui pique' },
+  { id: 'touristique', label: '🪤 Trop touristique' },
 ]
 
-const TRIP_TYPE_LABEL_TO_ID: Record<string, string> = Object.fromEntries(
-  TRIP_TYPE_OPTIONS.map(option => [option.label, option.id])
-)
+const MAX_EXPERIENCE_TAGS = 5
+
 function getIntentFromTripTypes(tripTypes: string[]): Intent {
-  const ids = tripTypes.map(label => TRIP_TYPE_LABEL_TO_ID[label]).filter(Boolean)
-  if (ids.includes('food')) return 'gastro'
+  const ids = tripTypes
+    .map(label => EXPERIENCE_TAGS.find(t => t.label === label)?.id)
+    .filter(Boolean)
+  if (ids.includes('food') || ids.includes('bouffes')) return 'gastro'
   if (ids.includes('fete')) return 'sorties'
-  if (ids.includes('bleisure')) return 'travail'
-  if (ids.includes('nature')) return 'nature'
-  if (ids.includes('ville') || ids.includes('repos')) return 'city-trip'
+  if (ids.includes('work')) return 'travail'
+  if (ids.includes('nature') || ids.includes('aventure')) return 'nature'
   return 'tourisme'
 }
-
-const STANDOUT_OPTIONS = [
-  '🤤 Claques culinaires',
-  '📸 Spots de folie',
-  '🧱 Architecture & ruelles',
-  '🤝 Rencontres marquantes',
-  '💸 Budget qui pique',
-  '🚏 Transports galère',
-  '🎪 Pièges à touristes',
-  '😴 Rythme épuisant',
-  '🌦️ Météo capricieuse',
-]
 
 function stripChipEmoji(label: string) {
   const firstSpace = label.indexOf(' ')
@@ -1255,69 +1252,40 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const activeQuestions = QUESTIONS
   const progressSteps: WizardStep[] = ['search', 'questions', 'profile', 'context']
 
-  const toggleTripType = (option: string) => {
+  const toggleExperienceTag = (label: string) => {
     setState(prev => {
-      const selected = prev.tripTypes.includes(option)
-      if (selected) {
-        const tripTypes = prev.tripTypes.filter(item => item !== option)
+      if (prev.tripTypes.includes(label)) {
+        const tripTypes = prev.tripTypes.filter(item => item !== label)
         return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
       }
-      const selectedVibeCount = prev.tripTypes.filter(item => item !== ROAD_TRIP_LABEL).length
-      if (option !== ROAD_TRIP_LABEL && selectedVibeCount >= 3) return prev
-      const tripTypes = [...prev.tripTypes, option]
+      if (prev.tripTypes.length >= MAX_EXPERIENCE_TAGS) return prev
+      const tripTypes = [...prev.tripTypes, label]
       return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
     })
-  }
-
-  const toggleStandoutTag = (option: string) => {
-    setState(prev => ({
-      ...prev,
-      standoutTags: prev.standoutTags.includes(option)
-        ? prev.standoutTags.filter(item => item !== option)
-        : [...prev.standoutTags, option],
-    }))
   }
 
   const renderStayTypeFields = () => (
     <div className="wizard-context wizard-context--embedded wizard-context--tags">
       <div className="wizard-context-group wizard-context-group--card">
         <div className="wizard-context-heading">
-          <span>Type de séjour</span>
-          <p className="wizard-context-helper">Choisis jusqu'à 3 vibes pour raconter l'esprit du séjour.</p>
+          <span>Ce qui décrit le mieux ce voyage</span>
+          <p className="wizard-context-helper">Jusqu'à 5 tags pour raconter l'expérience en un coup d'œil.</p>
         </div>
-        <div className="wizard-chip-row" aria-label="Type de séjour">
-          {TRIP_TYPE_OPTIONS.map(option => {
-            const isSelected = state.tripTypes.includes(option.label)
-            const selectedVibeCount = state.tripTypes.filter(item => item !== ROAD_TRIP_LABEL).length
-            const isDisabled = !isSelected && selectedVibeCount >= 3
+        <div className="wizard-chip-row" aria-label="Ce qui décrit le mieux ce voyage">
+          {EXPERIENCE_TAGS.map(tag => {
+            const isSelected = state.tripTypes.includes(tag.label)
+            const isDisabled = !isSelected && state.tripTypes.length >= MAX_EXPERIENCE_TAGS
             return (
               <button
-                key={option.id}
+                key={tag.id}
                 className={isSelected ? 'is-selected' : ''}
                 disabled={isDisabled}
-                onClick={() => toggleTripType(option.label)}
+                onClick={() => toggleExperienceTag(tag.label)}
               >
-                {option.label}
+                {tag.label}
               </button>
             )
           })}
-        </div>
-      </div>
-      <div className="wizard-context-group wizard-context-group--card">
-        <div className="wizard-context-heading">
-          <span>Ce que tu retiens du séjour</span>
-          <p className="wizard-context-helper">Les moments, galères ou pépites qui ressortent tout de suite.</p>
-        </div>
-        <div className="wizard-chip-row" aria-label="Ce que tu retiens du séjour">
-          {STANDOUT_OPTIONS.map(option => (
-            <button
-              key={option}
-              className={state.standoutTags.includes(option) ? 'is-selected' : ''}
-              onClick={() => toggleStandoutTag(option)}
-            >
-              {option}
-            </button>
-          ))}
         </div>
       </div>
     </div>
@@ -1776,8 +1744,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <div className="wizard-profile-header">
                 <span className="wizard-profile-title-icon" aria-hidden="true">🏷️</span>
                 <div className="wizard-profile-copy">
-                  <h2 className="wizard-title">Type de séjour</h2>
-                  <p className="wizard-profile-intro">Quelques tags suffisent pour capturer l'ambiance du voyage et ce que tu en retiens.</p>
+                  <h2 className="wizard-title">Ambiance du voyage</h2>
+                  <p className="wizard-profile-intro">Choisis quelques tags pour résumer le style du séjour, les bons souvenirs et les galères marquantes.</p>
                 </div>
               </div>
               {renderStayTypeFields()}

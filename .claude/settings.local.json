@@ -41,7 +41,8 @@
       "Bash(powershell -Command \"ls -Path 'C:\\\\Users\\\\Bizon\\\\Documents\\\\GitHub\\\\App-Outpost\\\\src\\\\components' | Select-Object Name\")",
       "Skill(claude-api)",
       "Skill(claude-api:*)",
-      "Bash(awk -F: '$2 < 14700 {last=$0} $2 > 14700 {print last; exit}')"
+      "Bash(awk -F: '$2 < 14700 {last=$0} $2 > 14700 {print last; exit}')",
+      "Bash(xargs grep -l \"Type de séjour\")"
     ]
   }
 }

@@ -63,6 +63,95 @@ const DEFAULT_FILTERS: DestinationFilters = {
   budget: 'all',
 }
 
+const ACHIEVEMENT_TEST_DESTINATIONS: Destination[] = [
+  {
+    name: 'Florence', country: 'Italie', countryCode: 'it', lat: 43.7696, lng: 11.2558, tier: 'S',
+    image: 'https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?auto=format&fit=crop&w=900&q=85',
+    score: 4.8, notes: 18, visitCount: 4, tripYear: 2025, tripDays: 4, companions: 'couple', personalBudget: 720,
+    tripTypes: ['culture', 'food'], standoutTags: ['architecture', 'culinary'],
+    food: 5, night: 3, culture: 5, nature: 3, value: 4, ease: 4, intent: 'tourisme', coupDeCoeur: true,
+  },
+  {
+    name: 'Rome', country: 'Italie', countryCode: 'it', lat: 41.9028, lng: 12.4964, tier: 'S',
+    image: 'https://images.unsplash.com/photo-1529260830199-42c24126f198?auto=format&fit=crop&w=900&q=85',
+    score: 4.7, notes: 24, visitCount: 2, tripYear: 2024, tripDays: 5, companions: 'amis', personalBudget: 650,
+    tripTypes: ['culture', 'food'], standoutTags: ['architecture'],
+    food: 5, night: 4, culture: 5, nature: 2, value: 3, ease: 3, intent: 'tourisme',
+  },
+  {
+    name: 'Milan', country: 'Italie', countryCode: 'it', lat: 45.4642, lng: 9.19, tier: 'B',
+    image: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=900&q=85',
+    score: 3.6, notes: 9, tripYear: 2023, tripDays: 3, companions: 'travail', personalBudget: 420,
+    tripTypes: ['work', 'city'], food: 3, night: 3, culture: 3, nature: 1, value: 3, ease: 4, intent: 'travail',
+  },
+  {
+    name: 'Lisbonne', country: 'Portugal', countryCode: 'pt', lat: 38.7223, lng: -9.1393, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?auto=format&fit=crop&w=900&q=85',
+    score: 4.5, notes: 17, tripYear: 2024, tripDays: 3, companions: 'amis', personalBudget: 390,
+    tripTypes: ['city', 'food'], standoutTags: ['locals'],
+    food: 5, night: 4, culture: 4, nature: 3, value: 5, ease: 5, intent: 'city-trip',
+  },
+  {
+    name: 'Reykjavik', country: 'Islande', countryCode: 'is', lat: 64.1466, lng: -21.9426, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=85',
+    score: 4.4, notes: 12, tripYear: 2024, tripDays: 6, companions: 'solo', personalBudget: 1140,
+    tripTypes: ['nature', 'roadtrip'], standoutTags: ['scenery'],
+    food: 3, night: 2, culture: 3, nature: 5, value: 2, ease: 3, intent: 'nature',
+  },
+  {
+    name: 'Kyoto', country: 'Japon', countryCode: 'jp', lat: 35.0116, lng: 135.7681, tier: 'S',
+    image: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=900&q=85',
+    score: 4.9, notes: 31, tripYear: 2025, tripDays: 7, companions: 'couple', personalBudget: 980,
+    tripTypes: ['culture', 'food'], standoutTags: ['architecture', 'culinary'],
+    food: 5, night: 3, culture: 5, nature: 5, value: 4, ease: 4, intent: 'tourisme',
+  },
+  {
+    name: 'Bangkok', country: 'Thailande', countryCode: 'th', lat: 13.7563, lng: 100.5018, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=900&q=85',
+    score: 4.2, notes: 20, tripYear: 2023, tripDays: 5, companions: 'amis', personalBudget: 300,
+    tripTypes: ['food', 'nightlife'], standoutTags: ['culinary'],
+    food: 5, night: 5, culture: 4, nature: 2, value: 5, ease: 4, intent: 'gastro',
+  },
+  {
+    name: 'Seoul', country: 'Coree du Sud', countryCode: 'kr', lat: 37.5665, lng: 126.978, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1538485399081-7a06146d59f2?auto=format&fit=crop&w=900&q=85',
+    score: 4.6, notes: 16, tripYear: 2022, tripDays: 6, companions: 'amis', personalBudget: 760,
+    tripTypes: ['city', 'food'], food: 5, night: 5, culture: 4, nature: 3, value: 4, ease: 5, intent: 'sorties',
+  },
+  {
+    name: 'New York', country: 'Etats-Unis', countryCode: 'us', lat: 40.7128, lng: -74.006, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2?auto=format&fit=crop&w=900&q=85',
+    score: 4.3, notes: 26, tripYear: 2024, tripDays: 4, companions: 'amis', personalBudget: 960,
+    tripTypes: ['city', 'culture'], standoutTags: ['architecture'],
+    food: 5, night: 5, culture: 5, nature: 2, value: 2, ease: 4, intent: 'sorties',
+  },
+  {
+    name: 'Mexico', country: 'Mexique', countryCode: 'mx', lat: 19.4326, lng: -99.1332, tier: 'B',
+    image: 'https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?auto=format&fit=crop&w=900&q=85',
+    score: 4.0, notes: 13, tripYear: 2023, tripDays: 5, companions: 'solo', personalBudget: 420,
+    tripTypes: ['culture', 'food'], standoutTags: ['culinary'],
+    food: 5, night: 4, culture: 5, nature: 2, value: 5, ease: 3, intent: 'tourisme',
+  },
+  {
+    name: 'Marrakech', country: 'Maroc', countryCode: 'ma', lat: 31.6295, lng: -7.9811, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1597212618440-3f0a8da57c00?auto=format&fit=crop&w=900&q=85',
+    score: 4.1, notes: 15, tripYear: 2022, tripDays: 4, companions: 'famille', personalBudget: 360,
+    tripTypes: ['culture', 'food'],
+    food: 5, night: 3, culture: 4, nature: 2, value: 5, ease: 3, intent: 'gastro',
+  },
+  {
+    name: 'Cape Town', country: 'Afrique du Sud', countryCode: 'za', lat: -33.9249, lng: 18.4241, tier: 'A',
+    image: 'https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=900&q=85',
+    score: 4.4, notes: 14, tripYear: 2021, tripDays: 8, companions: 'couple', personalBudget: 680,
+    tripTypes: ['nature', 'city'], standoutTags: ['scenery'],
+    food: 4, night: 4, culture: 4, nature: 5, value: 4, ease: 3, intent: 'nature',
+  },
+]
+
+function isLocalTestHost() {
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+}
+
 function getAvatarFallbackLabel(...labels: Array<string | null | undefined>) {
   for (const label of labels) {
     const normalized = label?.trim()
@@ -485,6 +574,32 @@ function AppCore({
   )
   const isMobileLayout = useMediaQuery('(max-width: 768px)')
   const [desktopDock, setDesktopDock] = useState<DesktopDockState>(DESKTOP_DOCK_DEFAULT)
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (!isLocalTestHost() || url.searchParams.get('seed') !== 'achievements') return
+
+    url.searchParams.delete('seed')
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+    setAccountOpen(true)
+
+    if (user) {
+      console.warn('[seed] Achievement test data skipped: sign out to seed local-only data.')
+      return
+    }
+
+    const seededDestinations = ACHIEVEMENT_TEST_DESTINATIONS.map(withRecalculatedScore)
+    setViewingFriend(null)
+    setCompareFriend(null)
+    setTargetedCompare(null)
+    setSelectedName(null)
+    setSelectedKey(null)
+    setPendingMapFocusName(null)
+    setFlyTarget(null)
+    setFilters(DEFAULT_FILTERS)
+    setActiveView('map')
+    setDestinations(seededDestinations)
+  }, [setDestinations, user])
 
   useEffect(() => {
     const url = new URL(window.location.href)

@@ -318,8 +318,11 @@ svg {
 .brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 13px;
   height: 36px;
+  width: 100%;
+  padding: 0;
   flex-shrink: 0;
   margin-bottom: 4px;
   color: var(--ink);
@@ -15407,88 +15410,125 @@ h3.compare-insight-headline {
 
 .account-profile-achievements {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr));
+  gap: 10px;
 }
 
 .account-profile-tag {
-  min-height: 100px;
+  --achievement-accent: #4f90ff;
+  --achievement-soft: #eef6ff;
+  position: relative;
+  min-height: 68px;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  align-items: start;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 251, 255, 0.7));
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px 11px 14px;
+  overflow: hidden;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 251, 255, 0.72)),
+    linear-gradient(135deg, color-mix(in srgb, var(--achievement-accent) 9%, transparent), transparent 58%);
   border: 1px solid rgba(199, 218, 242, 0.64);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 18px rgba(56, 88, 138, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 6px 14px rgba(56, 88, 138, 0.05);
   backdrop-filter: blur(10px);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.account-profile-tag::before {
+  content: '';
+  position: absolute;
+  inset: 12px auto 12px 0;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--achievement-accent);
+  opacity: 0.72;
+}
+
+.account-profile-tag:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--achievement-accent) 28%, rgba(199, 218, 242, 0.64));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), 0 9px 18px rgba(56, 88, 138, 0.08);
 }
 
 .account-profile-tag-icon {
-  width: 46px;
-  height: 46px;
+  position: relative;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   align-self: center;
   flex-shrink: 0;
-  border-radius: 14px;
-  background: #f3f8ff;
-  border: 1px solid rgba(199, 218, 242, 0.86);
-  box-shadow: none;
-  font-size: 22px;
+  border-radius: 13px;
+  background: var(--achievement-soft);
+  border: 1px solid color-mix(in srgb, var(--achievement-accent) 24%, rgba(255, 255, 255, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  font-size: 19px;
   line-height: 1;
   overflow: hidden;
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  transition: transform 160ms ease, filter 160ms ease;
 }
 
-.account-profile-tag--red .account-profile-tag-icon {
-  background: #fff1f1;
-  border-color: rgba(239, 123, 115, 0.32);
+.account-profile-tag:hover .account-profile-tag-icon {
+  transform: scale(1.03);
+  filter: saturate(1.08) brightness(1.02);
 }
 
-.account-profile-tag--gold .account-profile-tag-icon {
-  background: #fff7dd;
-  border-color: rgba(247, 189, 66, 0.36);
+.account-profile-tag--red {
+  --achievement-accent: #ef7b73;
+  --achievement-soft: #fff1f1;
 }
 
-.account-profile-tag--heart .account-profile-tag-icon {
-  background: #fff1f5;
-  border-color: rgba(246, 128, 173, 0.32);
+.account-profile-tag--gold {
+  --achievement-accent: #f4b63f;
+  --achievement-soft: #fff7dd;
 }
 
-.account-profile-tag--teal .account-profile-tag-icon {
-  background: #e8fbf2;
-  border-color: rgba(69, 196, 137, 0.34);
+.account-profile-tag--heart {
+  --achievement-accent: #f680ad;
+  --achievement-soft: #fff1f5;
+}
+
+.account-profile-tag--teal {
+  --achievement-accent: #45c489;
+  --achievement-soft: #e8fbf2;
+}
+
+.account-profile-tag--blue {
+  --achievement-accent: #4f90ff;
+  --achievement-soft: #eef6ff;
 }
 
 .account-profile-tag-body {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: grid;
   align-content: start;
-  gap: 7px;
-  padding-top: 1px;
+  gap: 3px;
 }
 
 .account-profile-tag-body strong {
   color: #17213a;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: var(--weight-bold);
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .account-profile-tag-body span {
   color: #52627c;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: var(--weight-semibold);
-  line-height: 1.34;
+  line-height: 1.25;
   white-space: normal;
   overflow-wrap: anywhere;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(243, 247, 253, 0.96);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .account-profile-continents {
@@ -15603,16 +15643,15 @@ h3.compare-insight-headline {
   }
 
   .account-profile-achievements {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
     gap: 10px;
   }
 
   .account-profile-tag {
-    min-height: unset;
+    min-height: 64px;
     grid-template-columns: 36px minmax(0, 1fr);
-    align-items: center;
     gap: 8px;
-    padding: 10px;
+    padding: 10px 10px 10px 13px;
   }
 
   .account-profile-tag-icon {
@@ -15633,7 +15672,6 @@ h3.compare-insight-headline {
   .account-profile-tag-body span {
     font-size: 10.5px;
     line-height: 1.25;
-    padding: 4px 6px;
   }
 
   .account-continent-row {
@@ -15644,7 +15682,18 @@ h3.compare-insight-headline {
 
 @media (max-width: 380px) {
   .account-profile-achievements {
-    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-profile-tag,
+  .account-profile-tag-icon {
+    transition: none;
+  }
+
+  .account-profile-tag:hover {
+    transform: none;
   }
 }
 

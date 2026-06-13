@@ -21,6 +21,7 @@ import { useCommunityRatings, type CommunityRating } from '../hooks/useCommunity
 import { computeTravelerProfile, getDestinationScore, getDestinationTier, scoreToTier } from '../utils'
 import { Avatar } from './Avatar'
 import { SegmentedControl } from './SegmentedControl'
+import { Icon } from './Icon'
 import FriendCompareView from './friends/FriendCompareView'
 import { TravelerProfileStrip } from './TravelerProfileCard'
 import { CommunityBadge } from './CommunityBadge'
@@ -748,7 +749,7 @@ export default function TierListPage({
       value={pageMode}
       options={[
         { value: 'personal' as const, label: t('My rankings', 'Mon classement') },
-        { value: 'global' as const, label: `👥 ${t('Global', 'Global')}` },
+        { value: 'global' as const, label: t('Global', 'Global'), icon: <Icon name="users" /> },
       ]}
       onChange={setPageMode}
     />
@@ -880,7 +881,8 @@ export default function TierListPage({
           />
         ) : (
           <div className="tier-list-solo-summary page-mode-fade">
-            <div className="tier-list-solo-player">
+            <div className="tier-list-solo-primary">
+              <div className="tier-list-solo-player">
               <Avatar
                 avatarUrl={myProfile?.avatarUrl}
                 initials={myInitials}
@@ -889,15 +891,20 @@ export default function TierListPage({
                 className="tier-list-solo-avatar"
                 ariaHidden={true}
               />
-              <div className="tier-list-solo-identity">
-                <span>{myProfile?.displayName?.split(' ')[0] ?? t('Me', 'Moi')}</span>
-                {myProfileTitle && <span className="tier-list-solo-title">{myProfileTitle}</span>}
-                <strong>{myAverage !== null ? myAverage.toFixed(1) : '—'}</strong>
+              <div className="tier-list-solo-player-main">
+                <div className="tier-list-solo-identity">
+                  <span>{myProfile?.displayName?.split(' ')[0] ?? t('Me', 'Moi')}</span>
+                  {myProfileTitle && <span className="tier-list-solo-title">{myProfileTitle}</span>}
+                  <strong>{myAverage !== null ? myAverage.toFixed(1) : '—'}</strong>
+                </div>
               </div>
             </div>
+            <strong className="tier-list-solo-score" aria-hidden="true">{myAverage !== null ? myAverage.toFixed(1) : '—'}</strong>
+            <div className="tier-list-solo-secondary">
             <div className="tier-list-solo-meta">
               <span>{myFavoriteCount} {t('favorites', 'favoris')}</span>
               <span>{tierSummaryCounts.length} tiers</span>
+            </div>
             </div>
             <div className="tier-list-hero-tier-chips" aria-label={t('Summary by tier', 'Résumé par tier')}>
               {tierSummaryCounts.map(({ tier, count }) => (
@@ -905,6 +912,7 @@ export default function TierListPage({
                   <b>{tier}</b>{count}
                 </span>
               ))}
+            </div>
             </div>
           </div>
         ))}

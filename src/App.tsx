@@ -540,17 +540,29 @@ function AppCore({
 
       const sidebarRect = sidebar.getBoundingClientRect()
       const destinationCardRect = visibleRect('.destination-card')
+      const tierBoardRect = visibleRect('.tier-board')
+      const legendRect = visibleRect('.legend')
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
       const outerMargin = 16
       const rightMargin = 20
       const stackGap = 24
+      const panelStackGap = stackGap
+      const minPanelStackGap = 12
       const bottomMargin = 16
       const controlsBaseOffset = 14
       const controlsGap = 16
       const controlsHeight = 172
-      const tierHeight = tierListCollapsed ? 86 : 310
-      const legendHeight = 215
+      const measuredTierHeight = tierBoardRect ? Math.ceil(tierBoardRect.height) : null
+      const measuredLegendHeight = legendRect ? Math.ceil(legendRect.height) : null
+      const tierHeight = measuredTierHeight
+        ? tierListCollapsed
+          ? Math.min(measuredTierHeight, 140)
+          : measuredTierHeight
+        : tierListCollapsed ? 112 : 310
+      const legendHeight = measuredLegendHeight
+        ? Math.min(Math.max(measuredLegendHeight, 188), 240)
+        : 205
       const leftDockX = Math.round(sidebarRect.left)
       const leftLimit = destinationCardRect ? destinationCardRect.left - rightMargin : viewportWidth - rightMargin
       const availableWidth = Math.max(260, Math.round(leftLimit - leftDockX))
@@ -559,24 +571,27 @@ function AppCore({
       // Panneau tier déplié = plus large pour afficher les colonnes S/A/B/C/D.
       const tierPanelWidth = Math.max(leftDockWidth, Math.min(700, availableWidth))
       const stackTop = Math.round(sidebarRect.bottom + stackGap)
-      const tierTopIfBottomLeft = Math.round(viewportHeight - bottomMargin - tierHeight)
       // Order: My rankings (tier) first, Notation (legend) second.
-      const allFitStacked = stackTop + tierHeight + stackGap + legendHeight + bottomMargin <= viewportHeight
-      const tierMode: DesktopTierMode = allFitStacked ? 'stacked-left' : 'bottom-left'
-      const stackedLegendBottom = Math.round(stackTop + legendHeight)
-      const legendCanStayStacked = stackedLegendBottom + stackGap <= tierTopIfBottomLeft
-      const legendMode: DesktopLegendMode = legendCanStayStacked && tierMode === 'stacked-left'
-        ? 'stacked-left'
-        : 'bottom-left'
+      const stackedBottom = stackTop + tierHeight + panelStackGap + legendHeight + bottomMargin
+      const compactPanelStackGap = stackedBottom <= viewportHeight
+        ? panelStackGap
+        : Math.max(
+          minPanelStackGap,
+          Math.floor((viewportHeight - stackTop - tierHeight - legendHeight - bottomMargin) / 2),
+        )
+      const compactStackBottom = stackTop + tierHeight + compactPanelStackGap + legendHeight + bottomMargin
+      const compactStackFits = compactStackBottom <= viewportHeight
+      const tierMode: DesktopTierMode = compactStackFits ? 'stacked-left' : 'bottom-left'
+      const legendMode: DesktopLegendMode = compactStackFits ? 'stacked-left' : 'bottom-left'
       // Tier is positioned first (at stackTop), legend goes below it.
       const tierStackTop = tierMode === 'stacked-left'
         ? Math.round(stackTop)
         : 0
       const legendStackTop = tierMode === 'stacked-left'
-        ? Math.round(stackTop + tierHeight + stackGap)
+        ? Math.round(stackTop + tierHeight + compactPanelStackGap)
         : Math.round(stackTop)
       const legendBottom = tierMode === 'bottom-left'
-        ? Math.round(tierHeight + bottomMargin + stackGap)
+        ? Math.round(tierHeight + bottomMargin + compactPanelStackGap)
         : bottomMargin
       const controlsTopUnderTier = tierMode === 'stacked-left'
         ? legendStackTop + legendHeight + 58
@@ -609,7 +624,7 @@ function AppCore({
           legendStackTop,
           sidebarBottom: Math.round(sidebarRect.bottom),
           stackBottom,
-          stackGap,
+          stackGap: compactPanelStackGap,
           stackTop,
           tierHeight,
           tierMode,
@@ -1225,6 +1240,7 @@ function AppCore({
           destinations={visibleDestinations}
           collapsed={tierListCollapsed}
           coupDeCoeurCount={coupDeCoeurCount}
+          maxCoupDeCoeur={getMaxCoupDeCoeur(destinations.length)}
           dockMode={desktopDock.tierMode}
           onCollapseToggle={() => setTierListCollapsed(value => !value)}
           onFlyTo={selectByName}

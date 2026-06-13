@@ -11,9 +11,12 @@ import {
 } from '../lib/destinationMapper'
 import { withRecalculatedScore } from '../utils'
 import { needsZoneGeometryRepair, repairZoneDestinationGeometry } from '../lib/zoneGeometry'
+import { FAKE_FRIENDS_MODE, getFakeMyDestinations } from './_fakeFriends'
 
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
+const FAKE_SEED_VERSION_KEY = 'outpost-fake-seed-version'
+const FAKE_SEED_VERSION = '2'
 const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 export const AUTO_IMAGE_VERSION = 5
 const DEFAULT_COUP_DE_COEUR_NAMES = new Set(['Kyoto'])
@@ -68,6 +71,15 @@ function normalizeScores(destinations: Destination[]) {
 
 function loadFromLocalStorage(normalize: DestinationNormalizer): Destination[] | null {
   try {
+    if (FAKE_FRIENDS_MODE) {
+      const fakeSeedVersion = localStorage.getItem(FAKE_SEED_VERSION_KEY)
+      if (fakeSeedVersion !== FAKE_SEED_VERSION) {
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(LEGACY_STORAGE_KEY)
+        localStorage.setItem(FAKE_SEED_VERSION_KEY, FAKE_SEED_VERSION)
+        return null
+      }
+    }
     const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!saved) return null
     const normalized = normalize(JSON.parse(saved))
@@ -78,10 +90,16 @@ function loadFromLocalStorage(normalize: DestinationNormalizer): Destination[] |
   }
 }
 
+function getLocalSeedDestinations(normalize: DestinationNormalizer): Destination[] {
+  const seeded = normalize(getFakeMyDestinations())
+  return seeded ? normalizeScores(applySeedMigrations(seeded)) : []
+}
+
 function clearLocalCache() {
   try {
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(LEGACY_STORAGE_KEY)
+    if (FAKE_FRIENDS_MODE) localStorage.removeItem(FAKE_SEED_VERSION_KEY)
   } catch {
     /* ignore */
   }
@@ -136,7 +154,10 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
   // Si rien en cache → carnet vide. Pas de seed démo : un nouvel utilisateur
   // doit voir un carnet vraiment vide, pas le carnet de démonstration.
   const [destinations, setDestinationsState] = useState<Destination[]>(() => {
-    return loadFromLocalStorage(normalize) ?? []
+    const cached = loadFromLocalStorage(normalize)
+    if (cached) return cached
+    if (FAKE_FRIENDS_MODE && !supabase) return getLocalSeedDestinations(normalize)
+    return []
   })
   const [hydrated, setHydrated] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -225,7 +246,7 @@ export function useMyDestinations(normalize: DestinationNormalizer) {
     // Pas d'utilisateur : on garde le cache local. Si on vient juste de signOut,
     // auth.tsx a déjà vidé le cache et l'app sera réinitialisée au prochain login.
     if (!userId || !supabase) {
-      const cached = loadFromLocalStorage(normalize) ?? []
+      const cached = loadFromLocalStorage(normalize) ?? (FAKE_FRIENDS_MODE ? getLocalSeedDestinations(normalize) : [])
       suppressNextSyncRef.current = true
       setDestinationsState(cached)
       prevByNameRef.current = indexByName(cached)

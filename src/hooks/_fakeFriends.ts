@@ -92,6 +92,14 @@ export const FAKE_ACTIVITY: EnrichedActivity[] = [
 ]
 
 export const FAKE_USER = { id: 'me-local-dev' }
+export const FAKE_PROFILE = {
+  userId: FAKE_USER.id,
+  handle: 'bizon-local',
+  displayName: 'Bizon Local',
+  avatarBg: '#111827',
+  avatarFg: '#F9FAFB',
+  mapVisibility: 'friends' as const,
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Cartes des amis (faux)
@@ -139,6 +147,17 @@ const BRUNO_DESTS: Destination[] = [
   dest('Singapour','Singapour',     1.3521, 103.8198, 'A', img('1565967511849-76a60a516170'), { food: 5, night: 4, culture: 4, nature: 4, value: 2 }, 'tourisme', 4.4, 'sg'),
 ]
 
+export const FAKE_MY_DESTINATIONS: Destination[] = [
+  dest('Paris', 'France', 48.8566, 2.3522, 'B', img('1502602898657-3e91760cbb34'), { food: 4, night: 4, culture: 5, nature: 2, value: 2 }, 'city-trip', 3.8, 'fr'),
+  dest('Annecy', 'France', 45.8992, 6.1294, 'A', img('1506744038136-46273834b3fb'), { food: 4, night: 2, culture: 3, nature: 5, value: 3 }, 'nature', 4.3, 'fr'),
+  dest('Rome', 'Italie', 41.9028, 12.4964, 'S', img('1529260830199-42c24126f198'), { food: 5, night: 4, culture: 5, nature: 2, value: 3 }, 'tourisme', 4.7, 'it'),
+  dest('Marrakech', 'Maroc', 31.6295, -7.9811, 'A', img('1597212618440-3f0a8da57c00'), { food: 5, night: 3, culture: 4, nature: 2, value: 4 }, 'gastro', 4.2, 'ma'),
+  dest('New York', 'Etats-Unis', 40.7128, -74.0060, 'A', img('1499092346589-b9b6be3e94b2'), { food: 5, night: 5, culture: 5, nature: 2, value: 1 }, 'sorties', 4.4, 'us'),
+  dest('Bali', 'Indonesie', -8.4095, 115.1889, 'S', img('1519046904884-53103b34b206'), { food: 4, night: 3, culture: 4, nature: 5, value: 4 }, 'nature', 4.8, 'id'),
+  dest('Bruxelles', 'Belgique', 50.8503, 4.3517, 'C', img('1491553895911-0055eca6402d'), { food: 3, night: 2, culture: 3, nature: 1, value: 2 }, 'city-trip', 2.9, 'be'),
+  dest('Milan', 'Italie', 45.4642, 9.19, 'D', img('1518548419970-58e3b4079ab2'), { food: 2, night: 2, culture: 2, nature: 1, value: 1 }, 'travail', 2.1, 'it'),
+]
+
 const FRIEND_DESTS_BY_USER: Record<string, Destination[]> = {
   [PROFILES.alice.id]: ALICE_DESTS,
   [PROFILES.bruno.id]: BRUNO_DESTS,
@@ -146,6 +165,10 @@ const FRIEND_DESTS_BY_USER: Record<string, Destination[]> = {
 
 export function getFakeFriendDestinations(userId: string): Destination[] {
   return FRIEND_DESTS_BY_USER[userId] ?? []
+}
+
+export function getFakeMyDestinations(): Destination[] {
+  return FAKE_MY_DESTINATIONS.map(destination => ({ ...destination }))
 }
 
 /** Recherche un faux ami par handle (sans le @, case-insensitive). */

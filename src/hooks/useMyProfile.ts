@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { MapVisibility, PublicProfile } from '../types'
+import { FAKE_FRIENDS_MODE, FAKE_PROFILE } from './_fakeFriends'
 
 interface ProfileRow {
   user_id: string
@@ -29,10 +30,10 @@ function rowToProfile(row: ProfileRow): PublicProfile {
 
 /**
  * Profil public de l'utilisateur courant.
- * - `profile` est `null` si non chargé OU si la ligne n'existe pas encore (premier login).
- * - `needsSetup` permet à App.tsx d'afficher le ProfileSetupModal de force.
- * - `upsert` insère ou met à jour le profil et retourne ok/error.
- * - `checkHandleAvailable` interroge la table pour valider l'unicité avant submit.
+ * - `profile` est `null` si non charge OU si la ligne n'existe pas encore (premier login).
+ * - `needsSetup` permet a App.tsx d'afficher le ProfileSetupModal de force.
+ * - `upsert` insere ou met a jour le profil et retourne ok/error.
+ * - `checkHandleAvailable` interroge la table pour valider l'unicite avant submit.
  */
 export function useMyProfile() {
   const { user } = useAuth()
@@ -41,6 +42,11 @@ export function useMyProfile() {
   const [loaded, setLoaded] = useState(false)
 
   const refresh = useCallback(async () => {
+    if (!supabase && FAKE_FRIENDS_MODE) {
+      setProfile(FAKE_PROFILE)
+      setLoaded(true)
+      return
+    }
     if (!supabase || !user) {
       setProfile(null)
       setLoaded(true)
@@ -62,8 +68,8 @@ export function useMyProfile() {
     void refresh()
   }, [refresh])
 
-  // Auto-sync avatar_url pour les profils existants créés avant la migration.
-  // S'exécute une seule fois quand le profil se charge sans avatar_url.
+  // Auto-sync avatar_url pour les profils existants crees avant la migration.
+  // S'execute une seule fois quand le profil se charge sans avatar_url.
   const avatarSyncedRef = useRef(false)
   useEffect(() => {
     if (!supabase || !user || !profile || profile.avatarUrl || avatarSyncedRef.current) return
@@ -92,9 +98,22 @@ export function useMyProfile() {
     bio?: string
     mapVisibility?: MapVisibility
   }): Promise<{ ok: boolean; error?: string }> => {
-    if (!supabase || !user) return { ok: false, error: 'Non connecté' }
+    if (!supabase && FAKE_FRIENDS_MODE) {
+      setProfile(previous => ({
+        ...(previous ?? FAKE_PROFILE),
+        handle: input.handle.trim().toLowerCase() || (previous?.handle ?? FAKE_PROFILE.handle),
+        displayName: input.displayName.trim() || (previous?.displayName ?? FAKE_PROFILE.displayName),
+        avatarBg: input.avatarBg ?? previous?.avatarBg ?? FAKE_PROFILE.avatarBg,
+        avatarFg: input.avatarFg ?? previous?.avatarFg ?? FAKE_PROFILE.avatarFg,
+        avatarUrl: input.avatarUrl ?? previous?.avatarUrl,
+        bio: input.bio ?? previous?.bio,
+        mapVisibility: input.mapVisibility ?? previous?.mapVisibility ?? FAKE_PROFILE.mapVisibility,
+      }))
+      return { ok: true }
+    }
+    if (!supabase || !user) return { ok: false, error: 'Non connecte' }
     const handle = input.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-    if (handle.length < 2 || handle.length > 32) return { ok: false, error: 'Handle entre 2 et 32 caractères' }
+    if (handle.length < 2 || handle.length > 32) return { ok: false, error: 'Handle entre 2 et 32 caracteres' }
     const displayName = input.displayName.trim()
     if (!displayName) return { ok: false, error: 'Nom requis' }
     const { error } = await supabase
@@ -110,7 +129,7 @@ export function useMyProfile() {
         map_visibility: input.mapVisibility ?? profile?.mapVisibility ?? 'friends',
       })
     if (error) {
-      if (error.code === '23505') return { ok: false, error: 'Ce handle est déjà pris' }
+      if (error.code === '23505') return { ok: false, error: 'Ce handle est deja pris' }
       return { ok: false, error: error.message }
     }
     await refresh()
@@ -118,7 +137,14 @@ export function useMyProfile() {
   }, [user, refresh, profile?.mapVisibility])
 
   const updateMapVisibility = useCallback(async (mapVisibility: MapVisibility): Promise<{ ok: boolean; error?: string }> => {
-    if (!supabase || !user) return { ok: false, error: 'Non connecté' }
+    if (!supabase && FAKE_FRIENDS_MODE) {
+      setProfile(previous => ({
+        ...(previous ?? FAKE_PROFILE),
+        mapVisibility,
+      }))
+      return { ok: true }
+    }
+    if (!supabase || !user) return { ok: false, error: 'Non connecte' }
     const { error } = await supabase
       .from('public_profiles')
       .update({ map_visibility: mapVisibility })
@@ -129,6 +155,7 @@ export function useMyProfile() {
   }, [user, refresh])
 
   const checkHandleAvailable = useCallback(async (handle: string): Promise<boolean> => {
+    if (!supabase && FAKE_FRIENDS_MODE) return handle.trim().length >= 2
     if (!supabase) return false
     const cleaned = handle.trim().toLowerCase()
     if (!cleaned) return false
@@ -138,7 +165,6 @@ export function useMyProfile() {
       .eq('handle', cleaned)
       .maybeSingle()
     if (error) return false
-    // Disponible si pas de ligne, ou si c'est nous-mêmes
     return !data || (user !== null && (data as { user_id: string }).user_id === user.id)
   }, [user])
 

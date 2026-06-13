@@ -49,6 +49,7 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>) {
   const listRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef(new Map<T, HTMLButtonElement | null>())
+  const hasAutoScrolledRef = useRef(false)
   const [indicator, setIndicator] = useState<IndicatorState>({
     left: 0,
     width: 0,
@@ -74,6 +75,24 @@ export function SegmentedControl<T extends string>({
   useLayoutEffect(() => {
     measureActive()
   }, [measureActive, options, value, layout])
+
+  useEffect(() => {
+    if (layout !== 'scrollable') return
+
+    const list = listRef.current
+    const activeButton = buttonRefs.current.get(value)
+    if (!list || !activeButton) return
+
+    const targetLeft = activeButton.offsetLeft - Math.max(0, (list.clientWidth - activeButton.offsetWidth) / 2)
+    const maxScrollLeft = Math.max(0, list.scrollWidth - list.clientWidth)
+    const nextLeft = Math.min(Math.max(0, targetLeft), maxScrollLeft)
+
+    list.scrollTo({
+      left: nextLeft,
+      behavior: hasAutoScrolledRef.current ? 'smooth' : 'auto',
+    })
+    hasAutoScrolledRef.current = true
+  }, [layout, options, value])
 
   useEffect(() => {
     const list = listRef.current

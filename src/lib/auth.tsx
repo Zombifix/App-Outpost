@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { FAKE_FRIENDS_MODE, FAKE_USER } from '../hooks/_fakeFriends'
 
 interface AuthContextValue {
   user: User | null
@@ -17,6 +18,14 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 const MAGIC_LINK_COOLDOWN_MS = 60_000
 const magicLinkAttempts = new Map<string, number>()
+const FAKE_AUTH_USER: User = {
+  id: FAKE_USER.id,
+  app_metadata: { provider: 'local-dev', providers: ['local-dev'] },
+  user_metadata: { name: 'Bizon Local' },
+  aud: 'authenticated',
+  created_at: '2026-01-01T00:00:00.000Z',
+  email: 'local-demo@app-outpost.test',
+}
 
 function friendlyAuthError(message: string) {
   const normalized = message.toLowerCase()
@@ -56,6 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!supabase && FAKE_FRIENDS_MODE) {
+      setSession(null)
+      setUser(FAKE_AUTH_USER)
+      setLoading(false)
+      return
+    }
     if (!supabase) {
       setLoading(false)
       return

@@ -662,21 +662,11 @@ function DestinationCardContent({
               {INTENT_LABELS[destination.intent]}
             </span>
           )}
-          {canEditOwnDestination && coupDeCoeur ? (
+          {canEditOwnDestination && coupDeCoeur && (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
               aria-label={t('Remove from favorites', 'Retirer des coups de cœur')}
               title={t('Favorite — remove', 'Coup de cœur — retirer')}
-              onClick={onCoupDeCoeur}
-            >
-              <Icon name="heart" />
-              {t('Favorite', 'Coup de cœur')}
-            </button>
-          ) : canEditOwnDestination && !coupDeCoeurDisabled && (
-            <button
-              className="coup-de-coeur-button destination-hero-favorite"
-              aria-label={t('Add to favorites', 'Ajouter aux coups de cœur')}
-              title={t('Add to favorites', 'Ajouter aux coups de cœur')}
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />

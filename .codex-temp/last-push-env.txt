@@ -1,0 +1,3 @@
+GIT_INDEX_FILE=C:\Users\Bizon\Documents\GitHub\App-Outpost\.codex-temp\git-push-index-7768ea45a5424fd794819acc61138f00\index
+GIT_OBJECT_DIRECTORY=C:\Users\Bizon\Documents\GitHub\App-Outpost\.codex-temp\git-push-index-7768ea45a5424fd794819acc61138f00\objects
+GIT_ALTERNATE_OBJECT_DIRECTORIES=C:\Users\Bizon\Documents\GitHub\App-Outpost\.git\objects

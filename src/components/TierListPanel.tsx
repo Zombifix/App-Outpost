@@ -12,6 +12,7 @@ interface TierListPanelProps {
   destinations: Destination[]
   collapsed: boolean
   coupDeCoeurCount: number
+  maxCoupDeCoeur: number
   dockMode?: 'stacked-left' | 'bottom-left' | 'overlay-bottom'
   onCollapseToggle: () => void
   onFlyTo: (name: string) => void
@@ -69,6 +70,7 @@ export default function TierListPanel({
   destinations,
   collapsed,
   coupDeCoeurCount,
+  maxCoupDeCoeur,
   dockMode = 'overlay-bottom',
   onCollapseToggle,
   onFlyTo,
@@ -210,6 +212,15 @@ export default function TierListPanel({
       <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
     )
   const tierCountChips = renderTierChips(tierCounts)
+  const favoriteChip = (
+    <span
+      className="tier-board-favorite-chip"
+      aria-label={t(`${coupDeCoeurCount} favorites used out of ${maxCoupDeCoeur}`, `${coupDeCoeurCount} coups de cœur utilisés sur ${maxCoupDeCoeur}`)}
+    >
+      <span className="tier-board-favorite-chip-heart" aria-hidden="true">♥</span>
+      {coupDeCoeurCount}/{maxCoupDeCoeur}
+    </span>
+  )
 
   const tierOptions = [
     { value: 'all' as const, label: t('All', 'Tous') },
@@ -253,6 +264,7 @@ export default function TierListPanel({
                 )) : (
                   <span className="tier-board-collapsed-count tier-board-collapsed-count--empty">0</span>
                 )}
+                {favoriteChip}
               </span>
             </span>
             {friendTierCounts && compareFriendName && (
@@ -288,6 +300,7 @@ export default function TierListPanel({
           {collapsed && (
             <div className="tier-board-title-counts" aria-label="Summary by rating">
               {tierCountChips}
+              {favoriteChip}
             </div>
           )}
         </div>
@@ -335,6 +348,7 @@ export default function TierListPanel({
             </div>
             <div className="tier-mobile-summary" aria-label="Summary by rating">
               {tierCountChips}
+              {favoriteChip}
             </div>
           </div>
         )}

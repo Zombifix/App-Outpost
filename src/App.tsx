@@ -546,9 +546,9 @@ function AppCore({
       const viewportHeight = window.innerHeight
       const outerMargin = 16
       const rightMargin = 20
-      const stackGap = 24
-      const panelStackGap = 12
-      const minPanelStackGap = 12
+      const stackGap = 16
+      const panelStackGap = stackGap
+      const minPanelStackGap = stackGap
       const bottomMargin = 16
       const controlsBaseOffset = 14
       const controlsGap = 16

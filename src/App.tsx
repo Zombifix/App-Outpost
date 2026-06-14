@@ -662,8 +662,8 @@ function AppCore({
       const outerMargin = 16
       const rightMargin = 20
       const stackGap = 16
-      const panelStackGap = stackGap
-      const minPanelStackGap = stackGap
+      const panelStackGap = 10
+      const minPanelStackGap = 8
       const bottomMargin = 16
       const controlsBaseOffset = 14
       const controlsGap = 16
@@ -674,7 +674,7 @@ function AppCore({
         ? tierListCollapsed
           ? Math.min(measuredTierHeight, 140)
           : measuredTierHeight
-        : tierListCollapsed ? 112 : 310
+        : tierListCollapsed ? 90 : 310
       const legendHeight = measuredLegendHeight
         ? Math.min(Math.max(measuredLegendHeight, 188), 240)
         : 205
@@ -702,8 +702,11 @@ function AppCore({
       const tierStackTop = tierMode === 'stacked-left'
         ? Math.round(stackTop)
         : 0
+      // Use the measured bottom edge of the tier board directly — avoids
+      // the tierHeight fallback error that would push the legend too far down.
+      const tierActualBottom = tierBoardRect ? Math.ceil(tierBoardRect.bottom) : (stackTop + tierHeight)
       const legendStackTop = tierMode === 'stacked-left'
-        ? Math.round(stackTop + tierHeight + compactPanelStackGap)
+        ? Math.round(tierActualBottom + compactPanelStackGap)
         : Math.round(stackTop)
       const legendBottom = tierMode === 'bottom-left'
         ? Math.round(tierHeight + bottomMargin + compactPanelStackGap)

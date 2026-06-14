@@ -308,8 +308,8 @@ svg {
   border-radius: var(--radius-xl);
   border: 1px solid rgba(220, 230, 242, 0.7);
   box-shadow:
-    0 4px 24px rgba(15, 23, 42, 0.10),
-    0 1px 4px rgba(15, 23, 42, 0.06);
+    0 4px 18px rgba(15, 23, 42, 0.07),
+    0 1px 3px rgba(15, 23, 42, 0.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   overflow: hidden;
@@ -4919,8 +4919,8 @@ h3.compare-insight-headline {
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(220, 230, 242, 0.7);
   box-shadow:
-    0 4px 24px rgba(15, 23, 42, 0.10),
-    0 1px 4px rgba(15, 23, 42, 0.06);
+    0 4px 18px rgba(15, 23, 42, 0.07),
+    0 1px 3px rgba(15, 23, 42, 0.04);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
@@ -13592,6 +13592,7 @@ h3.compare-insight-headline {
     align-items: start;
     align-content: start;
     gap: 8px;
+    transform: translateZ(0);
   }
 
   .legend--stacked-left .legend-header,
@@ -14408,7 +14409,7 @@ h3.compare-insight-headline {
   border-color: rgba(255, 255, 255, 0.70);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 14px 34px rgba(52, 82, 116, 0.10);
+    0 10px 24px rgba(52, 82, 116, 0.07);
 }
 
 .legend.legend--stacked-left span,

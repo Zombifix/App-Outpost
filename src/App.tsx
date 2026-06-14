@@ -662,8 +662,8 @@ function AppCore({
       const outerMargin = 16
       const rightMargin = 20
       const stackGap = 16
-      const panelStackGap = 10
-      const minPanelStackGap = 8
+      const panelStackGap = 16
+      const minPanelStackGap = 16
       const bottomMargin = 16
       const controlsBaseOffset = 14
       const controlsGap = 16
@@ -702,9 +702,14 @@ function AppCore({
       const tierStackTop = tierMode === 'stacked-left'
         ? Math.round(stackTop)
         : 0
-      // Use the measured bottom edge of the tier board directly — avoids
-      // the tierHeight fallback error that would push the legend too far down.
-      const tierActualBottom = tierBoardRect ? Math.ceil(tierBoardRect.bottom) : (stackTop + tierHeight)
+      // When collapsed: cap the live bottom to stackTop+tierHeight so a mid-animation
+      // read doesn't push the legend off-screen. When expanded: use live bottom directly.
+      const collapsedBound = stackTop + tierHeight
+      const tierActualBottom = tierBoardRect
+        ? tierListCollapsed
+          ? Math.min(Math.ceil(tierBoardRect.bottom), collapsedBound)
+          : Math.ceil(tierBoardRect.bottom)
+        : collapsedBound
       const legendStackTop = tierMode === 'stacked-left'
         ? Math.round(tierActualBottom + compactPanelStackGap)
         : Math.round(stackTop)
@@ -759,9 +764,13 @@ function AppCore({
     }
 
     scheduleMeasure()
+    // Second pass after tier-board collapse animation (320ms) so the measured
+    // height reflects the settled collapsed state, not the mid-animation value.
+    const postAnimationMeasure = window.setTimeout(scheduleMeasure, 360)
     window.addEventListener('resize', scheduleMeasure)
     return () => {
       window.cancelAnimationFrame(frame)
+      window.clearTimeout(postAnimationMeasure)
       window.removeEventListener('resize', scheduleMeasure)
     }
   }, [

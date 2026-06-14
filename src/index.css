@@ -3569,7 +3569,8 @@ svg {
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 14px 30px rgba(95, 119, 148, 0.13);
   backdrop-filter: blur(18px);
-  transform: none;
+  transform: translateZ(0);
+  will-change: transform;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   white-space: nowrap;
@@ -13593,6 +13594,9 @@ h3.compare-insight-headline {
     align-content: start;
     gap: 8px;
     transform: translateZ(0);
+    will-change: transform;
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
   }
 
   .legend--stacked-left .legend-header,
@@ -14410,6 +14414,7 @@ h3.compare-insight-headline {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 10px 24px rgba(52, 82, 116, 0.07);
+  opacity: 0.9999;
 }
 
 .legend.legend--stacked-left span,

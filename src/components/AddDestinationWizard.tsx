@@ -54,7 +54,7 @@ const DURATION_UNIT_OPTIONS = [
   { value: 'days', label: 'Jours', days: 1, max: 365 },
   { value: 'weeks', label: 'Semaines', days: 7, max: 52 },
   { value: 'months', label: 'Mois', days: 30, max: 12 },
-  { value: 'years', label: '1 an', days: 365, max: 1 },
+  { value: 'years', label: 'ans', days: 365, max: 10 },
 ] as const
 
 type DurationUnit = typeof DURATION_UNIT_OPTIONS[number]['value']
@@ -139,7 +139,7 @@ function getDurationUnitConfig(unit: DurationUnit) {
 
 function decomposeTripDays(days: number | null | undefined): { value: string; unit: DurationUnit } {
   if (!days || days <= 0) return { value: '', unit: 'days' }
-  if (days % 365 === 0 && days / 365 <= 1) return { value: String(days / 365), unit: 'years' }
+  if (days % 365 === 0 && days / 365 <= 10) return { value: String(days / 365), unit: 'years' }
   if (days % 30 === 0 && days / 30 <= 12) return { value: String(days / 30), unit: 'months' }
   if (days % 7 === 0 && days / 7 <= 52) return { value: String(days / 7), unit: 'weeks' }
   return { value: String(days), unit: 'days' }

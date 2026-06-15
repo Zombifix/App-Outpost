@@ -604,20 +604,23 @@ const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; 
 ]
 
 const EXPERIENCE_TAGS: { id: string; label: string }[] = [
-  { id: 'city-break',  label: '🏙️ City break' },
-  { id: 'culture',     label: '🏛️ Culture' },
   { id: 'food',        label: '🍜 Food trip' },
-  { id: 'nature',      label: '🌿 Nature' },
-  { id: 'chill',       label: '🏖️ Chill' },
+  { id: 'patrimoine',  label: '🏛️ Patrimoine marquant' },
+  { id: 'flanerie',    label: '🏘️ Ville à flâner' },
+  { id: 'beau',        label: '✨ Beau partout' },
+  { id: 'paysages',    label: '⛰️ Grands paysages' },
+  { id: 'plage',       label: '🏖️ Plage & baignade' },
   { id: 'nightlife',   label: '🌙 Nightlife' },
-  { id: 'vues',        label: '📸 Vues folles' },
   { id: 'ambiance',    label: '🎭 Ambiance locale' },
+  { id: 'facile',      label: '🧘 Facile à vivre' },
   { id: 'pas-cher',    label: '💸 Pas cher' },
   { id: 'trop-cher',   label: '💰 Trop cher' },
   { id: 'transports',  label: '🚇 Transports galère' },
   { id: 'touristique', label: '📍 Trop touristique' },
+  { id: 'pieges',      label: '🪤 Pièges à touristes' },
+  { id: 'craignos',    label: '⚠️ Craignos' },
   { id: 'surprise',    label: '😮 Belle surprise' },
-  { id: 'decevant',    label: '😕 Décevant' },
+  { id: 'surcote',     label: '📉 Surcoté' },
 ]
 
 const MAX_EXPERIENCE_TAGS = 5

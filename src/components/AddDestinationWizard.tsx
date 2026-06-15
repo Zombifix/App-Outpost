@@ -468,81 +468,89 @@ const QUESTIONS = [
   {
     key: 'food' as const,
     question: '🍽️ Niveau food, tu t\'es régalé(e) ?',
+    skipLabel: 'Je n\'ai pas vraiment testé →',
     answers: [
-      { label: '🤤 Incroyable, j\'ai pris 3 kilos de bonheur', value: 5 },
-      { label: '😋 Vraiment pas mal, on a fait de bonnes découvertes', value: 4 },
-      { label: '😐 Bof, c\'était juste pour se nourrir', value: 2 },
-      { label: '🤷‍♂️ Pas vraiment testé / J\'ai fait mes propres repas', value: null },
+      { label: '🤤 Incroyable, la bouffe a porté le voyage', value: 5 },
+      { label: '😋 Très bon, quelques vraies découvertes', value: 4 },
+      { label: '😐 Correct, mais rien que je conseillerais pour ça', value: 2 },
+      { label: '😬 Décevant ou trop cher pour ce que c\'était', value: 1 },
     ],
   },
   {
     key: 'night' as const,
-    question: '🌙 L\'ambiance le soir, ça donnait quoi ?',
+    question: '🌙 Le soir, ça vivait comment ?',
+    skipLabel: 'Je n\'ai pas testé le soir →',
     answers: [
-      { label: '🔥 Énorme, ça ne s\'arrête jamais', value: 5 },
-      { label: '🍻 Animé juste ce qu\'il faut (bars, restos sympas)', value: 4 },
-      { label: '🌙 Très calme, c\'est plutôt mort le soir', value: 2 },
-      { label: '🛌 Pas mon délire pour ce séjour / J\'étais au lit tôt', value: null },
+      { label: '🔥 Grosse énergie, ça vit vraiment le soir', value: 5 },
+      { label: '🍻 Bonne vibe, bars et restos sans être l\'enfer', value: 4 },
+      { label: '🌙 Plutôt calme, bien pour dîner mais pas pour sortir', value: 2 },
+      { label: '🛌 Mort ou pénible, pas grand-chose à faire le soir', value: 1 },
     ],
   },
   {
     key: 'culture' as const,
     question: '🗺️ Niveau visites et activités, tu avais de quoi faire ?',
+    skipLabel: 'Je n\'ai pas assez testé →',
     answers: [
-      { label: '🎢 Trop de trucs à voir, il faudrait revenir !', value: 5 },
-      { label: '👍 Pile-poil ce qu\'il fallait pour la durée du séjour', value: 4 },
-      { label: '🚶‍♀️ On a vite fait le tour, faut chercher un peu pour s\'occuper', value: 2 },
-      { label: '🥱 Franchement, il n\'y a pas grand-chose à faire', value: 1 },
+      { label: '📈 Trop de trucs à faire, il faudrait revenir', value: 5 },
+      { label: '👌 Pile-poil pour la durée du séjour', value: 4 },
+      { label: '🚶 On a vite fait le tour, faut creuser un peu', value: 2 },
+      { label: '🥱 Franchement, pas grand-chose à faire', value: 1 },
     ],
   },
   {
     key: 'nature' as const,
-    question: '📸 Visuellement, on en prend plein les yeux ?',
+    question: '📸 Le décor, il valait le détour ?',
+    skipLabel: 'Pas assez de recul →',
     answers: [
-      { label: '😍 Magnifique, une vraie carte postale', value: 5 },
-      { label: '📷 Très sympa, pas mal de jolis coins', value: 4 },
-      { label: '🏢 Sans plus, ça manque un peu de charme', value: 2 },
-      { label: '🏗️ Clairement pas ouf, on ne vient pas pour la beauté du lieu', value: 1 },
+      { label: '😍 Waouh, carte postale à chaque coin', value: 5 },
+      { label: '📷 Très joli, plusieurs coins qui marquent', value: 4 },
+      { label: '🏙️ Correct, mais pas un voyage pour les yeux', value: 2 },
+      { label: '🚧 Franchement fade, pas le charme attendu', value: 1 },
     ],
   },
   {
     key: 'value' as const,
     question: '💸 Niveau budget sur place, ça disait quoi ?',
+    skipLabel: 'Pas d\'avis budget →',
     answers: [
-      { label: '👑 Un vrai bon plan, j\'ai vécu comme un roi / une reine', value: 5 },
-      { label: '⚖️ Correct, les prix m\'ont semblé honnêtes', value: 4 },
-      { label: '💸 Mitigé : pas mal de pièges à touristes / Assez cher', value: 2 },
-      { label: '🚨 Hors de prix / Un braquage à chaque coin de rue', value: 1 },
+      { label: '👑 Excellent plan, j\'ai eu beaucoup pour pas cher', value: 5 },
+      { label: '⚖️ Correct, les prix semblaient honnêtes', value: 4 },
+      { label: '💸 Cher pour ce que c\'était', value: 2 },
+      { label: '🚨 Hors de prix, ça plombait l\'expérience', value: 1 },
     ],
   },
   {
     key: 'ease' as const,
-    question: '🧩 Côté orga (transports, déplacements), c\'était fluide ?',
+    question: '🧩 Côté orga et déplacements, c\'était fluide ?',
+    skipLabel: 'Je n\'ai pas assez bougé →',
     answers: [
-      { label: '🛝 Hyper facile, tout glisse tout seul', value: 5 },
-      { label: '👌 Ça va, on prend vite le pli', value: 4 },
-      { label: '🗺️ Un peu galère par moments, faut s\'accrocher', value: 2 },
-      { label: '🚧 L\'enfer : rien n\'est pensé pour, on a perdu un temps fou', value: 1 },
+      { label: '🎢 Hyper facile, tout glisse tout seul', value: 5 },
+      { label: '👌 Globalement simple, on prend vite le pli', value: 4 },
+      { label: '🗺️ Un peu galère, faut s\'accrocher par moments', value: 2 },
+      { label: '🚧 L\'enfer, rien n\'est pensé, on a perdu trop de temps', value: 1 },
     ],
   },
   {
     key: 'vibeBoost' as const,
-    question: '🫶 Niveau ambiance globale et accueil, c\'était comment ?',
+    question: '🫶 Sur place, tu te sentais comment ?',
+    skipLabel: 'Pas assez de recul →',
     answers: [
-      { label: '🥰 Adorables, je me suis senti(e) hyper bien accueilli(e)', value: 5 },
-      { label: '🤙 Tranquille, ambiance cool et sans prise de tête', value: 4 },
-      { label: '🤐 Un peu froids ou distants', value: 3 },
-      { label: '😬 Pas très à l\'aise / Ambiance parfois pesante ou stressante', value: 2 },
+      { label: '🥰 Hyper bien, accueilli(e) et à l\'aise partout', value: 5 },
+      { label: '👍 Bonne vibe, simple et sans prise de tête', value: 4 },
+      { label: '🥶 Un peu froid ou distant, mais pas bloquant', value: 3 },
+      { label: '⚠️ Craignos ou pesant, je n\'étais pas serein(e)', value: 2 },
     ],
   },
   {
     key: 'retourBonus' as const,
-    question: '🔁 Finalement, tu y retournerais un jour ?',
+    question: '🔁 Au final, tu le recommanderais ?',
+    skipLabel: 'Je préfère ne pas trancher →',
     answers: [
-      { label: '🎒 Demain s\'il le faut, j\'ai pas tout vu !', value: 0.3 },
-      { label: '✈️ Pourquoi pas, si l\'occasion se présente', value: 0.1 },
-      { label: '🌍 Bof, le monde est grand, je préfère voir autre chose', value: 0 },
-      { label: '🚫 Jamais de la vie', value: -0.3 },
+      { label: '💌 Oui, sans hésiter, ça mérite le détour', value: 0.3 },
+      { label: '✈️ Oui, mais pour un type de séjour précis', value: 0.1 },
+      { label: '🌍 Pas en priorité, il y a mieux à voir avant', value: 0 },
+      { label: '🚫 Non, je ne le recommanderais pas vraiment', value: -0.3 },
     ],
   },
 ]
@@ -552,35 +560,35 @@ type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 
 const QUESTION_META: Record<QuestionKey, { emoji: string; intro: string }> = {
   food: {
     emoji: '🍽️',
-    intro: 'On veut tout savoir : des pepites locales aux plats que tu ne recommandes pas.',
+    intro: 'Des pépites locales aux restos oubliables : est-ce que la bouffe a marqué le séjour ?',
   },
   night: {
     emoji: '🌙',
-    intro: 'Bars cools, restos qui vivent tard ou ambiance plus calme : raconte l energie du soir.',
+    intro: 'Bars, restos, rues animées ou ville qui s\'éteint : l\'énergie après la journée.',
   },
   culture: {
     emoji: '🗺️',
-    intro: 'Musees, ruelles, monuments, activites : est-ce qu il y avait vraiment de quoi faire ?',
+    intro: 'Musées, monuments, quartiers, excursions, activités : est-ce que le séjour se remplissait facilement ?',
   },
   nature: {
     emoji: '📸',
-    intro: 'Mer, montagne, skyline ou paysages : est-ce que le decor t a vraiment marque ?',
+    intro: 'Rues, lumière, mer, montagne, skyline, points de vue : indépendamment des visites, est-ce que le lieu avait du charme ?',
   },
   value: {
     emoji: '💸',
-    intro: 'L idee ici, c est ton ressenti budget sur place, pas une verite absolue.',
+    intro: 'L\'idée, c\'est ton ressenti budget sur place, pas une vérité absolue.',
   },
   ease: {
     emoji: '🧩',
-    intro: 'Transports, trajets, logistique : est-ce que tout roulait ou c etait vite fatigant ?',
+    intro: 'Transports, trajets, logistique : est-ce que tout roulait ou c\'était vite fatigant ?',
   },
   vibeBoost: {
     emoji: '🫶',
-    intro: 'Accueil, ambiance, energie generale : comment tu t es senti(e) sur place ?',
+    intro: 'Accueil, vibe locale, confort, sécurité ressentie : est-ce que tu étais à l\'aise ?',
   },
   retourBonus: {
     emoji: '🔁',
-    intro: 'Pas besoin d etre rationnel : l instinct suffit. Tu te reverrais y retourner ?',
+    intro: 'Pas besoin d\'être rationnel : est-ce que tu l\'enverrais à quelqu\'un ?',
   },
 }
 
@@ -1720,7 +1728,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                     aria-disabled={skipsRemaining === 0}
                     title={skipsRemaining === 0 ? 'Tu as déjà utilisé tes 2 passes pour ce voyage.' : undefined}
                   >
-                    Ce critère ne s'applique pas →
+                    {activeQuestions[questionIndex]?.skipLabel ?? 'Ce critère ne s\'applique pas →'}
                   </button>
                 </div>
                 <p className={`wizard-skip-helper${skipsRemaining === 0 ? ' is-exhausted' : ''}`}>

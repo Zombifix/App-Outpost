@@ -2,25 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 
-const INTENT_WEIGHTS = {
-  tourisme: { culture: 1.5, nature: 1.2, food: 1.0, night: 1.0, value: 1.0 },
-  sorties: { night: 1.8, food: 1.2, culture: 1.0, nature: 1.0, value: 1.0 },
-  gastro: { food: 2.0, night: 1.0, culture: 1.0, nature: 1.0, value: 1.0 },
-  nature: { nature: 2.0, value: 1.1, food: 1.0, night: 1.0, culture: 1.0 },
-  travail: { value: 1.5, food: 1.1, culture: 1.0, night: 1.0, nature: 1.0 },
-  'city-trip': { culture: 1.0, food: 1.0, night: 1.0, nature: 1.0, value: 1.0 },
-}
-
-const WEIGHTED_RATING_KEYS = ['food', 'night', 'culture', 'nature', 'value']
-const PRIMARY_RATING_BY_INTENT = {
-  tourisme: 'culture',
-  sorties: 'night',
-  gastro: 'food',
-  nature: 'nature',
-  travail: 'value',
-  'city-trip': 'culture',
-}
-const VALID_INTENTS = new Set(Object.keys(INTENT_WEIGHTS))
+const VALID_INTENTS = new Set(['tourisme', 'sorties', 'gastro', 'nature', 'travail', 'city-trip'])
 
 function parseArgs(argv) {
   const options = {
@@ -79,63 +61,99 @@ function clampScore(score) {
   return Math.min(5, Math.max(1, score))
 }
 
-function getWeakSpotCap(ratings, intent, activeWeightedCount) {
-  let cap = 5
-  const primaryKey = PRIMARY_RATING_BY_INTENT[intent] ?? 'culture'
-  const importantKeys = new Set([primaryKey, 'value', 'nature'])
+function retourBonusToVerdict(rb) {
+  if (rb == null) return null
+  if (rb >= 0.3) return 5
+  if (rb >= 0.1) return 4
+  if (rb >= 0) return 2.5
+  return 1
+}
 
-  for (const key of WEIGHTED_RATING_KEYS) {
-    const value = ratings[key]
-    if (value == null) continue
+function normalizeTagText(label) {
+  return label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .trim()
+}
 
-    if (value <= 1) cap = Math.min(cap, importantKeys.has(key) ? 3.0 : 3.2)
-    else if (value <= 2) cap = Math.min(cap, importantKeys.has(key) ? 3.9 : 4.2)
-    else if (value <= 3 && importantKeys.has(key)) cap = Math.min(cap, 4.4)
+function computeTagBonus(tags, coupDeCoeur) {
+  let bonus = coupDeCoeur ? 0.5 : 0
+  for (const raw of tags) {
+    const t = normalizeTagText(raw)
+    if (t.includes('belle surprise')) bonus += 0.30
+    else if (t.includes('facile a vivre')) bonus += 0.25
+    else if (t.includes('ambiance locale')) bonus += 0.25
+    else if (t.includes('pas cher')) bonus += 0.25
+    else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) bonus += 0.20
+    else if (t.includes('beau partout')) bonus += 0.15
+    else if (t.includes('patrimoine marquant')) bonus += 0.15
+    else if (t.includes('craignos')) bonus -= 0.70
+    else if (t.includes('surcote')) bonus -= 0.50
+    else if (t.includes('trop cher')) bonus -= 0.45
+    else if (t.includes('transports galere') || t.includes('transports galre')) bonus -= 0.40
+    else if (t.includes('pieges a touristes') || t.includes('piges a touristes')) bonus -= 0.35
   }
-
-  if (activeWeightedCount < 3) cap = Math.min(cap, 3.8)
-  else if (activeWeightedCount < 4) cap = Math.min(cap, 4.2)
-
-  return cap
+  return bonus
 }
 
 function calculateScore(row) {
-  const intent = VALID_INTENTS.has(row.intent) ? row.intent : 'tourisme'
-  const weights = INTENT_WEIGHTS[intent]
-  const ratings = {
-    food: toNumberOrNull(row.food),
-    night: toNumberOrNull(row.night),
-    culture: toNumberOrNull(row.culture),
-    nature: toNumberOrNull(row.nature),
-    value: toNumberOrNull(row.value),
-    ease: toNumberOrNull(row.ease),
+  const verdictFinal = retourBonusToVerdict(toNumberOrNull(row.retour_bonus))
+  const ambianceRessentie = toNumberOrNull(row.vibe_boost)
+  const faciliteSurPlace = toNumberOrNull(row.ease)
+  const rapportQualitePrix = toNumberOrNull(row.value)
+
+  const components = []
+  if (verdictFinal !== null) components.push({ weight: 0.45, value: verdictFinal })
+  if (ambianceRessentie !== null) components.push({ weight: 0.25, value: ambianceRessentie })
+  if (faciliteSurPlace !== null) components.push({ weight: 0.15, value: faciliteSurPlace })
+  if (rapportQualitePrix !== null) components.push({ weight: 0.15, value: rapportQualitePrix })
+
+  let baseScore
+  if (components.length === 0) {
+    const legacyValues = [row.food, row.night, row.culture, row.nature, row.value]
+      .map(toNumberOrNull)
+      .filter((v) => v != null)
+    baseScore = legacyValues.length > 0
+      ? legacyValues.reduce((s, v) => s + v, 0) / legacyValues.length
+      : 3
+  } else {
+    const totalWeight = components.reduce((s, c) => s + c.weight, 0)
+    baseScore = components.reduce((s, c) => s + c.value * c.weight, 0) / totalWeight
   }
 
-  const activeWeighted = WEIGHTED_RATING_KEYS
-    .map(key => [key, ratings[key]])
-    .filter((entry) => entry[1] != null)
-  const totalWeight = activeWeighted.reduce((sum, [key]) => sum + weights[key], 0)
-  const rawWeighted = totalWeight === 0
-    ? 3
-    : activeWeighted.reduce((sum, [key, value]) => sum + value * weights[key], 0) / totalWeight
-  const confidence = Math.min(1, activeWeighted.length / 4)
-  const weighted = 3 + (rawWeighted - 3) * confidence * 1.15
-  const neutralAxes = [ratings.ease].filter((value) => value != null)
-  const combined = neutralAxes.length === 0
-    ? weighted
-    : (weighted * totalWeight + neutralAxes.reduce((sum, value) => sum + value, 0)) / (totalWeight + neutralAxes.length)
-  const withVibe = combined + (((toNumberOrNull(row.vibe_boost) ?? 3) - 3) * 0.12)
-  const withRetour = withVibe + (toNumberOrNull(row.retour_bonus) ?? 0)
-  const capped = Math.min(withRetour, getWeakSpotCap(ratings, intent, activeWeighted.length))
-  const withCoupBonus = capped + (row.coup_de_coeur ? 0.3 : 0)
-  return clampScore(withCoupBonus)
+  const allTags = [...(row.standout_tags ?? []), ...(row.trip_types ?? [])]
+  let score = baseScore + computeTagBonus(allTags, row.coup_de_coeur)
+
+  const hasCraignos = allTags.some(t => normalizeTagText(t).includes('craignos'))
+
+  if (verdictFinal !== null && verdictFinal <= 2.5) {
+    score = Math.min(score, 3.19)
+  }
+  if (
+    rapportQualitePrix !== null && rapportQualitePrix <= 2
+    && faciliteSurPlace !== null && faciliteSurPlace <= 2
+    && !row.coup_de_coeur
+    && (verdictFinal === null || verdictFinal < 4.5)
+  ) {
+    score = Math.min(score, 3.19)
+  }
+  if (hasCraignos && !(row.coup_de_coeur && verdictFinal !== null && verdictFinal >= 4.5)) {
+    score = Math.min(score, 3.99)
+  }
+  if (row.coup_de_coeur && verdictFinal !== null && verdictFinal >= 4 && ambianceRessentie !== null && ambianceRessentie >= 4) {
+    score = Math.max(score, 4.0)
+  }
+
+  return clampScore(score)
 }
 
 function scoreToTier(score) {
-  if (score >= 4.3) return 'S'
-  if (score >= 3.7) return 'A'
-  if (score >= 3.0) return 'B'
-  if (score >= 2.2) return 'C'
+  if (score >= 4.5) return 'S'
+  if (score >= 4.0) return 'A'
+  if (score >= 3.2) return 'B'
+  if (score >= 2.4) return 'C'
   return 'D'
 }
 
@@ -191,7 +209,7 @@ async function main() {
   const client = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
   let query = client
     .from('destinations')
-    .select('id, user_id, name, intent, food, night, culture, nature, value, ease, memorability, vibe_boost, retour_bonus, coup_de_coeur, score, tier, updated_at')
+    .select('id, user_id, name, intent, food, night, culture, nature, value, ease, vibe_boost, retour_bonus, coup_de_coeur, standout_tags, trip_types, score, tier, updated_at')
 
   if (options.id) query = query.eq('id', options.id)
   if (options.userId) query = query.eq('user_id', options.userId)

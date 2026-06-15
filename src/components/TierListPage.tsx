@@ -598,6 +598,113 @@ function TierRow({
   )
 }
 
+function DesktopTierCard({
+  destination,
+  onSelect,
+}: {
+  destination: Destination
+  onSelect: (destination: Destination) => void
+}) {
+  const isCoupDeCoeur = Boolean(destination.coupDeCoeur)
+  const score = getDestinationScore(destination)
+  const flagUrl = getCountryFlag(destination)
+  const tier = getDestinationTier(destination)
+  const colors = TIER_COLORS[tier]
+
+  return (
+    <article className={`tier-desktop-destination${isCoupDeCoeur ? ' is-coup-de-coeur' : ''}`}>
+      <button
+        type="button"
+        className="tier-desktop-destination-btn"
+        onClick={() => onSelect(destination)}
+        aria-label={`Voir ${destination.name}`}
+      >
+        <div
+          className="tier-desktop-destination-thumb"
+          style={destination.image ? { backgroundImage: `url(${destination.image})` } as React.CSSProperties : undefined}
+          aria-hidden="true"
+        >
+          {!destination.image && <span className="tier-desktop-destination-thumb-placeholder">{destination.name[0]}</span>}
+        </div>
+        <div className="tier-desktop-destination-copy">
+          <span className="tier-desktop-destination-name">{destination.name}</span>
+          <span className="tier-desktop-destination-country">
+            {flagUrl && <img src={flagUrl} alt="" className="tier-desktop-destination-flag" loading="lazy" />}
+            {destination.country}
+          </span>
+        </div>
+        <div className="tier-desktop-destination-meta">
+          {isCoupDeCoeur && (
+            <span className="tier-desktop-destination-heart" aria-label="Coup de coeur">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
+              </svg>
+            </span>
+          )}
+          <span
+            className="tier-desktop-destination-score"
+            style={{ color: colors.pin, borderColor: `${colors.pin}26` } as React.CSSProperties}
+          >
+            {score.toFixed(1)}
+          </span>
+        </div>
+      </button>
+    </article>
+  )
+}
+
+function DesktopTierColumn({
+  tier,
+  destinations,
+  onSelect,
+}: {
+  tier: Tier
+  destinations: Destination[]
+  onSelect: (destination: Destination) => void
+}) {
+  const colors = TIER_COLORS[tier]
+  const sortedDestinations = useMemo(() =>
+    destinations
+      .filter(d => d.kind !== 'stop' && getDestinationTier(d) === tier)
+      .sort((a, b) => getDestinationScore(b) - getDestinationScore(a) || a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    [destinations, tier]
+  )
+
+  return (
+    <article className={`tier-desktop-column tier-desktop-column--${tier.toLowerCase()}`}>
+      <header className="tier-desktop-column-header">
+        <div className="tier-desktop-column-heading">
+          <span
+            className={`tier-orb tier-${tier.toLowerCase()} tier-desktop-column-orb`}
+            style={{ boxShadow: `0 8px 18px ${colors.pin}33` }}
+          >
+            {tier}
+          </span>
+          <div className="tier-desktop-column-copy">
+            <strong style={{ color: colors.label }}>{TIER_LABEL[tier]}</strong>
+            <span>{TIER_DESCRIPTIONS[tier]}</span>
+          </div>
+        </div>
+        <span className="tier-desktop-column-count">{sortedDestinations.length}</span>
+      </header>
+
+      <div className="tier-desktop-column-list">
+        {sortedDestinations.length > 0 ? (
+          sortedDestinations.map(destination => (
+            <DesktopTierCard
+              key={destinationNameKey(destination)}
+              destination={destination}
+              onSelect={onSelect}
+            />
+          ))
+        ) : (
+          <p className="tier-desktop-column-empty">{t('No destinations', 'Aucune destination')}</p>
+        )}
+      </div>
+    </article>
+  )
+}
+
 export default function TierListPage({
   destinations,
   onSelect,
@@ -1078,22 +1185,34 @@ export default function TierListPage({
 
       {/* Solo mode or comparison denied */}
       {pageMode === 'personal' && (!friend || compareDenied) && (
-        <section className="tier-list-rows page-mode-fade" aria-label={t('Rankings by tier', 'Classement par tier')}>
-          {TIER_ORDER.map(tier => (
-            <TierRow
-              key={tier}
-              tier={tier}
-              myDests={myFiltered}
-              friendDests={[]}
-              friend={null}
-              sharedNames={sharedNames}
-              collapsed={collapsed[tier]}
-              communityRatings={communityRatings}
-              onToggle={() => toggleCollapse(tier)}
-              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
-            />
-          ))}
-        </section>
+        <>
+          <section className="tier-desktop-columns page-mode-fade" aria-label={t('Rankings by tier', 'Classement par tier')}>
+            {TIER_ORDER.map(tier => (
+              <DesktopTierColumn
+                key={`desktop-${tier}`}
+                tier={tier}
+                destinations={myFiltered}
+                onSelect={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+              />
+            ))}
+          </section>
+          <section className="tier-list-rows tier-list-rows--solo-mobile page-mode-fade" aria-label={t('Rankings by tier', 'Classement par tier')}>
+            {TIER_ORDER.map(tier => (
+              <TierRow
+                key={tier}
+                tier={tier}
+                myDests={myFiltered}
+                friendDests={[]}
+                friend={null}
+                sharedNames={sharedNames}
+                collapsed={collapsed[tier]}
+                communityRatings={communityRatings}
+                onToggle={() => toggleCollapse(tier)}
+                onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+              />
+            ))}
+          </section>
+        </>
       )}
 
       {/* Compare mode — versus: my list with friend scores side by side */}

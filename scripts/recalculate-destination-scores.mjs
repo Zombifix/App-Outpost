@@ -160,6 +160,9 @@ function calculateScore(row) {
   if (hasCraignos && !(row.coup_de_coeur && verdictFinal !== null && verdictFinal >= 4.5)) {
     score = Math.min(score, 3.99)
   }
+  if (hasCraignos && baseScore >= 2.4) {
+    score = Math.max(score, 2.4)
+  }
   if (row.coup_de_coeur && verdictFinal !== null && verdictFinal >= 4 && ambianceRessentie !== null && ambianceRessentie >= 4) {
     score = Math.max(score, 4.0)
   }

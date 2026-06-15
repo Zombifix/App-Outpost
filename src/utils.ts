@@ -207,6 +207,11 @@ export function getDestinationScore(destination: Destination): number {
     score = Math.min(score, 3.99)
   }
 
+  // Floor: Craignos ne descend pas en D si le score de fond était au moins C
+  if (hasCraignos && baseScore >= 2.4) {
+    score = Math.max(score, 2.4)
+  }
+
   // Floor: coup de cœur + verdict fort + bonne ambiance → plancher A
   if (destination.coupDeCoeur && verdictFinal !== null && verdictFinal >= 4 && ambianceRessentie !== null && ambianceRessentie >= 4) {
     score = Math.max(score, 4.0)

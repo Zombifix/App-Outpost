@@ -90,10 +90,10 @@ export function calculateScore(
 }
 
 export function scoreToTier(score: number): Tier {
-  if (score >= 4.3) return 'S'
-  if (score >= 3.7) return 'A'
-  if (score >= 3.0) return 'B'
-  if (score >= 2.2) return 'C'
+  if (score >= 4.5) return 'S'
+  if (score >= 4.0) return 'A'
+  if (score >= 3.2) return 'B'
+  if (score >= 2.4) return 'C'
   return 'D'
 }
 
@@ -101,20 +101,98 @@ export function calculateTier(ratings: Ratings, intent: Intent): Tier {
   return scoreToTier(calculateScore(ratings, intent))
 }
 
+function retourBonusToVerdict(rb: number | null | undefined): number | null {
+  if (rb == null) return null
+  if (rb >= 0.3) return 5
+  if (rb >= 0.1) return 4
+  if (rb >= 0) return 2.5
+  return 1
+}
+
+function normalizeTagText(label: string): string {
+  return label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .trim()
+}
+
+function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): number {
+  let bonus = coupDeCoeur ? 0.5 : 0
+  for (const raw of tags) {
+    const t = normalizeTagText(raw)
+    if (t.includes('belle surprise')) bonus += 0.30
+    else if (t.includes('facile a vivre')) bonus += 0.25
+    else if (t.includes('ambiance locale')) bonus += 0.25
+    else if (t.includes('pas cher')) bonus += 0.25
+    else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) bonus += 0.20
+    else if (t.includes('beau partout')) bonus += 0.15
+    else if (t.includes('patrimoine marquant')) bonus += 0.15
+    else if (t.includes('craignos')) bonus -= 0.70
+    else if (t.includes('surcote')) bonus -= 0.50
+    else if (t.includes('trop cher')) bonus -= 0.45
+    else if (t.includes('transports galere') || t.includes('transports galre')) bonus -= 0.40
+    else if (t.includes('pieges a touristes') || t.includes('piges a touristes')) bonus -= 0.35
+  }
+  return bonus
+}
+
 export function getDestinationScore(destination: Destination): number {
-  const base = calculateScore({
-    food: destination.food,
-    night: destination.night,
-    culture: destination.culture,
-    nature: destination.nature,
-    value: destination.value,
-    ease: destination.ease,
-  }, destination.intent, {
-    vibeBoost: destination.vibeBoost,
-    retourBonus: destination.retourBonus,
-  })
-  const withCoupBonus = base + (destination.coupDeCoeur ? 0.3 : 0)
-  return clampScore(withCoupBonus)
+  const verdictFinal = retourBonusToVerdict(destination.retourBonus)
+  const ambianceRessentie = destination.vibeBoost ?? null
+  const faciliteSurPlace = destination.ease ?? null
+  const rapportQualitePrix = destination.value ?? null
+
+  const components: { weight: number; value: number }[] = []
+  if (verdictFinal !== null) components.push({ weight: 0.45, value: verdictFinal })
+  if (ambianceRessentie !== null) components.push({ weight: 0.25, value: ambianceRessentie })
+  if (faciliteSurPlace !== null) components.push({ weight: 0.15, value: faciliteSurPlace })
+  if (rapportQualitePrix !== null) components.push({ weight: 0.15, value: rapportQualitePrix })
+
+  let baseScore: number
+  if (components.length === 0) {
+    const legacyValues = [destination.food, destination.night, destination.culture, destination.nature, destination.value]
+      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+    baseScore = legacyValues.length > 0
+      ? legacyValues.reduce((s, v) => s + v, 0) / legacyValues.length
+      : 3
+  } else {
+    const totalWeight = components.reduce((s, c) => s + c.weight, 0)
+    baseScore = components.reduce((s, c) => s + c.value * c.weight, 0) / totalWeight
+  }
+
+  const allTags = [...(destination.standoutTags ?? []), ...(destination.tripTypes ?? [])]
+  let score = baseScore + computeTagBonus(allTags, destination.coupDeCoeur)
+
+  const hasCraignos = allTags.some(t => normalizeTagText(t).includes('craignos'))
+
+  // Cap: verdict faible → plafond C
+  if (verdictFinal !== null && verdictFinal <= 2.5) {
+    score = Math.min(score, 3.19)
+  }
+
+  // Cap: double galère (prix + logistique) sans coup de cœur ni verdict très fort → plafond C
+  if (
+    rapportQualitePrix !== null && rapportQualitePrix <= 2
+    && faciliteSurPlace !== null && faciliteSurPlace <= 2
+    && !destination.coupDeCoeur
+    && (verdictFinal === null || verdictFinal < 4.5)
+  ) {
+    score = Math.min(score, 3.19)
+  }
+
+  // Cap: Craignos → plafond B (sauf coup de cœur + verdict exceptionnel)
+  if (hasCraignos && !(destination.coupDeCoeur && verdictFinal !== null && verdictFinal >= 4.5)) {
+    score = Math.min(score, 3.99)
+  }
+
+  // Floor: coup de cœur + verdict fort + bonne ambiance → plancher A
+  if (destination.coupDeCoeur && verdictFinal !== null && verdictFinal >= 4 && ambianceRessentie !== null && ambianceRessentie >= 4) {
+    score = Math.max(score, 4.0)
+  }
+
+  return clampScore(score)
 }
 
 export function getDestinationTier(destination: Destination): Tier {

@@ -68,25 +68,26 @@ export function useMyProfile() {
     void refresh()
   }, [refresh])
 
-  // Auto-sync avatar_url pour les profils existants crees avant la migration.
-  // S'execute une seule fois quand le profil se charge sans avatar_url.
+  // Auto-sync avatar_url: récupère l'image Google même si un placeholder dicebear est déjà stocké.
   const avatarSyncedRef = useRef(false)
   useEffect(() => {
-    if (!supabase || !user || !profile || profile.avatarUrl || avatarSyncedRef.current) return
+    if (!supabase || !user || !profile || avatarSyncedRef.current) return
     avatarSyncedRef.current = true
+
     const provider = user.app_metadata?.provider as string | undefined
-    let avatarUrl: string
-    if (provider === 'google') {
-      const googleUrl = (user.user_metadata?.avatar_url ?? user.user_metadata?.picture) as string | undefined
-      avatarUrl = googleUrl ?? `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(profile.handle)}`
-    } else {
-      avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(profile.handle)}`
+    const googleUrl = provider === 'google'
+      ? (user.user_metadata?.avatar_url ?? user.user_metadata?.picture) as string | undefined
+      : undefined
+
+    if (googleUrl && googleUrl !== profile.avatarUrl) {
+      void supabase.from('public_profiles').update({ avatar_url: googleUrl }).eq('user_id', user.id).then(() => refresh())
+      return
     }
-    void supabase
-      .from('public_profiles')
-      .update({ avatar_url: avatarUrl })
-      .eq('user_id', user.id)
-      .then(() => refresh())
+
+    if (!profile.avatarUrl) {
+      const dicebear = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(profile.handle)}`
+      void supabase.from('public_profiles').update({ avatar_url: dicebear }).eq('user_id', user.id).then(() => refresh())
+    }
   }, [profile, user, refresh])
 
   const upsert = useCallback(async (input: {

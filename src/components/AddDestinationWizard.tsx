@@ -605,33 +605,32 @@ const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; 
 
 const EXPERIENCE_TAGS: { id: string; label: string }[] = [
   { id: 'city-break',  label: '🏙️ City break' },
-  { id: 'culture',     label: '🏛️ Culture & patrimoine' },
+  { id: 'culture',     label: '🏛️ Culture' },
   { id: 'food',        label: '🍜 Food trip' },
-  { id: 'nature',      label: '🌿 Nature & rando' },
-  { id: 'plage',       label: '🏖️ Plage & chill' },
-  { id: 'fete',        label: '🌙 Fête & nightlife' },
-  { id: 'couple',      label: '❤️ En couple' },
-  { id: 'potes',       label: '👯 Entre potes' },
-  { id: 'famille',     label: '👨‍👩‍👧 En famille' },
-  { id: 'bouffes',     label: '🍽️ Meilleures bouffes' },
-  { id: 'vues',        label: '📸 Vues / paysages fous' },
-  { id: 'rencontres',  label: '🤝 Rencontres marquantes' },
+  { id: 'nature',      label: '🌿 Nature' },
+  { id: 'chill',       label: '🏖️ Chill' },
+  { id: 'nightlife',   label: '🌙 Nightlife' },
+  { id: 'vues',        label: '📸 Vues folles' },
   { id: 'ambiance',    label: '🎭 Ambiance locale' },
-  { id: 'transports',  label: '🚆 Transports galère' },
-  { id: 'cher',        label: '💸 Budget qui pique' },
-  { id: 'touristique', label: '🪤 Trop touristique' },
+  { id: 'pas-cher',    label: '💸 Pas cher' },
+  { id: 'trop-cher',   label: '💰 Trop cher' },
+  { id: 'transports',  label: '🚇 Transports galère' },
+  { id: 'touristique', label: '📍 Trop touristique' },
+  { id: 'surprise',    label: '😮 Belle surprise' },
+  { id: 'decevant',    label: '😕 Décevant' },
 ]
 
 const MAX_EXPERIENCE_TAGS = 5
+
+const ROAD_TRIP_LABEL = '🚗 Road trip'
 
 function getIntentFromTripTypes(tripTypes: string[]): Intent {
   const ids = tripTypes
     .map(label => EXPERIENCE_TAGS.find(t => t.label === label)?.id)
     .filter(Boolean)
-  if (ids.includes('food') || ids.includes('bouffes')) return 'gastro'
-  if (ids.includes('fete')) return 'sorties'
-  if (ids.includes('work')) return 'travail'
-  if (ids.includes('nature') || ids.includes('aventure')) return 'nature'
+  if (ids.includes('food')) return 'gastro'
+  if (ids.includes('nightlife')) return 'sorties'
+  if (ids.includes('nature')) return 'nature'
   return 'tourisme'
 }
 
@@ -723,7 +722,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           personalBudget: initialDestination.personalBudget ?? null,
           tripTypes: initialDestination.tripTypes ?? [],
           standout: initialDestination.standout ?? '',
-          standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, STANDOUT_OPTIONS)] : []),
+          standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, EXPERIENCE_TAGS.map(t => t.label))] : []),
           coupDeCoeur: Boolean(initialDestination.coupDeCoeur),
           livedThere: Boolean(initialDestination.livedThere),
           replaceCoupDeCoeurName: '',
@@ -842,7 +841,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       personalBudget: initialDestination.personalBudget ?? null,
       tripTypes: initialDestination.tripTypes ?? [],
       standout: initialDestination.standout ?? '',
-      standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, STANDOUT_OPTIONS)] : []),
+      standoutTags: initialDestination.standoutTags ?? (initialDestination.standout ? [restoreChipLabel(initialDestination.standout, EXPERIENCE_TAGS.map(t => t.label))] : []),
       coupDeCoeur: Boolean(initialDestination.coupDeCoeur),
       livedThere: Boolean(initialDestination.livedThere),
       replaceCoupDeCoeurName: '',
@@ -1266,27 +1265,21 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
   const renderStayTypeFields = () => (
     <div className="wizard-context wizard-context--embedded wizard-context--tags">
-      <div className="wizard-context-group wizard-context-group--card">
-        <div className="wizard-context-heading">
-          <span>Ce qui décrit le mieux ce voyage</span>
-          <p className="wizard-context-helper">Jusqu'à 5 tags pour raconter l'expérience en un coup d'œil.</p>
-        </div>
-        <div className="wizard-chip-row" aria-label="Ce qui décrit le mieux ce voyage">
-          {EXPERIENCE_TAGS.map(tag => {
-            const isSelected = state.tripTypes.includes(tag.label)
-            const isDisabled = !isSelected && state.tripTypes.length >= MAX_EXPERIENCE_TAGS
-            return (
-              <button
-                key={tag.id}
-                className={isSelected ? 'is-selected' : ''}
-                disabled={isDisabled}
-                onClick={() => toggleExperienceTag(tag.label)}
-              >
-                {tag.label}
-              </button>
-            )
-          })}
-        </div>
+      <div className="wizard-chip-row" aria-label="Tags du voyage">
+        {EXPERIENCE_TAGS.map(tag => {
+          const isSelected = state.tripTypes.includes(tag.label)
+          const isDisabled = !isSelected && state.tripTypes.length >= MAX_EXPERIENCE_TAGS
+          return (
+            <button
+              key={tag.id}
+              className={isSelected ? 'is-selected' : ''}
+              disabled={isDisabled}
+              onClick={() => toggleExperienceTag(tag.label)}
+            >
+              {tag.label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -1384,7 +1377,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               role="switch"
               aria-checked={state.tripTypes.includes(ROAD_TRIP_LABEL)}
               className={`wizard-favorite-toggle wizard-roadtrip-toggle${state.tripTypes.includes(ROAD_TRIP_LABEL) ? ' is-selected' : ''}`}
-              onClick={() => toggleTripType(ROAD_TRIP_LABEL)}
+              onClick={() => toggleExperienceTag(ROAD_TRIP_LABEL)}
             >
               <span className="wizard-favorite-switch" aria-hidden="true">
                 <span>🚗</span>

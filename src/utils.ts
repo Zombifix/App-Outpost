@@ -124,16 +124,16 @@ function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): numb
     const t = normalizeTagText(raw)
     if (t.includes('belle surprise')) bonus += 0.30
     else if (t.includes('facile a vivre')) bonus += 0.15
-    else if (t.includes('ambiance locale')) bonus += 0.10
+    else if (t.includes('ambiance locale')) bonus += 0.05
     else if (t.includes('pas cher')) bonus += 0.25
-    else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) bonus += 0.20
+    else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) bonus += 0.10
     else if (t.includes('beau partout')) bonus += 0.15
     else if (t.includes('patrimoine marquant')) bonus += 0.15
     else if (t.includes('craignos')) bonus -= 0.70
     else if (t.includes('surcote')) bonus -= 0.50
-    else if (t.includes('trop cher')) bonus -= 0.45
-    else if (t.includes('transports galere') || t.includes('transports galre')) bonus -= 0.40
-    else if (t.includes('pieges a touristes') || t.includes('piges a touristes')) bonus -= 0.35
+    else if (t.includes('trop cher')) bonus -= 0.35
+    else if (t.includes('transports galere') || t.includes('transports galre')) bonus -= 0.20
+    else if (t.includes('pieges a touristes') || t.includes('piges a touristes')) bonus -= 0.30
   }
   return bonus
 }

@@ -19,6 +19,13 @@ const PIN_FOCUS_INSET = 92
 type Proj = (ll: [number, number]) => [number, number] | null
 const MARKER_PROJ: Proj = () => [0, 0]
 
+const CLUSTER_WORLD_ZOOM = 2.7
+const CLUSTER_MAX_ZOOM = 3.8
+const CLUSTER_EXACT_RADIUS = 22
+const CLUSTER_CONTINENT_RADIUS_DESKTOP = 68
+const CLUSTER_WORLD_RADIUS_DESKTOP = 86
+const CLUSTER_RADIUS_MOBILE = 96
+
 function getTierColor(tier?: Tier) {
   return tier ? TIER_COLORS[tier]?.pin : undefined
 }
@@ -180,6 +187,107 @@ interface WorldMapProps {
   legendMode?: DockMode
   hidden?: boolean
   mapDetail?: 'simple' | 'detailed'
+}
+
+interface MapMarkerPin {
+  key: string
+  destination: Destination
+  owner: 'me' | 'friend'
+  selected: boolean
+  badge?: string
+  badgeAvatarUrl?: string | null
+  shared?: boolean
+  tripBadges?: PinTripBadge[]
+}
+
+interface ClusteredMarkerPin extends MapMarkerPin {
+  screenX: number
+  screenY: number
+}
+
+interface PinCluster {
+  key: string
+  pins: ClusteredMarkerPin[]
+  lng: number
+  lat: number
+}
+
+function getClusterConfig(zoom: number, width: number) {
+  const isMobile = width < 720
+  if (zoom >= CLUSTER_MAX_ZOOM) {
+    return { radius: CLUSTER_EXACT_RADIUS, minCount: 2 }
+  }
+  if (zoom < CLUSTER_WORLD_ZOOM) {
+    return { radius: isMobile ? CLUSTER_RADIUS_MOBILE : CLUSTER_WORLD_RADIUS_DESKTOP, minCount: 2 }
+  }
+  return { radius: isMobile ? CLUSTER_RADIUS_MOBILE : CLUSTER_CONTINENT_RADIUS_DESKTOP, minCount: 3 }
+}
+
+function shouldClusterPin(pin: MapMarkerPin) {
+  if (pin.selected) return false
+  if (!isFiniteLngLat(pin.destination)) return false
+  if (isRoadTripTagged(pin.destination) && pin.destination.stops?.length) return false
+  return true
+}
+
+function distanceSquared(a: ClusteredMarkerPin, b: ClusteredMarkerPin) {
+  const dx = a.screenX - b.screenX
+  const dy = a.screenY - b.screenY
+  return dx * dx + dy * dy
+}
+
+function buildPinClusters(
+  map: maplibregl.Map,
+  pins: MapMarkerPin[],
+  options: { zoom: number; width: number },
+) {
+  const { radius, minCount } = getClusterConfig(options.zoom, options.width)
+  const radiusSquared = radius * radius
+  const singles: MapMarkerPin[] = []
+  const candidates: ClusteredMarkerPin[] = []
+
+  for (const pin of pins) {
+    if (!shouldClusterPin(pin)) {
+      singles.push(pin)
+      continue
+    }
+    const { x, y } = map.project([pin.destination.lng, pin.destination.lat] as maplibregl.LngLatLike)
+    candidates.push({ ...pin, screenX: x, screenY: y })
+  }
+
+  const used = new Set<number>()
+  const clusters: PinCluster[] = []
+  const sortedIndexes = candidates
+    .map((pin, index) => ({ pin, index }))
+    .sort((a, b) => a.pin.screenY - b.pin.screenY || a.pin.screenX - b.pin.screenX)
+
+  for (const { pin, index } of sortedIndexes) {
+    if (used.has(index)) continue
+    const groupIndexes = [index]
+    used.add(index)
+
+    for (let i = 0; i < candidates.length; i += 1) {
+      if (used.has(i)) continue
+      if (distanceSquared(pin, candidates[i]) <= radiusSquared) {
+        groupIndexes.push(i)
+        used.add(i)
+      }
+    }
+
+    if (groupIndexes.length < minCount) {
+      for (const groupIndex of groupIndexes) singles.push(candidates[groupIndex])
+      continue
+    }
+
+    const groupPins = groupIndexes.map(groupIndex => candidates[groupIndex])
+    const centerX = groupPins.reduce((sum, groupPin) => sum + groupPin.screenX, 0) / groupPins.length
+    const centerY = groupPins.reduce((sum, groupPin) => sum + groupPin.screenY, 0) / groupPins.length
+    const center = map.unproject([centerX, centerY])
+    const key = groupPins.map(groupPin => groupPin.key).sort().join('|')
+    clusters.push({ key: `cluster:${key}`, pins: groupPins, lng: center.lng, lat: center.lat })
+  }
+
+  return { singles, clusters }
 }
 
 const ATLAS_PREMIUM_PALETTE = {
@@ -690,6 +798,7 @@ export default function WorldMap({
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
   const [compactPins, setCompactPins] = useState(true)
+  const [mapZoom, setMapZoom] = useState(INIT_ZOOM)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
   const [notationOpen, setNotationOpen] = useState(true)
@@ -783,12 +892,16 @@ export default function WorldMap({
         return [x, y]
       }
       setCompactPins(Math.pow(2, map.getZoom() - INIT_ZOOM) < 2)
+      setMapZoom(map.getZoom())
       setMapReady(true)
     })
 
     // Mise à jour directe du DOM des pins — zéro re-render React par frame
     map.on('move', () => updatePins(map))
-    map.on('zoomend', () => setCompactPins(Math.pow(2, map.getZoom() - INIT_ZOOM) < 2))
+    map.on('zoomend', () => {
+      setCompactPins(Math.pow(2, map.getZoom() - INIT_ZOOM) < 2)
+      setMapZoom(map.getZoom())
+    })
 
     mapRef.current = map
     return () => {
@@ -1064,6 +1177,32 @@ export default function WorldMap({
     ]
   }
 
+  const zoomToCluster = (pins: ClusteredMarkerPin[]) => {
+    const map = mapRef.current
+    if (!map || pins.length === 0) return
+    if (pins.length === 1) {
+      const destination = pins[0].destination
+      map.flyTo({
+        center: [destination.lng, destination.lat] as maplibregl.LngLatLike,
+        zoom: Math.max(map.getZoom(), 4.2),
+        duration: 620,
+        easing: t => 1 - Math.pow(1 - t, 3),
+      })
+      return
+    }
+
+    const bounds = new maplibregl.LngLatBounds()
+    for (const pin of pins) {
+      bounds.extend([pin.destination.lng, pin.destination.lat])
+    }
+    map.fitBounds(bounds, {
+      padding: getMapFitPadding(map),
+      maxZoom: Math.max(4.4, Math.min(AUTO_FIT_MAX_ZOOM, map.getZoom() + 2.2)),
+      duration: 720,
+      easing: t => 1 - Math.pow(1 - t, 3),
+    })
+  }
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) {
       clearHtmlMarkers()
@@ -1073,14 +1212,14 @@ export default function WorldMap({
     const map = mapRef.current
     clearHtmlMarkers()
 
-    const markerPins = [
+    const markerPins: MapMarkerPin[] = [
       ...friendOnly
         .filter(d => d.kind !== 'stop' && !isTripZone(d))
         .map(destination => ({
           key: `friend:${destination.name}`,
           destination,
           owner: 'friend' as const,
-          selected: destination.name === selectedName || expandedRouteKey === `friend:${destination.name}`,
+          selected: destination.name === selectedName || destination.name === flyTarget?.name || expandedRouteKey === `friend:${destination.name}`,
           badge: friendInitials,
           badgeAvatarUrl: friendAvatarUrl,
           shared: false,
@@ -1092,7 +1231,7 @@ export default function WorldMap({
           key: `me:${destination.name}`,
           destination,
           owner: 'me' as const,
-          selected: destination.name === selectedName || expandedRouteKey === `me:${destination.name}`,
+          selected: destination.name === selectedName || destination.name === flyTarget?.name || expandedRouteKey === `me:${destination.name}`,
           badge: undefined,
           badgeAvatarUrl: undefined as string | null | undefined,
           shared: shared.has(destinationNameKey(destination)),
@@ -1100,7 +1239,39 @@ export default function WorldMap({
         })),
     ]
 
-    for (const pin of markerPins) {
+    const { singles, clusters } = buildPinClusters(map, markerPins, {
+      zoom: mapZoom,
+      width: mapSize.width || map.getContainer().clientWidth,
+    })
+
+    for (const cluster of clusters) {
+      const element = document.createElement('div')
+      element.className = 'map-pin-marker-host map-cluster-marker-host'
+      element.style.width = '0'
+      element.style.height = '0'
+      element.style.overflow = 'visible'
+      element.style.pointerEvents = 'auto'
+      element.setAttribute('aria-label', `${cluster.pins.length} places`)
+      element.addEventListener('pointerdown', stopMarkerEvent)
+      element.addEventListener('click', (event) => {
+        stopMarkerEvent(event)
+        zoomToCluster(cluster.pins)
+      })
+
+      const root = createRoot(element)
+      root.render(<DestinationCluster pins={cluster.pins} />)
+
+      const marker = new maplibregl.Marker({
+        element,
+        anchor: 'center',
+      })
+        .setLngLat([cluster.lng, cluster.lat] as maplibregl.LngLatLike)
+        .addTo(map)
+
+      htmlMarkersRef.current.push({ marker, root, element })
+    }
+
+    for (const pin of singles) {
       const element = document.createElement('div')
       element.className = 'map-pin-marker-host'
       element.style.width = '0'
@@ -1158,7 +1329,10 @@ export default function WorldMap({
     overlapsByDest,
     expandedRouteKey,
     selectedName,
+    flyTarget,
     compactPins,
+    mapZoom,
+    mapSize.width,
     onSelect,
   ])
 
@@ -1558,6 +1732,44 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
       <path className="route-path-halo" d={d} />
       <path className="route-path" d={d} />
     </g>
+  )
+})
+
+const DestinationCluster = memo(function DestinationCluster({ pins }: { pins: ClusteredMarkerPin[] }) {
+  const previews = pins
+    .slice()
+    .sort((a, b) => {
+      const imageDelta = Number(Boolean(b.destination.image)) - Number(Boolean(a.destination.image))
+      if (imageDelta !== 0) return imageDelta
+      return getDestinationScore(b.destination) - getDestinationScore(a.destination)
+    })
+    .slice(0, 4)
+
+  return (
+    <div className="map-cluster" aria-label={`${pins.length} places`}>
+      <span className="map-cluster-glow" aria-hidden="true" />
+      {previews.map((pin, index) => {
+        const color = getDestinationColor(pin.destination) ?? '#5E8BFF'
+        const style = {
+          '--cluster-photo': pin.destination.image ? `url("${pin.destination.image}")` : 'none',
+          '--cluster-color': color,
+        } as CSSProperties
+        return (
+          <span
+            key={`${pin.key}:${index}`}
+            className={`map-cluster-orbit map-cluster-orbit-${index + 1}${pin.destination.image ? ' has-photo' : ''}`}
+            style={style}
+            aria-hidden="true"
+          >
+            {!pin.destination.image && <span>{getDestinationTier(pin.destination)}</span>}
+          </span>
+        )
+      })}
+      <span className="map-cluster-core">
+        <strong>{pins.length}</strong>
+        <em>places</em>
+      </span>
+    </div>
   )
 })
 

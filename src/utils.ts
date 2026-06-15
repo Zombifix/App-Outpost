@@ -123,8 +123,8 @@ function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): numb
   for (const raw of tags) {
     const t = normalizeTagText(raw)
     if (t.includes('belle surprise')) bonus += 0.30
-    else if (t.includes('facile a vivre')) bonus += 0.25
-    else if (t.includes('ambiance locale')) bonus += 0.25
+    else if (t.includes('facile a vivre')) bonus += 0.15
+    else if (t.includes('ambiance locale')) bonus += 0.10
     else if (t.includes('pas cher')) bonus += 0.25
     else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) bonus += 0.20
     else if (t.includes('beau partout')) bonus += 0.15

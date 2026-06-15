@@ -118,6 +118,13 @@ function normalizeTagText(label: string): string {
     .trim()
 }
 
+// Famille "tourisme négatif" : cumul plafonné au plus gros malus + max -0.10 secondaire.
+const TOURISM_FAMILY: Array<[string, number]> = [
+  ['surcote', -0.50],
+  ['pieges a touristes', -0.30],
+  ['trop touristique', -0.15],
+]
+
 function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): number {
   let bonus = coupDeCoeur ? 0.5 : 0
   for (const raw of tags) {
@@ -130,11 +137,24 @@ function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): numb
     else if (t.includes('beau partout')) bonus += 0.15
     else if (t.includes('patrimoine marquant')) bonus += 0.15
     else if (t.includes('craignos')) bonus -= 0.70
-    else if (t.includes('surcote')) bonus -= 0.50
     else if (t.includes('trop cher')) bonus -= 0.35
     else if (t.includes('transports galere') || t.includes('transports galre')) bonus -= 0.20
-    else if (t.includes('pieges a touristes') || t.includes('piges a touristes')) bonus -= 0.30
+    // surcote / pieges / trop touristique → famille gérée ci-dessous
   }
+
+  const tourismHits = TOURISM_FAMILY
+    .filter(([kw]) => tags.some(raw => normalizeTagText(raw).includes(kw)))
+    .map(([, malus]) => malus)
+    .sort((a, b) => a - b)
+
+  if (tourismHits.length === 1) {
+    bonus += tourismHits[0]
+  } else if (tourismHits.length > 1) {
+    bonus += tourismHits[0]
+    const secondary = tourismHits.slice(1).reduce((s, v) => s + v, 0)
+    bonus += Math.max(-0.10, secondary)
+  }
+
   return bonus
 }
 

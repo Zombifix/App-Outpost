@@ -80,14 +80,38 @@ type ContextDetail =
   | { kind: 'text'; icon: string; label: string; value: string }
   | { kind: 'chips'; icon: string; label: string; chips: Array<{ label: string; tone: 'neutral' | 'positive' | 'negative' }> }
 
-const STANDOUT_FLOP_LABELS = new Set([
-  'Budget qui pique',
-  'Transports galere',
-  'La foule',
-  'Pieges a touristes',
-  'Rythme epuisant',
-  'Meteo capricieuse',
+const NEGATIVE_TAG_LABELS = new Set([
+  // labels actuels (avec emoji)
+  '⚠️ Craignos', '📉 Surcoté', '💰 Trop cher', '🚇 Transports galère',
+  '📍 Trop touristique', '🪤 Pièges à touristes',
+  // labels legacy
+  'Budget qui pique', 'Transports galere', 'La foule', 'Pieges a touristes',
+  'Rythme epuisant', 'Meteo capricieuse',
 ])
+
+// Dans la famille "tourisme négatif", si Trop touristique ou Surcoté est déjà affiché,
+// Pièges à touristes est redondant — on le masque.
+const TOURISM_FAMILY_DISPLAY = new Set(['📍 Trop touristique', '📉 Surcoté', '🪤 Pièges à touristes'])
+const TOURISM_REDUNDANT = new Set(['🪤 Pièges à touristes', 'Pieges a touristes'])
+
+function filterDisplayTags(tags: string[]): string[] {
+  const negative = tags.filter(t => NEGATIVE_TAG_LABELS.has(t))
+  const positive = tags.filter(t => !NEGATIVE_TAG_LABELS.has(t))
+
+  // Déduplication famille tourisme
+  const tourismPresent = negative.filter(t => TOURISM_FAMILY_DISPLAY.has(t))
+  const hasNonRedundantTourism = tourismPresent.some(t => !TOURISM_REDUNDANT.has(t))
+  const filteredNegative = hasNonRedundantTourism
+    ? negative.filter(t => !TOURISM_REDUNDANT.has(t))
+    : negative
+
+  const keptNegative = filteredNegative.slice(0, 2)
+  const keptPositive = positive.slice(0, 5 - keptNegative.length)
+  return [...keptPositive, ...keptNegative]
+}
+
+// Gardé pour rétro-compat (tone negative sur les chips)
+const STANDOUT_FLOP_LABELS = NEGATIVE_TAG_LABELS
 
 function getDestinationContext(destination: Destination) {
   const meta: Array<{ icon: string; label: string }> = []
@@ -121,7 +145,8 @@ function getDestinationContext(destination: Destination) {
       chips: destination.tripTypes.map(label => ({ label, tone: 'neutral' as const })),
     })
   }
-  const standoutValues = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
+  const standoutRaw = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
+  const standoutValues = filterDisplayTags(standoutRaw)
   if (standoutValues.length) {
     details.push({
       kind: 'chips',

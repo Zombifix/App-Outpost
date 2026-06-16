@@ -8,6 +8,7 @@ import { findDestinationAtLocation, findRoadtripStopsAtLocation } from '../utils
 import { optimizedImageUrl } from '../utils/imageUrl'
 import { Icon } from './Icon'
 import { useActivityFeed } from '../hooks/useActivityFeed'
+import { getExperienceTagLabel, ROAD_TRIP_TAG_ID } from '../lib/experienceTags'
 import { lang, t } from '../i18n'
 
 interface DestinationSheetProps {
@@ -142,7 +143,7 @@ function getDestinationContext(destination: Destination) {
       kind: 'chips',
       icon: 'sliders',
       label: t('Type', 'Type'),
-      chips: destination.tripTypes.map(label => ({ label, tone: 'neutral' as const })),
+      chips: destination.tripTypes.map(id => ({ label: getExperienceTagLabel(id), tone: 'neutral' as const })),
     })
   }
   const standoutRaw = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
@@ -298,7 +299,7 @@ function getDisplayTier(destination: Destination) {
 }
 
 function isRoadTripTagged(destination: Destination) {
-  return Boolean(destination.tripTypes?.includes('🚗 Road trip'))
+  return Boolean(destination.tripTypes?.includes(ROAD_TRIP_TAG_ID))
 }
 
 function hasRenderableStops(destination: Destination) {

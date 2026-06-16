@@ -1,14 +1,16 @@
+import { t } from '../i18n'
+
 type MapLegendProps = {
   className?: string
   mode?: 'stacked-left' | 'bottom-left' | 'overlay-bottom'
 }
 
 const LEGEND_ITEMS = [
-  ['S', 'Exceptionnel'],
-  ['A', 'Genial'],
-  ['B', 'Correct'],
-  ['C', 'Bof'],
-  ['D', 'A eviter'],
+  ['S', t('Exceptional', 'Exceptionnel')],
+  ['A', t('Great', 'Genial')],
+  ['B', t('Decent', 'Correct')],
+  ['C', t('Meh', 'Bof')],
+  ['D', t('Avoid', 'A eviter')],
 ] as const
 
 export default function MapLegend({ className = '', mode = 'overlay-bottom' }: MapLegendProps) {
@@ -22,7 +24,7 @@ export default function MapLegend({ className = '', mode = 'overlay-bottom' }: M
 
   return (
     <div className={`legend${className ? ` ${className}` : ''}${modeClass}`}>
-      {isDocked && <p className="legend-label">Notation</p>}
+      {isDocked && <p className="legend-label">{t('Rating', 'Notation')}</p>}
       {LEGEND_ITEMS.map(([tier, label]) => (
         <span key={tier}>
           <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>

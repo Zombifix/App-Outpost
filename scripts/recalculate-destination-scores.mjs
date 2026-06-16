@@ -82,8 +82,12 @@ const TOURISM_FAMILY = [
   ['trop touristique', -0.10],
 ]
 
-function computeTagBonus(tags, coupDeCoeur) {
-  let positive = coupDeCoeur ? 0.18 : 0
+function getCoupDeCoeurBonus(coupDeCoeur) {
+  return coupDeCoeur ? 0.22 : 0
+}
+
+function computeTagBonus(tags) {
+  let positive = 0
   let negative = 0
   for (const raw of tags) {
     const t = normalizeTagText(raw)
@@ -112,7 +116,7 @@ function computeTagBonus(tags, coupDeCoeur) {
     negative += Math.max(-0.08, secondary)
   }
 
-  return Math.min(0.35, positive) + Math.max(-0.55, negative)
+  return Math.min(0.28, positive) + Math.max(-0.55, negative)
 }
 
 function getWeakSpotCap(row, activeWeightedCount) {
@@ -161,7 +165,7 @@ function calculateScore(row) {
   const baseScore = calculateBaseScore(row)
 
   const scoringTags = getScoringTags(row)
-  let score = baseScore + computeTagBonus(scoringTags, row.coup_de_coeur)
+  let score = baseScore + getCoupDeCoeurBonus(row.coup_de_coeur) + computeTagBonus(scoringTags)
 
   const hasCraignos = scoringTags.some(t => normalizeTagText(t).includes('craignos'))
 

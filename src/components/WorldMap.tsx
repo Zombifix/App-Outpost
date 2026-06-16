@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useId, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { Root } from 'react-dom/client'
@@ -9,6 +9,8 @@ import { TIER_COLORS } from '../data'
 import { formatVisitCountLabel, getDestinationScore, getDestinationTier, getVisitCount } from '../utils'
 import { destinationNameKey } from '../utils/destinationIdentity'
 import { haversineMeters } from '../utils/duplicates'
+import { ROAD_TRIP_TAG_ID } from '../lib/experienceTags'
+import { t } from '../i18n'
 
 const MAPTILER_KEY = 'aETkeQlWzYNolMJrUTIx'
 const STYLE_URL = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
@@ -707,6 +709,7 @@ export default function WorldMap({
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [expandedRouteKey, setExpandedRouteKey] = useState<string | null>(null)
   const [notationOpen, setNotationOpen] = useState(true)
+  const legendTooltipIdBase = useId()
   const controlsClass = controlsMode === 'stacked-left'
     ? ' map-controls--stacked-left'
     : controlsMode === 'bottom-left'
@@ -718,6 +721,33 @@ export default function WorldMap({
       ? ' legend--bottom-left'
       : ''
   const showLegendLabel = legendMode === 'stacked-left' || legendMode === 'bottom-left'
+  const legendItems = [
+    {
+      tier: 'S',
+      label: t('Gem', 'Pépite'),
+      description: t('An exceptional place you would gladly revisit or recommend immediately.', 'Une adresse d’exception, à refaire ou recommander les yeux fermés.'),
+    },
+    {
+      tier: 'A',
+      label: t('Great', 'Génial'),
+      description: t('A very strong destination with only minor flaws.', 'Une très bonne destination, avec très peu de défauts.'),
+    },
+    {
+      tier: 'B',
+      label: t('Nice', 'Sympa'),
+      description: t('A good memory and a solid stop, even if it is not unforgettable.', 'Un bon souvenir et une étape solide, sans être inoubliable.'),
+    },
+    {
+      tier: 'C',
+      label: t('Meh', 'Bof'),
+      description: t('Mixed feelings: okay overall, but not especially worth repeating.', 'Avis mitigé : correct, mais pas spécialement envie d’y retourner.'),
+    },
+    {
+      tier: 'D',
+      label: t('Skip', 'À éviter'),
+      description: t('A disappointing experience or a spot to avoid unless you have a specific reason.', 'Une expérience décevante, ou un lieu à éviter sauf raison précise.'),
+    },
+  ] as const
 
   function clearHtmlMarkers() {
     for (const entry of htmlMarkersRef.current) {
@@ -1188,7 +1218,7 @@ export default function WorldMap({
   return (
     <section
       className="map-area"
-      aria-label="Destination map"
+      aria-label={t('Destination map', 'Carte des destinations')}
       draggable={false}
       onDragStartCapture={(event) => event.preventDefault()}
     >
@@ -1211,8 +1241,8 @@ export default function WorldMap({
       {mapError && (
         <div className="map-fallback" role="status" aria-live="polite">
           <div className="map-fallback-card">
-            <h3>Interactive map unavailable</h3>
-            <p>WebGL could not start on this device or browser configuration.</p>
+            <h3>{t('Interactive map unavailable', 'Carte interactive indisponible')}</h3>
+            <p>{t('WebGL could not start on this device or browser configuration.', 'WebGL n\'a pas pu démarrer sur cet appareil ou cette configuration de navigateur.')}</p>
             <p className="map-fallback-detail">{mapError}</p>
           </div>
         </div>
@@ -1220,7 +1250,7 @@ export default function WorldMap({
 
       {/* width/height attrs requis par Safari WebKit pour établir le viewport SVG
           et permettre le rendu des éléments <foreignObject> enfants. */}
-      <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label="Destination pins">
+      <svg ref={svgRef} className="map-pins-overlay" width="100%" height="100%" aria-label={t('Destination pins', 'Épingles des destinations')}>
         <g ref={pinsGroupRef}>
           {mapReady && !mapError && (
             <>
@@ -1267,11 +1297,11 @@ export default function WorldMap({
         </g>
       </svg>
 
-      {!mapError && <div className={`map-controls${controlsClass}`} aria-label="Map controls">
-        <button aria-label="Zoomer" onClick={() => zoomBy(1.35)}>+</button>
-        <button aria-label="Dezoomer" onClick={() => zoomBy(0.75)}>−</button>
+      {!mapError && <div className={`map-controls${controlsClass}`} aria-label={t('Map controls', 'Contrôles de la carte')}>
+        <button className="map-control-zoom-in" aria-label={t('Zoom in', 'Zoomer')} onClick={() => zoomBy(1.35)}>+</button>
+        <button className="map-control-zoom-out" aria-label={t('Zoom out', 'Dézoomer')} onClick={() => zoomBy(0.75)}>−</button>
         <span className="map-controls-divider" aria-hidden="true" />
-        <button aria-label="Reset map view" onClick={resetZoom}>
+        <button aria-label={t('Reset map view', 'Réinitialiser la vue')} onClick={resetZoom}>
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9V4h5" /><path d="M21 9V4h-5" />
@@ -1288,7 +1318,7 @@ export default function WorldMap({
             onClick={() => setNotationOpen(o => !o)}
             aria-expanded={notationOpen}
           >
-            <strong className="legend-label">Notation</strong>
+            <strong className="legend-label">{t('Rating', 'Notation')}</strong>
             <svg
               className={`legend-chevron${notationOpen ? '' : ' is-closed'}`}
               width="14" height="14" viewBox="0 0 24 24"
@@ -1301,12 +1331,24 @@ export default function WorldMap({
           </button>
         ) : null}
         <div className="legend-items">
-          {[['S','Pépite'],['A','Génial'],['B','Sympa'],['C','Bof'],['D','À éviter']].map(([tier, label]) => (
-            <span key={tier}>
+          {legendItems.map(({ tier, label, description }, index) => {
+            const tooltipId = `${legendTooltipIdBase}-${tier}-${index}`
+            return (
+            <span
+              key={tier}
+              className="legend-item-help"
+              tabIndex={0}
+              aria-label={`${tier} · ${label}. ${description}`}
+              aria-describedby={tooltipId}
+            >
               <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>
               {label}
+              <span id={tooltipId} role="tooltip" className="legend-inline-tooltip">
+                {description}
+              </span>
             </span>
-          ))}
+            )
+          })}
         </div>
       </div>}
 
@@ -1367,7 +1409,7 @@ function getValidStops(destination: Destination) {
 }
 
 function isRoadTripTagged(destination: Destination) {
-  return Boolean(destination.tripTypes?.includes('🚗 Road trip'))
+  return Boolean(destination.tripTypes?.includes(ROAD_TRIP_TAG_ID))
 }
 
 const RouteStop = memo(function RouteStop({
@@ -1671,17 +1713,17 @@ const Pin = memo(function Pin({
             } as CSSProperties}>
             <span className="map-pin-tier">{destinationTier}</span>
             {isCoupDeCoeur && (
-              <span className="map-pin-heart" aria-label="Coup de coeur">
+              <span className="map-pin-heart" aria-label={t('Favorite', 'Coup de coeur')}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
                 </svg>
               </span>
             )}
             {isLivedThere && (
-              <span className="map-pin-home" aria-label="A vécu là-bas">🏠</span>
+              <span className="map-pin-home" aria-label={t('Lived there', 'A vécu là-bas')}>🏠</span>
             )}
             {isRoadTrip && (
-              <span className="map-pin-roadtrip" aria-label="Road trip">🚗</span>
+              <span className="map-pin-roadtrip" aria-label={t('Road trip', 'Road trip')}>🚗</span>
             )}
             <strong>{pinLabel}</strong>
             {owner === 'friend' && badge && (
@@ -1691,7 +1733,7 @@ const Pin = memo(function Pin({
                   : badge}
               </em>
             )}
-            {shared && <em className="pin-shared-badge" aria-label="Destination en commun">2x</em>}
+            {shared && <em className="pin-shared-badge" aria-label={t('Shared destination', 'Destination en commun')}>2x</em>}
             {tripBadges && tripBadges.length > 0 && (
               <span className="pin-trip-badges" aria-hidden="true">
                 {tripBadges.map((b, i) => (

@@ -15,7 +15,8 @@ export function getLang(): Lang {
     const stored = localStorage.getItem(LANG_KEY)
     if (stored === 'fr' || stored === 'en') return stored
   } catch { /* ignore */ }
-  return 'en'
+  const nav = typeof navigator !== 'undefined' ? (navigator.languages?.[0] ?? navigator.language) : ''
+  return nav?.toLowerCase().startsWith('fr') ? 'fr' : 'en'
 }
 
 export function setLang(l: Lang) {

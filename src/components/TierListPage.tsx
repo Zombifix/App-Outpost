@@ -283,7 +283,7 @@ function DestRow({
             <span className="dest-row-signal-label">{intentLabel}</span>
           </span>
           {isCoupDeCoeur && (
-            <span className="dest-row-signal dest-row-signal--heart" aria-label="Coup de cœur">
+            <span className="dest-row-signal dest-row-signal--heart" aria-label={t('Favorite', 'Coup de cœur')}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
                 <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
               </svg>
@@ -300,7 +300,7 @@ function DestRow({
             </span>
           )}
           {isShared && (
-            <span className="dest-row-signal dest-row-signal--shared" aria-label="Destination en commun">
+            <span className="dest-row-signal dest-row-signal--shared" aria-label={t('Shared destination', 'Destination en commun')}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                 <circle cx="9" cy="7" r="3" /><circle cx="15" cy="7" r="3" />
                 <path d="M3 21c0-3.31 2.69-6 6-6h6c3.31 0 6 2.69 6 6" />
@@ -475,7 +475,7 @@ function DestinationPreview({
         </span>
       </div>
       <div className="tier-destination-preview-body">
-        <button className="tier-destination-preview-close" onClick={onClose} aria-label="Close preview">×</button>
+        <button className="tier-destination-preview-close" onClick={onClose} aria-label={t('Close preview', 'Fermer l\'aperçu')}>×</button>
         <div className="tier-preview-heading">
           <span className={`tier-orb tier-${tier.toLowerCase()}`}>{tier}</span>
           {destination.coupDeCoeur && <span className="tier-preview-favorite">♥ Favorite</span>}
@@ -492,7 +492,7 @@ function DestinationPreview({
         </dl>
         {destination.standout && (
           <div className="tier-preview-note">
-            <span>✨ Highlight</span>
+            <span>{t('✨ Highlight', '✨ Point fort')}</span>
             <strong>{destination.standout}</strong>
           </div>
         )}
@@ -635,7 +635,7 @@ function DesktopTierCard({
         </div>
         <div className="tier-desktop-destination-meta">
           {isCoupDeCoeur && (
-            <span className="tier-desktop-destination-heart" aria-label="Coup de coeur">
+            <span className="tier-desktop-destination-heart" aria-label={t('Favorite', 'Coup de coeur')}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
                 <path d="M20.8 4.6a5.4 5.4 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.7a5.4 5.4 0 0 0 0-7.7Z" />
               </svg>
@@ -874,7 +874,7 @@ export default function TierListPage({
   )
 
   return (
-    <main className={`tier-list-page${friend && !compareDenied ? ' is-comparing' : ' is-solo'}`} aria-label="Tier list">
+    <main className={`tier-list-page${friend && !compareDenied ? ' is-comparing' : ' is-solo'}`} aria-label={t('Tier list', 'Tier list')}>
       <section className="tier-list-hero" aria-label={t('Ranking summary', 'Résumé du classement')}>
         <div className="tier-list-hero-head">
           <div className="tier-list-title">

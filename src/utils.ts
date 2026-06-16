@@ -102,8 +102,12 @@ const TOURISM_FAMILY: Array<[string, number]> = [
   ['trop touristique', -0.10],
 ]
 
-function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): number {
-  let positive = coupDeCoeur ? 0.18 : 0
+function getCoupDeCoeurBonus(coupDeCoeur: boolean | undefined): number {
+  return coupDeCoeur ? 0.22 : 0
+}
+
+function computeTagBonus(tags: string[]): number {
+  let positive = 0
   let negative = 0
   for (const raw of tags) {
     const t = normalizeTagText(raw)
@@ -133,7 +137,7 @@ function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): numb
     negative += Math.max(-0.08, secondary)
   }
 
-  return Math.min(0.35, positive) + Math.max(-0.55, negative)
+  return Math.min(0.28, positive) + Math.max(-0.55, negative)
 }
 
 function getScoringTags(destination: Pick<Destination, 'standoutTags' | 'standout'>): string[] {
@@ -158,7 +162,7 @@ export function getDestinationScore(destination: Destination): number {
     retourBonus: destination.retourBonus ?? 0,
   })
   const scoringTags = getScoringTags(destination)
-  let score = baseScore + computeTagBonus(scoringTags, destination.coupDeCoeur)
+  let score = baseScore + getCoupDeCoeurBonus(destination.coupDeCoeur) + computeTagBonus(scoringTags)
 
   const hasCraignos = scoringTags.some(t => normalizeTagText(t).includes('craignos'))
 
@@ -810,7 +814,7 @@ function normalizeTripTypes(destination: Destination): NormalizedTripType[] {
     if (label.includes('grand air') || label.includes('rando') || label.includes('nature')) addUnique(types, 'nature')
     if (label.includes('lezard') || label.includes('repos')) addUnique(types, 'rest')
     if (label.includes('nuit') || label.includes('fete') || label.includes('bar')) addUnique(types, 'nightlife')
-    if (label.includes('road trip')) addUnique(types, 'roadtrip')
+    if (label.includes('road trip') || label.includes('roadtrip')) addUnique(types, 'roadtrip')
     if (label.includes('bleisure') || label.includes('boulot') || label.includes('travail')) addUnique(types, 'work')
     if (label.includes('city')) addUnique(types, 'city')
   }

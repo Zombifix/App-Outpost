@@ -21,6 +21,7 @@ import ProfileSetupModal from './components/friends/ProfileSetupModal'
 import FriendToast from './components/friends/FriendToast'
 import { Avatar } from './components/Avatar'
 import { SegmentedControl } from './components/SegmentedControl'
+import { getExperienceTagLabel, normalizeStoredTripTypes } from './lib/experienceTags'
 
 // Routes / panels lourds chargés à la demande pour réduire le bundle initial.
 // Le fallback est `null` parce que ces écrans apparaissent en réponse à un clic
@@ -180,6 +181,8 @@ type DesktopDockState = {
   legendHeight: number
   legendMode: DesktopLegendMode
   legendStackTop: number
+  sharedProfileHeight: number
+  sharedProfileTop: number
   sidebarBottom: number
   stackBottom: number
   stackGap: number
@@ -200,6 +203,8 @@ const DESKTOP_DOCK_DEFAULT: DesktopDockState = {
   legendHeight: 0,
   legendMode: 'overlay-bottom',
   legendStackTop: 0,
+  sharedProfileHeight: 0,
+  sharedProfileTop: 0,
   sidebarBottom: 0,
   stackBottom: 0,
   stackGap: 24,
@@ -317,7 +322,7 @@ function normalizeDestination(value: unknown): Destination | null {
       ? value.companions as Destination['companions']
       : undefined,
     personalBudget: value.personalBudget === undefined ? undefined : finiteNumber(value.personalBudget, undefined),
-    tripTypes: normalizeStringList(value.tripTypes),
+    tripTypes: normalizeStoredTripTypes(normalizeStringList(value.tripTypes)),
     standout: typeof value.standout === 'string' ? value.standout : undefined,
     standoutTags: normalizeStringList(value.standoutTags),
     coupDeCoeur: typeof value.coupDeCoeur === 'boolean' ? value.coupDeCoeur : undefined,
@@ -637,6 +642,8 @@ function AppCore({
     }
 
     let frame = 0
+    let resizeObserver: ResizeObserver | null = null
+    let fontsReadyActive = true
     const hasCompareBar = Boolean(compareFriend && !compareFriendDenied && !viewingFriend)
 
     const measureDocking = () => {
@@ -655,6 +662,7 @@ function AppCore({
 
       const sidebarRect = sidebar.getBoundingClientRect()
       const destinationCardRect = visibleRect('.destination-card')
+      const sharedProfileRect = visibleRect('.shared-friend-panel--desktop')
       const tierBoardRect = visibleRect('.tier-board')
       const legendRect = visibleRect('.legend')
       const viewportWidth = window.innerWidth
@@ -685,7 +693,11 @@ function AppCore({
       const leftDockWidth = Math.min(Math.round(sidebarRect.width), availableWidth)
       // Panneau tier déplié = plus large pour afficher les colonnes S/A/B/C/D.
       const tierPanelWidth = Math.max(leftDockWidth, Math.min(700, availableWidth))
-      const stackTop = Math.round(sidebarRect.bottom + stackGap)
+      const sharedProfileTop = Math.round(sidebarRect.bottom + stackGap)
+      const sharedProfileHeight = sharedProfileRect ? Math.ceil(sharedProfileRect.height) : 0
+      const stackTop = sharedProfileHeight > 0
+        ? Math.round(sharedProfileTop + sharedProfileHeight + stackGap)
+        : Math.round(sidebarRect.bottom + stackGap)
       // Order: My rankings (tier) first, Notation (legend) second.
       const stackedBottom = stackTop + tierHeight + panelStackGap + legendHeight + bottomMargin
       const compactPanelStackGap = stackedBottom <= viewportHeight
@@ -745,6 +757,8 @@ function AppCore({
           legendHeight,
           legendMode,
           legendStackTop,
+          sharedProfileHeight,
+          sharedProfileTop,
           sidebarBottom: Math.round(sidebarRect.bottom),
           stackBottom,
           stackGap: compactPanelStackGap,
@@ -763,14 +777,57 @@ function AppCore({
       frame = window.requestAnimationFrame(measureDocking)
     }
 
+    const observeDockElement = (selector: string) => {
+      const element = document.querySelector(selector)
+      if (element instanceof HTMLElement) {
+        resizeObserver?.observe(element)
+      }
+    }
+
     scheduleMeasure()
     // Second pass after tier-board collapse animation (320ms) so the measured
     // height reflects the settled collapsed state, not the mid-animation value.
     const postAnimationMeasure = window.setTimeout(scheduleMeasure, 360)
+    resizeObserver = new ResizeObserver(() => {
+      scheduleMeasure()
+    })
+    observeDockElement('.sidebar')
+    observeDockElement('.shared-friend-panel--desktop')
+    observeDockElement('.tier-board')
+    observeDockElement('.legend')
+
+    const fonts = (document as Document & {
+      fonts?: {
+        ready?: Promise<unknown>
+        addEventListener?: (type: string, listener: EventListener) => void
+        removeEventListener?: (type: string, listener: EventListener) => void
+      }
+    }).fonts
+    const handleFontsLoadingDone = () => {
+      scheduleMeasure()
+    }
+
+    if (fonts?.ready) {
+      void fonts.ready
+        .then(() => {
+          if (fontsReadyActive) scheduleMeasure()
+        })
+        .catch(() => {})
+    }
+
+    if (fonts && typeof fonts.addEventListener === 'function' && typeof fonts.removeEventListener === 'function') {
+      fonts.addEventListener('loadingdone', handleFontsLoadingDone)
+    }
+
     window.addEventListener('resize', scheduleMeasure)
     return () => {
+      fontsReadyActive = false
       window.cancelAnimationFrame(frame)
       window.clearTimeout(postAnimationMeasure)
+      resizeObserver?.disconnect()
+      if (fonts && typeof fonts.removeEventListener === 'function') {
+        fonts.removeEventListener('loadingdone', handleFontsLoadingDone)
+      }
       window.removeEventListener('resize', scheduleMeasure)
     }
   }, [
@@ -1046,6 +1103,8 @@ function AppCore({
       '--desktop-legend-bottom': `${desktopDock.legendBottom}px`,
       '--desktop-legend-height': `${desktopDock.legendHeight}px`,
       '--desktop-legend-stack-top': `${desktopDock.legendStackTop}px`,
+      '--desktop-shared-profile-height': `${desktopDock.sharedProfileHeight}px`,
+      '--desktop-shared-profile-top': `${desktopDock.sharedProfileTop}px`,
       '--desktop-tier-height': `${desktopDock.tierHeight}px`,
       '--desktop-tier-panel-w': `${desktopDock.tierPanelWidth}px`,
       '--desktop-tier-stack-top': `${desktopDock.tierStackTop}px`,
@@ -1074,7 +1133,7 @@ function AppCore({
             maxWidth: 'min(92vw, 480px)',
           }}
         >
-          t('Sync failed: ', 'Sync en échec : ') + {myDestinationsError}. Your changes are saved locally.
+          {t('Sync failed: ', 'Synchronisation échouée : ')}{myDestinationsError}. {t('Your changes are saved locally.', 'Tes changements sont sauvegardés en local.')}
         </div>
       )}
       <div className="mobile-header">
@@ -1182,7 +1241,16 @@ function AppCore({
       {/* Profil voyageur de l'ami, visible d'office quand son carnet est ouvert —
           le gating est implicite : `destinations` ne contient ses lignes que si le
           RPC get_public_destinations a autorisé l'accès. Replié en chip sur mobile. */}
-      {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length > 0 && (
+      {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length > 0 && !isMobileLayout && (
+        <div className="shared-friend-panel shared-friend-panel--desktop">
+          <TravelerProfileStrip
+            destinations={destinations}
+            expandable
+            mode="shared-map-dock"
+          />
+        </div>
+      )}
+      {viewingFriend && activeView === 'map' && !viewingFriendDenied && destinations.length > 0 && isMobileLayout && (
         <div className="friend-profile-overlay">
           <TravelerProfileStrip
             destinations={destinations}
@@ -1625,7 +1693,7 @@ function AccountPanel({ destinations, publicId, mapVisibility, mapDetail, onPubl
   }
 
   return (
-    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label="Account" onClick={onClose}>
+    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label={t('Account', 'Compte')} onClick={onClose}>
       <aside className="account-panel" onClick={event => event.stopPropagation()}>
         <div className="account-panel-head">
           <div className="account-identity">
@@ -2028,7 +2096,7 @@ function getDestinationContext(destination: Destination) {
     })
   }
   if (destination.tripTypes?.length) {
-    details.push({ icon: 'sliders', label: 'Type', value: destination.tripTypes.join(' · ') })
+    details.push({ icon: 'sliders', label: 'Type', value: destination.tripTypes.map(getExperienceTagLabel).join(' · ') })
   }
   const standoutValues = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
   if (standoutValues.length) {
@@ -2060,7 +2128,7 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
 
   return (
-    <aside className="destination-card" aria-label={`Detail de ${destination.name}`}>
+    <aside className="destination-card" aria-label={t(`Details for ${destination.name}`, `Détail de ${destination.name}`)}>
       <div className="destination-hero">
         {destination.image && (
           <img
@@ -2085,25 +2153,25 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
               <div className="card-kebab-menu">
                 <button onClick={() => { closeMenu(); onEdit(destination) }}>
                   <Icon name="edit" />
-                  Modifier
+                  {t('Edit', 'Modifier')}
                 </button>
                 <button className="danger" onClick={() => setConfirmDelete(true)}>
                   <Icon name="trash" />
-                  Supprimer
+                  {t('Delete', 'Supprimer')}
                 </button>
               </div>
             )}
             {menuOpen && confirmDelete && (
               <div className="card-kebab-menu card-delete-confirm">
-                <p>Supprimer <strong>{destination.name}</strong> ?</p>
+                <p>{t('Delete', 'Supprimer')} <strong>{destination.name}</strong> ?</p>
                 <div className="confirm-actions">
-                  <button onClick={closeMenu}>Annuler</button>
-                  <button className="danger" onClick={() => onDelete(destination.name)}>Confirmer</button>
+                  <button onClick={closeMenu}>{t('Cancel', 'Annuler')}</button>
+                  <button className="danger" onClick={() => onDelete(destination.name)}>{t('Confirm', 'Confirmer')}</button>
                 </div>
               </div>
             )}
           </div>
-          <button className="floating-close" aria-label="Fermer le detail" onClick={onClose}>
+          <button className="floating-close" aria-label={t('Close details', 'Fermer le détail')} onClick={onClose}>
             <Icon name="x" />
           </button>
         </div>
@@ -2118,13 +2186,13 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
           <div className="destination-pill-row">
             <button
               className={`coup-de-coeur-button${coupDeCoeur ? ' is-active' : ''}`}
-              aria-label={coupDeCoeur ? 'Retirer le coup de coeur' : coupDeCoeurDisabled ? `Limite atteinte (${maxCoupDeCoeur}/${maxCoupDeCoeur})` : `Coup de coeur · ${coupDeCoeurCount}/${maxCoupDeCoeur} utilise`}
-              title={coupDeCoeur ? 'Coup de coeur · retirer' : coupDeCoeurDisabled ? `${maxCoupDeCoeur} coups de coeur deja utilises` : `Coup de coeur · ${coupDeCoeurCount}/${maxCoupDeCoeur} utilise`}
+              aria-label={coupDeCoeur ? t('Remove favorite', 'Retirer le coup de coeur') : coupDeCoeurDisabled ? t(`Limit reached (${maxCoupDeCoeur}/${maxCoupDeCoeur})`, `Limite atteinte (${maxCoupDeCoeur}/${maxCoupDeCoeur})`) : t(`Favorite · ${coupDeCoeurCount}/${maxCoupDeCoeur} used`, `Coup de coeur · ${coupDeCoeurCount}/${maxCoupDeCoeur} utilise`)}
+              title={coupDeCoeur ? t('Favorite · remove', 'Coup de coeur · retirer') : coupDeCoeurDisabled ? t(`${maxCoupDeCoeur} favorites already used`, `${maxCoupDeCoeur} coups de coeur deja utilises`) : t(`Favorite · ${coupDeCoeurCount}/${maxCoupDeCoeur} used`, `Coup de coeur · ${coupDeCoeurCount}/${maxCoupDeCoeur} utilise`)}
               disabled={coupDeCoeurDisabled}
               onClick={onCoupDeCoeur}
             >
               <Icon name="heart" />
-              Coup de coeur
+              {t('Favorite', 'Coup de coeur')}
             </button>
           </div>
         </div>
@@ -2139,7 +2207,7 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
         */}
       </div>
       {context.hasContext && (
-        <div className="destination-context" aria-label="Contexte du voyage">
+        <div className="destination-context" aria-label={t('Trip context', 'Contexte du voyage')}>
           {context.meta.length > 0 && (
             <div className="destination-context-meta">
               {context.meta.map(item => (
@@ -2163,13 +2231,13 @@ function DestinationCard({ destination, coupDeCoeur, coupDeCoeurCount, totalDest
           )}
         </div>
       )}
-      <h3>Notes par critere</h3>
+      <h3>{t('Scores by criterion', 'Notes par critère')}</h3>
       <div className="criteria-list">
         {criteria.map(([label, value, icon]) => (
           <div className="criterion" key={label}>
             <Icon name={icon} />
             <span>{label}</span>
-            <strong>{Number(value).toFixed(1).replace('.', ',')}</strong>
+            <strong>{Number(value).toFixed(1).replace('.', t('.', ','))}</strong>
           </div>
         ))}
       </div>

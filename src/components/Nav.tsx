@@ -99,7 +99,7 @@ export default function Nav({
 
         <button className="btn btn-primary create-button" onClick={onAddClick}>
           <span className="create-icon"><Icon name="plus" /></span>
-          <span>Destination</span>
+          <span>{t('Destination', 'Destination')}</span>
         </button>
 
         <nav className="side-menu" aria-label={t('Main navigation', 'Navigation principale')}>
@@ -109,7 +109,7 @@ export default function Nav({
           </button>
           <button className={activeView === 'tier-list' ? 'active' : ''} onClick={() => onViewChange('tier-list')}>
             <Icon name="sliders" />
-            Tier list
+            {t('Tier list', 'Tier list')}
           </button>
           <button className={activeView === 'explore' ? 'active' : ''} onClick={() => onViewChange('explore')}>
             <Icon name="compass" />
@@ -120,7 +120,7 @@ export default function Nav({
       </aside>
 
       <header className="topbar">
-        <div className="topbar-title" aria-label="Page title">
+        <div className="topbar-title" aria-label={t('Page title', 'Titre de la page')}>
           {viewingFriend && activeView === 'map' && onBackToMyCarnet && (
             <button
               type="button"
@@ -136,7 +136,7 @@ export default function Nav({
             <h1>
               {activeView === 'map' && (viewingFriend ? `${viewingFriend.handle} · ${t('travel journal', 'carnet de voyage')}` : t('My travel journal', 'Mon carnet de voyages'))}
               {activeView === 'explore' && t('Explore · AI Suggestions', 'Explorer · Suggestions IA')}
-              {activeView === 'tier-list' && 'Tier list'}
+              {activeView === 'tier-list' && t('Tier list', 'Tier list')}
               {activeView === 'friends' && t('Friends', 'Amis')}
             </h1>
             {activeView === 'map' && (() => {
@@ -167,7 +167,7 @@ export default function Nav({
                       type="button"
                       onPointerDown={() => onFiltersChange({ coupDeCoeur: false, thisYear: false, livedThere: false, visitedMultiple: false, companions: 'all', budget: 'all' })}
                     >
-                      Reset
+                      {t('Reset', 'Réinitialiser')}
                     </button>
                   )}
                 </div>
@@ -195,7 +195,7 @@ export default function Nav({
                   </div>
                 </div>
                 <div className="filter-duration">
-                  <span>Budget</span>
+                  <span>{t('Budget', 'Budget')}</span>
                   <div className="filter-grid-4">
                     <button type="button" className={filters.budget === 'all' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: 'all' })}>{t('All', 'Tous')}</button>
                     <button type="button" className={filters.budget === '$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$' })}>$</button>
@@ -364,7 +364,7 @@ function SidebarActivity({ onSeeAll, onFlyTo }: { onSeeAll: () => void; onFlyTo?
       ref={activityRef}
       className="sidebar-activity"
       data-row-count={rest.length}
-      aria-label="Activité récente"
+      aria-label={t('Recent activity', 'Activité récente')}
     >
       <header className="sidebar-activity-head">
         <h4>

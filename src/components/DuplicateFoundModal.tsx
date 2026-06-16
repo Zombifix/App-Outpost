@@ -36,7 +36,7 @@ export default function DuplicateFoundModal({
         aria-labelledby="duplicate-modal-title"
         onClick={e => e.stopPropagation()}
       >
-        <button className="duplicate-modal-close" aria-label="Fermer" onClick={onCancel}>
+        <button className="duplicate-modal-close" aria-label={t('Close', 'Fermer')} onClick={onCancel}>
           <Icon name="x" />
         </button>
 

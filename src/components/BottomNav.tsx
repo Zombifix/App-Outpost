@@ -26,11 +26,11 @@ export default function BottomNav({ activeView, pendingFriendCount, onViewChange
       <button
         className={`bottom-nav-item${activeView === 'tier-list' ? ' is-active' : ''}`}
         onClick={() => onViewChange('tier-list')}
-        aria-label="Tier list"
+        aria-label={t('Tier list', 'Tier list')}
         aria-current={activeView === 'tier-list' ? 'page' : undefined}
       >
         <span className="bottom-nav-item-icon" aria-hidden="true"><Icon name="sliders" /></span>
-        <span className="bottom-nav-item-label">Tier list</span>
+        <span className="bottom-nav-item-label">{t('Tier list', 'Tier list')}</span>
       </button>
 
       <button

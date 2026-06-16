@@ -1,4 +1,5 @@
 import type { Destination, Intent, RoadTripStop, Tier } from '../types'
+import { normalizeStoredTripTypes } from './experienceTags'
 
 /**
  * Mapping centralisé Destination (TS) ↔ ligne SQL (Supabase).
@@ -236,7 +237,7 @@ export function rowToDestination(row: DbDestinationRow): Destination {
     tripDays: row.trip_days ?? undefined,
     companions,
     personalBudget: row.personal_budget ?? undefined,
-    tripTypes: remapList(normalizeStringList(row.trip_types), LEGACY_TRIP_TYPE_MAP),
+    tripTypes: normalizeStoredTripTypes(remapList(normalizeStringList(row.trip_types), LEGACY_TRIP_TYPE_MAP)),
     standout: row.standout ?? undefined,
     standoutTags: remapList(normalizeStringList(row.standout_tags), LEGACY_STANDOUT_MAP),
     coupDeCoeur: row.coup_de_coeur ?? undefined,

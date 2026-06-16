@@ -172,7 +172,7 @@ export default function TierListPanel({
   }
 
   const sortControl = (className = '', compact = false) => (
-    <div className={`tier-sort-toggle${className ? ` ${className}` : ''}`} role="group" aria-label="Sort tier list">
+    <div className={`tier-sort-toggle${className ? ` ${className}` : ''}`} role="group" aria-label={t('Sort tier list', 'Trier le classement')}>
       {(['score', 'recent'] as SortMode[]).map(mode => (
         <button
           key={mode}
@@ -252,7 +252,7 @@ export default function TierListPanel({
           <span className="tier-board-collapsed-hint" aria-hidden="true">
             <span className="tier-board-collapsed-row">
               <span className="tier-board-collapsed-label">{t('My rankings', 'Mon classement')}</span>
-              <span className="tier-board-collapsed-counts" aria-label="Summary by rating">
+              <span className="tier-board-collapsed-counts" aria-label={t('Summary by rating', 'Résumé par note')}>
                 {tierCounts.length > 0 ? tierCounts.map(({ tier, count }) => (
                   <span
                     key={tier}
@@ -298,7 +298,7 @@ export default function TierListPanel({
         <div className="tier-board-title">
           <h2>{t('My rankings', 'Mon classement')} <span>· {rankedDestinationsCount}</span></h2>
           {collapsed && (
-            <div className="tier-board-title-counts" aria-label="Summary by rating">
+            <div className="tier-board-title-counts" aria-label={t('Summary by rating', 'Résumé par note')}>
               {tierCountChips}
               {favoriteChip}
             </div>
@@ -321,7 +321,7 @@ export default function TierListPanel({
         </div>
       </div>
 
-      <div className="tier-desktop-tabs" aria-label="Filtrer par tier">
+      <div className="tier-desktop-tabs" aria-label={t('Filter by tier', 'Filtrer par tier')}>
         <SegmentedControl
           className="tier-desktop-tabs-list"
           ariaLabel={t('Filter by tier', 'Filtrer par tier')}
@@ -342,11 +342,11 @@ export default function TierListPanel({
           <div className="tier-mobile-topline">
             <div className="tier-mobile-title-row">
               <h2 className="tier-mobile-title">{t('My rankings', 'Mon classement')}</h2>
-              <span className="tier-mobile-total-badge" aria-label={`${rankedDestinationsCount} ranked destinations`}>
+              <span className="tier-mobile-total-badge" aria-label={t(`${rankedDestinationsCount} ranked destinations`, `${rankedDestinationsCount} destinations classées`)}>
                 {rankedDestinationsCount}
               </span>
             </div>
-            <div className="tier-mobile-summary" aria-label="Summary by rating">
+            <div className="tier-mobile-summary" aria-label={t('Summary by rating', 'Résumé par note')}>
               {tierCountChips}
               {favoriteChip}
             </div>
@@ -478,12 +478,12 @@ export default function TierListPanel({
                         <button
                           className="mini-destination-main"
                           onClick={() => onFlyTo(destination.name)}
-                          aria-label={`Voir ${destination.name} sur la carte`}
+                          aria-label={t(`View ${destination.name} on the map`, `Voir ${destination.name} sur la carte`)}
                         >
                           <span>{destination.name}</span>
                         </button>
                         {isCoupDeCoeur && (
-                          <span className="mini-favorite-button is-active" aria-label="Coup de coeur" title="Coup de coeur">
+                          <span className="mini-favorite-button is-active" aria-label={t('Favorite', 'Coup de coeur')} title={t('Favorite', 'Coup de coeur')}>
                             <HeartIcon filled />
                           </span>
                         )}

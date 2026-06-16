@@ -8,7 +8,9 @@ import { buildDestinationRecommendations, emptySuggestionHistoryState, pushShown
 import { geoCentroid } from '../lib/geoCentroid'
 import { useSearchSuggestionState } from '../hooks/useSearchSuggestionState'
 import { resolveZoneGeojson } from '../lib/zoneGeometry'
+import { EXPERIENCE_TAGS, ROAD_TRIP_TAG_ID } from '../lib/experienceTags'
 import { Icon } from './Icon'
+import { t } from '../i18n'
 
 interface WizardProps {
   onClose: () => void
@@ -51,10 +53,10 @@ interface SuggestionItem {
 const TRIP_YEAR_MIN = 1950
 const TRIP_YEAR_MAX = new Date().getFullYear() + 1
 const DURATION_UNIT_OPTIONS = [
-  { value: 'days', label: 'Jours', days: 1, max: 365 },
-  { value: 'weeks', label: 'Semaines', days: 7, max: 52 },
-  { value: 'months', label: 'Mois', days: 30, max: 12 },
-  { value: 'years', label: 'ans', days: 365, max: 10 },
+  { value: 'days', label: t('Days', 'Jours'), days: 1, max: 365 },
+  { value: 'weeks', label: t('Weeks', 'Semaines'), days: 7, max: 52 },
+  { value: 'months', label: t('Months', 'Mois'), days: 30, max: 12 },
+  { value: 'years', label: t('Years', 'ans'), days: 365, max: 10 },
 ] as const
 
 type DurationUnit = typeof DURATION_UNIT_OPTIONS[number]['value']
@@ -251,12 +253,12 @@ function StopAutocomplete({
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          aria-label="Glisser pour réordonner"
-          title="Glisser pour réordonner"
+          aria-label={t('Drag to reorder', 'Glisser pour réordonner')}
+          title={t('Drag to reorder', 'Glisser pour réordonner')}
         >⋮⋮</span>
         <input
           className="wizard-input wizard-stop-input"
-          placeholder={`Étape ${index + 1}`}
+          placeholder={t(`Stop ${index + 1}`, `Étape ${index + 1}`)}
           value={query}
           onChange={e => {
             setQuery(e.target.value)
@@ -271,7 +273,7 @@ function StopAutocomplete({
         <button
           type="button"
           className="wizard-stop-remove"
-          aria-label="Supprimer"
+          aria-label={t('Remove', 'Supprimer')}
           onClick={onRemove}
         >×</button>
       </div>
@@ -324,15 +326,15 @@ function isPhotonDuplicate(result: PhotonResult, existingDestinations?: Destinat
 
 function getZoneTypeLabel(result: PhotonResult): string | undefined {
   switch (result.osmValue) {
-    case 'island': return 'Île'
-    case 'archipelago': return 'Archipel'
-    case 'country': return 'Pays'
-    case 'state': return 'État'
-    case 'region': return 'Région'
-    case 'province': return 'Province'
-    case 'county': return 'Comté'
-    case 'department': return 'Département'
-    case 'district': return 'District'
+    case 'island': return t('Island', 'Île')
+    case 'archipelago': return t('Archipelago', 'Archipel')
+    case 'country': return t('Country', 'Pays')
+    case 'state': return t('State', 'État')
+    case 'region': return t('Region', 'Région')
+    case 'province': return t('Province', 'Province')
+    case 'county': return t('County', 'Comté')
+    case 'department': return t('Department', 'Département')
+    case 'district': return t('District', 'District')
     default:
       return undefined
   }
@@ -474,90 +476,90 @@ async function searchPhoton(
 const QUESTIONS = [
   {
     key: 'food' as const,
-    question: '🍽️ Niveau food, tu t\'es régalé(e) ?',
-    skipLabel: 'Je n\'ai pas vraiment testé →',
+    question: t('🍽️ Food-wise, did you treat yourself?', '🍽️ Niveau food, tu t\'es régalé(e) ?'),
+    skipLabel: t('I didn\'t really try it →', 'Je n\'ai pas vraiment testé →'),
     answers: [
-      { label: '🤤 Incroyable, la bouffe a porté le voyage', value: 5 },
-      { label: '😋 Très bon, quelques vraies découvertes', value: 4 },
-      { label: '😐 Correct, mais rien que je conseillerais pour ça', value: 2 },
-      { label: '😬 Décevant ou trop cher pour ce que c\'était', value: 1 },
+      { label: t('🤤 Incredible, the food made the trip', '🤤 Incroyable, la bouffe a porté le voyage'), value: 5 },
+      { label: t('😋 Really good, a few real finds', '😋 Très bon, quelques vraies découvertes'), value: 4 },
+      { label: t('😐 Fine, but nothing I\'d recommend it for', '😐 Correct, mais rien que je conseillerais pour ça'), value: 2 },
+      { label: t('😬 Disappointing or too pricey for what it was', '😬 Décevant ou trop cher pour ce que c\'était'), value: 1 },
     ],
   },
   {
     key: 'night' as const,
-    question: '🌙 Le soir, ça vivait comment ?',
-    skipLabel: 'Je n\'ai pas testé le soir →',
+    question: t('🌙 How was the nightlife?', '🌙 Le soir, ça vivait comment ?'),
+    skipLabel: t('I didn\'t go out at night →', 'Je n\'ai pas testé le soir →'),
     answers: [
-      { label: '🔥 Grosse énergie, ça vit vraiment le soir', value: 5 },
-      { label: '🍻 Bonne vibe, bars et restos sans être l\'enfer', value: 4 },
-      { label: '🌙 Plutôt calme, bien pour dîner mais pas pour sortir', value: 2 },
-      { label: '🛌 Mort ou pénible, pas grand-chose à faire le soir', value: 1 },
+      { label: t('🔥 Big energy, it really comes alive at night', '🔥 Grosse énergie, ça vit vraiment le soir'), value: 5 },
+      { label: t('🍻 Good vibe, bars and restos without going overboard', '🍻 Bonne vibe, bars et restos sans être l\'enfer'), value: 4 },
+      { label: t('🌙 Pretty quiet, fine for dinner but not for going out', '🌙 Plutôt calme, bien pour dîner mais pas pour sortir'), value: 2 },
+      { label: t('🛌 Dead or a pain, not much to do at night', '🛌 Mort ou pénible, pas grand-chose à faire le soir'), value: 1 },
     ],
   },
   {
     key: 'culture' as const,
-    question: '🗺️ Niveau visites et activités, tu avais de quoi faire ?',
-    skipLabel: 'Je n\'ai pas assez testé →',
+    question: t('🗺️ Sightseeing and activities — was there enough to do?', '🗺️ Niveau visites et activités, tu avais de quoi faire ?'),
+    skipLabel: t('I didn\'t do enough to say →', 'Je n\'ai pas assez testé →'),
     answers: [
-      { label: '📈 Trop de trucs à faire, il faudrait revenir', value: 5 },
-      { label: '👌 Pile-poil pour la durée du séjour', value: 4 },
-      { label: '🚶 On a vite fait le tour, faut creuser un peu', value: 2 },
-      { label: '🥱 Franchement, pas grand-chose à faire', value: 1 },
+      { label: t('📈 Way too much to do, you\'d need to come back', '📈 Trop de trucs à faire, il faudrait revenir'), value: 5 },
+      { label: t('👌 Just right for the length of the trip', '👌 Pile-poil pour la durée du séjour'), value: 4 },
+      { label: t('🚶 Did it all pretty fast, need to dig a bit', '🚶 On a vite fait le tour, faut creuser un peu'), value: 2 },
+      { label: t('🥱 Honestly, not much to do', '🥱 Franchement, pas grand-chose à faire'), value: 1 },
     ],
   },
   {
     key: 'nature' as const,
-    question: '📸 Le décor, il valait le détour ?',
-    skipLabel: 'Pas assez de recul →',
+    question: t('📸 Was the scenery worth it?', '📸 Le décor, il valait le détour ?'),
+    skipLabel: t('Not enough perspective →', 'Pas assez de recul →'),
     answers: [
-      { label: '😍 Waouh, carte postale à chaque coin', value: 5 },
-      { label: '📷 Très joli, plusieurs coins qui marquent', value: 4 },
-      { label: '🏙️ Correct, mais pas un voyage pour les yeux', value: 2 },
-      { label: '🚧 Franchement fade, pas le charme attendu', value: 1 },
+      { label: t('😍 Wow, postcard view at every corner', '😍 Waouh, carte postale à chaque coin'), value: 5 },
+      { label: t('📷 Very pretty, several spots that stick with you', '📷 Très joli, plusieurs coins qui marquent'), value: 4 },
+      { label: t('🏙️ Fine, but not a trip for the eyes', '🏙️ Correct, mais pas un voyage pour les yeux'), value: 2 },
+      { label: t('🚧 Honestly bland, not the charm you\'d expect', '🚧 Franchement fade, pas le charme attendu'), value: 1 },
     ],
   },
   {
     key: 'value' as const,
-    question: '💸 Niveau budget sur place, ça disait quoi ?',
-    skipLabel: 'Pas d\'avis budget →',
+    question: t('💸 How was the budget on the ground?', '💸 Niveau budget sur place, ça disait quoi ?'),
+    skipLabel: t('No opinion on budget →', 'Pas d\'avis budget →'),
     answers: [
-      { label: '👑 Excellent plan, j\'ai eu beaucoup pour pas cher', value: 5 },
-      { label: '⚖️ Correct, les prix semblaient honnêtes', value: 4 },
-      { label: '💸 Cher pour ce que c\'était', value: 2 },
-      { label: '🚨 Hors de prix, ça plombait l\'expérience', value: 1 },
+      { label: t('👑 Great deal, got a lot for cheap', '👑 Excellent plan, j\'ai eu beaucoup pour pas cher'), value: 5 },
+      { label: t('⚖️ Fair, prices seemed honest', '⚖️ Correct, les prix semblaient honnêtes'), value: 4 },
+      { label: t('💸 Pricey for what it was', '💸 Cher pour ce que c\'était'), value: 2 },
+      { label: t('🚨 Outrageously expensive, it weighed on the experience', '🚨 Hors de prix, ça plombait l\'expérience'), value: 1 },
     ],
   },
   {
     key: 'ease' as const,
-    question: '🧩 Côté orga et déplacements, c\'était fluide ?',
-    skipLabel: 'Je n\'ai pas assez bougé →',
+    question: t('🧩 Getting around — was it easy or a hassle?', '🧩 Quand tu voulais bouger, c\'était simple ou galère ?'),
+    skipLabel: t('I didn\'t move around enough →', 'Je n\'ai pas assez bougé →'),
     answers: [
-      { label: '🎢 Hyper facile, tout glisse tout seul', value: 5 },
-      { label: '👌 Globalement simple, on prend vite le pli', value: 4 },
-      { label: '🗺️ Un peu galère, faut s\'accrocher par moments', value: 2 },
-      { label: '🚧 L\'enfer, rien n\'est pensé, on a perdu trop de temps', value: 1 },
+      { label: t('📈 Super easy, I got around without a second thought', '📈 Hyper simple, je bougeais sans me prendre la tête'), value: 5 },
+      { label: t('👌 Overall simple, a few hiccups but it worked out', '👌 Globalement simple, quelques contraintes mais ça allait'), value: 4 },
+      { label: t('🗺️ Not always straightforward, I often had to adapt', '🗺️ Pas toujours évident, je devais souvent m\'adapter'), value: 2 },
+      { label: t('🚧 A hassle, getting around really limited my trip', '🚧 Galère, les déplacements limitaient vraiment mon voyage'), value: 1 },
     ],
   },
   {
     key: 'vibeBoost' as const,
-    question: '🫶 Sur place, tu te sentais comment ?',
-    skipLabel: 'Pas assez de recul →',
+    question: t('🫶 How did you feel while you were there?', '🫶 Sur place, tu te sentais comment ?'),
+    skipLabel: t('Not enough perspective →', 'Pas assez de recul →'),
     answers: [
-      { label: '🥰 Hyper bien, accueilli(e) et à l\'aise partout', value: 5 },
-      { label: '👍 Bonne vibe, simple et sans prise de tête', value: 4 },
-      { label: '🥶 Un peu froid ou distant, mais pas bloquant', value: 3 },
-      { label: '⚠️ Craignos ou pesant, je n\'étais pas serein(e)', value: 2 },
+      { label: t('🥰 Really good, welcomed and at ease everywhere', '🥰 Hyper bien, accueilli(e) et à l\'aise partout'), value: 5 },
+      { label: t('👍 Good vibe, simple and no hassle', '👍 Bonne vibe, simple et sans prise de tête'), value: 4 },
+      { label: t('🥶 A bit cold or distant, but not a dealbreaker', '🥶 Un peu froid ou distant, mais pas bloquant'), value: 3 },
+      { label: t('⚠️ Sketchy or heavy, I didn\'t feel at ease', '⚠️ Craignos ou pesant, je n\'étais pas serein(e)'), value: 2 },
     ],
   },
   {
     key: 'retourBonus' as const,
-    question: '🔁 Au final, tu le recommanderais ?',
-    skipLabel: 'Je préfère ne pas trancher →',
+    question: t('🔁 Bottom line, would you recommend it?', '🔁 Au final, tu le recommanderais ?'),
+    skipLabel: t('I\'d rather not say →', 'Je préfère ne pas trancher →'),
     answers: [
-      { label: '💌 Oui, sans hésiter, ça mérite le détour', value: 0.3 },
-      { label: '✈️ Oui, mais pour un type de séjour précis', value: 0.1 },
-      { label: '🌍 Pas en priorité, il y a mieux à voir avant', value: 0 },
-      { label: '🚫 Non, je ne le recommanderais pas vraiment', value: -0.3 },
+      { label: t('💌 Yes, no hesitation, it\'s worth the trip', '💌 Oui, sans hésiter, ça mérite le détour'), value: 0.3 },
+      { label: t('✈️ Yes, but only for a specific kind of trip', '✈️ Oui, mais pour un type de séjour précis'), value: 0.1 },
+      { label: t('🌍 Not a priority, there\'s better to see first', '🌍 Pas en priorité, il y a mieux à voir avant'), value: 0 },
+      { label: t('🚫 No, I wouldn\'t really recommend it', '🚫 Non, je ne le recommanderais pas vraiment'), value: -0.3 },
     ],
   },
 ]
@@ -567,35 +569,35 @@ type QuestionKey = 'food' | 'night' | 'culture' | 'nature' | 'value' | 'ease' | 
 const QUESTION_META: Record<QuestionKey, { emoji: string; intro: string }> = {
   food: {
     emoji: '🍽️',
-    intro: 'Des pépites locales aux restos oubliables : est-ce que la bouffe a marqué le séjour ?',
+    intro: t('From local gems to forgettable diners: did the food make the trip?', 'Des pépites locales aux restos oubliables : est-ce que la bouffe a marqué le séjour ?'),
   },
   night: {
     emoji: '🌙',
-    intro: 'Bars, restos, rues animées ou ville qui s\'éteint : l\'énergie après la journée.',
+    intro: t('Bars, restaurants, lively streets, or a town that shuts down: the energy after dark.', 'Bars, restos, rues animées ou ville qui s\'éteint : l\'énergie après la journée.'),
   },
   culture: {
     emoji: '🗺️',
-    intro: 'Musées, monuments, quartiers, excursions, activités : est-ce que le séjour se remplissait facilement ?',
+    intro: t('Museums, monuments, neighborhoods, day trips, activities: was it easy to fill the days?', 'Musées, monuments, quartiers, excursions, activités : est-ce que le séjour se remplissait facilement ?'),
   },
   nature: {
     emoji: '📸',
-    intro: 'Rues, lumière, mer, montagne, skyline, points de vue : indépendamment des visites, est-ce que le lieu avait du charme ?',
+    intro: t('Streets, light, sea, mountains, skyline, viewpoints: regardless of the sights, did the place have charm?', 'Rues, lumière, mer, montagne, skyline, points de vue : indépendamment des visites, est-ce que le lieu avait du charme ?'),
   },
   value: {
     emoji: '💸',
-    intro: 'L\'idée, c\'est ton ressenti budget sur place, pas une vérité absolue.',
+    intro: t('This is about how the budget felt on the ground, not an absolute truth.', 'L\'idée, c\'est ton ressenti budget sur place, pas une vérité absolue.'),
   },
   ease: {
     emoji: '🧩',
-    intro: 'Transports, trajets, logistique : est-ce que tout roulait ou c\'était vite fatigant ?',
+    intro: t('On foot, public transport, taxi/rideshare, scooter, or e-scooter: could you get around easily, without stress, rip-off prices, or painful rides?', 'À pied, en transports, taxi/VTC, scooter ou trottinette : est-ce que tu pouvais te déplacer facilement, sans stress, sans prix abusifs ou trajets pénibles ?'),
   },
   vibeBoost: {
     emoji: '🫶',
-    intro: 'Accueil, vibe locale, confort, sécurité ressentie : est-ce que tu étais à l\'aise ?',
+    intro: t('Welcome, local vibe, comfort, how safe it felt: were you at ease?', 'Accueil, vibe locale, confort, sécurité ressentie : est-ce que tu étais à l\'aise ?'),
   },
   retourBonus: {
     emoji: '🔁',
-    intro: 'Pas besoin d\'être rationnel : est-ce que tu l\'enverrais à quelqu\'un ?',
+    intro: t('No need to be rational: would you send someone there?', 'Pas besoin d\'être rationnel : est-ce que tu l\'enverrais à quelqu\'un ?'),
   },
 }
 
@@ -611,44 +613,19 @@ function stripLeadingEmojiLabel(label: string) {
 }
 
 const COMPANION_OPTIONS: Array<{ value: NonNullable<Destination['companions']>; label: string }> = [
-  { value: 'solo', label: '🧍 Solo' },
-  { value: 'couple', label: '💑 Couple' },
-  { value: 'amis', label: '👯 Amis' },
-  { value: 'famille', label: '👨‍👩‍👧 Famille' },
-  { value: 'travail', label: '💻 Travail' },
-]
-
-const EXPERIENCE_TAGS: { id: string; label: string }[] = [
-  { id: 'food',        label: '🍜 Food trip' },
-  { id: 'patrimoine',  label: '🏛️ Patrimoine marquant' },
-  { id: 'flanerie',    label: '🏘️ Ville à flâner' },
-  { id: 'beau',        label: '✨ Beau partout' },
-  { id: 'paysages',    label: '⛰️ Grands paysages' },
-  { id: 'plage',       label: '🏖️ Plage & baignade' },
-  { id: 'nightlife',   label: '🌙 Nightlife' },
-  { id: 'ambiance',    label: '🎭 Ambiance locale' },
-  { id: 'facile',      label: '🧘 Facile à vivre' },
-  { id: 'pas-cher',    label: '💸 Pas cher' },
-  { id: 'trop-cher',   label: '💰 Trop cher' },
-  { id: 'transports',  label: '🚇 Transports galère' },
-  { id: 'touristique', label: '📍 Trop touristique' },
-  { id: 'pieges',      label: '🪤 Pièges à touristes' },
-  { id: 'craignos',    label: '⚠️ Craignos' },
-  { id: 'surprise',    label: '😮 Belle surprise' },
-  { id: 'surcote',     label: '📉 Surcoté' },
+  { value: 'solo', label: t('🧍 Solo', '🧍 Solo') },
+  { value: 'couple', label: t('💑 Couple', '💑 Couple') },
+  { value: 'amis', label: t('👯 Friends', '👯 Amis') },
+  { value: 'famille', label: t('👨‍👩‍👧 Family', '👨‍👩‍👧 Famille') },
+  { value: 'travail', label: t('💻 Work', '💻 Travail') },
 ]
 
 const MAX_EXPERIENCE_TAGS = 5
 
-const ROAD_TRIP_LABEL = '🚗 Road trip'
-
 function getIntentFromTripTypes(tripTypes: string[]): Intent {
-  const ids = tripTypes
-    .map(label => EXPERIENCE_TAGS.find(t => t.label === label)?.id)
-    .filter(Boolean)
-  if (ids.includes('food')) return 'gastro'
-  if (ids.includes('nightlife')) return 'sorties'
-  if (ids.includes('nature')) return 'nature'
+  if (tripTypes.includes('food')) return 'gastro'
+  if (tripTypes.includes('nightlife')) return 'sorties'
+  if (tripTypes.includes('nature')) return 'nature'
   return 'tourisme'
 }
 
@@ -682,19 +659,19 @@ function getQuickStopSuggestions(state: WizardState, stops: RoadTripStop[]): str
 }
 
 const TIER_LABELS: Record<Tier, string> = {
-  S: 'Pépite',
-  A: 'Génial',
-  B: 'Sympa',
-  C: 'Bof',
-  D: 'À éviter',
+  S: t('Gem', 'Pépite'),
+  A: t('Great', 'Génial'),
+  B: t('Nice', 'Sympa'),
+  C: t('Meh', 'Bof'),
+  D: t('Skip', 'À éviter'),
 }
 
 const TIER_EXPLANATIONS: Record<Tier, string> = {
-  S: 'Un endroit que tu n\'oublieras pas. Il rejoint ton top absolu.',
-  A: 'Vraiment bien. Tu recommanderais sans hésiter.',
-  B: 'Une bonne expérience dans l\'ensemble, avec quelques bémols.',
-  C: 'Mitigé. Ça valait le déplacement, mais rien d\'exceptionnel.',
-  D: 'Pas le meilleur souvenir. Mieux vaut noter pour ne pas y retourner.',
+  S: t('A place you won\'t forget. It joins your absolute top.', 'Un endroit que tu n\'oublieras pas. Il rejoint ton top absolu.'),
+  A: t('Really good. You\'d recommend it without hesitation.', 'Vraiment bien. Tu recommanderais sans hésiter.'),
+  B: t('A good experience overall, with a few caveats.', 'Une bonne expérience dans l\'ensemble, avec quelques bémols.'),
+  C: t('Mixed. Worth the trip, but nothing exceptional.', 'Mitigé. Ça valait le déplacement, mais rien d\'exceptionnel.'),
+  D: t('Not the best memory. Better to note it down so you don\'t go back.', 'Pas le meilleur souvenir. Mieux vaut noter pour ne pas y retourner.'),
 }
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
@@ -872,11 +849,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     && Number.isInteger(parsedVisitCount)
     && parsedVisitCount >= (revisitEnabled ? 2 : 1)
   const visitCountHelperText = visitCountInput.length > 0 && !visitCountIsValid
-    ? 'Nombre entier à partir de 1'
-    : '1 = première visite'
+    ? t('Whole number from 1', 'Nombre entier à partir de 1')
+    : t('1 = first visit', '1 = première visite')
   const revisitHelperText = visitCountInput.length > 0 && !visitCountIsValid
-    ? 'Entre 2 et 999'
-    : 'Nombre total de visites'
+    ? t('Between 2 and 999', 'Entre 2 et 999')
+    : t('Total number of visits', 'Nombre total de visites')
   const canSubmit = !resolvingImage
     && visitCountIsValid
     && (!needsCoupDeCoeurReplacement || Boolean(state.replaceCoupDeCoeurName))
@@ -886,8 +863,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const yearIsInRange = parsedTripYear !== null && parsedTripYear >= TRIP_YEAR_MIN && parsedTripYear <= TRIP_YEAR_MAX
   const yearHelperText = tripYearInput.length > 0 && !yearIsInRange
     ? tripYearInput.length < 4
-      ? 'Entre 4 chiffres'
-      : `Entre ${TRIP_YEAR_MIN} et ${TRIP_YEAR_MAX}`
+      ? t('At least 4 digits', 'Entre 4 chiffres')
+      : t(`Between ${TRIP_YEAR_MIN} and ${TRIP_YEAR_MAX}`, `Entre ${TRIP_YEAR_MIN} et ${TRIP_YEAR_MAX}`)
     : ''
   const parsedDurationValue = durationValueInput ? Number(durationValueInput) : null
   const durationIsValid = parsedDurationValue !== null
@@ -896,7 +873,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     && parsedDurationValue <= selectedDurationUnit.max
   const computedTripDays = durationIsValid ? parsedDurationValue * selectedDurationUnit.days : null
   const durationHelperText = durationValueInput.length > 0 && !durationIsValid
-    ? `Entre 1 et ${selectedDurationUnit.max} ${selectedDurationUnit.label.toLowerCase()}`
+    ? t(`Between 1 and ${selectedDurationUnit.max} ${selectedDurationUnit.label.toLowerCase()}`, `Entre 1 et ${selectedDurationUnit.max} ${selectedDurationUnit.label.toLowerCase()}`)
     : ''
 
   useEffect(() => {
@@ -914,7 +891,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   // questionnaire pour éviter la perte accidentelle de réponses.
   const handleClose = () => {
     const hasProgress = step !== 'search'
-    if (hasProgress && !window.confirm('Fermer le formulaire ? Tes réponses seront perdues.')) return
+    if (hasProgress && !window.confirm(t('Close the form? Your answers will be lost.', 'Fermer le formulaire ? Tes réponses seront perdues.'))) return
     onClose()
   }
 
@@ -1171,10 +1148,10 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     //      and islands
     //   2. Photon's r.lat/r.lng — usually the OSM label point (decent fallback)
     //   3. average of Photon's extent — worst case, biased by outlier territories
-    const lat = isZone
+    let lat = isZone
       ? (centroid?.lat ?? (Number.isFinite(s.lat) ? s.lat : (s.extent ? (s.extent[1] + s.extent[3]) / 2 : NaN)))
       : s.lat
-    const lng = isZone
+    let lng = isZone
       ? (centroid?.lng ?? (Number.isFinite(s.lng) ? s.lng : (s.extent ? (s.extent[0] + s.extent[2]) / 2 : NaN)))
       : s.lng
     // Persist the bbox of the main polygon so the map zoom/focus stays tight on
@@ -1269,23 +1246,23 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const activeQuestions = QUESTIONS
   const progressSteps: WizardStep[] = ['search', 'questions', 'profile', 'context']
 
-  const toggleExperienceTag = (label: string) => {
+  const toggleExperienceTag = (id: string) => {
     setState(prev => {
-      if (prev.tripTypes.includes(label)) {
-        const tripTypes = prev.tripTypes.filter(item => item !== label)
+      if (prev.tripTypes.includes(id)) {
+        const tripTypes = prev.tripTypes.filter(item => item !== id)
         return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
       }
       if (prev.tripTypes.length >= MAX_EXPERIENCE_TAGS) return prev
-      const tripTypes = [...prev.tripTypes, label]
+      const tripTypes = [...prev.tripTypes, id]
       return { ...prev, tripTypes, intent: getIntentFromTripTypes(tripTypes) }
     })
   }
 
   const renderStayTypeFields = () => (
     <div className="wizard-context wizard-context--embedded wizard-context--tags">
-      <div className="wizard-chip-row" aria-label="Tags du voyage">
+      <div className="wizard-chip-row" aria-label={t('Trip tags', 'Tags du voyage')}>
         {EXPERIENCE_TAGS.map(tag => {
-          const isSelected = state.tripTypes.includes(tag.label)
+          const isSelected = state.tripTypes.includes(tag.id)
           const isDisabled = !isSelected && state.tripTypes.length >= MAX_EXPERIENCE_TAGS
           return (
             <button
@@ -1294,7 +1271,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               className={isSelected ? 'is-selected' : ''}
               aria-pressed={isSelected}
               disabled={isDisabled}
-              onClick={() => toggleExperienceTag(tag.label)}
+              onClick={() => toggleExperienceTag(tag.id)}
             >
               {tag.label}
             </button>
@@ -1308,11 +1285,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     <div className="wizard-context wizard-context--embedded wizard-context--details">
       <div className="wizard-context-block wizard-context-block--form">
         <div className="wizard-context-heading">
-          <span>Repères du séjour</span>
+          <span>{t('Trip details', 'Repères du séjour')}</span>
         </div>
         <div className="wizard-context-grid">
           <label>
-            <span>Année</span>
+            <span>{t('Year', 'Année')}</span>
             <input
               value={tripYearInput}
               inputMode="numeric"
@@ -1324,7 +1301,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             {yearHelperText ? <small className="wizard-field-helper is-invalid">{yearHelperText}</small> : null}
           </label>
           <label>
-            <span>Durée</span>
+            <span>{t('Duration', 'Durée')}</span>
             <div className={`wizard-duration-field${durationValueInput.length > 0 && !durationIsValid ? ' is-invalid' : ''}`}>
               <input
                 value={durationValueInput}
@@ -1336,7 +1313,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               />
               <select
                 value={durationUnit}
-                aria-label="Unité de durée"
+                aria-label={t('Duration unit', 'Unité de durée')}
                 onChange={e => {
                   const nextUnit = e.target.value as DurationUnit
                   const nextConfig = getDurationUnitConfig(nextUnit)
@@ -1359,7 +1336,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             {durationHelperText ? <small className="wizard-field-helper is-invalid">{durationHelperText}</small> : null}
           </label>
           <label>
-            <span>Budget perso</span>
+            <span>{t('Personal budget', 'Budget perso')}</span>
             <input
               value={state.personalBudget ?? ''}
               inputMode="numeric"
@@ -1371,9 +1348,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       </div>
       <div className="wizard-context-block">
         <div className="wizard-context-heading">
-          <span>Avec qui ?</span>
+          <span>{t('With who?', 'Avec qui ?')}</span>
         </div>
-        <div className="wizard-chip-row" aria-label="Avec qui">
+        <div className="wizard-chip-row" aria-label={t('With who', 'Avec qui')}>
           {COMPANION_OPTIONS.map(option => (
             <button
               key={option.value}
@@ -1389,22 +1366,22 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       </div>
       <div className="wizard-context-block">
         <div className="wizard-context-heading">
-          <span>Marqueurs du voyage</span>
+          <span>{t('Trip markers', 'Marqueurs du voyage')}</span>
         </div>
         <div className="wizard-marker-stack">
-        <div className="wizard-toggle-row" aria-label="Marqueurs du voyage">
+        <div className="wizard-toggle-row" aria-label={t('Trip markers', 'Marqueurs du voyage')}>
           {state.kind === 'zone' && (
             <button
               type="button"
               role="switch"
-              aria-checked={state.tripTypes.includes(ROAD_TRIP_LABEL)}
-              className={`wizard-favorite-toggle wizard-roadtrip-toggle${state.tripTypes.includes(ROAD_TRIP_LABEL) ? ' is-selected' : ''}`}
-              onClick={() => toggleExperienceTag(ROAD_TRIP_LABEL)}
+              aria-checked={state.tripTypes.includes(ROAD_TRIP_TAG_ID)}
+              className={`wizard-favorite-toggle wizard-roadtrip-toggle${state.tripTypes.includes(ROAD_TRIP_TAG_ID) ? ' is-selected' : ''}`}
+              onClick={() => toggleExperienceTag(ROAD_TRIP_TAG_ID)}
             >
               <span className="wizard-favorite-switch" aria-hidden="true">
                 <span>🚗</span>
               </span>
-              <span>Road trip</span>
+              <span>{t('Road trip', 'Road trip')}</span>
             </button>
           )}
           <button
@@ -1421,7 +1398,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             <span className="wizard-favorite-switch" aria-hidden="true">
               <span>❤️</span>
             </span>
-            <span>Coup de cœur</span>
+            <span>{t('Favorite', 'Coup de cœur')}</span>
           </button>
           <button
             type="button"
@@ -1433,7 +1410,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             <span className="wizard-favorite-switch" aria-hidden="true">
               <span>🏠</span>
             </span>
-            <span>A vécu là-bas</span>
+            <span>{t('Lived there', 'A vécu là-bas')}</span>
           </button>
         </div>
         <div className="wizard-toggle-row wizard-toggle-row--secondary">
@@ -1458,15 +1435,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             <span className="wizard-favorite-switch" aria-hidden="true">
               <span>🔥</span>
             </span>
-            <span>Revisité</span>
+            <span>{t('Revisited', 'Revisité')}</span>
           </button>
           {revisitEnabled && (
             <div className="wizard-revisit-inline">
-              <span className="wizard-revisit-label">Visites</span>
+              <span className="wizard-revisit-label">{t('Visits', 'Visites')}</span>
               <div className={`wizard-revisit-stepper${visitCountInput.length > 0 && !visitCountIsValid ? ' is-invalid' : ''}`}>
                 <button
                   type="button"
-                  aria-label="Retirer une visite"
+                  aria-label={t('Remove a visit', 'Retirer une visite')}
                   disabled={!parsedVisitCount || parsedVisitCount <= 2}
                   onClick={() => setVisitCountInput(String(Math.max(2, (parsedVisitCount ?? 2) - 1)))}
                 >
@@ -1476,12 +1453,12 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   value={visitCountInput}
                   inputMode="numeric"
                   autoComplete="off"
-                  aria-label="Nombre total de visites"
+                  aria-label={t('Total number of visits', 'Nombre total de visites')}
                   onChange={e => setVisitCountInput(sanitizeDigits(e.target.value, 3))}
                 />
                 <button
                   type="button"
-                  aria-label="Ajouter une visite"
+                  aria-label={t('Add a visit', 'Ajouter une visite')}
                   onClick={() => setVisitCountInput(String(Math.min(999, Math.max(2, parsedVisitCount ?? 1) + 1)))}
                 >
                   +
@@ -1494,8 +1471,8 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
         </div>
         {needsCoupDeCoeurReplacement && (
           <div className="wizard-replace-choice">
-            <span>Tu as déjà 2 coups de cœur. Remplacer lequel ?</span>
-            <div className="wizard-chip-row" aria-label="Remplacer un coup de cœur">
+            <span>{t('You already have 2 favorites. Replace which one?', 'Tu as déjà 2 coups de cœur. Remplacer lequel ?')}</span>
+            <div className="wizard-chip-row" aria-label={t('Replace a favorite', 'Remplacer un coup de cœur')}>
               {replaceOptions.map(destination => (
                 <button
                   key={destination.name}
@@ -1517,7 +1494,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   const renderStopsSection = () => (
     <div className="wizard-stops">
       <div className="wizard-quick-stops">
-        <p className="wizard-quick-stops-title">Suggestions rapides</p>
+        <p className="wizard-quick-stops-title">{t('Quick suggestions', 'Suggestions rapides')}</p>
         <div className="wizard-quick-stops-row">
           {quickStopSuggestions.length > 0 ? quickStopSuggestions.map(name => (
             <button
@@ -1527,10 +1504,10 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               disabled={quickStopLoading !== null || stops.length >= 7}
               onClick={() => addQuickStop(name)}
             >
-              {quickStopLoading === name ? 'Ajout...' : `+ ${name}`}
+              {quickStopLoading === name ? t('Adding...', 'Ajout...') : `+ ${name}`}
             </button>
           )) : (
-            <span className="wizard-quick-stop-empty">Ajoute tes villes dans l'ordre du trajet.</span>
+            <span className="wizard-quick-stop-empty">{t('Add your cities in trip order.', 'Ajoute tes villes dans l\'ordre du trajet.')}</span>
           )}
         </div>
       </div>
@@ -1577,7 +1554,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             />
             {stopLinkedDest && (
               <p className="wizard-dup-hint">
-                Tu as deja note <strong>{stopLinkedDest.name}</strong> - le stop sera lie automatiquement.
+                {t('You already logged', 'Tu as deja note')} <strong>{stopLinkedDest.name}</strong> {t('- the stop will be linked automatically.', '- le stop sera lie automatiquement.')}
               </p>
             )}
           </div>
@@ -1590,23 +1567,23 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           className="wizard-add-stop"
           onClick={addEmptyStop}
         >
-          + Ajouter une etape
+          {t('+ Add a stop', '+ Ajouter une etape')}
         </button>
       )}
     </div>
   )
 
   return (
-    <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) handleClose() }}>
+    <div className="wizard-overlay" role="dialog" aria-label={isEditing ? t(`Edit ${initialDestination.name}`, `Modifier ${initialDestination.name}`) : t('Add a destination', 'Ajouter une destination')} onClick={e => { if (e.target === e.currentTarget) handleClose() }}>
       <div className="wizard-panel">
-        <button type="button" className="wizard-close" aria-label="Fermer" onClick={handleClose}>
+        <button type="button" className="wizard-close" aria-label={t('Close', 'Fermer')} onClick={handleClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M18 6 6 18" /><path d="m6 6 12 12" />
           </svg>
         </button>
 
         {isEditing && step !== 'result' && (
-          <p className="wizard-edit-label">Modifier — {initialDestination.name}</p>
+          <p className="wizard-edit-label">{t('Edit —', 'Modifier —')} {initialDestination.name}</p>
         )}
 
         {/* Progress dots — masqués en mode édition (on saute type/search) */}
@@ -1620,21 +1597,21 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
 
         {step === 'search' && (
           <div className="wizard-step">
-            <h2 className="wizard-title">C'était quoi, ce voyage ?</h2>
-            <p className="wizard-sub">Recherche un lieu à ajouter à ton Travel Book : ville, pays, île, région, road trip ou endroit où tu as vécu.</p>
+            <h2 className="wizard-title">{t('So, what was this trip?', 'C\'était quoi, ce voyage ?')}</h2>
+            <p className="wizard-sub">{t('Search for a place to add to your Travel Book: city, country, island, region, road trip, or somewhere you lived.', 'Recherche un lieu à ajouter à ton Travel Book : ville, pays, île, région, road trip ou endroit où tu as vécu.')}</p>
             <div className="wizard-search-box">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Rechercher un lieu, une région, un pays…"
+                placeholder={t('Search for a place, region, country…', 'Rechercher un lieu, une région, un pays…')}
                 className="wizard-input"
                 onKeyDown={e => e.key === 'Escape' && onClose()}
               />
               {loading && <span className="wizard-spinner">·</span>}
             </div>
-            <div className="wizard-search-examples" aria-label="Exemples de recherche">
+            <div className="wizard-search-examples" aria-label={t('Search examples', 'Exemples de recherche')}>
               {visibleSearchExamples.map(example => (
                 <button
                   key={example}
@@ -1659,7 +1636,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                         <span className="sug-name-row">
                           <span className="sug-name">{result.name}</span>
                           {zoneTypeLabel && <span className="sug-kind">{zoneTypeLabel}</span>}
-                          {alreadyAdded && <span className="sug-status">Déjà ajouté</span>}
+                          {alreadyAdded && <span className="sug-status">{t('Already added', 'Déjà ajouté')}</span>}
                         </span>
                         {displayCountry && (
                           <span className="sug-country">
@@ -1732,7 +1709,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 <div className={`wizard-question-actions${questionIndex === 0 ? ' is-single-action' : ''}`}>
                   {questionIndex > 0 ? (
                     <button type="button" className="wizard-back wizard-question-nav" onClick={() => setQuestionIndex(i => i - 1)}>
-                      ← Précédent
+                      {t('← Previous', '← Précédent')}
                     </button>
                   ) : null}
                   <button
@@ -1741,15 +1718,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                     onClick={() => skipQuestion(activeQuestions[questionIndex].key as QuestionKey)}
                     disabled={skipsRemaining === 0}
                     aria-disabled={skipsRemaining === 0}
-                    title={skipsRemaining === 0 ? 'Tu as déjà utilisé tes 2 passes pour ce voyage.' : undefined}
+                    title={skipsRemaining === 0 ? t('You\'ve already used your 2 passes for this trip.', 'Tu as déjà utilisé tes 2 passes pour ce voyage.') : undefined}
                   >
-                    {activeQuestions[questionIndex]?.skipLabel ?? 'Ce critère ne s\'applique pas →'}
+                    {activeQuestions[questionIndex]?.skipLabel ?? t('This criterion doesn\'t apply →', 'Ce critère ne s\'applique pas →')}
                   </button>
                 </div>
                 <p className={`wizard-skip-helper${skipsRemaining === 0 ? ' is-exhausted' : ''}`}>
                   {skipsRemaining > 0
-                    ? `Il te reste ${skipsRemaining} passe${skipsRemaining > 1 ? 's' : ''} sur 2 pour ce voyage.`
-                    : 'Tes 2 passes ont déjà été utilisées pour ce voyage.'}
+                    ? t(`You have ${skipsRemaining} pass${skipsRemaining > 1 ? 'es' : ''} left out of 2 for this trip.`, `Il te reste ${skipsRemaining} passe${skipsRemaining > 1 ? 's' : ''} sur 2 pour ce voyage.`)
+                    : t('You\'ve already used both passes for this trip.', 'Tes 2 passes ont déjà été utilisées pour ce voyage.')}
                 </p>
               </>
             )}
@@ -1763,18 +1740,18 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <div className="wizard-profile-header">
                 <span className="wizard-profile-title-icon" aria-hidden="true">🏷️</span>
                 <div className="wizard-profile-copy">
-                  <h2 className="wizard-title">Ambiance du voyage</h2>
-                  <p className="wizard-profile-intro">Choisis quelques tags pour résumer le style du séjour, les bons souvenirs et les galères marquantes.</p>
+                  <h2 className="wizard-title">{t('Trip vibe', 'Ambiance du voyage')}</h2>
+                  <p className="wizard-profile-intro">{t('Pick a few tags to sum up the trip\'s style, the good memories, and the standout struggles.', 'Choisis quelques tags pour résumer le style du séjour, les bons souvenirs et les galères marquantes.')}</p>
                 </div>
               </div>
               {renderStayTypeFields()}
             </div>
             <div className="wizard-step-actions">
               <button type="button" className="wizard-back" onClick={() => setStep('questions')}>
-                Précédent
+                {t('Previous', 'Précédent')}
               </button>
               <button type="button" className="wizard-next" onClick={() => setStep('context')}>
-                Continuer
+                {t('Continue', 'Continuer')}
               </button>
             </div>
           </div>
@@ -1787,15 +1764,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <div className="wizard-profile-header">
                 <span className="wizard-profile-title-icon" aria-hidden="true">🧳</span>
                 <div className="wizard-profile-copy">
-                  <h2 className="wizard-title">Derniers détails</h2>
-                  <p className="wizard-profile-intro">On pose juste les derniers repères utiles avant d’enregistrer le voyage.</p>
+                  <h2 className="wizard-title">{t('Last details', 'Derniers détails')}</h2>
+                  <p className="wizard-profile-intro">{t('Just a few last useful details before saving the trip.', 'On pose juste les derniers repères utiles avant d’enregistrer le voyage.')}</p>
                 </div>
               </div>
               {renderTripContextFields()}
             </div>
             <div className="wizard-step-actions">
               <button type="button" className="wizard-back" onClick={() => setStep(isEditing ? 'result' : 'profile')}>
-                Précédent
+                {t('Previous', 'Précédent')}
               </button>
               <button
                 type="button"
@@ -1803,7 +1780,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 onClick={() => finishQuestionnaire()}
                 disabled={needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName}
               >
-                Continuer
+                {t('Continue', 'Continuer')}
               </button>
             </div>
           </div>
@@ -1831,23 +1808,23 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             <h2 className="wizard-title">{TIER_LABELS[finalTier]}</h2>
             <p className="result-explanation">{TIER_EXPLANATIONS[finalTier]}</p>
             <div className="result-score">
-              <span>Score global</span>
-              <strong>{finalScore.toFixed(1).replace('.', ',')}</strong>
+              <span>{t('Overall score', 'Score global')}</span>
+              <strong>{finalScore.toFixed(1).replace('.', t('.', ','))}</strong>
               <em>/5</em>
             </div>
-            <p className="result-rated-count">{ratedCriteriaCount}/{QUESTIONS.length} critères notés</p>
+            <p className="result-rated-count">{ratedCriteriaCount}/{QUESTIONS.length} {t('criteria rated', 'critères notés')}</p>
             <div className="result-axes">
               {(['food', 'night', 'culture', 'nature', 'value', 'ease'] as const).map(axis => {
                 const raw = state[axis]
                 if (raw == null) return null
                 const val = raw
                 const label = {
-                  food: 'Bouffe',
-                  night: 'Soirées',
-                  culture: 'Activités',
-                  nature: 'Cadre',
-                  value: 'Prix',
-                  ease: 'Facilité',
+                  food: t('Food', 'Bouffe'),
+                  night: t('Nights', 'Soirées'),
+                  culture: t('Activities', 'Activités'),
+                  nature: t('Scenery', 'Cadre'),
+                  value: t('Price', 'Prix'),
+                  ease: t('Ease', 'Facilité'),
                 }[axis]
                 const icon = {
                   food: 'utensils',
@@ -1866,15 +1843,15 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                     <div className="axis-bar">
                       <div className="axis-fill" style={{ width: `${(val / 5) * 100}%`, background: TIER_COLORS[finalTier].pin }} />
                     </div>
-                    <strong>{val.toFixed(1).replace('.', ',')}</strong>
+                    <strong>{val.toFixed(1).replace('.', t('.', ','))}</strong>
                   </div>
                 )
               })}
             </div>
             <button type="button" className="wizard-submit" onClick={confirmAdd} disabled={!canSubmit}>
               {resolvingImage
-                ? 'Recherche de la photo...'
-                : isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
+                ? t('Looking for a photo...', 'Recherche de la photo...')
+                : isEditing ? t('Save changes', 'Enregistrer les modifications') : t('Add to my map', 'Ajouter à ma carte')}
             </button>
             {isEditing && (
               <div className="wizard-result-secondary-actions">
@@ -1884,7 +1861,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   onClick={() => setStep('context')}
                 >
                   <Icon name="edit" />
-                  <span>Modifier les détails</span>
+                  <span>{t('Edit details', 'Modifier les détails')}</span>
                 </button>
                 <button
                   type="button"
@@ -1898,7 +1875,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   }}
                 >
                   <Icon name="trash" />
-                  <span>Refaire la notation</span>
+                  <span>{t('Redo the rating', 'Refaire la notation')}</span>
                 </button>
               </div>
             )}

@@ -1,5 +1,6 @@
 import type { Destination } from '../types'
 import { computeProfileStats, getVisitCount, type ContinentBucket } from '../utils'
+import { t } from '../i18n'
 
 export interface SuggestionHistoryState {
   recentShown: string[]
@@ -29,23 +30,23 @@ const HARD_BLOCK_SIZE = 8
 const DEFAULT_COUNT = 4
 
 const GLOBAL_POOL = [
-  'Lisbonne',
+  t('Lisbon', 'Lisbonne'),
   'Porto',
   'Madrid',
-  'Barcelone',
-  'Andalousie',
+  t('Barcelona', 'Barcelone'),
+  t('Andalusia', 'Andalousie'),
   'Rome',
   'Florence',
-  'Sicile',
-  'Athenes',
+  t('Sicily', 'Sicile'),
+  t('Athens', 'Athenes'),
   'Crete',
   'Amsterdam',
   'Berlin',
-  'Copenhague',
+  t('Copenhagen', 'Copenhague'),
   'Prague',
   'Reykjavik',
   'Marrakech',
-  'Le Cap',
+  t('Cape Town', 'Le Cap'),
   'Istanbul',
   'Dubai',
   'Tokyo',
@@ -61,55 +62,55 @@ const GLOBAL_POOL = [
   'Mexico',
   'Rio de Janeiro',
   'Buenos Aires',
-  'Road trip Toscane',
-  'Road trip Ouest americain',
+  t('Road trip Tuscany', 'Road trip Toscane'),
+  t('Road trip American West', 'Road trip Ouest americain'),
   'Road trip Algarve',
-  'Road trip Japon',
+  t('Road trip Japan', 'Road trip Japon'),
 ]
 
 const COUNTRY_POOLS = buildNormalizedPools({
-  France: ['Paris', 'Lyon', 'Bordeaux', 'Marseille', 'Nice', 'Provence', 'Bretagne', 'Alsace'],
-  Espagne: ['Madrid', 'Barcelone', 'Seville', 'Valence', 'Andalousie', 'Majorque', 'Bilbao'],
-  Portugal: ['Lisbonne', 'Porto', 'Algarve', 'Madere', 'Acores', 'Douro'],
-  Italie: ['Rome', 'Florence', 'Venise', 'Naples', 'Sicile', 'Pouilles', 'Road trip Toscane'],
+  France: ['Paris', 'Lyon', 'Bordeaux', 'Marseille', 'Nice', 'Provence', t('Brittany', 'Bretagne'), 'Alsace'],
+  Espagne: ['Madrid', t('Barcelona', 'Barcelone'), 'Seville', t('Valencia', 'Valence'), t('Andalusia', 'Andalousie'), t('Mallorca', 'Majorque'), 'Bilbao'],
+  Portugal: [t('Lisbon', 'Lisbonne'), 'Porto', 'Algarve', t('Madeira', 'Madere'), t('Azores', 'Acores'), 'Douro'],
+  Italie: ['Rome', 'Florence', t('Venice', 'Venise'), 'Naples', t('Sicily', 'Sicile'), t('Puglia', 'Pouilles'), t('Road trip Tuscany', 'Road trip Toscane')],
   Japon: ['Tokyo', 'Kyoto', 'Osaka', 'Okinawa', 'Hokkaido', 'Kanazawa'],
-  'Etats-Unis': ['New York', 'Chicago', 'Nouvelle-Orleans', 'Californie', 'Floride', 'Road trip Ouest americain'],
-  'Royaume-Uni': ['Londres', 'Edimbourg', 'Manchester', 'Dublin', 'Road trip Ecosse'],
-  Grece: ['Athenes', 'Crete', 'Santorin', 'Naxos', 'Thessalonique'],
-  Maroc: ['Marrakech', 'Essaouira', 'Fes', 'Casablanca', 'Atlas'],
+  'Etats-Unis': ['New York', 'Chicago', t('New Orleans', 'Nouvelle-Orleans'), t('California', 'Californie'), t('Florida', 'Floride'), t('Road trip American West', 'Road trip Ouest americain')],
+  'Royaume-Uni': [t('London', 'Londres'), t('Edinburgh', 'Edimbourg'), 'Manchester', 'Dublin', t('Road trip Scotland', 'Road trip Ecosse')],
+  Grece: [t('Athens', 'Athenes'), 'Crete', t('Santorini', 'Santorin'), 'Naxos', t('Thessaloniki', 'Thessalonique')],
+  Maroc: ['Marrakech', 'Essaouira', t('Fez', 'Fes'), 'Casablanca', 'Atlas'],
 })
 
 const STATE_POOLS = buildNormalizedPools({
   Texas: ['Austin', 'Dallas', 'Houston', 'San Antonio', 'Road trip Texas'],
-  California: ['Los Angeles', 'San Francisco', 'San Diego', 'Yosemite', 'Road trip Californie'],
-  Californie: ['Los Angeles', 'San Francisco', 'San Diego', 'Yosemite', 'Road trip Californie'],
-  Florida: ['Miami', 'Orlando', 'Key West', 'Tampa', 'Road trip Floride'],
-  Floride: ['Miami', 'Orlando', 'Key West', 'Tampa', 'Road trip Floride'],
+  California: ['Los Angeles', 'San Francisco', 'San Diego', 'Yosemite', t('Road trip California', 'Road trip Californie')],
+  Californie: ['Los Angeles', 'San Francisco', 'San Diego', 'Yosemite', t('Road trip California', 'Road trip Californie')],
+  Florida: ['Miami', 'Orlando', 'Key West', 'Tampa', t('Road trip Florida', 'Road trip Floride')],
+  Floride: ['Miami', 'Orlando', 'Key West', 'Tampa', t('Road trip Florida', 'Road trip Floride')],
   'New York': ['New York', 'Hudson Valley', 'Buffalo', 'Hamptons', 'Road trip New York State'],
 })
 
 const REGION_POOLS = buildNormalizedPools({
-  "Europe de l'Ouest": ['Amsterdam', 'Bruxelles', 'Zurich', 'Vienne', 'Prague', 'Alsace'],
-  Mediterranee: ['Rome', 'Naples', 'Athenes', 'Sicile', 'Crete', 'Majorque'],
-  'Europe du Nord': ['Copenhague', 'Stockholm', 'Oslo', 'Helsinki', 'Reykjavik'],
-  'Iles britanniques': ['Londres', 'Edimbourg', 'Dublin', 'Cotswolds', 'Road trip Ecosse'],
+  "Europe de l'Ouest": ['Amsterdam', t('Brussels', 'Bruxelles'), 'Zurich', t('Vienna', 'Vienne'), 'Prague', 'Alsace'],
+  Mediterranee: ['Rome', 'Naples', t('Athens', 'Athenes'), t('Sicily', 'Sicile'), 'Crete', t('Mallorca', 'Majorque')],
+  'Europe du Nord': [t('Copenhagen', 'Copenhague'), 'Stockholm', 'Oslo', 'Helsinki', 'Reykjavik'],
+  'Iles britanniques': [t('London', 'Londres'), t('Edinburgh', 'Edimbourg'), 'Dublin', 'Cotswolds', t('Road trip Scotland', 'Road trip Ecosse')],
   Balkans: ['Ljubljana', 'Dubrovnik', 'Kotor', 'Split', 'Belgrade'],
-  "Europe de l'Est": ['Budapest', 'Prague', 'Cracovie', 'Bucarest', 'Tallinn'],
+  "Europe de l'Est": ['Budapest', 'Prague', t('Krakow', 'Cracovie'), t('Bucharest', 'Bucarest'), 'Tallinn'],
   'Amerique du Nord': ['Montreal', 'Quebec', 'Vancouver', 'Boston', 'Chicago'],
   'Amerique latine': ['Mexico', 'Oaxaca', 'Buenos Aires', 'Rio de Janeiro', 'Lima'],
-  'Asie urbaine': ['Seoul', 'Taipei', 'Hong Kong', 'Singapour', 'Osaka'],
+  'Asie urbaine': ['Seoul', 'Taipei', 'Hong Kong', t('Singapore', 'Singapour'), 'Osaka'],
   'Asie nature': ['Bali', 'Chiang Mai', 'Hanoi', 'Sri Lanka', 'Lombok'],
-  Maghreb: ['Marrakech', 'Essaouira', 'Tunis', 'Alger', 'Atlas'],
+  Maghreb: ['Marrakech', 'Essaouira', 'Tunis', t('Algiers', 'Alger'), 'Atlas'],
   'Moyen-Orient': ['Istanbul', 'Amman', 'Dubai', 'Doha', 'Abu Dhabi'],
   Ailleurs: GLOBAL_POOL,
 })
 
 const CONTINENT_POOLS: Record<ContinentBucket, string[]> = {
-  Europe: ['Lisbonne', 'Rome', 'Berlin', 'Amsterdam', 'Athenes', 'Copenhague'],
-  Asie: ['Tokyo', 'Seoul', 'Taipei', 'Bangkok', 'Bali', 'Singapour'],
+  Europe: [t('Lisbon', 'Lisbonne'), 'Rome', 'Berlin', 'Amsterdam', t('Athens', 'Athenes'), t('Copenhagen', 'Copenhague')],
+  Asie: ['Tokyo', 'Seoul', 'Taipei', 'Bangkok', 'Bali', t('Singapore', 'Singapour')],
   Ameriques: ['New York', 'Montreal', 'Vancouver', 'Mexico', 'Rio de Janeiro', 'Chicago'],
-  Afrique: ['Marrakech', 'Le Cap', 'Zanzibar', 'Dakar', 'Le Caire'],
-  Oceanie: ['Sydney', 'Melbourne', 'Auckland', 'Tasmanie'],
+  Afrique: ['Marrakech', t('Cape Town', 'Le Cap'), 'Zanzibar', 'Dakar', t('Cairo', 'Le Caire')],
+  Oceanie: ['Sydney', 'Melbourne', 'Auckland', t('Tasmania', 'Tasmanie')],
   Autre: GLOBAL_POOL,
 }
 

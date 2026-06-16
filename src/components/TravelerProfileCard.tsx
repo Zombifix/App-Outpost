@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Destination } from '../types'
 import type { ContinentBucket } from '../utils'
@@ -144,6 +144,7 @@ export interface TravelerProfileStripProps {
   expandable?: boolean
   /** Démarre en chip une ligne (✦ titre ▾) — overlay map mobile. */
   defaultCollapsed?: boolean
+  mode?: 'default' | 'shared-map-dock'
 }
 
 export function TravelerProfileStrip({
@@ -151,11 +152,13 @@ export function TravelerProfileStrip({
   align = 'left',
   expandable = false,
   defaultCollapsed = false,
+  mode = 'default',
 }: TravelerProfileStripProps) {
   const profile = useMemo(() => computeTravelerProfile(destinations), [destinations])
   const { total, confidence, countries, title, achievements, territories } = profile
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const [expanded, setExpanded] = useState(false)
+  const tooltipIdBase = useId()
 
   if (total === 0) return null
 
@@ -181,7 +184,7 @@ export function TravelerProfileStrip({
 
   return (
     <div
-      className={`traveler-strip${align === 'right' ? ' traveler-strip--right' : ''}`}
+      className={`traveler-strip${align === 'right' ? ' traveler-strip--right' : ''}${mode === 'shared-map-dock' ? ' traveler-strip--shared-map-dock' : ''}`}
       aria-label={t('Traveler profile', 'Profil voyageur')}
     >
       <div className="traveler-strip-title">
@@ -212,12 +215,26 @@ export function TravelerProfileStrip({
 
       {pills.length > 0 && (
         <ul className="traveler-strip-pills" aria-label={t('Traveler achievements', 'Succès voyageur')}>
-          {pills.map(achievement => (
-            <li key={achievement.key} title={achievement.detail}>
-              <span aria-hidden="true">{getProfileAchievementIcon(achievement.key, achievement.icon)}</span>
-              {achievement.title}
-            </li>
-          ))}
+          {pills.map((achievement, index) => {
+            const tooltipId = `${tooltipIdBase}-${achievement.key}-${index}`
+            const tooltipText = `${achievement.title} \u00b7 ${achievement.detail}`
+            return (
+              <li key={achievement.key}>
+                <span
+                  className="traveler-strip-pill-help"
+                  tabIndex={0}
+                  aria-label={tooltipText}
+                  aria-describedby={tooltipId}
+                >
+                  <span aria-hidden="true">{getProfileAchievementIcon(achievement.key, achievement.icon)}</span>
+                  {achievement.title}
+                  <span id={tooltipId} role="tooltip" className="traveler-inline-tooltip">
+                    {achievement.detail}
+                  </span>
+                </span>
+              </li>
+            )
+          })}
         </ul>
       )}
 

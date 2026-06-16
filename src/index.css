@@ -7122,6 +7122,7 @@ h3.compare-insight-headline {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
   max-height: 90vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wizard-close {
@@ -8253,6 +8254,7 @@ h3.compare-insight-headline {
 .wizard-context-grid label {
   display: grid;
   gap: 6px;
+  min-width: 0;
   color: #6f7b90;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
@@ -8279,9 +8281,10 @@ h3.compare-insight-headline {
 
 .wizard-duration-field {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 128px;
+  grid-template-columns: minmax(3.5rem, 1fr) minmax(5.75rem, 6.75rem);
   align-items: center;
   height: 42px;
+  min-width: 0;
   border: 1px solid #dbe3ef;
   border-radius: 14px;
   background: #fff;
@@ -8297,6 +8300,8 @@ h3.compare-insight-headline {
 .wizard-duration-field input,
 .wizard-duration-field select {
   height: 100%;
+  min-width: 0;
+  width: 100%;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -8381,10 +8386,13 @@ h3.compare-insight-headline {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
 }
 
 .wizard-chip-row button {
-  min-height: 36px;
+  min-height: 44px;
   padding: 8px 14px;
   border: 1px solid #dce5f2;
   border-radius: var(--radius-pill);
@@ -8394,6 +8402,12 @@ h3.compare-insight-headline {
   font-weight: var(--weight-bold);
   line-height: 1.15;
   box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: auto;
   transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
 
@@ -8954,6 +8968,8 @@ h3.compare-insight-headline {
 
   .wizard-context-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 8px;
+    row-gap: 12px;
   }
 
   .wizard-context-grid label:first-child {
@@ -8962,7 +8978,29 @@ h3.compare-insight-headline {
 
   .wizard-context-grid input {
     height: 46px;
-    font-size: var(--text-md);
+    font-size: 16px;
+  }
+
+  .wizard-duration-field {
+    grid-template-columns: minmax(3.75rem, 1fr) minmax(5rem, 6.1rem);
+    height: 46px;
+  }
+
+  .wizard-duration-field input,
+  .wizard-duration-field select {
+    font-size: 16px;
+  }
+
+  .wizard-duration-field input {
+    padding: 0 10px;
+  }
+
+  .wizard-duration-field select {
+    padding: 0 28px 0 10px;
+    font-size: 0.95rem;
+    background-position:
+      calc(100% - 16px) calc(50% - 2px),
+      calc(100% - 11px) calc(50% - 2px);
   }
 
   .wizard-context--details {
@@ -8982,7 +9020,7 @@ h3.compare-insight-headline {
   }
 
   .wizard-chip-row button {
-    min-height: 38px;
+    min-height: 44px;
     padding: var(--space-2) var(--space-3);
   }
 
@@ -8997,6 +9035,16 @@ h3.compare-insight-headline {
     min-height: 50px;
     margin-top: 16px;
     box-shadow: 0 -10px 22px rgba(255, 255, 255, 0.92);
+  }
+}
+
+@media (max-width: 374px) {
+  .wizard-context-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-context-grid label:first-child {
+    grid-column: auto;
   }
 }
 

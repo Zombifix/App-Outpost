@@ -727,6 +727,19 @@ export default function TierListPage({
     access: realFriendAccess,
   } = useFriendDestinations(friendUserId)
 
+  function openPreview(destination: Destination, ownerLabel: string, ownerColor?: string) {
+    setPreview({ destination, ownerLabel, ownerColor })
+  }
+
+  function closePreview() {
+    setPreview(null)
+  }
+
+  function handlePageModeChange(nextMode: 'personal' | 'global') {
+    closePreview()
+    setPageMode(nextMode)
+  }
+
   useEffect(() => {
     if (!incomingCompareFriend) return
     setFriend({
@@ -752,6 +765,10 @@ export default function TierListPage({
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [comparePicker])
+
+  useEffect(() => {
+    closePreview()
+  }, [pageMode])
 
   const friendDests = friend
     ? friendUserId
@@ -852,7 +869,7 @@ export default function TierListPage({
         { value: 'personal' as const, label: t('My rankings', 'Mon classement') },
         { value: 'global' as const, label: t('Global', 'Global'), icon: <Icon name="users" /> },
       ]}
-      onChange={setPageMode}
+      onChange={handlePageModeChange}
     />
   )
 
@@ -1161,7 +1178,7 @@ export default function TierListPage({
       {pageMode === 'global' && (
         <CommunityLeaderboard
           myDestinations={destinations}
-          onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+          onSelectMine={destination => openPreview(destination, t('Me', 'Moi'), 'var(--purple)')}
         />
       )}
 
@@ -1192,7 +1209,7 @@ export default function TierListPage({
                 key={`desktop-${tier}`}
                 tier={tier}
                 destinations={myFiltered}
-                onSelect={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+                onSelect={destination => openPreview(destination, t('Me', 'Moi'), 'var(--purple)')}
               />
             ))}
           </section>
@@ -1208,7 +1225,7 @@ export default function TierListPage({
                 collapsed={collapsed[tier]}
                 communityRatings={communityRatings}
                 onToggle={() => toggleCollapse(tier)}
-                onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+                onSelectMine={destination => openPreview(destination, t('Me', 'Moi'), 'var(--purple)')}
               />
             ))}
           </section>
@@ -1236,8 +1253,8 @@ export default function TierListPage({
             }}
             myDestinations={myFiltered.filter(destination => destination.kind !== 'stop')}
             theirDestinations={friendFiltered.filter(destination => destination.kind !== 'stop')}
-            onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
-            onSelectTheirs={destination => setPreview({ destination, ownerLabel: friendFirstName, ownerColor: friend.bg })}
+            onSelectMine={destination => openPreview(destination, t('Me', 'Moi'), 'var(--purple)')}
+            onSelectTheirs={destination => openPreview(destination, friendFirstName, friend.bg)}
             variant="tier-list-page"
           />
         </section>
@@ -1262,7 +1279,7 @@ export default function TierListPage({
               collapsed={collapsed[tier]}
               communityRatings={communityRatings}
               onToggle={() => toggleCollapse(tier)}
-              onSelectMine={destination => setPreview({ destination, ownerLabel: friendFirstName, ownerColor: friend.bg })}
+              onSelectMine={destination => openPreview(destination, friendFirstName, friend.bg)}
             />
           ))}
         </section>
@@ -1287,7 +1304,7 @@ export default function TierListPage({
               collapsed={collapsed[tier]}
               communityRatings={communityRatings}
               onToggle={() => toggleCollapse(tier)}
-              onSelectMine={destination => setPreview({ destination, ownerLabel: t('Me', 'Moi'), ownerColor: 'var(--purple)' })}
+              onSelectMine={destination => openPreview(destination, t('Me', 'Moi'), 'var(--purple)')}
             />
           ))}
         </section>
@@ -1298,7 +1315,7 @@ export default function TierListPage({
           destination={preview.destination}
           ownerLabel={preview.ownerLabel}
           ownerColor={preview.ownerColor}
-          onClose={() => setPreview(null)}
+          onClose={closePreview}
           onOpenMap={onSelect}
         />
       )}

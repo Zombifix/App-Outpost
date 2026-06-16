@@ -44,7 +44,10 @@
       "Bash(awk -F: '$2 < 14700 {last=$0} $2 > 14700 {print last; exit}')",
       "Bash(xargs grep -l \"Type de séjour\")",
       "mcp__visualize__read_me",
-      "mcp__visualize__show_widget"
+      "mcp__visualize__show_widget",
+      "Bash(findstr /S /I \"tier\" src\\\\*.ts src\\\\*.tsx)",
+      "Bash(findstr /S /I \"tier\" src\\\\**\\\\*.ts src\\\\**\\\\*.tsx)",
+      "Bash(findstr /S /I \"marker\\\\|pin\\\\|popup\" src\\\\**\\\\*.tsx)"
     ]
   }
 }

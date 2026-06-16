@@ -95,6 +95,14 @@ Pour ouvrir l'app : `npm run dev` puis l'URL Vite affichée (par défaut `http:/
 3. Tap test (Pointer mode) sur ces boutons depuis un coin → activation correcte.
 - [ ] Statut : ___
 
+### D2bis. Wizard Â« Ambiance du voyage Â» â€” chips fiables sur iPhone Safari
+1. Ouvrir le wizard d'ajout ou d'Ã©dition d'une destination puis aller Ã  l'Ã©tape Â« Ambiance du voyage Â».
+2. En viewport iPhone 14 Pro (390 Ã— 844) ou sur vrai iPhone / Safari, tapoter rapidement plusieurs chips de la grille : haut, milieu et bas de la liste.
+3. VÃ©rifier que chaque tap toggle immÃ©diatement l'Ã©tat selected / unselected, y compris aprÃ¨s un lÃ©ger scroll vertical de la modal.
+4. Insister sur les chips proches du bas avant les boutons Â« PrÃ©cÃ©dent Â» / Â« Continuer Â» : ils doivent rester cliquables.
+5. VÃ©rifier qu'aucun double tap ni appui long n'est nÃ©cessaire et que le rendu desktop ne change pas.
+- [ ] Statut : ___
+
 ### D3. (2.9) Focus trap dans les modaux
 1. Ouvrir le panel « Mon compte » (badge utilisateur en haut à droite).
 2. Tab répété → le focus circule uniquement entre les boutons/inputs du panel, **ne sort jamais** dans l'app derrière.

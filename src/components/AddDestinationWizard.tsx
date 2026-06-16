@@ -263,6 +263,7 @@ function StopAutocomplete({
           }}
         />
         <button
+          type="button"
           className="wizard-stop-remove"
           aria-label="Supprimer"
           onClick={onRemove}
@@ -275,7 +276,7 @@ function StopAutocomplete({
         >
           {results.map((r, i) => (
             <li key={i}>
-              <button onClick={() => pick(r)}>
+              <button type="button" onClick={() => pick(r)}>
                 <span className="sug-name">{r.name}</span>
                 {r.country && <span className="sug-country">{r.country}</span>}
               </button>
@@ -1283,7 +1284,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           return (
             <button
               key={tag.id}
+              type="button"
               className={isSelected ? 'is-selected' : ''}
+              aria-pressed={isSelected}
               disabled={isDisabled}
               onClick={() => toggleExperienceTag(tag.label)}
             >
@@ -1368,7 +1371,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           {COMPANION_OPTIONS.map(option => (
             <button
               key={option.value}
+              type="button"
               className={state.companions === option.value ? 'is-selected' : ''}
+              aria-pressed={state.companions === option.value}
               onClick={() => setState(prev => ({ ...prev, companions: prev.companions === option.value ? null : option.value }))}
             >
               {option.label}
@@ -1488,7 +1493,9 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               {replaceOptions.map(destination => (
                 <button
                   key={destination.name}
+                  type="button"
                   className={state.replaceCoupDeCoeurName === destination.name ? 'is-selected' : ''}
+                  aria-pressed={state.replaceCoupDeCoeurName === destination.name}
                   onClick={() => setState(prev => ({ ...prev, replaceCoupDeCoeurName: destination.name }))}
                 >
                   {destination.name}
@@ -1586,7 +1593,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
   return (
     <div className="wizard-overlay" role="dialog" aria-label={isEditing ? `Modifier ${initialDestination.name}` : 'Ajouter une destination'} onClick={e => { if (e.target === e.currentTarget) handleClose() }}>
       <div className="wizard-panel">
-        <button className="wizard-close" aria-label="Fermer" onClick={handleClose}>
+        <button type="button" className="wizard-close" aria-label="Fermer" onClick={handleClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M18 6 6 18" /><path d="m6 6 12 12" />
           </svg>
@@ -1641,7 +1648,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <ul className="wizard-suggestions">
                 {suggestionItems.map(({ result, alreadyAdded, displayCountry, flagUrl, zoneTypeLabel }, i) => (
                   <li key={i}>
-                    <button onClick={() => selectSuggestion(result)} className={alreadyAdded ? 'is-duplicate' : ''}>
+                    <button type="button" onClick={() => selectSuggestion(result)} className={alreadyAdded ? 'is-duplicate' : ''}>
                       <span className="sug-main">
                         <span className="sug-name-row">
                           <span className="sug-name">{result.name}</span>
@@ -1696,6 +1703,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 return (
                   <button
                     key={i}
+                    type="button"
                     className={`wizard-answer-btn${isSelected ? ' is-selected' : ''}`}
                     onClick={() => answerQuestion(
                       questionKey,
@@ -1717,11 +1725,12 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               <>
                 <div className={`wizard-question-actions${questionIndex === 0 ? ' is-single-action' : ''}`}>
                   {questionIndex > 0 ? (
-                    <button className="wizard-back wizard-question-nav" onClick={() => setQuestionIndex(i => i - 1)}>
+                    <button type="button" className="wizard-back wizard-question-nav" onClick={() => setQuestionIndex(i => i - 1)}>
                       ← Précédent
                     </button>
                   ) : null}
                   <button
+                    type="button"
                     className={`wizard-skip-link${skipsRemaining === 0 ? ' is-disabled' : ''}`}
                     onClick={() => skipQuestion(activeQuestions[questionIndex].key as QuestionKey)}
                     disabled={skipsRemaining === 0}
@@ -1755,10 +1764,10 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               {renderStayTypeFields()}
             </div>
             <div className="wizard-step-actions">
-              <button className="wizard-back" onClick={() => setStep('questions')}>
+              <button type="button" className="wizard-back" onClick={() => setStep('questions')}>
                 Précédent
               </button>
-              <button className="wizard-next" onClick={() => setStep('context')}>
+              <button type="button" className="wizard-next" onClick={() => setStep('context')}>
                 Continuer
               </button>
             </div>
@@ -1779,10 +1788,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
               {renderTripContextFields()}
             </div>
             <div className="wizard-step-actions">
-              <button className="wizard-back" onClick={() => setStep(isEditing ? 'result' : 'profile')}>
+              <button type="button" className="wizard-back" onClick={() => setStep(isEditing ? 'result' : 'profile')}>
                 Précédent
               </button>
               <button
+                type="button"
                 className="wizard-next"
                 onClick={() => finishQuestionnaire()}
                 disabled={needsCoupDeCoeurReplacement && !state.replaceCoupDeCoeurName}
@@ -1855,7 +1865,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                 )
               })}
             </div>
-            <button className="wizard-submit" onClick={confirmAdd} disabled={!canSubmit}>
+            <button type="button" className="wizard-submit" onClick={confirmAdd} disabled={!canSubmit}>
               {resolvingImage
                 ? 'Recherche de la photo...'
                 : isEditing ? 'Enregistrer les modifications' : 'Ajouter à ma carte'}
@@ -1863,6 +1873,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             {isEditing && (
               <div className="wizard-result-secondary-actions">
                 <button
+                  type="button"
                   className="wizard-result-redo"
                   onClick={() => setStep('context')}
                 >
@@ -1870,6 +1881,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
                   <span>Modifier les détails</span>
                 </button>
                 <button
+                  type="button"
                   className="wizard-result-redo"
                   onClick={() => {
                     setHasTriggeredRerate(true)

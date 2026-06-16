@@ -12,45 +12,23 @@ export function getMaxCoupDeCoeur(totalDestinations: number): number {
 export type WeightedRatingKey = 'food' | 'night' | 'culture' | 'nature' | 'value'
 export type NeutralRatingKey = 'ease'
 export type Ratings = Record<WeightedRatingKey, number | null> & Partial<Record<NeutralRatingKey, number | null>>
-export type Weights = Record<WeightedRatingKey, number>
-
-// Source unique des poids — importée par utils + AddDestinationWizard.
-export const INTENT_WEIGHTS: Record<Intent, Weights> = {
-  tourisme:   { culture: 1.5, nature: 1.2, food: 1.0, night: 1.0, value: 1.0 },
-  sorties:    { night: 1.8, food: 1.2, culture: 1.0, nature: 1.0, value: 1.0 },
-  gastro:     { food: 2.0, night: 1.0, culture: 1.0, nature: 1.0, value: 1.0 },
-  nature:     { nature: 2.0, value: 1.1, food: 1.0, night: 1.0, culture: 1.0 },
-  travail:    { value: 1.5, food: 1.1, culture: 1.0, night: 1.0, nature: 1.0 },
-  'city-trip':{ culture: 1.0, food: 1.0, night: 1.0, nature: 1.0, value: 1.0 },
-}
 
 const WEIGHTED_RATING_KEYS: WeightedRatingKey[] = ['food', 'night', 'culture', 'nature', 'value']
 const NEUTRAL_RATING_KEYS: NeutralRatingKey[] = ['ease']
-const PRIMARY_RATING_BY_INTENT: Record<Intent, WeightedRatingKey> = {
-  tourisme: 'culture',
-  sorties: 'night',
-  gastro: 'food',
-  nature: 'nature',
-  travail: 'value',
-  'city-trip': 'culture',
-}
 
 function clampScore(score: number): number {
   return Math.min(5, Math.max(1, score))
 }
 
-function getWeakSpotCap(ratings: Ratings, intent: Intent, activeWeightedCount: number): number {
+function getWeakSpotCap(ratings: Ratings, activeWeightedCount: number): number {
   let cap = 5
-  const primaryKey = PRIMARY_RATING_BY_INTENT[intent]
-  const importantKeys = new Set<WeightedRatingKey>([primaryKey, 'value', 'nature'])
 
   for (const key of WEIGHTED_RATING_KEYS) {
     const value = ratings[key]
     if (value === null || value === undefined) continue
 
-    if (value <= 1) cap = Math.min(cap, importantKeys.has(key) ? 3.0 : 3.2)
-    else if (value <= 2) cap = Math.min(cap, importantKeys.has(key) ? 3.9 : 4.2)
-    else if (value <= 3 && importantKeys.has(key)) cap = Math.min(cap, 4.4)
+    if (value <= 1) cap = Math.min(cap, 3.2)
+    else if (value <= 2) cap = Math.min(cap, 4.15)
   }
 
   if (activeWeightedCount < 3) cap = Math.min(cap, 3.8)
@@ -64,28 +42,27 @@ export function calculateScore(
   intent: Intent,
   options?: { vibeBoost?: number | null; retourBonus?: number },
 ): number {
-  const w = INTENT_WEIGHTS[intent]
+  void intent
   const activeWeighted = WEIGHTED_RATING_KEYS
     .map(key => [key, ratings[key]] as const)
     .filter((entry): entry is readonly [WeightedRatingKey, number] => (
       entry[1] !== null && entry[1] !== undefined && Number.isFinite(entry[1])
     ))
-  const totalWeight = activeWeighted.reduce((sum, [key]) => sum + w[key], 0)
-  const rawWeighted = totalWeight === 0
+  const rawWeighted = activeWeighted.length === 0
     ? 3
-    : activeWeighted.reduce((sum, [key, value]) => sum + value * w[key], 0) / totalWeight
+    : activeWeighted.reduce((sum, [, value]) => sum + value, 0) / activeWeighted.length
   const confidence = Math.min(1, activeWeighted.length / 4)
-  const weighted = 3 + (rawWeighted - 3) * confidence * 1.15
+  const weighted = 3 + (rawWeighted - 3) * confidence * 1.1
   const neutralAxes = NEUTRAL_RATING_KEYS
     .map(key => ratings[key])
     .filter((value): value is number => value !== null && value !== undefined && Number.isFinite(value))
   const combined = neutralAxes.length === 0
     ? weighted
-    : (weighted * totalWeight + neutralAxes.reduce((sum, value) => sum + value, 0)) / (totalWeight + neutralAxes.length)
+    : (weighted * activeWeighted.length + neutralAxes.reduce((sum, value) => sum + value, 0)) / (activeWeighted.length + neutralAxes.length)
   const withVibe = options && 'vibeBoost' in options
-    ? combined + ((options.vibeBoost ?? 3) - 3) * 0.12
+    ? combined + ((options.vibeBoost ?? 3) - 3) * 0.18
     : combined
-  const capped = Math.min(withVibe + (options?.retourBonus ?? 0), getWeakSpotCap(ratings, intent, activeWeighted.length))
+  const capped = Math.min(withVibe + (options?.retourBonus ?? 0), getWeakSpotCap(ratings, activeWeighted.length))
   return clampScore(capped)
 }
 
@@ -118,27 +95,28 @@ function normalizeTagText(label: string): string {
     .trim()
 }
 
-// Famille "tourisme négatif" : cumul plafonné au plus gros malus + max -0.10 secondaire.
+// Famille "tourisme négatif" : cumul plafonné au plus gros malus + max -0.08 secondaire.
 const TOURISM_FAMILY: Array<[string, number]> = [
-  ['surcote', -0.50],
-  ['pieges a touristes', -0.30],
-  ['trop touristique', -0.15],
+  ['surcote', -0.28],
+  ['pieges a touristes', -0.20],
+  ['trop touristique', -0.10],
 ]
 
 function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): number {
-  let bonus = coupDeCoeur ? 0.5 : 0
+  let positive = coupDeCoeur ? 0.18 : 0
+  let negative = 0
   for (const raw of tags) {
     const t = normalizeTagText(raw)
-    if (t.includes('belle surprise')) bonus += 0.30
-    else if (t.includes('facile a vivre')) bonus += 0.15
-    else if (t.includes('ambiance locale')) bonus += 0.05
-    else if (t.includes('pas cher')) bonus += 0.25
-    else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) bonus += 0.10
-    else if (t.includes('beau partout')) bonus += 0.15
-    else if (t.includes('patrimoine marquant')) bonus += 0.15
-    else if (t.includes('craignos')) bonus -= 0.70
-    else if (t.includes('trop cher')) bonus -= 0.35
-    else if (t.includes('transports galere') || t.includes('transports galre')) bonus -= 0.20
+    if (t.includes('belle surprise')) positive += 0.15
+    else if (t.includes('facile a vivre')) positive += 0.10
+    else if (t.includes('ambiance locale')) positive += 0.08
+    else if (t.includes('pas cher')) positive += 0.12
+    else if (t.includes('ville a flaner') || t.includes('ville a flaneur')) positive += 0.08
+    else if (t.includes('beau partout')) positive += 0.10
+    else if (t.includes('patrimoine marquant')) positive += 0.10
+    else if (t.includes('craignos')) negative -= 0.45
+    else if (t.includes('trop cher')) negative -= 0.22
+    else if (t.includes('transports galere') || t.includes('transports galre')) negative -= 0.18
     // surcote / pieges / trop touristique → famille gérée ci-dessous
   }
 
@@ -148,14 +126,19 @@ function computeTagBonus(tags: string[], coupDeCoeur: boolean | undefined): numb
     .sort((a, b) => a - b)
 
   if (tourismHits.length === 1) {
-    bonus += tourismHits[0]
+    negative += tourismHits[0]
   } else if (tourismHits.length > 1) {
-    bonus += tourismHits[0]
+    negative += tourismHits[0]
     const secondary = tourismHits.slice(1).reduce((s, v) => s + v, 0)
-    bonus += Math.max(-0.10, secondary)
+    negative += Math.max(-0.08, secondary)
   }
 
-  return bonus
+  return Math.min(0.35, positive) + Math.max(-0.55, negative)
+}
+
+function getScoringTags(destination: Pick<Destination, 'standoutTags' | 'standout'>): string[] {
+  if (destination.standoutTags?.length) return destination.standoutTags
+  return destination.standout ? [destination.standout] : []
 }
 
 export function getDestinationScore(destination: Destination): number {
@@ -163,34 +146,21 @@ export function getDestinationScore(destination: Destination): number {
   const ambianceRessentie = destination.vibeBoost ?? null
   const faciliteSurPlace = destination.ease ?? null
   const rapportQualitePrix = destination.value ?? null
+  const baseScore = calculateScore({
+    food: destination.food ?? null,
+    night: destination.night ?? null,
+    culture: destination.culture ?? null,
+    nature: destination.nature ?? null,
+    value: destination.value ?? null,
+    ease: destination.ease ?? null,
+  }, destination.intent, {
+    vibeBoost: destination.vibeBoost,
+    retourBonus: destination.retourBonus ?? 0,
+  })
+  const scoringTags = getScoringTags(destination)
+  let score = baseScore + computeTagBonus(scoringTags, destination.coupDeCoeur)
 
-  const components: { weight: number; value: number }[] = []
-  if (verdictFinal !== null) components.push({ weight: 0.45, value: verdictFinal })
-  if (ambianceRessentie !== null) components.push({ weight: 0.25, value: ambianceRessentie })
-  if (faciliteSurPlace !== null) components.push({ weight: 0.15, value: faciliteSurPlace })
-  if (rapportQualitePrix !== null) components.push({ weight: 0.15, value: rapportQualitePrix })
-
-  let baseScore: number
-  if (components.length === 0) {
-    const legacyValues = [destination.food, destination.night, destination.culture, destination.nature, destination.value]
-      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
-    baseScore = legacyValues.length > 0
-      ? legacyValues.reduce((s, v) => s + v, 0) / legacyValues.length
-      : 3
-  } else {
-    const totalWeight = components.reduce((s, c) => s + c.weight, 0)
-    baseScore = components.reduce((s, c) => s + c.value * c.weight, 0) / totalWeight
-  }
-
-  const allTags = [...(destination.standoutTags ?? []), ...(destination.tripTypes ?? [])]
-  let score = baseScore + computeTagBonus(allTags, destination.coupDeCoeur)
-
-  const hasCraignos = allTags.some(t => normalizeTagText(t).includes('craignos'))
-
-  // Cap: verdict faible → plafond C
-  if (verdictFinal !== null && verdictFinal <= 2.5) {
-    score = Math.min(score, 3.19)
-  }
+  const hasCraignos = scoringTags.some(t => normalizeTagText(t).includes('craignos'))
 
   // Cap: double galère (prix + logistique) sans coup de cœur ni verdict très fort → plafond C
   if (
@@ -202,9 +172,10 @@ export function getDestinationScore(destination: Destination): number {
     score = Math.min(score, 3.19)
   }
 
-  // Cap: Craignos → plafond B (sauf coup de cœur + verdict exceptionnel)
-  if (hasCraignos && !(destination.coupDeCoeur && verdictFinal !== null && verdictFinal >= 4.5)) {
-    score = Math.min(score, 3.99)
+  // Craignos peut dégrader fort, mais ne doit pas envoyer une bonne base
+  // tout en haut du classement.
+  if (hasCraignos) {
+    score = Math.min(score, 4.49)
   }
 
   // Floor: Craignos ne descend pas en D si le score de fond était au moins C
@@ -212,8 +183,13 @@ export function getDestinationScore(destination: Destination): number {
     score = Math.max(score, 2.4)
   }
 
-  // Floor: coup de cœur + verdict fort + bonne ambiance → plancher A
-  if (destination.coupDeCoeur && verdictFinal !== null && verdictFinal >= 4 && ambianceRessentie !== null && ambianceRessentie >= 4) {
+  // Floor: coup de cœur + ressenti fort + base déjà solide → plancher A
+  if (
+    destination.coupDeCoeur
+    && verdictFinal !== null && verdictFinal >= 4
+    && ambianceRessentie !== null && ambianceRessentie >= 4
+    && baseScore >= 3.6
+  ) {
     score = Math.max(score, 4.0)
   }
 

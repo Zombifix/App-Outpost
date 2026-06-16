@@ -165,7 +165,7 @@ export default function Nav({
                   {activeFilterCount > 0 && (
                     <button
                       type="button"
-                      onPointerDown={() => onFiltersChange({ coupDeCoeur: false, thisYear: false, companions: 'all', budget: 'all' })}
+                      onPointerDown={() => onFiltersChange({ coupDeCoeur: false, thisYear: false, livedThere: false, visitedMultiple: false, companions: 'all', budget: 'all' })}
                     >
                       Reset
                     </button>

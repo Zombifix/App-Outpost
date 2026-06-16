@@ -3,7 +3,7 @@ import type { Destination, Intent, RoadTripStop, Tier } from '../types'
 import { TIER_COLORS } from '../data'
 import { getDestinationImage } from '../services/imageSearch'
 import { findDestinationAtLocation, findDuplicate } from '../utils/duplicates'
-import { calculateScore, getMaxCoupDeCoeur, scoreToTier } from '../utils'
+import { getDestinationScore, getMaxCoupDeCoeur, scoreToTier } from '../utils'
 import { buildDestinationRecommendations, emptySuggestionHistoryState, pushShownSuggestions } from '../lib/destinationRecommendations'
 import { geoCentroid } from '../lib/geoCentroid'
 import { useSearchSuggestionState } from '../hooks/useSearchSuggestionState'
@@ -104,19 +104,25 @@ interface WizardState {
   replaceCoupDeCoeurName: string
 }
 
-// calculateScore et scoreToTier importés de ../utils — source unique.
+// getDestinationScore et scoreToTier importés de ../utils — source unique.
 
 function computeScore(state: WizardState): number {
-  return calculateScore({
-    food: state.food,
-    night: state.night,
-    culture: state.culture,
-    nature: state.nature,
-    value: state.value,
-    ease: state.ease,
-  }, state.intent, {
-    vibeBoost: state.vibeBoost,
-    retourBonus: state.retourBonus ?? 0,
+  return getDestinationScore({
+    name: state.name || 'Preview',
+    country: state.country || 'Preview',
+    lat: Number.isFinite(state.lat) ? state.lat : 0,
+    lng: Number.isFinite(state.lng) ? state.lng : 0,
+    intent: state.intent,
+    food: state.food ?? undefined,
+    night: state.night ?? undefined,
+    culture: state.culture ?? undefined,
+    nature: state.nature ?? undefined,
+    value: state.value ?? undefined,
+    ease: state.ease ?? undefined,
+    vibeBoost: state.vibeBoost ?? undefined,
+    retourBonus: state.retourBonus ?? undefined,
+    standoutTags: state.standoutTags.length ? state.standoutTags : undefined,
+    coupDeCoeur: state.coupDeCoeur,
   })
 }
 
@@ -718,11 +724,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
           geojson: initialDestination.geojson,
           kind: initialDestination.kind ?? 'place',
           tripName: initialDestination.tripName ?? '',
-          food: initialDestination.food,
-          night: initialDestination.night,
-          culture: initialDestination.culture,
-          nature: initialDestination.nature,
-          value: initialDestination.value,
+          food: initialDestination.food ?? null,
+          night: initialDestination.night ?? null,
+          culture: initialDestination.culture ?? null,
+          nature: initialDestination.nature ?? null,
+          value: initialDestination.value ?? null,
           ease: initialDestination.ease ?? null,
           vibeBoost: initialDestination.vibeBoost ?? null,
           retourBonus: initialDestination.retourBonus ?? null,
@@ -837,11 +843,11 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       geojson: initialDestination.geojson,
       kind: initialDestination.kind ?? 'place',
       tripName: initialDestination.tripName ?? '',
-      food: initialDestination.food,
-      night: initialDestination.night,
-      culture: initialDestination.culture,
-      nature: initialDestination.nature,
-      value: initialDestination.value,
+      food: initialDestination.food ?? null,
+      night: initialDestination.night ?? null,
+      culture: initialDestination.culture ?? null,
+      nature: initialDestination.nature ?? null,
+      value: initialDestination.value ?? null,
       ease: initialDestination.ease ?? null,
       vibeBoost: initialDestination.vibeBoost ?? null,
       retourBonus: initialDestination.retourBonus ?? null,
@@ -1226,7 +1232,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
       ease: s.ease ?? undefined,
       memorability: isEditing ? initialDestination.memorability : undefined,
       vibeBoost: s.vibeBoost ?? undefined,
-      retourBonus: answeredKeys.has('retourBonus') && !skippedKeys.has('retourBonus') ? s.retourBonus : undefined,
+      retourBonus: answeredKeys.has('retourBonus') && !skippedKeys.has('retourBonus') ? (s.retourBonus ?? undefined) : undefined,
       intent: s.intent,
       score: Math.round(score * 10) / 10,
       notes: isEditing ? (initialDestination.notes ?? 1) : 1,

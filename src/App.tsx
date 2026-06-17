@@ -445,7 +445,7 @@ function AppCore({
   profileAvatarFg: string
   onMapVisibilityChange: (value: MapVisibility) => Promise<{ ok: boolean; error?: string }>
 }) {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const { friendships, sendRequestByUserId, acceptRequest } = useFriends()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [friendsManageOpen, setFriendsManageOpen] = useState(false)
@@ -574,6 +574,9 @@ function AppCore({
   const [shareCopied, setShareCopied] = useState(false)
   const [publicId, setPublicId] = useState<string>(loadPublicId)
   const avatarFallbackLabel = getAvatarFallbackLabel(profileDisplayName, profileHandle, publicId)
+  const profileAvatarFallbackUrl = profileHandle
+    ? `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(profileHandle)}`
+    : undefined
   const [mapDetail, setMapDetail] = useState<'simple' | 'detailed'>(() =>
     (localStorage.getItem('outpost-map-detail') as 'simple' | 'detailed' | null) ?? 'simple'
   )
@@ -630,6 +633,16 @@ function AppCore({
   useEffect(() => {
     if (profileHandle && !publicId) setPublicId(profileHandle)
   }, [profileHandle, publicId])
+
+  useEffect(() => {
+    if (authLoading || user) return
+    setPublicId('')
+    setCompareFriend(null)
+    setTargetedCompare(null)
+    setViewingFriend(null)
+    setSelectedName(null)
+    setSelectedKey(null)
+  }, [authLoading, user])
 
   useEffect(() => {
     if (isMobileLayout || activeView !== 'map') {
@@ -1146,6 +1159,7 @@ function AppCore({
         >
           <Avatar
             avatarUrl={profileAvatarUrl}
+            fallbackUrl={profileAvatarFallbackUrl}
             initials={avatarFallbackLabel}
             bg={profileAvatarBg}
             fg={profileAvatarFg}
@@ -1174,6 +1188,8 @@ function AppCore({
         friendDestinations={compareFriend && !compareFriendDenied ? compareFriendDests : undefined}
         friendInitials={compareFriend && !compareFriendDenied ? (compareFriend.displayName || '?').slice(0, 1).toUpperCase() : undefined}
         friendAvatarUrl={compareFriend && !compareFriendDenied ? (compareFriend.avatarUrl ?? null) : null}
+        friendAvatarBg={compareFriend && !compareFriendDenied ? compareFriend.avatarBg : undefined}
+        friendAvatarFg={compareFriend && !compareFriendDenied ? compareFriend.avatarFg : undefined}
         sharedNames={compareFriend && !compareFriendDenied ? compareSharedNames : undefined}
         controlsMode={desktopDock.controlsMode}
         legendMode={desktopDock.legendMode}
@@ -1352,6 +1368,7 @@ function AppCore({
         publicId={publicId}
         avatarFallbackLabel={avatarFallbackLabel}
         profileAvatarUrl={profileAvatarUrl}
+        profileAvatarFallbackUrl={profileAvatarFallbackUrl}
         profileAvatarBg={profileAvatarBg}
         profileAvatarFg={profileAvatarFg}
         canShare={!!user && !!publicId}

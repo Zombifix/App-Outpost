@@ -3589,6 +3589,10 @@ svg {
 .legend-item-help {
   outline: none;
 }
+.legend-item-help:hover,
+.legend-item-help:focus-visible {
+  z-index: 1;
+}
 .legend-item-help:focus-visible {
   box-shadow: 0 0 0 2px rgba(27, 95, 232, 0.18);
 }
@@ -4323,16 +4327,28 @@ h3.card-section-title {
 
 .sheet-compare-banner-copy {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sheet-compare-banner-text {
   min-width: 0;
 }
 
 .sheet-compare-banner-copy strong {
+  display: block;
   color: var(--ink);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+}
+
+.sheet-compare-banner-copy small {
+  display: block;
+  margin-top: 2px;
+  color: #5f6f8a;
+  font-size: var(--text-2xs);
+  line-height: 1.4;
 }
 
 .sheet-compare-banner-action {
@@ -4436,6 +4452,14 @@ h3.compare-insight-headline {
   color: #56647d;
   font-size: var(--text-sm);
   line-height: 1.45;
+}
+
+.compare-insight--friend-only .card-section-label {
+  margin-bottom: 1px;
+}
+
+.compare-insight--friend-only .compare-insight-sentence {
+  margin-top: 2px;
 }
 
 .compare-insight-footer {
@@ -6412,13 +6436,29 @@ h3.compare-insight-headline {
     gap: 6px;
   }
 
+  .destination-card .compare-insight--friend-only {
+    margin-top: 10px;
+    padding: 12px 16px;
+    gap: 3px;
+  }
+
   .destination-card h3.compare-insight-headline {
     font-size: clamp(28px, 2.2vw, 34px);
+  }
+
+  .destination-card .compare-insight--friend-only h3.compare-insight-headline {
+    font-size: clamp(22px, 1.8vw, 28px);
+    line-height: 1.08;
   }
 
   .destination-card .compare-insight-sentence {
     font-size: var(--text-base);
     line-height: 1.5;
+  }
+
+  .destination-card .compare-insight--friend-only .compare-insight-sentence {
+    font-size: var(--text-sm);
+    line-height: 1.4;
   }
 
   .destination-card .compare-insight-footer {
@@ -6710,13 +6750,29 @@ h3.compare-insight-headline {
     gap: 7px;
   }
 
+  .destination-card .compare-insight--friend-only {
+    margin-top: 12px;
+    padding: 14px 18px;
+    gap: 4px;
+  }
+
   .destination-card h3.compare-insight-headline {
     font-size: clamp(30px, 2vw, 36px);
+  }
+
+  .destination-card .compare-insight--friend-only h3.compare-insight-headline {
+    font-size: clamp(24px, 1.7vw, 30px);
+    line-height: 1.08;
   }
 
   .destination-card .compare-insight-sentence {
     font-size: 15px;
     line-height: 1.55;
+  }
+
+  .destination-card .compare-insight--friend-only .compare-insight-sentence {
+    font-size: var(--text-sm);
+    line-height: 1.45;
   }
 
   .destination-card .compare-insight-footer {
@@ -8865,7 +8921,7 @@ h3.compare-insight-headline {
 
 .wizard-duration-field {
   display: grid;
-  grid-template-columns: minmax(3.5rem, 1fr) minmax(5.75rem, 6.75rem);
+  grid-template-columns: minmax(3.5rem, 1fr) minmax(6.5rem, auto);
   align-items: center;
   height: 42px;
   min-width: 0;
@@ -9954,6 +10010,25 @@ h3.compare-insight-headline {
   color: var(--purple);
 }
 
+.tier-list-compare-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  border-radius: 50%;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 120ms ease, background 120ms ease;
+  flex-shrink: 0;
+}
+
+.tier-list-compare-chip-remove:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .tier-list-compare-btn.is-active {
   background: var(--purple);
   color: white;
@@ -10537,16 +10612,23 @@ h3.compare-insight-headline {
   width: auto;
   border-radius: var(--radius-pill);
   background: var(--friend-secondary);
-  color: #fff;
+  color: var(--pin-badge-fg, #fff);
   font-style: normal;
+  opacity: 1;
+  isolation: isolate;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 /* Mode photo : badge circulaire avec avatar */
 .pin-friend-badge:has(img) {
   width: 22px;
   padding: 0;
   overflow: hidden;
-  background: none;
-  border-color: var(--friend-secondary);
+  background: var(--pin-badge-bg, #fff);
+  border-color: color-mix(in srgb, var(--friend-secondary) 58%, #fff);
+  box-shadow:
+    0 6px 14px rgba(16, 38, 72, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.82);
 }
 .pin-friend-badge img {
   width: 100%;
@@ -10554,6 +10636,9 @@ h3.compare-insight-headline {
   object-fit: cover;
   border-radius: 50%;
   display: block;
+  opacity: 1;
+  filter: none;
+  background: var(--pin-badge-bg, #fff);
 }
 
 /* Partagé — top-right, vert */

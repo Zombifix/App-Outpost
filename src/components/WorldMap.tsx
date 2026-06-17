@@ -178,6 +178,8 @@ interface WorldMapProps {
   friendDestinations?: Destination[]
   friendInitials?: string
   friendAvatarUrl?: string | null
+  friendAvatarBg?: string
+  friendAvatarFg?: string
   sharedNames?: Set<string>
   controlsMode?: DockMode
   legendMode?: DockMode
@@ -192,6 +194,8 @@ interface MapMarkerPin {
   selected: boolean
   badge?: string
   badgeAvatarUrl?: string | null
+  badgeBg?: string
+  badgeFg?: string
   shared?: boolean
   tripBadges?: PinTripBadge[]
 }
@@ -687,7 +691,7 @@ function syncZoneRouteLayers(
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WorldMap({
   destinations, flyTarget, selectedName, onSelect, onDeselect, onFlyTargetConsumed,
-  friendDestinations, friendInitials, friendAvatarUrl, sharedNames,
+  friendDestinations, friendInitials, friendAvatarUrl, friendAvatarBg, friendAvatarFg, sharedNames,
   controlsMode = 'overlay-bottom',
   legendMode = 'overlay-bottom',
   hidden,
@@ -1132,6 +1136,8 @@ export default function WorldMap({
           selected: destination.name === selectedName || destination.name === flyTarget?.name || expandedRouteKey === `friend:${destination.name}`,
           badge: friendInitials,
           badgeAvatarUrl: friendAvatarUrl,
+          badgeBg: friendAvatarBg,
+          badgeFg: friendAvatarFg,
           shared: false,
           tripBadges: undefined as PinTripBadge[] | undefined,
         })),
@@ -1182,6 +1188,8 @@ export default function WorldMap({
           owner={pin.owner}
           badge={pin.badge}
           badgeAvatarUrl={pin.badgeAvatarUrl}
+          badgeBg={pin.badgeBg}
+          badgeFg={pin.badgeFg}
           shared={pin.shared}
           tripBadges={pin.tripBadges}
         />,
@@ -1284,7 +1292,7 @@ export default function WorldMap({
                 {friendOnly.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={`friend:${d.name}`} destination={d} projection={projFnRef.current}
                     compactMode={compactPins} selected={d.name === selectedName || expandedRouteKey === `friend:${d.name}`} onSelect={onSelect} onZoomToZone={zoomToZone} onExpandTrip={expandTripRoute}
-                    owner="friend" badge={friendInitials} badgeAvatarUrl={friendAvatarUrl} />
+                    owner="friend" badge={friendInitials} badgeAvatarUrl={friendAvatarUrl} badgeBg={friendAvatarBg} badgeFg={friendAvatarFg} />
                 ))}
                 {destinations.filter(d => d.kind === 'stop').map(d => (
                   <Pin key={d.name} destination={d} projection={projFnRef.current}
@@ -1379,6 +1387,8 @@ interface PinProps {
   owner?: 'me' | 'friend'
   badge?: string
   badgeAvatarUrl?: string | null
+  badgeBg?: string
+  badgeFg?: string
   shared?: boolean
   tripBadges?: PinTripBadge[]
 }
@@ -1627,7 +1637,7 @@ const RoutePath = memo(function RoutePath({ stops, projection, color, owner }: R
 
 
 const Pin = memo(function Pin({
-  destination, projection, compactMode, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, badgeAvatarUrl, shared, tripBadges,
+  destination, projection, compactMode, selected, onSelect, onZoomToZone, onExpandTrip, owner = 'me', badge, badgeAvatarUrl, badgeBg, badgeFg, shared, tripBadges,
 }: PinProps) {
   const projected = projection([destination.lng, destination.lat])
   if (!projected) return null
@@ -1727,7 +1737,13 @@ const Pin = memo(function Pin({
             )}
             <strong>{pinLabel}</strong>
             {owner === 'friend' && badge && (
-              <em className="pin-friend-badge">
+              <em
+                className="pin-friend-badge"
+                style={{
+                  '--pin-badge-bg': badgeBg ?? '#ffffff',
+                  '--pin-badge-fg': badgeFg ?? '#1f2937',
+                } as CSSProperties}
+              >
                 {badgeAvatarUrl
                   ? <img src={badgeAvatarUrl} alt="" aria-hidden="true" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; if (e.currentTarget.parentElement) e.currentTarget.parentElement.textContent = badge }} />
                   : badge}

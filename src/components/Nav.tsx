@@ -18,6 +18,7 @@ interface NavProps {
   publicId: string
   avatarFallbackLabel: string
   profileAvatarUrl?: string | null
+  profileAvatarFallbackUrl?: string
   profileAvatarBg: string
   profileAvatarFg: string
   canShare: boolean
@@ -49,6 +50,7 @@ export default function Nav({
   publicId,
   avatarFallbackLabel,
   profileAvatarUrl,
+  profileAvatarFallbackUrl,
   profileAvatarBg,
   profileAvatarFg,
   canShare,
@@ -256,6 +258,7 @@ export default function Nav({
           >
             <Avatar
               avatarUrl={profileAvatarUrl}
+              fallbackUrl={profileAvatarFallbackUrl}
               initials={avatarFallbackLabel || publicId}
               bg={profileAvatarBg}
               fg={profileAvatarFg}

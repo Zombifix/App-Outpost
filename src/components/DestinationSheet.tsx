@@ -717,10 +717,17 @@ function DestinationCardContent({
                 ? <img src={compareWith.friend.avatarUrl} alt="" />
                 : (firstName.slice(0, 1).toUpperCase() || '?')}
             </span>
-            <strong>{t('Comparing with', 'Comparaison avec')} {firstName}</strong>
-            {isFriendOnlyComparison && (
-              <small>{t('You have not visited or rated this destination yet.', 'Tu n’as pas encore visité ou noté cette destination.')}</small>
-            )}
+            <div className="sheet-compare-banner-text">
+              <strong>{t('Comparing with', 'Comparaison avec')} {firstName}</strong>
+              {isFriendOnlyComparison && compareDestination && (
+                <small>
+                  {t(
+                    `${compareWith.friend.displayName.split(' ')[0]} has been to ${compareDestination.name}. You have not visited or rated this destination yet.`,
+                    `${compareWith.friend.displayName.split(' ')[0]} est allé à ${compareDestination.name}. Tu n’as pas encore visité ou noté cette destination.`
+                  )}
+                </small>
+              )}
+            </div>
           </div>
           {onExitCompare && (
             <button
@@ -731,17 +738,6 @@ function DestinationCardContent({
               {t('Exit', 'Quitter')}
             </button>
           )}
-        </section>
-      )}
-      {isFriendOnlyComparison && compareDestination && (
-        <section className="compare-fallback-note" aria-label={t('Your travel status', 'Ton statut de voyage')}>
-          <strong>{t('Not in your journal yet', 'Pas encore dans ton carnet')}</strong>
-          <p>
-            {t(
-              `${compareWith?.friend.displayName.split(' ')[0]} has been to ${compareDestination.name}. You have not visited or rated this destination yet.`,
-              `${compareWith?.friend.displayName.split(' ')[0]} est allé à ${compareDestination.name}. Tu n’as pas encore visité ou noté cette destination.`
-            )}
-          </p>
         </section>
       )}
       {!compareWith && friendVisitors.length > 0 && (

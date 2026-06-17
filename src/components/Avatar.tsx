@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 interface AvatarProps {
   avatarUrl?: string | null
+  fallbackUrl?: string
   initials: string
   bg: string
   fg: string
@@ -13,6 +14,7 @@ interface AvatarProps {
 
 export function Avatar({
   avatarUrl,
+  fallbackUrl,
   initials,
   bg,
   fg,
@@ -21,8 +23,10 @@ export function Avatar({
   ariaLabel,
   ariaHidden,
 }: AvatarProps) {
-  const [imgFailed, setImgFailed] = useState(false)
-  const showImage = !!avatarUrl && !imgFailed
+  const [primaryFailed, setPrimaryFailed] = useState(false)
+  const [fallbackFailed, setFallbackFailed] = useState(false)
+  const activeUrl = !primaryFailed ? (avatarUrl ?? null) : (fallbackUrl && !fallbackFailed ? fallbackUrl : null)
+  const showImage = !!activeUrl
   const fallbackInitial = initials.trim().charAt(0).toUpperCase() || '·'
 
   return (
@@ -34,11 +38,14 @@ export function Avatar({
     >
       {showImage ? (
         <img
-          src={avatarUrl}
+          src={activeUrl}
           alt=""
           aria-hidden="true"
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
-          onError={() => setImgFailed(true)}
+          onError={() => {
+            if (!primaryFailed) setPrimaryFailed(true)
+            else setFallbackFailed(true)
+          }}
         />
       ) : (
         fallbackInitial

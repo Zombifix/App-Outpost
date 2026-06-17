@@ -1339,24 +1339,12 @@ export default function WorldMap({
           </button>
         ) : null}
         <div className="legend-items">
-          {legendItems.map(({ tier, label, description }, index) => {
-            const tooltipId = `${legendTooltipIdBase}-${tier}-${index}`
-            return (
-            <span
-              key={tier}
-              className="legend-item-help"
-              tabIndex={0}
-              aria-label={`${tier} · ${label}. ${description}`}
-              aria-describedby={tooltipId}
-            >
+          {legendItems.map(({ tier, label }) => (
+            <span key={tier} className="legend-item-help" aria-label={`${tier} · ${label}`}>
               <i className={`tier-dot tier-${tier.toLowerCase()}`}>{tier}</i>
               {label}
-              <span id={tooltipId} role="tooltip" className="legend-inline-tooltip">
-                {description}
-              </span>
             </span>
-            )
-          })}
+          ))}
         </div>
       </div>}
 

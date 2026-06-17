@@ -35,7 +35,13 @@ import { supabase } from './lib/supabase'
 import { FriendsProvider, useFriends } from './hooks/useFriends'
 import { useFriendDestinations } from './hooks/useFriendDestinations'
 import { useMyProfile } from './hooks/useMyProfile'
-import { FAKE_FRIENDS_MODE, findFakeFriendByHandle, getFakeFriendDestinations } from './hooks/_fakeFriends'
+import {
+  FAKE_FRIENDS_MODE,
+  FAKE_FRIENDSHIPS,
+  findFakeFriendByHandle,
+  getFakeFriendDestinations,
+  getFakeMyDestinations,
+} from './hooks/_fakeFriends'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { t, lang, setLang } from './i18n'
 
@@ -453,6 +459,7 @@ function AppCore({
   const [compareFriend, setCompareFriend] = useState<import('./types').Friendship | null>(null)
   const [targetedCompare, setTargetedCompare] = useState<{ friendUserId: string; destinationKey: string } | null>(null)
   const [myDestinations, setDestinations, { resetAll: resetMyDestinations, error: myDestinationsError }] = useMyDestinations(normalizeDestinations)
+  const [localSeedCompare, setLocalSeedCompare] = useState<ActiveSheetCompare | null>(null)
   // Quand on visite le carnet d'un ami : en mode fake on lit depuis _fakeFriends, sinon
   // on fetch via Supabase (RLS autorise les amis acceptés). Le hook renvoie [] quand
   // friendUserId est null, donc on peut l'appeler systématiquement.
@@ -608,6 +615,44 @@ function AppCore({
     setActiveView('map')
     setDestinations(seededDestinations)
   }, [setDestinations, user])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (!isLocalTestHost() || url.searchParams.get('seed') !== 'friend-only-compare') return
+
+    url.searchParams.delete('seed')
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+
+    const fallbackFriend = FAKE_FRIENDSHIPS.find(friend => friend.status === 'accepted') ?? null
+    if (!fallbackFriend) return
+
+    const seededMine = (myDestinations.length > 0 || user)
+      ? myDestinations
+      : getFakeMyDestinations().map(withRecalculatedScore)
+    const myKeys = destinationNameSet(seededMine)
+    const friendDestinations = getFakeFriendDestinations(fallbackFriend.otherUser).map(withRecalculatedScore)
+    const friendOnlyDestination = friendDestinations.find(destination => !myKeys.has(destinationNameKey(destination))) ?? friendDestinations[0]
+
+    if (!friendOnlyDestination) return
+    if (!user && myDestinations.length === 0) setDestinations(seededMine)
+
+    setAccountOpen(true)
+    setViewingFriend(null)
+    setCompareFriend(null)
+    setTargetedCompare(null)
+    setLocalSeedCompare({
+      mode: 'global',
+      friend: fallbackFriend,
+      mine: undefined,
+      theirs: friendOnlyDestination,
+    })
+    setSelectedName(friendOnlyDestination.name)
+    setSelectedKey(destinationNameKey(friendOnlyDestination))
+    setPendingMapFocusName(null)
+    setFlyTarget({ lat: friendOnlyDestination.lat, lng: friendOnlyDestination.lng, name: friendOnlyDestination.name })
+    setFilters(DEFAULT_FILTERS)
+    setActiveView('map')
+  }, [myDestinations, setDestinations, user])
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -955,8 +1000,20 @@ function AppCore({
         theirs: selectedCompareDestination,
       }
     }
+    if (localSeedCompare && selectedKey === destinationNameKey(localSeedCompare.theirs)) {
+      return localSeedCompare
+    }
     return null
-  }, [targetedCompareFriend, selectedTargetedCompareDestination, compareFriend, selectedCompareDestination, selectedMine])
+  }, [targetedCompareFriend, selectedTargetedCompareDestination, compareFriend, selectedCompareDestination, localSeedCompare, selectedKey, selectedMine])
+  const isLocalSeedCompareActive = useMemo(
+    () => Boolean(
+      localSeedCompare
+      && activeSheetCompare
+      && localSeedCompare.friend.otherUser === activeSheetCompare.friend.otherUser
+      && destinationNameKey(localSeedCompare.theirs) === destinationNameKey(activeSheetCompare.theirs)
+    ),
+    [localSeedCompare, activeSheetCompare]
+  )
   const selected = useMemo(() => {
     if (viewingFriend) return selectedFriendView
     if (activeSheetCompare) return activeSheetCompare.mine ?? activeSheetCompare.theirs
@@ -1223,7 +1280,6 @@ function AppCore({
               {compareFriend.displayName.split(' ')[0]}
             </span>
             <span className="compare-inline-item">
-              <span className="compare-legend-dot compare-legend-dot--shared" aria-hidden="true" />
               {compareCommonCount} {t('in common', 'en commun')}
             </span>
           </div>
@@ -1438,7 +1494,8 @@ function AppCore({
           onFocus={focusSelected}
           onCompareFriend={friendUserId => handleTargetedCompareFriend(friendUserId, selected)}
           onExitCompare={() => {
-            if (activeSheetCompare?.mode === 'targeted') setTargetedCompare(null)
+            if (isLocalSeedCompareActive) setLocalSeedCompare(null)
+            else if (activeSheetCompare?.mode === 'targeted') setTargetedCompare(null)
             else setCompareFriend(null)
           }}
           onCoupDeCoeur={() => toggleCoupDeCoeur(selected.name)}

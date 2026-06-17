@@ -136,13 +136,18 @@ function getDestinationContext(destination: Destination) {
     })
   }
   if (destination.companions) {
-    details.push({ kind: 'text', icon: 'users', label: t('With', 'Avec'), value: COMPANION_LABELS[destination.companions] })
+    details.push({
+      kind: 'chips',
+      icon: 'users',
+      label: t('With', 'Avec'),
+      chips: [{ label: COMPANION_LABELS[destination.companions], tone: 'neutral' as const }],
+    })
   }
   if (destination.tripTypes?.length) {
     details.push({
       kind: 'chips',
       icon: 'sliders',
-      label: t('Type', 'Type'),
+      label: '',
       chips: destination.tripTypes.map(id => ({ label: getExperienceTagLabel(id), tone: 'neutral' as const })),
     })
   }
@@ -343,7 +348,7 @@ function ContextBlock({ context, className, ariaLabel }: {
               className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
             >
               <Icon name={item.icon} />
-              <span>{item.label}</span>
+              {item.label && <span>{item.label}</span>}
               {item.kind === 'text' ? (
                 <strong>{item.value}</strong>
               ) : (

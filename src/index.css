@@ -13139,26 +13139,6 @@ h3.compare-insight-headline {
   color: #15233f;
 }
 
-.tier-list-compare-stop {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 1px solid rgba(180, 200, 224, 0.6);
-  background: rgba(60, 90, 140, 0.07);
-  color: #5a7899;
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
-}
-
-.tier-list-compare-stop:hover {
-  background: rgba(60, 90, 140, 0.14);
-  color: #1f3650;
-  transform: scale(1.05);
-}
-
 /* ── Tier-list-page mobile ───────────────────────────────── */
 
 @media (max-width: 768px) {

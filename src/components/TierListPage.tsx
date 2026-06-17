@@ -914,6 +914,18 @@ export default function TierListPage({
                       ariaHidden={true}
                     />
                     <span className="tier-list-compare-chip-label">{friend.name.split(' ')[0]}</span>
+                    <span
+                      className="tier-list-compare-chip-remove"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t('Stop comparing', 'Arrêter de comparer')}
+                      onClick={e => { e.stopPropagation(); clearComparison() }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); clearComparison() } }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </span>
                   </>
                 ) : (
                   <>
@@ -923,24 +935,12 @@ export default function TierListPage({
                       <path d="M1 13c0-2.21 2.015-4 4.5-4s4.5 1.79 4.5 4M10.5 9c2.485 0 4.5 1.79 4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                     </svg>
                     <span className="tier-list-compare-chip-label">{t('Compare', 'Comparer')}</span>
+                    <svg className="tier-list-compare-chip-caret" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </>
                 )}
-                <svg className="tier-list-compare-chip-caret" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
               </button>
-              {friend && (
-                <button
-                  className="tier-list-compare-stop"
-                  type="button"
-                  onClick={clearComparison}
-                  aria-label={t('Stop comparing', 'Arrêter de comparer')}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                    <path d="M18 6 6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
 
               {comparePicker && (
                 <div className="friend-picker">

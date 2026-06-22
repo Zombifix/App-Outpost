@@ -59,22 +59,30 @@ function formatEuro(value: number) {
   return `${Math.round(value).toLocaleString('en-US')} EUR`
 }
 
-const INTENT_LABELS: Record<Destination['intent'], string> = {
-  tourisme: t('Tourism', 'Tourisme'),
-  sorties: t('Nightlife', 'Sorties'),
-  gastro: t('Food & Gastronomy', 'Food & Gastronomie'),
-  nature: t('Nature', 'Nature'),
-  travail: t('Work', 'Travail'),
-  'city-trip': t('City trip', 'City trip'),
+// Ressenti (vibeBoost) et recommandation (retourBonus) du wizard : capturés mais
+// historiquement jamais affichés. On les surface en pills légers dans le hero.
+type HeroPill = { emoji: string; label: string; tone: 'positive' | 'neutral' | 'negative' }
+
+function getFeelingPill(destination: Destination): HeroPill | null {
+  const v = destination.vibeBoost
+  if (typeof v !== 'number') return null
+  if (v >= 5) return { emoji: '🥰', label: t('Felt great', 'On s\'y sentait super bien'), tone: 'positive' }
+  if (v >= 4) return { emoji: '👍', label: t('Good vibe', 'Bonne vibe'), tone: 'positive' }
+  if (v >= 3) return { emoji: '🥶', label: t('A bit cold', 'Accueil un peu froid'), tone: 'neutral' }
+  return { emoji: '⚠️', label: t('Not at ease', 'Pas serein·e'), tone: 'negative' }
 }
 
-const INTENT_EMOJIS: Record<Destination['intent'], string> = {
-  tourisme: '🗺️',
-  sorties: '🌙',
-  gastro: '🍽️',
-  nature: '🌿',
-  travail: '💼',
-  'city-trip': '🏙️',
+function getRecoPill(destination: Destination): HeroPill | null {
+  const v = destination.retourBonus
+  if (typeof v !== 'number') return null
+  if (v >= 0.3) return { emoji: '💌', label: t('Recommends', 'À recommander'), tone: 'positive' }
+  if (v >= 0.1) return { emoji: '✈️', label: t('Reco, specific trip', 'Reco, séjour précis'), tone: 'positive' }
+  if (v <= -0.3) return { emoji: '🚫', label: t('Would not reco', 'Pas recommandé'), tone: 'negative' }
+  return { emoji: '🌍', label: t('Not a priority', 'Pas en priorité'), tone: 'neutral' }
+}
+
+function getFeelingRecoPills(destination: Destination): HeroPill[] {
+  return [getFeelingPill(destination), getRecoPill(destination)].filter((p): p is HeroPill => p !== null)
 }
 
 type ContextDetail =
@@ -687,12 +695,12 @@ function DestinationCardContent({
               {t('You', 'Toi')} + {compareWith.friend.displayName.split(' ')[0]}
             </span>
           )}
-          {destination.intent && (
-            <span className="intent-pill destination-hero-pill">
-              <span aria-hidden="true">{INTENT_EMOJIS[destination.intent]}</span>
-              {INTENT_LABELS[destination.intent]}
+          {getFeelingRecoPills(destination).map(pill => (
+            <span key={pill.label} className={`intent-pill destination-hero-pill destination-hero-pill--${pill.tone}`}>
+              <span aria-hidden="true">{pill.emoji}</span>
+              {pill.label}
             </span>
-          )}
+          ))}
           {canEditOwnDestination && coupDeCoeur && (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"
@@ -958,6 +966,36 @@ function DestinationCardContent({
               </div>
             </section>
           ) : null}
+          {mineDestination && compareDestination && (() => {
+            const minePills = getFeelingRecoPills(mineDestination)
+            const theirPills = getFeelingRecoPills(compareDestination)
+            if (minePills.length === 0 && theirPills.length === 0) return null
+            return (
+              <section className="compare-takeaways" aria-label={t('Feel & recommendation', 'Ressenti & reco')}>
+                <span className="card-section-label">{t('Feel & recommendation', 'Ressenti & reco')}</span>
+                {minePills.length > 0 && (
+                  <div className="compare-takeaways-row">
+                    <span className="compare-takeaways-who compare-takeaways-who--you">{t('You', 'Toi')}</span>
+                    <div className="compare-takeaways-chips">
+                      {minePills.map(pill => (
+                        <span key={pill.label} className="compare-takeaway-chip compare-takeaway-chip--you">{pill.emoji} {pill.label}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {theirPills.length > 0 && (
+                  <div className="compare-takeaways-row">
+                    <span className="compare-takeaways-who compare-takeaways-who--friend">{firstName}</span>
+                    <div className="compare-takeaways-chips">
+                      {theirPills.map(pill => (
+                        <span key={pill.label} className="compare-takeaway-chip compare-takeaway-chip--friend">{pill.emoji} {pill.label}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )
+          })()}
         </>
       )}
       <h3 className="card-section-label card-section-title">{t('Ratings by criterion', 'Notes par critère')}</h3>
@@ -1113,6 +1151,12 @@ function RoadTripCardContent({
           <span className="intent-pill destination-hero-pill">
             {stageCount} {t('stop', 'étape')}{stageCount > 1 ? 's' : ''}
           </span>
+          {getFeelingRecoPills(destination).map(pill => (
+            <span key={pill.label} className={`intent-pill destination-hero-pill destination-hero-pill--${pill.tone}`}>
+              <span aria-hidden="true">{pill.emoji}</span>
+              {pill.label}
+            </span>
+          ))}
           {canEditOwnDestination && coupDeCoeur && (
             <button
               className="coup-de-coeur-button destination-hero-favorite is-active"

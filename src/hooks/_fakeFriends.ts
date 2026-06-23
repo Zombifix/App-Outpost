@@ -155,7 +155,15 @@ const BRUNO_DESTS: Destination[] = [
 export const FAKE_MY_DESTINATIONS: Destination[] = [
   dest('Paris', 'France', 48.8566, 2.3522, 'B', img('1502602898657-3e91760cbb34'), { food: 4, night: 4, culture: 5, nature: 2, value: 2 }, 'city-trip', 3.8, 'fr'),
   dest('Annecy', 'France', 45.8992, 6.1294, 'A', img('1506744038136-46273834b3fb'), { food: 4, night: 2, culture: 3, nature: 5, value: 3 }, 'nature', 4.3, 'fr'),
-  dest('Rome', 'Italie', 41.9028, 12.4964, 'S', img('1529260830199-42c24126f198'), { food: 5, night: 4, culture: 5, nature: 2, value: 3 }, 'tourisme', 4.7, 'it'),
+  {
+    ...dest('Rome', 'Italie', 41.9028, 12.4964, 'S', img('1529260830199-42c24126f198'), { food: 5, night: 4, culture: 5, nature: 2, value: 3 }, 'tourisme', 4.7, 'it'),
+    tripYear: 2025,
+    tripDays: 4,
+    companions: 'couple',
+    personalBudget: 760,
+    tripTypes: ['patrimoine', 'food', 'flanerie', 'ambiance', 'facile'],
+    standoutTags: ['✨ Beau partout', '🎭 Ambiance locale', '🧘 Facile à vivre', '🏘️ Ville à flâner', '😮 Belle surprise'],
+  },
   dest('Marrakech', 'Maroc', 31.6295, -7.9811, 'A', img('1597212618440-3f0a8da57c00'), { food: 5, night: 3, culture: 4, nature: 2, value: 4 }, 'gastro', 4.2, 'ma'),
   dest('New York', 'Etats-Unis', 40.7128, -74.0060, 'A', img('1499092346589-b9b6be3e94b2'), { food: 5, night: 5, culture: 5, nature: 2, value: 1 }, 'sorties', 4.4, 'us'),
   dest('Bali', 'Indonesie', -8.4095, 115.1889, 'S', img('1519046904884-53103b34b206'), { food: 4, night: 3, culture: 4, nature: 5, value: 4 }, 'nature', 4.8, 'id'),

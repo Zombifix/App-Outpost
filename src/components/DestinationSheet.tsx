@@ -89,6 +89,8 @@ type ContextDetail =
   | { kind: 'text'; icon: string; label: string; value: string }
   | { kind: 'chips'; icon: string; label: string; chips: Array<{ label: string; tone: 'neutral' | 'positive' | 'negative' }> }
 
+type ContextChip = Extract<ContextDetail, { kind: 'chips' }>['chips'][number]
+
 const NEGATIVE_TAG_LABELS = new Set([
   // labels actuels (avec emoji)
   '⚠️ Craignos', '📉 Surcoté', '💰 Trop cher', '🚇 Transports galère',
@@ -121,6 +123,47 @@ function filterDisplayTags(tags: string[]): string[] {
 
 // Gardé pour rétro-compat (tone negative sur les chips)
 const STANDOUT_FLOP_LABELS = NEGATIVE_TAG_LABELS
+const MAX_COLLAPSED_CONTEXT_CHIPS = 3
+
+function normalizeTagPriorityText(label: string) {
+  return label
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .trim()
+}
+
+function getTagScoreImpact(label: string) {
+  const normalized = normalizeTagPriorityText(label)
+
+  if (normalized.includes('craignos')) return -0.45
+  if (normalized.includes('surcote')) return -0.28
+  if (normalized.includes('trop cher')) return -0.22
+  if (normalized.includes('pieges a touristes')) return -0.20
+  if (normalized.includes('transports galere') || normalized.includes('transports galre')) return -0.18
+  if (normalized.includes('pas cher')) return 0.12
+  if (normalized.includes('facile a vivre')) return 0.10
+  if (normalized.includes('beau partout') || normalized.includes('patrimoine marquant')) return 0.10
+  if (normalized.includes('ambiance locale') || normalized.includes('ville a flaner') || normalized.includes('ville a flaneur')) return 0.08
+  if (normalized.includes('trop touristique')) return -0.10
+  if (normalized.includes('belle surprise')) return 0.15
+
+  return 0
+}
+
+function prioritizeContextChips(chips: ContextChip[]) {
+  return chips
+    .map((chip, index) => ({ chip, index, scoreImpact: getTagScoreImpact(chip.label) }))
+    .sort((a, b) => {
+      const impactDelta = Math.abs(b.scoreImpact) - Math.abs(a.scoreImpact)
+      if (impactDelta !== 0) return impactDelta
+      const signDelta = b.scoreImpact - a.scoreImpact
+      if (signDelta !== 0) return signDelta
+      return a.index - b.index
+    })
+    .map(({ chip }) => chip)
+}
 
 function getDestinationContext(destination: Destination) {
   const meta: Array<{ icon: string; label: string }> = []
@@ -155,8 +198,8 @@ function getDestinationContext(destination: Destination) {
     details.push({
       kind: 'chips',
       icon: 'sliders',
-      label: '',
-      chips: destination.tripTypes.map(id => ({ label: getExperienceTagLabel(id), tone: 'neutral' as const })),
+      label: t('Tags', 'Tags'),
+      chips: prioritizeContextChips(destination.tripTypes.map(id => ({ label: getExperienceTagLabel(id), tone: 'neutral' as const }))),
     })
   }
   const standoutRaw = destination.standoutTags?.length ? destination.standoutTags : destination.standout ? [destination.standout] : []
@@ -166,10 +209,10 @@ function getDestinationContext(destination: Destination) {
       kind: 'chips',
       icon: 'sparkles',
       label: t('Highlights', 'Points marquants'),
-      chips: standoutValues.map(label => ({
+      chips: prioritizeContextChips(standoutValues.map(label => ({
         label,
         tone: STANDOUT_FLOP_LABELS.has(label) ? ('negative' as const) : ('positive' as const),
-      })),
+      }))),
     })
   }
 
@@ -336,6 +379,9 @@ function ContextBlock({ context, className, ariaLabel }: {
   className?: string
   ariaLabel: string
 }) {
+  const hasPairedChipColumns = context.details.some(item => item.kind === 'chips' && item.icon === 'sliders')
+    && context.details.some(item => item.kind === 'chips' && item.icon === 'sparkles')
+
   return (
     <div className={`destination-context${className ? ` ${className}` : ''}`} aria-label={ariaLabel}>
       {context.meta.length > 0 && (
@@ -349,31 +395,65 @@ function ContextBlock({ context, className, ariaLabel }: {
         </div>
       )}
       {context.details.length > 0 && (
-        <div className="destination-context-details">
+        <div className={`destination-context-details${hasPairedChipColumns ? ' destination-context-details--paired-chips' : ''}`}>
           {context.details.map(item => (
             <div
               key={`${item.icon}-${item.label}`}
-              className={item.kind === 'chips' ? 'destination-context-row destination-context-row--chips' : 'destination-context-row'}
+              className={[
+                'destination-context-row',
+                item.kind === 'chips' ? 'destination-context-row--chips' : '',
+                hasPairedChipColumns && item.icon !== 'sliders' && item.icon !== 'sparkles' ? 'destination-context-row--span-full' : '',
+              ].filter(Boolean).join(' ')}
             >
-              <Icon name={item.icon} />
-              {item.label && <span>{item.label}</span>}
+              <div className="destination-context-row-head">
+                <Icon name={item.icon} />
+                {item.label && <span className="destination-context-row-label">{item.label}</span>}
+              </div>
               {item.kind === 'text' ? (
-                <strong>{item.value}</strong>
+                <strong className="destination-context-row-value">{item.value}</strong>
               ) : (
-                <div className="destination-context-chips">
-                  {item.chips.map(chip => (
-                    <span
-                      key={chip.label}
-                      className={`destination-context-chip destination-context-chip--${chip.tone}`}
-                    >
-                      {chip.label}
-                    </span>
-                  ))}
-                </div>
+                <ContextChipGroup chips={item.chips} />
               )}
             </div>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+function ContextChipGroup({ chips }: { chips: ContextChip[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasOverflow = chips.length > MAX_COLLAPSED_CONTEXT_CHIPS
+  const hiddenCount = Math.max(0, chips.length - MAX_COLLAPSED_CONTEXT_CHIPS)
+  const visibleChips = hasOverflow && !expanded
+    ? chips.slice(0, MAX_COLLAPSED_CONTEXT_CHIPS)
+    : chips
+
+  return (
+    <div className="destination-context-chips">
+      {visibleChips.map(chip => (
+        <span
+          key={chip.label}
+          className={`destination-context-chip destination-context-chip--${chip.tone}`}
+        >
+          {chip.label}
+        </span>
+      ))}
+      {hasOverflow && (
+        <button
+          type="button"
+          className="destination-context-chip destination-context-chip--toggle"
+          aria-expanded={expanded}
+          aria-label={
+            expanded
+              ? t('Collapse tags', 'Réduire les tags')
+              : t(`Show ${hiddenCount} more tags`, `Afficher ${hiddenCount} tags en plus`)
+          }
+          onClick={() => setExpanded(value => !value)}
+        >
+          {expanded ? <Icon name="chevron-up" /> : `+${hiddenCount}`}
+        </button>
       )}
     </div>
   )
@@ -505,6 +585,7 @@ function DestinationCardContent({
   onOpenTrip,
   compareWith,
 }: DestinationSheetProps) {
+  const isMobileContext = useMediaQuery('(max-width: 768px)')
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [visitorPickerOpen, setVisitorPickerOpen] = useState(false)
@@ -796,10 +877,12 @@ function DestinationCardContent({
               className="friend-visitors-action"
               onClick={() => onCompareFriend(compareableVisitor.userId)}
             >
-              {t(
-                `Compare with ${compareableVisitor.displayName.split(' ')[0]}`,
-                `Comparer avec ${compareableVisitor.displayName.split(' ')[0]}`
-              )}
+              {isMobileContext
+                ? t('Compare', 'Comparer')
+                : t(
+                    `Compare with ${compareableVisitor.displayName.split(' ')[0]}`,
+                    `Comparer avec ${compareableVisitor.displayName.split(' ')[0]}`
+                  )}
             </button>
           )}
           {hasMultipleVisitors && (

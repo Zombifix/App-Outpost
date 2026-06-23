@@ -52,7 +52,11 @@
       "Bash(xargs grep -l \"compare\")",
       "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 9683049)",
       "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 0b7e4e1)",
-      "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 93c3a46)"
+      "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 93c3a46)",
+      "PowerShell(git fetch origin)",
+      "PowerShell(git checkout main)",
+      "PowerShell(git pull --ff-only origin main)",
+      "Bash(npx tsx *)"
     ]
   }
 }

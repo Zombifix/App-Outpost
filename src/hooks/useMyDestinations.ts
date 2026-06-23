@@ -16,7 +16,7 @@ import { FAKE_FRIENDS_MODE, getFakeMyDestinations } from './_fakeFriends'
 const STORAGE_KEY = 'outpost-destinations-v2'
 const LEGACY_STORAGE_KEY = 'triptier-destinations-v2'
 const FAKE_SEED_VERSION_KEY = 'outpost-fake-seed-version'
-const FAKE_SEED_VERSION = '2'
+const FAKE_SEED_VERSION = '3'
 const AUTO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
 export const AUTO_IMAGE_VERSION = 5
 const DEFAULT_COUP_DE_COEUR_NAMES = new Set(['Kyoto'])

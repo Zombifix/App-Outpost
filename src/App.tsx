@@ -75,7 +75,8 @@ const ACHIEVEMENT_TEST_DESTINATIONS: Destination[] = [
     name: 'Florence', country: 'Italie', countryCode: 'it', lat: 43.7696, lng: 11.2558, tier: 'S',
     image: 'https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?auto=format&fit=crop&w=900&q=85',
     score: 4.8, notes: 18, visitCount: 4, tripYear: 2025, tripDays: 4, companions: 'couple', personalBudget: 720,
-    tripTypes: ['culture', 'food'], standoutTags: ['architecture', 'culinary'],
+    tripTypes: ['patrimoine', 'food', 'flanerie', 'ambiance', 'facile'],
+    standoutTags: ['✨ Beau partout', '🎭 Ambiance locale', '🧘 Facile à vivre', '🏘️ Ville à flâner', '😮 Belle surprise'],
     food: 5, night: 3, culture: 5, nature: 3, value: 4, ease: 4, intent: 'tourisme', coupDeCoeur: true,
   },
   {
@@ -650,6 +651,34 @@ function AppCore({
     setSelectedKey(destinationNameKey(friendOnlyDestination))
     setPendingMapFocusName(null)
     setFlyTarget({ lat: friendOnlyDestination.lat, lng: friendOnlyDestination.lng, name: friendOnlyDestination.name })
+    setFilters(DEFAULT_FILTERS)
+    setActiveView('map')
+  }, [myDestinations, setDestinations, user])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (!isLocalTestHost() || url.searchParams.get('seed') !== 'verify-tags') return
+
+    url.searchParams.delete('seed')
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+
+    const seededMine = (myDestinations.length > 0 || user)
+      ? myDestinations
+      : getFakeMyDestinations().map(withRecalculatedScore)
+    const target = seededMine.find(destination => destination.name === 'Rome') ?? null
+
+    if (!target) return
+    if (!user && myDestinations.length === 0) setDestinations(seededMine)
+
+    setAccountOpen(false)
+    setViewingFriend(null)
+    setCompareFriend(null)
+    setTargetedCompare(null)
+    setLocalSeedCompare(null)
+    setSelectedName(target.name)
+    setSelectedKey(destinationNameKey(target))
+    setPendingMapFocusName(null)
+    setFlyTarget({ lat: target.lat, lng: target.lng, name: target.name })
     setFilters(DEFAULT_FILTERS)
     setActiveView('map')
   }, [myDestinations, setDestinations, user])

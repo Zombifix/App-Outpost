@@ -31,6 +31,12 @@ const PROFILE_ACHIEVEMENT_ICONS: Record<string, string> = {
   'documented-trouble': '⚠️',
   'seasoned-book': '📘',
   'outside-comfort': '🌿',
+  'geo-span': '🌍',
+  'peak-year': '🗓️',
+  comeback: '⏳',
+  'solo-rider': '🎒',
+  'companion-signature': '👥',
+  'summit-rare': '👑',
 }
 
 export function getProfileAchievementIcon(key: string, icon: string) {

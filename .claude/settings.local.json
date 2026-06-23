@@ -47,7 +47,12 @@
       "mcp__visualize__show_widget",
       "Bash(findstr /S /I \"tier\" src\\\\*.ts src\\\\*.tsx)",
       "Bash(findstr /S /I \"tier\" src\\\\**\\\\*.ts src\\\\**\\\\*.tsx)",
-      "Bash(findstr /S /I \"marker\\\\|pin\\\\|popup\" src\\\\**\\\\*.tsx)"
+      "Bash(findstr /S /I \"marker\\\\|pin\\\\|popup\" src\\\\**\\\\*.tsx)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(xargs grep -l \"compare\")",
+      "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 9683049)",
+      "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 0b7e4e1)",
+      "Bash(git -C /c/Users/Bizon/Documents/GitHub/App-Outpost show --stat 93c3a46)"
     ]
   }
 }

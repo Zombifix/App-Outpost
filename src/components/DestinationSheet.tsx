@@ -580,6 +580,7 @@ function DestinationCardContent({
   }, [activityEvents, destination.name])
   const compareableVisitor = !compareWith && friendVisitors.length === 1 ? friendVisitors[0] : null
   const hasMultipleVisitors = !compareWith && friendVisitors.length > 1
+  const hasSingleCompareVisitorCta = Boolean(compareableVisitor && onCompareFriend)
   const firstName = compareWith?.friend.displayName.split(' ')[0] ?? ''
 
   const closeMenu = () => { setMenuOpen(false); setConfirmDelete(false) }
@@ -755,7 +756,7 @@ function DestinationCardContent({
       )}
       {!compareWith && friendVisitors.length > 0 && (
         <div
-          className={`friend-visitors${visitorPickerOpen ? ' is-popover-open' : ''}`}
+          className={`friend-visitors${hasSingleCompareVisitorCta ? ' friend-visitors--single-compare' : ''}${visitorPickerOpen ? ' is-popover-open' : ''}`}
           aria-label={t("Friends who've been there", 'Amis qui y sont allés')}
           ref={visitorPickerRef}
         >

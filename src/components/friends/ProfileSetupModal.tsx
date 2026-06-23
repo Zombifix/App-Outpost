@@ -77,8 +77,8 @@ export default function ProfileSetupModal({ upsert, checkHandleAvailable }: Prof
   const trapRef = useFocusTrap<HTMLDivElement>(true)
 
   return (
-    <div ref={trapRef} className="account-overlay" role="dialog" aria-modal="true" aria-label={t('Create your profile', 'Créer ton profil')}>
-      <aside className="account-panel friends-add-panel" style={{ maxWidth: 460 }}>
+    <div ref={trapRef} className="account-overlay friends-modal-overlay" role="dialog" aria-modal="true" aria-label={t('Create your profile', 'Créer ton profil')}>
+      <aside className="account-panel friends-add-panel" style={{ maxWidth: 460 }} onClick={event => event.stopPropagation()}>
         <h2 style={{ marginTop: 'var(--space-1)' }}>{t('Welcome to Outpost', 'Bienvenue sur Outpost')}</h2>
         <p className="account-hint">
           {t("Choose a username and a display name. That's what your friends will see to find you.", "Choisis un pseudo et un nom affiché. C'est ce que tes amis verront pour te trouver.")}

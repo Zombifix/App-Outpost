@@ -73,6 +73,7 @@ export default function Nav({
   onCompareViewingFriend,
 }: NavProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const showFilters = activeView === 'map' && !viewingFriend
   const activeFilterCount = [
     filters.coupDeCoeur,
     filters.thisYear,
@@ -85,6 +86,10 @@ export default function Nav({
   const updateFilters = (patch: Partial<DestinationFilters>) => {
     onFiltersChange({ ...filters, ...patch })
   }
+
+  useEffect(() => {
+    if (!showFilters && filtersOpen) setFiltersOpen(false)
+  }, [showFilters, filtersOpen])
 
   const navMapStats = useMemo(() => {
     const countryCount = new Set(destinations.map(d => d.country).filter(Boolean)).size
@@ -151,17 +156,18 @@ export default function Nav({
           </div>
         </div>
         <div className="top-actions">
-          <div className="filter-menu-wrap">
-            <button
-              className={activeFilterCount ? 'active-action' : ''}
-              onClick={() => setFiltersOpen(value => !value)}
-              aria-expanded={filtersOpen}
-            >
-              <Icon name="sliders" />
-              {t('Filters', 'Filtres')}{activeFilterCount ? ` (${activeFilterCount})` : ''}
-            </button>
-            {filtersOpen && (
-              <div className="filter-popover">
+          {showFilters && (
+            <div className="filter-menu-wrap">
+              <button
+                className={activeFilterCount ? 'active-action' : ''}
+                onClick={() => setFiltersOpen(value => !value)}
+                aria-expanded={filtersOpen}
+              >
+                <Icon name="sliders" />
+                {t('Filters', 'Filtres')}{activeFilterCount ? ` (${activeFilterCount})` : ''}
+              </button>
+              {filtersOpen && (
+                <div className="filter-popover">
                 <div className="filter-popover-head">
                   <strong>{t('Filters', 'Filtres')}</strong>
                   {activeFilterCount > 0 && (
@@ -205,9 +211,10 @@ export default function Nav({
                     <button type="button" className={filters.budget === '$$$' ? 'is-active' : ''} onPointerDown={() => updateFilters({ budget: '$$$' })}>$$$</button>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
           <button onClick={onOpenFriends} aria-label={t('Friends', 'Amis')}>
             <Icon name="users" />
             {t('Friends', 'Amis')}

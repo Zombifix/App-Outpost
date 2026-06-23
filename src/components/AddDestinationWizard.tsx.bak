@@ -1281,118 +1281,163 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
     </div>
   )
 
-  // Applique une unité de durée + reclampe la valeur saisie sur le max de l'unité.
-  // Réutilisé par le <select> et par la bascule « A vécu là-bas ».
-  const applyDurationUnit = (nextUnit: DurationUnit) => {
-    const nextConfig = getDurationUnitConfig(nextUnit)
-    setDurationUnit(nextUnit)
-    setDurationValueInput(prev => {
-      if (!prev) return prev
-      const numericValue = Number(prev)
-      if (!Number.isFinite(numericValue) || numericValue <= 0) return ''
-      return String(clamp(numericValue, 1, nextConfig.max))
-    })
-  }
-
-  // « A vécu là-bas » transforme l'entrée (voyage → période de vie) : on bascule la
-  // durée en mois minimum et on désactive le compteur de visites (ambigu ici).
-  const toggleLivedThere = () => {
-    const turningOn = !state.livedThere
-    setState(prev => ({ ...prev, livedThere: !prev.livedThere }))
-    if (turningOn) {
-      if (durationUnit === 'days' || durationUnit === 'weeks') applyDurationUnit('months')
-      if (revisitEnabled) {
-        setRevisitEnabled(false)
-        setVisitCountInput('1')
-      }
-    }
-  }
-
-  // Quand on a vécu sur place, on ne propose que Mois/Années (jours/semaines = absurde).
-  // On garde l'unité courante en repli pour ne jamais casser la valeur du <select>.
-  const durationUnitOptions = state.livedThere
-    ? DURATION_UNIT_OPTIONS.filter(
-        option => option.value === 'months' || option.value === 'years' || option.value === durationUnit,
-      )
-    : DURATION_UNIT_OPTIONS
-
   const renderTripContextFields = () => (
     <div className="wizard-context wizard-context--embedded wizard-context--details">
+      <div className="wizard-context-block wizard-context-block--form">
+        <div className="wizard-context-heading">
+          <span>{t('Trip details', 'Repères du séjour')}</span>
+        </div>
+        <div className="wizard-context-grid">
+          <label>
+            <span>{t('Year', 'Année')}</span>
+            <input
+              value={tripYearInput}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="1980"
+              aria-invalid={tripYearInput.length > 0 && !yearIsInRange}
+              onChange={e => setTripYearInput(sanitizeDigits(e.target.value, 4))}
+            />
+            {yearHelperText ? <small className="wizard-field-helper is-invalid">{yearHelperText}</small> : null}
+          </label>
+          <label>
+            <span>{t('Duration', 'Durée')}</span>
+            <div className={`wizard-duration-field${durationValueInput.length > 0 && !durationIsValid ? ' is-invalid' : ''}`}>
+              <input
+                value={durationValueInput}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="5"
+                aria-invalid={durationValueInput.length > 0 && !durationIsValid}
+                onChange={e => setDurationValueInput(sanitizeDigits(e.target.value, 3))}
+              />
+              <select
+                value={durationUnit}
+                aria-label={t('Duration unit', 'Unité de durée')}
+                onChange={e => {
+                  const nextUnit = e.target.value as DurationUnit
+                  const nextConfig = getDurationUnitConfig(nextUnit)
+                  setDurationUnit(nextUnit)
+                  setDurationValueInput(prev => {
+                    if (!prev) return prev
+                    const numericValue = Number(prev)
+                    if (!Number.isFinite(numericValue) || numericValue <= 0) return ''
+                    return String(clamp(numericValue, 1, nextConfig.max))
+                  })
+                }}
+              >
+                {DURATION_UNIT_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {durationHelperText ? <small className="wizard-field-helper is-invalid">{durationHelperText}</small> : null}
+          </label>
+          <label>
+            <span>{t('Personal budget', 'Budget perso')}</span>
+            <input
+              value={state.personalBudget ?? ''}
+              inputMode="numeric"
+              placeholder="450 €"
+              onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
+            />
+          </label>
+        </div>
+      </div>
+      <div className="wizard-context-block">
+        <div className="wizard-context-heading">
+          <span>{t('With who?', 'Avec qui ?')}</span>
+        </div>
+        <div className="wizard-chip-row" aria-label={t('With who', 'Avec qui')}>
+          {COMPANION_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              type="button"
+              className={state.companions === option.value ? 'is-selected' : ''}
+              aria-pressed={state.companions === option.value}
+              onClick={() => setState(prev => ({ ...prev, companions: prev.companions === option.value ? null : option.value }))}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="wizard-context-block">
         <div className="wizard-context-heading">
           <span>{t('Trip markers', 'Marqueurs du voyage')}</span>
         </div>
         <div className="wizard-marker-stack">
-          <div className="wizard-toggle-row" aria-label={t('Trip markers', 'Marqueurs du voyage')}>
-            {state.kind === 'zone' && (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={state.tripTypes.includes(ROAD_TRIP_TAG_ID)}
-                className={`wizard-favorite-toggle wizard-roadtrip-toggle${state.tripTypes.includes(ROAD_TRIP_TAG_ID) ? ' is-selected' : ''}`}
-                onClick={() => toggleExperienceTag(ROAD_TRIP_TAG_ID)}
-              >
-                <span className="wizard-favorite-switch" aria-hidden="true">
-                  <span>🚗</span>
-                </span>
-                <span>{t('Road trip', 'Road trip')}</span>
-              </button>
-            )}
+        <div className="wizard-toggle-row" aria-label={t('Trip markers', 'Marqueurs du voyage')}>
+          {state.kind === 'zone' && (
             <button
               type="button"
               role="switch"
-              aria-checked={state.coupDeCoeur}
-              className={`wizard-favorite-toggle${state.coupDeCoeur ? ' is-selected' : ''}`}
-              onClick={() => setState(prev => ({
-                ...prev,
-                coupDeCoeur: !prev.coupDeCoeur,
-                replaceCoupDeCoeurName: prev.coupDeCoeur ? '' : prev.replaceCoupDeCoeurName,
-              }))}
+              aria-checked={state.tripTypes.includes(ROAD_TRIP_TAG_ID)}
+              className={`wizard-favorite-toggle wizard-roadtrip-toggle${state.tripTypes.includes(ROAD_TRIP_TAG_ID) ? ' is-selected' : ''}`}
+              onClick={() => toggleExperienceTag(ROAD_TRIP_TAG_ID)}
             >
               <span className="wizard-favorite-switch" aria-hidden="true">
-                <span>❤️</span>
+                <span>🚗</span>
               </span>
-              <span>{t('Favorite', 'Coup de cœur')}</span>
+              <span>{t('Road trip', 'Road trip')}</span>
             </button>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={state.livedThere}
-              className={`wizard-favorite-toggle wizard-lived-toggle${state.livedThere ? ' is-selected' : ''}`}
-              onClick={toggleLivedThere}
-            >
-              <span className="wizard-favorite-switch" aria-hidden="true">
-                <span>🏠</span>
-              </span>
-              <span>{t('Lived there', 'A vécu là-bas')}</span>
-            </button>
-            {!state.livedThere && (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={revisitEnabled}
-                className={`wizard-favorite-toggle wizard-revisit-toggle${revisitEnabled ? ' is-selected' : ''}`}
-                onClick={() => {
-                  if (revisitEnabled) {
-                    setRevisitEnabled(false)
-                    setVisitCountInput('1')
-                    return
-                  }
-                  setRevisitEnabled(true)
-                  setVisitCountInput(prev => {
-                    const next = prev ? Number(prev) : NaN
-                    return Number.isInteger(next) && next >= 2 ? String(next) : '2'
-                  })
-                }}
-              >
-                <span className="wizard-favorite-switch" aria-hidden="true">
-                  <span>🔥</span>
-                </span>
-                <span>{t('Revisited', 'Revisité')}</span>
-              </button>
-            )}
-          </div>
-          {!state.livedThere && revisitEnabled && (
+          )}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.coupDeCoeur}
+            className={`wizard-favorite-toggle${state.coupDeCoeur ? ' is-selected' : ''}`}
+            onClick={() => setState(prev => ({
+              ...prev,
+              coupDeCoeur: !prev.coupDeCoeur,
+              replaceCoupDeCoeurName: prev.coupDeCoeur ? '' : prev.replaceCoupDeCoeurName,
+            }))}
+          >
+            <span className="wizard-favorite-switch" aria-hidden="true">
+              <span>❤️</span>
+            </span>
+            <span>{t('Favorite', 'Coup de cœur')}</span>
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.livedThere}
+            className={`wizard-favorite-toggle wizard-lived-toggle${state.livedThere ? ' is-selected' : ''}`}
+            onClick={() => setState(prev => ({ ...prev, livedThere: !prev.livedThere }))}
+          >
+            <span className="wizard-favorite-switch" aria-hidden="true">
+              <span>🏠</span>
+            </span>
+            <span>{t('Lived there', 'A vécu là-bas')}</span>
+          </button>
+        </div>
+        <div className="wizard-toggle-row wizard-toggle-row--secondary">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={revisitEnabled}
+            className={`wizard-favorite-toggle wizard-revisit-toggle${revisitEnabled ? ' is-selected' : ''}`}
+            onClick={() => {
+              if (revisitEnabled) {
+                setRevisitEnabled(false)
+                setVisitCountInput('1')
+                return
+              }
+              setRevisitEnabled(true)
+              setVisitCountInput(prev => {
+                const next = prev ? Number(prev) : NaN
+                return Number.isInteger(next) && next >= 2 ? String(next) : '2'
+              })
+            }}
+          >
+            <span className="wizard-favorite-switch" aria-hidden="true">
+              <span>🔥</span>
+            </span>
+            <span>{t('Revisited', 'Revisité')}</span>
+          </button>
+          {revisitEnabled && (
             <div className="wizard-revisit-inline">
               <span className="wizard-revisit-label">{t('Visits', 'Visites')}</span>
               <div className={`wizard-revisit-stepper${visitCountInput.length > 0 && !visitCountIsValid ? ' is-invalid' : ''}`}>
@@ -1423,6 +1468,7 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             </div>
           )}
         </div>
+        </div>
         {needsCoupDeCoeurReplacement && (
           <div className="wizard-replace-choice">
             <span>{t('You already have 2 favorites. Replace which one?', 'Tu as déjà 2 coups de cœur. Remplacer lequel ?')}</span>
@@ -1441,79 +1487,6 @@ export default function AddDestinationWizard({ onClose, onAdd, initialDestinatio
             </div>
           </div>
         )}
-      </div>
-      <div className="wizard-context-block wizard-context-block--form">
-        <div className="wizard-context-heading">
-          <span>{t('Trip details', 'Repères du séjour')}</span>
-        </div>
-        <div className={`wizard-context-grid${state.livedThere ? ' wizard-context-grid--lived' : ''}`}>
-          <label>
-            <span>{state.livedThere ? t('Arrival year', "Année d'arrivée") : t('Year', 'Année')}</span>
-            <input
-              value={tripYearInput}
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="1980"
-              aria-invalid={tripYearInput.length > 0 && !yearIsInRange}
-              onChange={e => setTripYearInput(sanitizeDigits(e.target.value, 4))}
-            />
-            {yearHelperText ? <small className="wizard-field-helper is-invalid">{yearHelperText}</small> : null}
-          </label>
-          <label>
-            <span>{state.livedThere ? t('How long?', 'Combien de temps ?') : t('Duration', 'Durée')}</span>
-            <div className={`wizard-duration-field${durationValueInput.length > 0 && !durationIsValid ? ' is-invalid' : ''}`}>
-              <input
-                value={durationValueInput}
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder={state.livedThere ? '2' : '5'}
-                aria-invalid={durationValueInput.length > 0 && !durationIsValid}
-                onChange={e => setDurationValueInput(sanitizeDigits(e.target.value, 3))}
-              />
-              <select
-                value={durationUnit}
-                aria-label={t('Duration unit', 'Unité de durée')}
-                onChange={e => applyDurationUnit(e.target.value as DurationUnit)}
-              >
-                {durationUnitOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {durationHelperText ? <small className="wizard-field-helper is-invalid">{durationHelperText}</small> : null}
-          </label>
-          {!state.livedThere && (
-            <label>
-              <span>{t('Personal budget', 'Budget perso')}</span>
-              <input
-                value={state.personalBudget ?? ''}
-                inputMode="numeric"
-                placeholder="450 €"
-                onChange={e => setState(prev => ({ ...prev, personalBudget: e.target.value ? Number(e.target.value) : null }))}
-              />
-            </label>
-          )}
-        </div>
-      </div>
-      <div className="wizard-context-block">
-        <div className="wizard-context-heading">
-          <span>{t('With who?', 'Avec qui ?')}</span>
-        </div>
-        <div className="wizard-chip-row" aria-label={t('With who', 'Avec qui')}>
-          {COMPANION_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              type="button"
-              className={state.companions === option.value ? 'is-selected' : ''}
-              aria-pressed={state.companions === option.value}
-              onClick={() => setState(prev => ({ ...prev, companions: prev.companions === option.value ? null : option.value }))}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   )

@@ -80,6 +80,10 @@ export const FAKE_ACTIVITY: EnrichedActivity[] = [
   aliceDest('Évora, Portugal',       38.5667, -7.9000,  'B', img('1560419015-7c427e8ae5ba'), 2),
   aliceDest('Lagos, Portugal',       37.1028, -8.6738,  'C', img('1502920514313-52581002a659'), 2),
   aliceDest('Coimbra, Portugal',     40.2033, -8.4103,  'B', img('1555881400-74d7acaacd8b'), 2),
+  // Dev fixture for the DestinationSheet desktop layout:
+  // "Rome" exists in FAKE_MY_DESTINATIONS, so opening it locally shows
+  // a single visitor row with an inline compare CTA.
+  aliceDest('Rome',                  41.9028, 12.4964,   'S', img('1529260830199-42c24126f198'), 3),
   // older standalone events
   {
     id: nextId(), actor: PROFILES.alice.id, kind: 'coup_de_coeur_set',
@@ -128,6 +132,7 @@ function dest(
 const ALICE_DESTS: Destination[] = [
   dest('Kyoto',      'Japon',         35.0116, 135.7681, 'A', img('1528360983277-13d401cdc186'), { food: 4, night: 3, culture: 5, nature: 5, value: 4 }, 'tourisme', 4.4, 'jp'),
   dest('Lisbonne',   'Portugal',      38.7223,  -9.1393, 'S', img('1548707309-dcebeab9ea9b'), { food: 5, night: 4, culture: 5, nature: 4, value: 5 }, 'tourisme', 4.7, 'pt'),
+  dest('Rome',       'Italie',        41.9028,  12.4964, 'S', img('1529260830199-42c24126f198'), { food: 5, night: 4, culture: 5, nature: 2, value: 3 }, 'tourisme', 4.6, 'it'),
   dest('Le Cap',     'Afrique du Sud',-33.9249, 18.4241, 'B', img('1521295121783-8a321d551ad2'), { food: 4, night: 4, culture: 4, nature: 5, value: 3 }, 'nature', 4.0, 'za'),
   dest('Bangkok',    'Thaïlande',     13.7563, 100.5018, 'A', img('1508009603885-50cf7c579365'), { food: 5, night: 5, culture: 4, nature: 2, value: 5 }, 'sorties', 4.5, 'th'),
   dest('Porto',      'Portugal',      41.1579,  -8.6291, 'A', img('1555881400-74d7acaacd8b'), { food: 5, night: 4, culture: 5, nature: 3, value: 5 }, 'gastro', 4.5, 'pt'),
